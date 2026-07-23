@@ -113,11 +113,11 @@ func consumeLotsWithCompany(ctx context.Context, st LotStore, co *store.Company,
 		}
 		remaining = 0
 	}
-	newRemain := co.WalletRemain - amount + overdraftAdded
+	newRemain := co.WalletQuotaRemain - amount + overdraftAdded
 	if newRemain < 0 {
 		newRemain = 0
 	}
-	if err := st.Company().SetWalletRemain(ctx, companyID, newRemain, nextHead); err != nil {
+	if err := st.Company().SetWalletQuotaRemain(ctx, companyID, newRemain, nextHead); err != nil {
 		return ConsumeResult{}, err
 	}
 	if remaining > 0 {
@@ -137,7 +137,7 @@ type CreditStore interface {
 	WithTx(ctx context.Context, fn func(store.Store) error) error
 }
 
-// CreditFromLot is the sole write path for recharge lot insert + wallet_remain delta.
+// CreditFromLot is the sole write path for recharge lot insert + wallet_quota_remain delta.
 func CreditFromLot(
 	ctx context.Context,
 	st CreditStore,

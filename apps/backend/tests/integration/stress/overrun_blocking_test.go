@@ -185,7 +185,7 @@ func testGatewayBlocksAfterOverrun(t *testing.T) {
 	assertGatewayBlocked(t, env, keyHash)
 }
 
-// testWalletInsufficientGatewayReject verifies that when wallet_remain drops
+// testWalletInsufficientGatewayReject verifies that when wallet_quota_remain drops
 // below minEstimatePoint, Gateway precheck rejects all requests.
 func testWalletInsufficientGatewayReject(t *testing.T) {
 	env := buildStressEnv(t, stressEnvOpts{
@@ -199,9 +199,9 @@ func testWalletInsufficientGatewayReject(t *testing.T) {
 	// Before: gateway should allow
 	assertGatewayAllowed(t, env, keyHash)
 
-	// Set wallet_remain to 0
+	// Set wallet_quota_remain to 0
 	ctx := testutil.Ctx()
-	if err := env.Store.Company().SetWalletRemain(ctx, contract.DefaultCompanyID, 0, nil); err != nil {
+	if err := env.Store.Company().SetWalletQuotaRemain(ctx, contract.DefaultCompanyID, 0, nil); err != nil {
 		t.Fatalf("failed to set wallet remain: %v", err)
 	}
 

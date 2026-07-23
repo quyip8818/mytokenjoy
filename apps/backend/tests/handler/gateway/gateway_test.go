@@ -136,7 +136,7 @@ func TestGatewayMountedOnRouter(t *testing.T) {
 		rootDept = *provisioned.Company.RootDeptID
 	}
 	ctx := testutil.CtxForCompany(provisioned.Company.ID)
-	if err := app.Store.Company().SetWalletRemain(ctx, provisioned.Company.ID, 100000, nil); err != nil {
+	if err := app.Store.Company().SetWalletQuotaRemain(ctx, provisioned.Company.ID, 100000, nil); err != nil {
 		t.Fatal(err)
 	}
 

@@ -23,8 +23,8 @@ func TestLoadPrecheckContextReturnsWalletAndRouting(t *testing.T) {
 	if row.CompanyID != contract.DefaultCompanyID {
 		t.Fatalf("expected company %d, got %d", contract.DefaultCompanyID, row.CompanyID)
 	}
-	if row.WalletRemain != 50000 {
-		t.Fatalf("expected wallet remain 50000, got %v", row.WalletRemain)
+	if row.WalletQuotaRemain != 50000 {
+		t.Fatalf("expected wallet remain 50000, got %v", row.WalletQuotaRemain)
 	}
 	if row.KeyStatus != "active" {
 		t.Fatalf("expected active key, got %s", row.KeyStatus)

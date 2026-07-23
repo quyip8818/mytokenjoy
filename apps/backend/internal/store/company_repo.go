@@ -30,7 +30,7 @@ type Company struct {
 	AuthzRevision         int64
 	BillingCurrency       string
 	FIFOHeadLotID         *uuid.UUID
-	WalletRemain          int64
+	WalletQuotaRemain     int64
 	CreatedAt             time.Time
 	UpdatedAt             time.Time
 }
@@ -55,5 +55,5 @@ type CompanyRepository interface {
 	List(ctx context.Context) ([]Company, error)
 	LockForUpdate(ctx context.Context, id uuid.UUID) (*Company, error)
 	ApplyWalletDelta(ctx context.Context, id uuid.UUID, delta int64, fifoHeadLotID *uuid.UUID) error
-	SetWalletRemain(ctx context.Context, id uuid.UUID, walletRemain int64, fifoHeadLotID *uuid.UUID) error
+	SetWalletQuotaRemain(ctx context.Context, id uuid.UUID, remain int64, fifoHeadLotID *uuid.UUID) error
 }

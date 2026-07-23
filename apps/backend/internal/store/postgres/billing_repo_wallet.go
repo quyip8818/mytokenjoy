@@ -10,9 +10,9 @@ import (
 
 func (r *billingRepo) AggregateWallet(ctx context.Context, companyID uuid.UUID) (store.WalletAggregate, error) {
 	var billingCurrency string
-	var walletRemain int64
-	if err := r.db.QueryRow(ctx, `SELECT billing_currency, wallet_remain FROM companies WHERE id = $1`, companyID).
-		Scan(&billingCurrency, &walletRemain); err != nil {
+	var walletQuotaRemain int64
+	if err := r.db.QueryRow(ctx, `SELECT billing_currency, wallet_quota_remain FROM companies WHERE id = $1`, companyID).
+		Scan(&billingCurrency, &walletQuotaRemain); err != nil {
 		return store.WalletAggregate{}, err
 	}
 	rows, err := r.db.Query(ctx, `
@@ -47,11 +47,11 @@ func (r *billingRepo) AggregateWallet(ctx context.Context, companyID uuid.UUID) 
 		overdraftQuota += int64(overdraft)
 	}
 	return store.WalletAggregate{
-		BillingCurrency: billingCurrency,
-		Balances:        balances,
-		WalletRemain:    walletRemain,
-		GiftQuota:       giftQuota,
-		OverdraftQuota:  overdraftQuota,
+		BillingCurrency:   billingCurrency,
+		Balances:          balances,
+		WalletQuotaRemain: walletQuotaRemain,
+		GiftQuota:         giftQuota,
+		OverdraftQuota:    overdraftQuota,
 	}, rows.Err()
 }
 

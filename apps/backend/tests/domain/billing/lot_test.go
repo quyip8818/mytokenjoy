@@ -42,7 +42,7 @@ func paidRechargeOrder(companyID uuid.UUID, id uuid.UUID, amount float64, create
 	}
 }
 
-func TestCreditFromLotUpdatesWalletRemain(t *testing.T) {
+func TestCreditFromLotUpdatesWalletQuotaRemain(t *testing.T) {
 	t.Parallel()
 	_, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
@@ -53,7 +53,7 @@ func TestCreditFromLotUpdatesWalletRemain(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected default company")
 	}
-	before := co.WalletRemain
+	before := co.WalletQuotaRemain
 
 	key := "idem-wallet-credit"
 	order := store.RechargeOrder{
@@ -76,12 +76,12 @@ func TestCreditFromLotUpdatesWalletRemain(t *testing.T) {
 		t.Fatal("expected company after credit")
 	}
 	want := before + lot.QuotaGranted
-	if got.WalletRemain != want {
-		t.Fatalf("wallet_remain: got %v want %v", got.WalletRemain, want)
+	if got.WalletQuotaRemain != want {
+		t.Fatalf("wallet_quota_remain: got %v want %v", got.WalletQuotaRemain, want)
 	}
 }
 
-func TestConsumeLotsDecrementsWalletRemain(t *testing.T) {
+func TestConsumeLotsDecrementsWalletQuotaRemain(t *testing.T) {
 	t.Parallel()
 	_, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
@@ -127,9 +127,9 @@ func TestConsumeLotsDecrementsWalletRemain(t *testing.T) {
 	if err != nil || afterConsume == nil {
 		t.Fatal("expected company after consume")
 	}
-	want := afterCredit.WalletRemain - consume
-	if afterConsume.WalletRemain != want {
-		t.Fatalf("wallet_remain: got %v want %v", afterConsume.WalletRemain, want)
+	want := afterCredit.WalletQuotaRemain - consume
+	if afterConsume.WalletQuotaRemain != want {
+		t.Fatalf("wallet_quota_remain: got %v want %v", afterConsume.WalletQuotaRemain, want)
 	}
 }
 
@@ -327,7 +327,7 @@ func TestConsumeLotsExpandsOverdraftAndReportsDelta(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected company")
 	}
-	if co.WalletRemain != 0 {
-		t.Fatalf("wallet_remain after overdraft: got %v want 0", co.WalletRemain)
+	if co.WalletQuotaRemain != 0 {
+		t.Fatalf("wallet_quota_remain after overdraft: got %v want 0", co.WalletQuotaRemain)
 	}
 }

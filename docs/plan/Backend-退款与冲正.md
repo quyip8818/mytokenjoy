@@ -11,7 +11,7 @@
 把「钱从公司钱包出去 / 误扣找回」收敛到与消耗入账同一套事实面：
 
 ```text
-只追加事实（lot + ledger + wallet_remain）→ 异步投影 → 读侧自然跟上
+只追加事实（lot + ledger + wallet_quota_remain）→ 异步投影 → 读侧自然跟上
 禁止 UPDATE 历史 ledger.display_amount / 用新 PPU 重算旧费用
 ```
 
@@ -43,7 +43,7 @@ flowchart TB
 | | A 充值退余额 | B 用量冲正 | C overdraft 冲销 |
 | --- | --- | --- | --- |
 | 触发 | 运营对未用完的 lot 退款 | 误计费 / 对账回退 | 透支后补钱或抹账 |
-| `wallet_remain` | **减少** | **增加** | 通常不变或随抵消变 |
+| `wallet_quota_remain` | **减少** | **增加** | 通常不变或随抵消变 |
 | lot | remaining **减少**（或关 lot） | 原 lot remaining **回补** | overdraft remaining **减少** |
 | ledger | 建议记 `wallet_refund`（审计） | **必须**负向用量段 | 可选审计段 |
 | 展示币 | 用该 lot `unit_price_display` 算退额 | 负 display = `-take × 原单价` | overdraft 单价多为 0 |
@@ -54,7 +54,7 @@ flowchart TB
 
 ## 3. 架构原则（与现状对齐）
 
-1. **事实 SSOT**：`company_recharge_lots` + `usage_ledger` + `companies.wallet_remain`（同事务）。  
+1. **事实 SSOT**：`company_recharge_lots` + `usage_ledger` + `companies.wallet_quota_remain`（同事务）。  
 2. **投影可重建**：`budget_consumed` / `usage_buckets` / `gateway_soft_*` 只跟 ledger 走，不单独记「退款余额表」。  
 3. **冻结展示**：冲正展示额继承**原 lot 单价与币种**，不用公司当前 `billing_currency` PPU 现算。  
 4. **Gateway 不参与**：冲正走管理 API；soft 靠投影追平（可接受短 lag）。  
@@ -101,7 +101,7 @@ sequenceDiagram
   participant Tx as PG_TX
   participant Lot as recharge_lots
   participant Ld as usage_ledger
-  participant W as wallet_remain
+  participant W as wallet_quota_remain
   participant Q as River
 
   API->>Svc: RefundUsageInput<br/>companyId, refLedgerId,<br/>quota, idempotencyKey
@@ -110,7 +110,7 @@ sequenceDiagram
   Note over Svc: 校验 quota∈(0, 原 amount]<br/>且未超额冲正累计
   Tx->>Ld: INSERT call_reversal<br/>amount=-P<br/>display=-P×原lot.unit_price<br/>currency=原lot币<br/>轴字段抄原段
   Tx->>Lot: quota_remaining += P<br/>status=active if needed
-  Tx->>W: wallet_remain += P
+  Tx->>W: wallet_quota_remain += P
   Tx->>Q: InsertBudgetProjection<br/>InsertDashboard<br/>InsertWalletSync
   Tx-->>API: COMMIT
 ```
@@ -173,7 +173,7 @@ Dashboard `usage_buckets` 同源：负 `cost` / `display_cost` 进入 Σ。
 ```mermaid
 flowchart LR
   Ord["recharge_orders<br/>lot_kind=refund 或 status"] --> Lot["目标 lot<br/>remaining -= P"]
-  Lot --> W["wallet_remain -= P"]
+  Lot --> W["wallet_quota_remain -= P"]
   W --> Sync["wallet_sync 下调 NewAPI"]
 ```
 

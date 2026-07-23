@@ -122,7 +122,7 @@ Ingest 靠 `logs.token_id` 反查 mapping。若 Rotate 换了 token 主键，旧
 ### 3.2 运行面：Gateway
 
 - 调用方只认识 TokenJoy 的 `/v1/*`。
-- Gateway 先做 Precheck（`LoadPrecheckContext` + `Evaluate`：企业状态、组织预算、钱包 `wallet_remain`、模型白名单、Key 状态），通过后 **反代** 到 NewAPI。**不读** NewAPI quota，不因 `wallet_sync` 滞后拒单。
+- Gateway 先做 Precheck（`LoadPrecheckContext` + `Evaluate`：企业状态、组织预算、钱包 `wallet_quota_remain`、模型白名单、Key 状态），通过后 **反代** 到 NewAPI。**不读** NewAPI quota，不因 `wallet_sync` 滞后拒单。
 - Gateway **不负责入账**；入账发生在 NewAPI settle 之后。
 
 ### 3.3 结算面：Webhook + 直读日志库
@@ -225,7 +225,7 @@ flowchart LR
 | NewAPI | 通道 `quota` | NewAPI quota units |
 | Backend Ingest | 企业钱包 / 组织预算 | TokenJoy **point** |
 
-二者有取整差，靠 **wallet_sync**（debounce 入队 → River Worker TopUp / 校准）把 NewAPI 用户配额拉回与 Postgres `wallet_remain` 一致。Gateway **不**因漂移或 pending sync 拒单；漂移由异步 `wallet_sync` 与对账冷路径消化。
+二者有取整差，靠 **wallet_sync**（debounce 入队 → River Worker TopUp / 校准）把 NewAPI 用户配额拉回与 Postgres `wallet_quota_remain` 一致。Gateway **不**因漂移或 pending sync 拒单；漂移由异步 `wallet_sync` 与对账冷路径消化。
 
 ### 5.4 账期对齐：发生月 vs 开账月（双轨）
 
@@ -511,8 +511,8 @@ flowchart TB
 | 这次调用 Raw 发生了什么？ | `newapi.logs` |
 | 企业账上记了多少、归因到谁？ | `usage_ledger` |
 | 本月预算用了多少？ | `budget_consumed`（开账月） |
-| 通道还能不能打？ | Gateway 预检（`wallet_remain` + snapshots）；NewAPI remain 为执行面派生 |
-| 企业还剩多少预付？ | Postgres `wallet_remain` / lots（NewAPI user quota 是派生缓存） |
+| 通道还能不能打？ | Gateway 预检（`wallet_quota_remain` + snapshots）；NewAPI remain 为执行面派生 |
+| 企业还剩多少预付？ | Postgres `wallet_quota_remain` / lots（NewAPI user quota 是派生缓存） |
 
 ---
 
@@ -616,7 +616,7 @@ flowchart TB
 IngestRaw → BEGIN
   → SELECT ... FROM companies WHERE id=$1 FOR UPDATE（公司级串行）
   → ExistsIdempotency?（锁后检查，重复零副作用）
-  → ConsumeLots（lot FIFO + wallet_remain）
+  → ConsumeLots（lot FIFO + wallet_quota_remain）
   → INSERT usage_ledger（segments）
   → IncrementConsumedBatch（UNNEST 批量 UPSERT budget_consumed，最多 3 轴）
   → DecrementBatch（combined_key_remain -= amount；GREATEST(remain - delta, 0)）

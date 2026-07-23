@@ -8,9 +8,9 @@ import (
 )
 
 type WalletState struct {
-	CompanyID     uuid.UUID
-	CompanyStatus string
-	WalletRemain  int64
+	CompanyID         uuid.UUID
+	CompanyStatus     string
+	WalletQuotaRemain int64
 }
 
 type RoutingState struct {
@@ -42,9 +42,9 @@ func PrecheckContextFromStore(row *store.PrecheckContextRow) PrecheckContext {
 	}
 	return PrecheckContext{
 		Wallet: WalletState{
-			CompanyID:     row.CompanyID,
-			CompanyStatus: row.CompanyStatus,
-			WalletRemain:  row.WalletRemain,
+			CompanyID:         row.CompanyID,
+			CompanyStatus:     row.CompanyStatus,
+			WalletQuotaRemain: row.WalletQuotaRemain,
 		},
 		Routing: RoutingState{
 			PlatformKeyID:  row.PlatformKeyID,

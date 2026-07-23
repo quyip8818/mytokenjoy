@@ -58,13 +58,13 @@ flowchart LR
 
 | 轴 | 权威数据 | 管什么 | 谁改 |
 | --- | --- | --- | --- |
-| **企业钱包** | 充值 lot、`wallet_remain` | 预付资金硬上限（point） | 充值确认 → 异步同步 NewAPI |
+| **企业钱包** | 充值 lot、`wallet_quota_remain` | 预付资金硬上限（point） | 充值确认 → 异步同步 NewAPI |
 | **组织预算** | 组织树 limit + `budget_consumed` | 部门 / 成员 / Key / 组的花费与上限 | 控制台写 limit；**Ingest 同事务**累加 consumed |
 
 ```mermaid
 flowchart TB
   subgraph wallet [钱包轴]
-    LOT[充值 lot] --> BAL[wallet_remain]
+    LOT[充值 lot] --> BAL[wallet_quota_remain]
     BAL -.-> NA_W[NewAPI users.quota]
   end
 
@@ -253,11 +253,11 @@ sequenceDiagram
 | 检查 | 数据 |
 | --- | --- |
 | 企业 active | `companies.status` |
-| 钱包 ≥ 预估 | `wallet_remain` |
+| 钱包 ≥ 预估 | `wallet_quota_remain` |
 | Key / personal / 项目未超 | `gateway_soft_remain` + limit（`LoadPrecheckContext`） |
 | 模型与 Key 状态 | allowlist、`platform_keys.status` |
 
-NewAPI quota 与 `wallet_sync` **不参与**热路径预检；Gateway 读 Postgres `wallet_remain` 与 `gateway_soft_*`；漂移由异步 `wallet_sync` 与对账消化。
+NewAPI quota 与 `wallet_sync` **不参与**热路径预检；Gateway 读 Postgres `wallet_quota_remain` 与 `gateway_soft_*`；漂移由异步 `wallet_sync` 与对账消化。
 
 ---
 
@@ -344,7 +344,7 @@ flowchart LR
 | platform_key | Key 创建 / 变更 |
 | company | 月切（`EnsureMonthRebalance`）、budget reconcile、newapisync 完成 |
 
-**充值不触发 rebalance**（充值只涨钱包，不影响月度限额；Gateway 独立检查 `wallet_remain`）。
+**充值不触发 rebalance**（充值只涨钱包，不影响月度限额；Gateway 独立检查 `wallet_quota_remain`）。
 
 （**已移除** `org_node` rebalance 触发；部门触顶仅 notify。）
 
@@ -397,7 +397,7 @@ sequenceDiagram
   participant NA as NewAPI
 
   U->>B: 创建并确认订单
-  B->>DB: lot + wallet_remain
+  B->>DB: lot + wallet_quota_remain
   B->>DB: wallet_sync 入队
   B->>NA: TopUp / SetUserQuota
 ```
@@ -415,7 +415,7 @@ sequenceDiagram
 | 成员本账期已用 | `budget_consumed` member 轴 |
 | 组可分给 Key | 组 budget − 组 consumed − Σ组内 Key budget |
 | NewAPIKey 可用上限 | `ComputeRemainForMapping` → `ToNewAPIUnits`（纯月度限额剩余，不含 wallet） |
-| 企业硬顶 | Gateway precheck 独立检查 `wallet_remain`；与 per-key `RemainQuota` 解耦 |
+| 企业硬顶 | Gateway precheck 独立检查 `wallet_quota_remain`；与 per-key `RemainQuota` 解耦 |
 
 ---
 

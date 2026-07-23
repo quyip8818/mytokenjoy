@@ -21,7 +21,7 @@
 | 指标 | 用户看到 | 后端字段 | 用途 |
 | --- | --- | --- | --- |
 | **展示币** | 钱包余额、CallLog 费用、看板 Spend | `balances[]`、`ledger.display_amount`、`buckets.display_cost` | 财务闭合；**入账时冻结** |
-| **Quota** | 预算/Key 额度（UI 常再换算成「元」） | `wallet_remain`、`budget_*`、`key.budget` | Gateway、预算、ingest |
+| **Quota** | 预算/Key 额度（UI 常再换算成「元」） | `wallet_quota_remain`、`budget_*`、`key.budget` | Gateway、预算、ingest |
 
 默认：`1 CNY = 500000 quota`（`DefaultQuotaPerUnit`，与 `currencies` seed 对齐，等于 NewAPI 的 `QuotaPerUnit`）。
 
@@ -53,7 +53,7 @@ flowchart LR
 | 世界 | 含义 | 典型字段 | 改公司币后现算？ |
 | --- | --- | --- | --- |
 | Usage | token / 次数 | `input_tokens` / `output_tokens` | — |
-| Quota | 内部统一货币 (int64) | `wallet_remain`、`ledger.amount`、`budget_*` | 额度本身不换币 |
+| Quota | 内部统一货币 (int64) | `wallet_quota_remain`、`ledger.amount`、`budget_*` | 额度本身不换币 |
 | Wallet | lot 成本价 + 冻结展示 | `ledger.display_amount`、`buckets.display_cost` | **否** |
 
 ### 2.1 币种 / QPU SSOT
@@ -82,7 +82,7 @@ flowchart TB
   subgraph SSOT["事实面（强一致）"]
     LOT[company_recharge_lots]
     LED[usage_ledger]
-    BP[companies.wallet_remain]
+    BP[companies.wallet_quota_remain]
   end
   subgraph Derived["投影 / 派生（最终一致，可重建）"]
     Soft[gateway_soft_remain]
@@ -105,7 +105,7 @@ flowchart TB
 
 | 面 | 代表 | Gateway |
 | --- | --- | --- |
-| 事实 | lots、ledger、`wallet_remain` | `wallet_remain` 可读；**禁止**热路径 `SUM(ledger)` |
+| 事实 | lots、ledger、`wallet_quota_remain` | `wallet_quota_remain` 可读；**禁止**热路径 `SUM(ledger)` |
 | 投影 | soft / consumed / buckets | soft 可用（带 lag） |
 
 与 [架构终态设计.md](./架构终态设计.md) 一致：**摘要列是投影，不是事实。**
@@ -114,12 +114,12 @@ flowchart TB
 
 | 能力 | SSOT | 派生 |
 | --- | --- | --- |
-| 企业可用 point | `wallet_remain` / Σ lot remaining | — |
+| 企业可用 point | `wallet_quota_remain` / Σ lot remaining | — |
 | 展示币钱包 | `company_recharge_lots`（paid+adjust） | — |
 | 单笔消耗 | `usage_ledger`（amount + display） | — |
 | 组织 consumed | — | `budget_consumed`（point） |
 | 看板 Spend | — | `usage_buckets.display_cost`（展示币） |
-| Gateway 挡单 | `wallet_remain` + soft | NewAPI 不挡预检 |
+| Gateway 挡单 | `wallet_quota_remain` + soft | NewAPI 不挡预检 |
 | NewAPI wallet | — | `wallet_sync` |
 
 **不变量：** 禁止用 NewAPI quota 反算对外钱包；漂移以 Postgres 为准。
@@ -128,7 +128,7 @@ flowchart TB
 
 ```text
 写边界（仅此换算）：表单展示→point（session.PPU）｜充值币→point（currencies.PPU）｜quota→point（CostFromQuota）
-事实面：lots + ledger + wallet_remain
+事实面：lots + ledger + wallet_quota_remain
 投影面：consumed / soft / buckets（不重计价）
 读边界：已结算钱 → formatMoney｜额度 point → formatDisplayCurrency
 ```
@@ -147,7 +147,7 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-  Credit[充值/gift/adjust] --> LOT[(lot + wallet_remain)]
+  Credit[充值/gift/adjust] --> LOT[(lot + wallet_quota_remain)]
   Call[API 调用] --> GW[Gateway Precheck]
   GW -->|通过| Proxy[Proxy NewAPI]
   Proxy --> ING[Ingest]
@@ -157,7 +157,7 @@ flowchart TB
   LOT --> Sync[wallet_sync]
 ```
 
-入账同事务：**lot + ledger + wallet_remain**。  
+入账同事务：**lot + ledger + wallet_quota_remain**。  
 `budget_consumed` / `gateway_soft_*` / `usage_buckets`：**异步投影**（非同事务；有 soft lag）。
 
 ### 4.2 充值
@@ -173,7 +173,7 @@ sequenceDiagram
   B->>Cur: quota_per_unit
   Note over B: quota = Round(amount × QPU)
   B->>PG: BuildPaidLot 锁定 QPU/币种
-  B->>PG: wallet_remain += quota
+  B->>PG: wallet_quota_remain += quota
 ```
 
 | 场景 | `lot_kind` | 展示币 |
@@ -183,7 +183,7 @@ sequenceDiagram
 | 调账 | `adjust` | 显式写入 |
 | ingest 透支 | `overdraft`（每企业至多一个 active） | 0 |
 
-新企业 `wallet_remain=0`，无初始 lot。
+新企业 `wallet_quota_remain=0`，无初始 lot。
 
 ### 4.3 消耗：FIFO + overdraft
 
@@ -196,7 +196,7 @@ flowchart TD
   E -->|是| F[扩展 overdraft]
   E -->|否| G[ledger 段 amount+display 冻结]
   F --> G
-  G --> H[wallet_remain / enqueue sync]
+  G --> H[wallet_quota_remain / enqueue sync]
   G --> I[异步投影]
 ```
 
@@ -205,12 +205,12 @@ flowchart TD
 
 ### 4.4 Gateway 预检
 
-单位均为 **point**。不读 NewAPI；读 `wallet_remain` + `gateway_soft_remain`。
+单位均为 **point**。不读 NewAPI；读 `wallet_quota_remain` + `gateway_soft_remain`。
 
 | # | 检查 |
 | --- | --- |
 | 1 | 企业 active |
-| 2 | `wallet_remain ≥ minEstimate`（当前固定 `0.01×DefaultPPU`） |
+| 2 | `wallet_quota_remain ≥ minEstimate`（当前固定 `0.01×DefaultPPU`） |
 | 3 | soft remain > 0（有配置时） |
 | 4 | Key active / 未过期 |
 | 5 | 模型白名单 |
@@ -248,7 +248,7 @@ totalTopup − totalConsumed = balance
 
 ```text
 Σ quota_granted − Σ ledger.amount = Σ quota_remaining
-wallet_remain = Σ quota_remaining
+wallet_quota_remain = Σ quota_remaining
 ```
 
 ### 5.4 lot_kind
@@ -313,7 +313,7 @@ domain/usage/ingest.go           入账事务（entry.Amount = raw.Quota）
 domain/usage/ledger_audit.go     CallLog.cost = DisplayAmount
 
 identity/authz/service.go        Session 下发 billingCurrency + quotaPerUnit
-domain/gateway/evaluate.go       预检（wallet_remain + combined_key_remain）
+domain/gateway/evaluate.go       预检（wallet_quota_remain + combined_key_remain）
 
 apps/frontend/src/lib/quota-display.ts  createBillingExchange / setActive（session 同步）
                                         formatMoney(展示币) vs formatDisplayCurrency(quota)
@@ -339,7 +339,7 @@ FE：`AuthSessionProvider` → `setActiveBillingExchange`；表单 `displayToQuo
 {
   "billingCurrency": "CNY",
   "balances": [{ "currency": "CNY", "balance": 37.5, "totalTopup": 100, "totalConsumed": 62.5 }],
-  "walletRemain": 18750000,
+  "walletQuotaRemain": 18750000,
   "giftQuota": 0,
   "overdraftQuota": 0
 }
@@ -367,7 +367,7 @@ go test -tags=testhook ./tests/identity/authz/...
 
 | 场景 | 读哪 |
 | --- | --- |
-| Gateway | `wallet_remain` + soft |
+| Gateway | `wallet_quota_remain` + soft |
 | 看板 Spend | `usage_buckets.display_cost` |
 | 钱包 | lots 聚合 |
 | 财务时段 | `ledger.display_amount` |

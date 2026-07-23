@@ -28,7 +28,7 @@ TokenJoy 的计费体系由两根**独立的轴**控成本：
 ```text
 ┌─────────────────────────────────────────────────────────┐
 │  轴 1：企业钱包（wallet）— 硬上限，预付模型              │
-│    充值 → lot（FIFO） → wallet_remain                   │
+│    充值 → lot（FIFO） → wallet_quota_remain                   │
 │    用完即止，允许 overdraft 扩展                         │
 ├─────────────────────────────────────────────────────────┤
 │  轴 2：组织预算（budget）— 软限额，月度分配              │
@@ -74,7 +74,7 @@ flowchart TB
   end
 
   subgraph pg ["Postgres（SSOT）"]
-    WAL[(wallet_remain<br/>+ lots FIFO)]
+    WAL[(wallet_quota_remain<br/>+ lots FIFO)]
     ONB[(org_node_budget)]
     MEM[(members.personal_budget)]
     PK[(platform_keys.budget)]
@@ -158,7 +158,7 @@ sequenceDiagram
 
   Admin->>API: 充值确认（gift/adjust/paid）
   API->>API: QuotaFromAmount(amount, QPU)
-  API->>PG: CreditFromLot<br/>(insert lot + wallet_remain += delta)
+  API->>PG: CreditFromLot<br/>(insert lot + wallet_quota_remain += delta)
   API->>NA: TopUp(walletCompanyID, +delta)
   Note over NA: best-effort，失败仅 Warn
   API-->>Admin: 成功
@@ -189,7 +189,7 @@ sequenceDiagram
 flowchart TD
   Start[请求到达 Gateway] --> C1{企业状态<br/>gateway-blocked?}
   C1 -->|blocked| R1[403]
-  C1 -->|正常| C2{wallet_remain >= 1?}
+  C1 -->|正常| C2{wallet_quota_remain >= 1?}
   C2 -->|不足| R2[403 insufficient wallet]
   C2 -->|足够| C3{Key active & 未过期?}
   C3 -->|否| R3[403 key inactive/expired]
@@ -252,7 +252,7 @@ NewAPI logs.quota ──直接透传──► entry.Amount
                                    │
                     ┌───────────────┼───────────────┐
                     ▼               ▼               ▼
-             wallet_remain    budget_consumed   combined_key_remain
+             wallet_quota_remain    budget_consumed   combined_key_remain
               (lot FIFO)        (+= amount)       (-= amount)
 ```
 
@@ -764,5 +764,5 @@ flowchart LR
 | tree_mutate 注释写"同步 NewAPI token remain_quota" | Rebalance 只刷 PG | §5 明确说明 |
 | gateway_soft_* 命名 | 已改名 `combined_key_remain*` | 全文统一使用新名称 |
 | Ingest 入队 wallet_sync | 充值后直接 TopUp | §3 描述当前逻辑 |
-| Gateway 钱包≥预估 | 仅 `wallet_remain >= 1` | §4.1 流程图明确 |
+| Gateway 钱包≥预估 | 仅 `wallet_quota_remain >= 1` | §4.1 流程图明确 |
 | pkg/newapiunits 做 point↔quota 换算 | 换算函数已删 | §1.1 说明无换算 |
