@@ -290,9 +290,9 @@ type Store interface {
 | 子包            | 职责                                                                               |
 | --------------- | ---------------------------------------------------------------------------------- |
 | `org`（根）     | `Service` 接口、`NewService`；嵌入 `structure.LocalService` + `remote.Service`            |
-| `org/core`      | 共享 `Deps`（含 `grants.Normalizer`）、部门树 provision、authz revision bump        |
+| `org/core`      | 共享 `Deps`（含 `grants.Normalizer`）、部门树 provision、authz revision bump、字段同步策略（`field_sync.go`：`FieldSyncPolicy` / `ShouldSyncField` / `TrackOverride`） |
 | `org/structure` | 成员/角色/部门 CRUD、CSV 批量导入                                                  |
-| `org/remote`    | 凭证加解密、数据源连接、飞书式全量导入与增量同步（消费 `pkg/org` 的 diff/ID 工具） |
+| `org/remote`    | 凭证加解密、数据源连接、飞书式全量导入与增量同步（消费 `pkg/org` 的 diff/ID 工具）；`syncMember` 按字段策略逐字段覆盖 |
 
 **`pkg/org`（组织纯函数，供 domain 与测试复用）**
 

@@ -112,7 +112,7 @@ erDiagram
   Role }o--o{ Permission : grants
 ```
 
-`members.department_id` = `org_nodes.id` = HTTP `departmentId`。组织同步：`org_integration` + `org_sync_logs` / `org_import_failures`。
+`members.department_id` = `org_nodes.id` = HTTP `departmentId`。`members.override_fields` 追踪被用户/管理员手动修改过的字段，同步时跳过这些字段。组织同步：`org_integration` + `org_sync_logs` / `org_import_failures`。
 
 ### 组织节点 vs 项目
 
