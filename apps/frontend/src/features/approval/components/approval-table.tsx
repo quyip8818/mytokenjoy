@@ -14,7 +14,7 @@ import { formatDisplayCurrency } from '@/lib/quota-display'
 const TYPE_LABELS: Record<string, string> = {
   key: 'Key 申请',
   budget: '额度追加',
-  member_budget: '预算拨付',
+  member_budget: '额度追加',
 }
 
 const STATUS_STYLES: Record<string, string> = {

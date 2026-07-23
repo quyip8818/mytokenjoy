@@ -99,7 +99,6 @@ func wireApprovalEngine(i infra, logger *slog.Logger, keysSvc domainkeys.Service
 	}
 	return domainapproval.NewEngine(repo, txRunner, logger,
 		domainkeys.NewKeyApprovalHandler(keysSvc),
-		domainkeys.NewBudgetApprovalHandler(keysSvc),
 		domainbudget.NewMemberBudgetApprovalHandler(budgetSvc),
 	)
 }

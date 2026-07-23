@@ -37,7 +37,7 @@ export function ApprovalSubmitWorkflow({
   const currencyLabel = currencySymbol(billingCurrency)
   const { resolveAllowedModelIds } = useMemberWhitelist()
   const { labelFor } = useModelLabels(apis)
-  const defaultType = (entry.payload.defaultType as ApprovalType) ?? 'budget'
+  const defaultType = (entry.payload.defaultType as ApprovalType) ?? 'member_budget'
   const onSuccess = entry.payload.onSuccess as (() => void) | undefined
   const [type, setType] = useState<ApprovalType>(defaultType)
   const [reason, setReason] = useState('')
@@ -73,11 +73,14 @@ export function ApprovalSubmitWorkflow({
     if (!(await validateModels())) return
     setSubmitting(true)
     try {
-      const metadata = {
-        reason,
-        requestedBudget: displayToQuota(Number(requestedBudget) || 0),
-        requestedModels: models,
-      }
+      const metadata =
+        type === 'member_budget'
+          ? { amount: displayToQuota(Number(requestedBudget) || 0), reason }
+          : {
+              reason,
+              requestedBudget: displayToQuota(Number(requestedBudget) || 0),
+              requestedModels: models,
+            }
       await apis.approvalApi.create({ type, metadata })
       toast.success('申请已提交')
       onSuccess?.()
@@ -118,7 +121,7 @@ export function ApprovalSubmitWorkflow({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="key">Key 申请</SelectItem>
-              <SelectItem value="budget">额度追加</SelectItem>
+              <SelectItem value="member_budget">额度追加</SelectItem>
             </SelectContent>
           </Select>
         </div>

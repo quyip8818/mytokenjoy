@@ -142,6 +142,28 @@ func (h *KeyApprovalHandler) OnApprovedTx(ctx context.Context, req types.Approva
 		}
 	}
 
+	// Deduct reserved pool when personal budget was topped up
+	if personalBudgetAdded > 0 && deptID != uuid.Nil {
+		row, found, err := tx.Budget().OrgNodeBudget().Get(ctx, deptID)
+		if err != nil {
+			return nil, err
+		}
+		if found {
+			reserved := int64(0)
+			if row.ReservedPool != nil {
+				reserved = *row.ReservedPool
+			}
+			newReserved := reserved - personalBudgetAdded
+			if newReserved < 0 {
+				newReserved = 0
+			}
+			row.ReservedPool = &newReserved
+			if err := tx.Budget().OrgNodeBudget().Upsert(ctx, deptID, row); err != nil {
+				return nil, fmt.Errorf("deduct reserved pool for key approval: %w", err)
+			}
+		}
+	}
+
 	return &keyApproveResult{
 		createdKeyID:        createdKeyID,
 		personalBudgetAdded: personalBudgetAdded,
@@ -188,7 +210,27 @@ func (h *KeyApprovalHandler) Compensate(ctx context.Context, req types.ApprovalR
 				return err
 			}
 			members = budget.AddMemberPersonalBudget(members, req.ApplicantID, -result.personalBudgetAdded)
-			return h.svc.store.Org().SetMembers(ctx, members)
+			if err := h.svc.store.Org().SetMembers(ctx, members); err != nil {
+				return err
+			}
+			// Restore reserved pool
+			if result.departmentID != uuid.Nil {
+				row, found, err := h.svc.store.Budget().OrgNodeBudget().Get(ctx, result.departmentID)
+				if err != nil {
+					return err
+				}
+				if found {
+					reserved := int64(0)
+					if row.ReservedPool != nil {
+						reserved = *row.ReservedPool
+					}
+					newReserved := reserved + result.personalBudgetAdded
+					row.ReservedPool = &newReserved
+					if err := h.svc.store.Budget().OrgNodeBudget().Upsert(ctx, result.departmentID, row); err != nil {
+						return err
+					}
+				}
+			}
 		}
 		return nil
 	}
@@ -205,119 +247,6 @@ func (h *KeyApprovalHandler) OnRejected(ctx context.Context, req types.ApprovalR
 
 func (h *KeyApprovalHandler) PreCheck(ctx context.Context, req types.ApprovalRequest) (json.RawMessage, error) {
 	var meta types.KeyApprovalMeta
-	json.Unmarshal(req.Metadata, &meta)
-	budgetCtx, err := budget.LoadBudgetContext(ctx, h.svc.store.BudgetConsumed(), h.svc.store.Org(), h.svc.store.Budget(), h.svc.store.Keys(), h.svc.cfg.Clock())
-	if err != nil {
-		return nil, err
-	}
-	reservedPool := budget.GetReservedPoolForMember(budgetCtx.Tree, budgetCtx.Members, req.ApplicantID)
-	return json.Marshal(map[string]any{
-		"sufficient":   reservedPool >= int64(meta.RequestedBudget),
-		"reservedPool": reservedPool,
-		"requested":    int64(meta.RequestedBudget),
-	})
-}
-
-// --- BudgetApprovalHandler ---
-
-// BudgetApprovalHandler handles type="budget" approvals (increase personal budget only, no key).
-type BudgetApprovalHandler struct {
-	svc *service
-}
-
-func NewBudgetApprovalHandler(svc Service) *BudgetApprovalHandler {
-	return &BudgetApprovalHandler{svc: svc.(*service)}
-}
-
-func (h *BudgetApprovalHandler) Type() types.ApprovalType { return types.ApprovalTypeBudget }
-
-func (h *BudgetApprovalHandler) Validate(ctx context.Context, input approval.CreateInput) error {
-	var meta types.BudgetApprovalMeta
-	if err := json.Unmarshal(input.Metadata, &meta); err != nil {
-		return domain.Validation("invalid budget approval metadata")
-	}
-	if meta.RequestedBudget <= 0 {
-		return domain.Validation("requestedBudget must be positive")
-	}
-	return nil
-}
-
-func (h *BudgetApprovalHandler) PreApprove(ctx context.Context, req types.ApprovalRequest) error {
-	var meta types.BudgetApprovalMeta
-	json.Unmarshal(req.Metadata, &meta)
-	budgetCtx, err := budget.LoadBudgetContext(ctx, h.svc.store.BudgetConsumed(), h.svc.store.Org(), h.svc.store.Budget(), h.svc.store.Keys(), h.svc.cfg.Clock())
-	if err != nil {
-		return err
-	}
-	reservedPool := budget.GetReservedPoolForMember(budgetCtx.Tree, budgetCtx.Members, req.ApplicantID)
-	if int64(meta.RequestedBudget) > reservedPool {
-		return domain.Validation("Reserved pool insufficient")
-	}
-	return nil
-}
-
-func (h *BudgetApprovalHandler) OnApprovedTx(ctx context.Context, req types.ApprovalRequest, tx store.Store) (approval.ApproveResult, error) {
-	var meta types.BudgetApprovalMeta
-	json.Unmarshal(req.Metadata, &meta)
-
-	// Acquire budget lock to prevent concurrent approval races
-	if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
-		return nil, err
-	}
-
-	// Resolve department and re-check reserved pool under lock
-	members, err := tx.Org().Members(ctx)
-	if err != nil {
-		return nil, err
-	}
-	applicant, ok := org.FindMemberByID(members, req.ApplicantID)
-	if !ok {
-		return nil, domain.NotFound("申请人不存在")
-	}
-	row, found, err := tx.Budget().OrgNodeBudget().Get(ctx, applicant.DepartmentID)
-	if err != nil {
-		return nil, err
-	}
-	if !found {
-		return nil, domain.Validation("部门预算节点不存在")
-	}
-	reserved := int64(0)
-	if row.ReservedPool != nil {
-		reserved = *row.ReservedPool
-	}
-	if int64(meta.RequestedBudget) > reserved {
-		return nil, domain.Validation(fmt.Sprintf("预留池余额不足，当前剩余 %d quota", reserved))
-	}
-
-	members = budget.AddMemberPersonalBudget(members, req.ApplicantID, int64(meta.RequestedBudget))
-	if err := tx.Org().SetMembers(ctx, members); err != nil {
-		return nil, err
-	}
-	return nil, nil
-}
-
-func (h *BudgetApprovalHandler) PostApprove(ctx context.Context, req types.ApprovalRequest, _ approval.ApproveResult) error {
-	return nil // Pure DB operation, no external IO
-}
-
-func (h *BudgetApprovalHandler) Compensate(ctx context.Context, req types.ApprovalRequest, _ approval.ApproveResult) error {
-	// Idempotent: if budget was added, subtract it back
-	var meta types.BudgetApprovalMeta
-	json.Unmarshal(req.Metadata, &meta)
-	members, err := h.svc.store.Org().Members(ctx)
-	if err != nil {
-		return err
-	}
-	members = budget.AddMemberPersonalBudget(members, req.ApplicantID, -int64(meta.RequestedBudget))
-	return h.svc.store.Org().SetMembers(ctx, members)
-}
-
-func (h *BudgetApprovalHandler) OnRejected(ctx context.Context, req types.ApprovalRequest, tx store.Store) error {
-	return nil
-}
-
-func (h *BudgetApprovalHandler) PreCheck(ctx context.Context, req types.ApprovalRequest) (json.RawMessage, error) {
-	var meta types.BudgetApprovalMeta
 	json.Unmarshal(req.Metadata, &meta)
 	budgetCtx, err := budget.LoadBudgetContext(ctx, h.svc.store.BudgetConsumed(), h.svc.store.Org(), h.svc.store.Budget(), h.svc.store.Keys(), h.svc.cfg.Clock())
 	if err != nil {

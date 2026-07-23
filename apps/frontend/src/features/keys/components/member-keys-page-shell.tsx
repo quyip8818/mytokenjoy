@@ -25,7 +25,7 @@ export function MemberKeysPageShell({
             variant="outline"
             size="sm"
             className={cn(applyBudgetCta.className)}
-            onClick={() => openWithRefresh('approval-submit', { defaultType: 'budget' })}
+            onClick={() => openWithRefresh('approval-submit', { defaultType: 'member_budget' })}
           >
             申请额度
           </Button>

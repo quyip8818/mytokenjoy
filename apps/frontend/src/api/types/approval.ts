@@ -1,5 +1,5 @@
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'cancelled' | 'failed'
-export type ApprovalType = 'key' | 'budget' | 'member_budget'
+export type ApprovalType = 'key' | 'member_budget'
 
 export interface ApprovalRequest {
   id: string
@@ -21,12 +21,6 @@ export interface KeyApprovalMeta {
   reason: string
   requestedBudget: number
   requestedModels: string[]
-}
-
-export interface BudgetApprovalMeta {
-  reason: string
-  requestedBudget: number
-  requestedModels?: string[]
 }
 
 export interface MemberBudgetApprovalMeta {

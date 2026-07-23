@@ -21,7 +21,6 @@ type ApprovalType string
 
 const (
 	ApprovalTypeKey          ApprovalType = "key"
-	ApprovalTypeBudget       ApprovalType = "budget"
 	ApprovalTypeMemberBudget ApprovalType = "member_budget"
 )
 
@@ -49,12 +48,6 @@ type KeyApprovalMeta struct {
 	Reason          string      `json:"reason"`
 	RequestedBudget float64     `json:"requestedBudget"`
 	RequestedModels []uuid.UUID `json:"requestedModels"`
-}
-
-type BudgetApprovalMeta struct {
-	Reason          string      `json:"reason"`
-	RequestedBudget float64     `json:"requestedBudget"`
-	RequestedModels []uuid.UUID `json:"requestedModels,omitempty"`
 }
 
 type MemberBudgetApprovalMeta struct {

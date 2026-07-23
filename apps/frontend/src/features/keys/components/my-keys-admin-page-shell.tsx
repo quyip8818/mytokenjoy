@@ -36,7 +36,7 @@ export function MyKeysAdminPageShell({
       id={applyBudgetCta.id}
       variant="outline"
       className={applyBudgetCta.className}
-      onClick={() => openWithRefresh('approval-submit', { defaultType: 'budget' })}
+      onClick={() => openWithRefresh('approval-submit', { defaultType: 'member_budget' })}
     >
       申请额度
     </Button>
