@@ -24,7 +24,7 @@ export function ProviderKeyFormWorkflow({
 }: WorkflowComponentProps<'provider-key-form'>) {
   const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
-  const onSuccess = entry.payload.onSuccess as (() => void) | undefined
+  const onSuccess = entry.payload.onSuccess
   const [provider, setProvider] = useState('openai')
   const [name, setName] = useState('')
   const [keyValue, setKeyValue] = useState('')

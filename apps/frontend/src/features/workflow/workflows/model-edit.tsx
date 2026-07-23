@@ -21,7 +21,7 @@ export function ModelEditWorkflow({
   const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
   const model = entry.payload.model
-  const onSuccess = entry.payload.onSuccess as ((id?: string) => void) | undefined
+  const onSuccess = entry.payload.onSuccess
   const [displayName, setDisplayName] = useState(model.name)
   const [description, setDescription] = useState(model.description)
   const [endpoint, setEndpoint] = useState(model.endpoint ?? '')

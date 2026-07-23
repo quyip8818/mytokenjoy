@@ -52,8 +52,8 @@ export function ApprovalReviewWorkflow({
   const apis = useInjectedApis()
   const { labelFor } = useModelLabels(apis)
   const { closeAll } = useWorkflow()
-  const approval = entry.payload.approval as ApprovalRequest
-  const onSuccess = entry.payload.onSuccess as (() => void) | undefined
+  const approval = entry.payload.approval
+  const onSuccess = entry.payload.onSuccess
   const [submitting, setSubmitting] = useState(false)
 
   const meta = approval.metadata as Record<string, unknown>

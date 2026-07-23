@@ -18,7 +18,7 @@ export function hasPermission(
 }
 
 export function isReadOnlySession(permissions: readonly string[], readOnly: boolean): boolean {
-  if (permissions.includes('*' as PermissionKey)) return false
+  if (permissions.includes('*')) return false
   return readOnly
 }
 

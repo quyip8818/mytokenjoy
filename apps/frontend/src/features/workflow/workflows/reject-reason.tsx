@@ -17,8 +17,8 @@ export function RejectReasonWorkflow({
 }: WorkflowComponentProps<'reject-reason'>) {
   const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
-  const approvalId = entry.payload.approvalId as string
-  const onSuccess = entry.payload.onSuccess as (() => void) | undefined
+  const approvalId = entry.payload.approvalId
+  const onSuccess = entry.payload.onSuccess
   const [reason, setReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
 

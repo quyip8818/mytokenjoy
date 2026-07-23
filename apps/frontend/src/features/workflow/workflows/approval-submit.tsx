@@ -37,10 +37,10 @@ export function ApprovalSubmitWorkflow({
   const currencyLabel = currencySymbol(billingCurrency)
   const { resolveAllowedModelIds } = useMemberWhitelist()
   const { labelFor } = useModelLabels(apis)
-  const defaultType = (entry.payload.defaultType as ApprovalType) ?? 'member_budget'
+  const defaultType = entry.payload.defaultType ?? 'member_budget'
   const projectId = entry.payload.projectId
   const projectName = entry.payload.projectName
-  const onSuccess = entry.payload.onSuccess as (() => void) | undefined
+  const onSuccess = entry.payload.onSuccess
   const [type, setType] = useState<ApprovalType>(defaultType)
   const [reason, setReason] = useState('')
   const [requestedBudget, setRequestedBudget] = useState('3000')

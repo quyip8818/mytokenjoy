@@ -8,8 +8,8 @@ import { useWorkflow } from '../hooks/use-workflow'
 
 export function KeyRevealWorkflow({ entry, onClose }: WorkflowComponentProps<'key-reveal'>) {
   const { closeAll } = useWorkflow()
-  const fullKey = (entry.payload.fullKey as string) ?? 'tj-demo-key-not-available'
-  const onDone = entry.payload.onDone as (() => void) | undefined
+  const fullKey = entry.payload.fullKey ?? 'tj-demo-key-not-available'
+  const onDone = entry.payload.onDone
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(fullKey)

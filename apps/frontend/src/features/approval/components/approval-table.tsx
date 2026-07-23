@@ -62,12 +62,7 @@ interface ApprovalTableProps {
   onRetry?: (id: string) => void
 }
 
-export function ApprovalTable({
-  approvals,
-  onApprove,
-  onReject,
-  onRetry,
-}: ApprovalTableProps) {
+export function ApprovalTable({ approvals, onApprove, onReject, onRetry }: ApprovalTableProps) {
   return (
     <Table>
       <TableHeader>

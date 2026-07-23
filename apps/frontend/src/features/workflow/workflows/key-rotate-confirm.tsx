@@ -1,5 +1,4 @@
 import { toast } from 'sonner'
-import type { PlatformKey } from '@/api/types'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
@@ -11,11 +10,9 @@ export function KeyRotateConfirmWorkflow({
   onClose,
   onPush,
 }: WorkflowComponentProps<'key-rotate-confirm'>) {
-  const key = entry.payload.key as PlatformKey
-  const onRotate = entry.payload.onRotate as
-    | ((key: PlatformKey) => Promise<{ fullKey?: string; keyPrefix: string }>)
-    | undefined
-  const onDone = entry.payload.onDone as (() => void) | undefined
+  const key = entry.payload.key
+  const onRotate = entry.payload.onRotate
+  const onDone = entry.payload.onDone
 
   const handleConfirm = async () => {
     if (!onRotate) return

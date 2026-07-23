@@ -25,10 +25,7 @@ import { displayToQuota, formatDisplayCurrency, quotaToDisplay } from '@/lib/quo
 type ProjectSettingsFormProps = {
   project: ProjectView
   members?: Member[]
-  onUpdateProject: (
-    projectId: string,
-    data: { budget?: number; ownerId?: string },
-  ) => Promise<void>
+  onUpdateProject: (projectId: string, data: { budget?: number; ownerId?: string }) => Promise<void>
   onUpdated: () => void
 }
 

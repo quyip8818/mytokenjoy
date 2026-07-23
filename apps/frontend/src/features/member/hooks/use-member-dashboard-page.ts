@@ -1,10 +1,5 @@
 import type { AppApis } from '@/api/app-apis'
-import type {
-  MemberDashboardView,
-  ModelRank,
-  NamedValue,
-  TimeSeriesPoint,
-} from '@/api/types/member'
+import type { MemberDashboardView, TimeSeriesPoint } from '@/api/types/member'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 
 const EMPTY_DASHBOARD: MemberDashboardView = {
@@ -37,8 +32,8 @@ export function useMemberDashboardPage(injectedApis?: AppApis) {
     performance: dashboard.performance,
     consumptionTrend: dashboard.consumptionTrend,
     consumptionDistribution: dashboard.consumptionDistribution,
-    callDistribution: dashboard.callDistribution as NamedValue[],
-    callRanking: dashboard.callRanking as ModelRank[],
+    callDistribution: dashboard.callDistribution,
+    callRanking: dashboard.callRanking,
     distributionTotal: sumSeries(dashboard.consumptionDistribution),
     trendTotal: sumSeries(dashboard.consumptionTrend),
     callTotal: dashboard.callDistribution.reduce((sum, item) => sum + item.value, 0),

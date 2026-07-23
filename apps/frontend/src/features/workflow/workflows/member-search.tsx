@@ -18,8 +18,8 @@ export function MemberSearchWorkflow({
   onSetDirty,
 }: WorkflowComponentProps<'member-search'>) {
   const apis = useInjectedApis()
-  const excludeIds = (entry.payload.excludeIds as string[]) ?? []
-  const onConfirm = entry.payload.onConfirm as ((members: Member[]) => void) | undefined
+  const excludeIds = entry.payload.excludeIds ?? []
+  const onConfirm = entry.payload.onConfirm
   const multi = entry.payload.multi !== false
 
   const [keyword, setKeyword] = useState('')

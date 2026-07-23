@@ -32,8 +32,8 @@ export function WhitelistConfigWorkflow({
 }: WorkflowComponentProps<'whitelist-config'>) {
   const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
-  const rule = entry.payload.rule as RoutingRule
-  const onSuccess = entry.payload.onSuccess as (() => void) | undefined
+  const rule = entry.payload.rule
+  const onSuccess = entry.payload.onSuccess
   const [inherited, setInherited] = useState(rule.inherited)
   const [modelIds, setModelIds] = useState<string[]>(rule.allowedModelIds)
   const [parentRefs, setParentRefs] = useState<ModelRef[]>(refsFromRule(rule))

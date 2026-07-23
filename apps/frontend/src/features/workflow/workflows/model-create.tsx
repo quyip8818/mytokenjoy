@@ -18,7 +18,7 @@ export function ModelCreateWorkflow({
 }: WorkflowComponentProps<'model-create'>) {
   const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
-  const onSuccess = entry.payload.onSuccess as ((id?: string) => void) | undefined
+  const onSuccess = entry.payload.onSuccess
   const [modelName, setModelName] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [apiKey, setApiKey] = useState('')

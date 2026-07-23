@@ -28,7 +28,7 @@ export function SyncConfigPanel({
   triggeringSyc,
   onSaved,
 }: SyncConfigProps) {
-  const { register, handleSubmit, setValue, control } = useForm<SyncConfigType>({
+  const { register, handleSubmit, setValue, control, reset } = useForm<SyncConfigType>({
     defaultValues: {
       enabled: false,
       startTime: '02:00',
@@ -47,20 +47,9 @@ export function SyncConfigPanel({
 
   useEffect(() => {
     void syncApi.getConfig().then((config) => {
-      const fields: (keyof SyncConfigType)[] = [
-        'enabled',
-        'startTime',
-        'frequencyHours',
-        'deleteMemberThreshold',
-        'deleteDepartmentThreshold',
-        'notifyPhone',
-        'notifyEmail',
-      ]
-      fields.forEach((key) => {
-        setValue(key, config[key] as never)
-      })
+      reset(config)
     })
-  }, [syncApi, setValue])
+  }, [syncApi, reset])
 
   const onSubmit = async (data: SyncConfigType) => {
     await syncApi.saveConfig(data)
