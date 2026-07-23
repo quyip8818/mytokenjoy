@@ -63,11 +63,14 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 type loginBody struct {
 	Email     string    `json:"email"` // phone or email
 	Password  string    `json:"password"`
-	CompanyID uuid.UUID `json:"companyId"` // required in SaaS mode
+	CompanyID uuid.UUID `json:"companyId"` // optional — used by select-company flow
 }
 
 // Login authenticates by password. The "email" field accepts either a phone number or email.
 // Flow: resolve user → verify password → route by member count (single/multi/none).
+// companyId is NEVER required at login time. After password verification:
+//   - If companyId is provided and valid, log in directly to that company.
+//   - Otherwise, routeByMembership: 1 company → auto-enter, N → select_company, 0 → create_company.
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var body loginBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -76,12 +79,6 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	if body.Email == "" || body.Password == "" {
 		httputil.WriteStatus(w, http.StatusBadRequest, "credentials required")
-		return
-	}
-
-	// SaaS mode requires companyId in the login request.
-	if h.pub.Cfg.SupportSaas && body.CompanyID == uuid.Nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "companyId required")
 		return
 	}
 
@@ -104,13 +101,14 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Step 3: If SaaS with companyId, resolve membership directly.
-	if h.pub.Cfg.SupportSaas {
+	// Step 3: If companyId explicitly provided, try direct login to that company.
+	if body.CompanyID != uuid.Nil {
 		h.loginWithCompanyID(w, r, user.ID, body.CompanyID)
 		return
 	}
 
-	// Step 4: Non-SaaS — route by member companies.
+	// Step 4: No companyId provided — route by member companies.
+	// 1 company → auto-enter, N companies → select_company, 0 → create_company.
 	h.routeByMembership(w, r, user.ID)
 }
 

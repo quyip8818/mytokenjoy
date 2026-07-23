@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useApis } from '@/api/use-apis'
 import { ApiError } from '@/api/client'
+import { queryKeys } from '@/features/query'
 
 export const accountKeys = {
   profile: ['account', 'profile'] as const,
@@ -29,6 +30,9 @@ export function useAccountPage() {
       try {
         await meApi.updateProfile(params)
         queryClient.invalidateQueries({ queryKey: accountKeys.profile })
+        if (params.alias !== undefined || params.avatar !== undefined) {
+          queryClient.invalidateQueries({ queryKey: queryKeys.session.all })
+        }
         return true
       } catch (err) {
         setProfileError(err instanceof ApiError ? err.message : '保存失败')

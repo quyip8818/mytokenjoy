@@ -309,10 +309,14 @@ CREATE TABLE sessions (
 
 ## 9. 邮箱密码登录
 
-`POST /auth/login { email, password, companyId? }`
+`POST /auth/login { email, password }`
 
-- SaaS 要求 companyId；私有化从 context 取
-- 多企业时验证密码后可能需要选择页
+- 登录**不需要 companyId**，SaaS 和私有化行为一致
+- 验证密码后，后端按 membership 数量路由：
+  - 1 个 company → 直接签发 Token Pair 进入系统
+  - ≥2 个 company → 返回 `{ action: "select_company", companies: [...] }`，前端展示选择页
+  - 0 个 company → 返回 `{ action: "create_company" }`，前端引导创建企业
+- 如果前端传了可选的 `companyId`（如 select-company 流之后再次登录），后端直接验证该 membership 并签发 Token Pair
 
 ---
 
@@ -349,7 +353,7 @@ interface AuthCapabilities {
 | 主认证 | 由 `AUTH_PRIMARY` 决定 | 由 `AUTH_PRIMARY` 决定 |
 | 自助注册 | ❌（"未找到账号，请联系管理员"） | ✅（独立注册页 /register） |
 | 登录按钮 | "登录" | "登录"（未注册提示去 /register） |
-| 企业数量 | 1 家（`LocalCompanyID`） | 多家（JWT `company_id`） |
+| 企业数量 | 1 家（`LocalCompanyID`） | 多家（登录后按 membership 路由，1 个自动进入，多个选择） |
 | Trial | 不适用 | 注册即 Trial |
 | 供应商 Key | 企业管理员完全 CRUD | 只读展示（"由平台运营管理"） |
 | 充值 | 正常自助充值 | Trial 时自动弹充值引导，充值即升级为正式版 |
@@ -468,33 +472,15 @@ func (reg Registry) RegisterAPIRoutes(r chi.Router) {
 ## 17. 前端文件结构
 
 ```
-routes/login.tsx
-routes/login/select.tsx
-routes/register.tsx
-routes/onboard.tsx              — 仅用于 choose 模式（有邀请时）
-routes/setup.tsx
-routes/invite/accept.tsx
+routes/auth/login.tsx
 
 features/auth/
 ├── index.ts
 ├── components/
-│   ├── login-form.tsx              — 邮箱 + 密码
-│   ├── sms-login-form.tsx          — 手机号 + 验证码（含"去注册"提示）
-│   ├── email-password-form.tsx     — 邮箱 + 密码
-│   ├── email-otp-form.tsx          — 邮箱 + 验证码
-│   └── company-select.tsx          — 多企业选择（SaaS）
-├── hooks/
-│   ├── use-login-page.ts
-│   ├── use-sms-login-page.ts      — 处理 not_found → showRegisterHint
-│   ├── use-register-page.ts       — 两步注册（验证码 → 密码+公司名）
-│   ├── use-otp.ts                  — 统一 OTP hook（phone/email）
-│   └── use-auth-capabilities.ts
-└── lib/
-    └── auth-capabilities.ts
-
-components/layout/
-├── header.tsx                  — HeaderUserChip 含下拉菜单（设置密码/退出）
-└── set-password-dialog.tsx     — 设置密码弹窗
+│   ├── auth-popup.tsx              — 统一认证弹窗（登录/注册/选企业/接受邀请/重置密码）
+│   └── fake-dashboard.tsx          — 登录背景装饰
+└── hooks/
+    └── use-verify-countdown.ts     — 验证码倒计时 hook
 
 api/auth.ts
 ```
@@ -522,8 +508,8 @@ api/auth.ts
 
 | 变量 | 说明 |
 |------|------|
-| `VITE_SUPPORT_SAAS` | 控制登录页 UI（手机号 vs 邮箱、是否显示注册入口、供应商 Key 只读） |
-| `VITE_REGISTRATION_ENABLED` | 是否显示「免费试用/注册」按钮 |
+| `VITE_SUPPORT_SAAS` | （当前未使用）后续可控制供应商 Key 只读等 SaaS 差异 UI |
+| `VITE_REGISTRATION_ENABLED` | （当前未使用）后续可控制是否显示「免费试用/注册」按钮 |
 
 ---
 

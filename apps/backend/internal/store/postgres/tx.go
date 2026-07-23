@@ -9,22 +9,22 @@ import (
 )
 
 type txStore struct {
-	tx                          pgx.Tx
-	domain                      domainRepos
-	ledger                      store.LedgerRepository
-	mappings                    store.PlatformKeyMappingRepository
-	gatewayPrecheck             store.GatewayPrecheckRepository
-	combinedKeySummaries        store.CombinedKeySummaryRepository
-	budgetConsumed              store.BudgetConsumedRepository
-	projectionCursors store.ProjectionCursorRepository
-	usage                       store.UsageRepository
-	notification                store.NotificationRepository
-	company                     store.CompanyRepository
-	invite                      store.InviteRepository
-	billing                     store.BillingRepository
-	tenantBackgroundState       store.TenantBackgroundStateRepository
-	riverJob                    store.RiverJobRepository
-	parent                      *Store
+	tx                    pgx.Tx
+	domain                domainRepos
+	ledger                store.LedgerRepository
+	mappings              store.PlatformKeyMappingRepository
+	gatewayPrecheck       store.GatewayPrecheckRepository
+	combinedKeySummaries  store.CombinedKeySummaryRepository
+	budgetConsumed        store.BudgetConsumedRepository
+	projectionCursors     store.ProjectionCursorRepository
+	usage                 store.UsageRepository
+	notification          store.NotificationRepository
+	company               store.CompanyRepository
+	invite                store.InviteRepository
+	billing               store.BillingRepository
+	tenantBackgroundState store.TenantBackgroundStateRepository
+	riverJob              store.RiverJobRepository
+	parent                *Store
 }
 
 func (s *txStore) PgxTx() pgx.Tx { return s.tx }
@@ -123,22 +123,22 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	defer tx.Rollback(ctx)
 
 	txView := &txStore{
-		tx:                          tx,
-		domain:                      newDomainRepoSet(tx, s.tokenJoyCompanyID, s.credentialKey),
-		ledger:                      &pgLedgerRepo{db: tx},
-		mappings:                    newPlatformKeyMappingRepo(tx),
-		gatewayPrecheck:             newGatewayPrecheckRepo(tx),
-		combinedKeySummaries:        newCombinedKeySummaryRepo(tx),
-		budgetConsumed:              newBudgetConsumedRepo(tx),
-		projectionCursors:           newProjectionCursorRepo(tx),
-		usage:                       &usageRepo{db: tx},
-		notification:                &notificationRepo{db: tx},
-		company:                     newCompanyRepo(tx),
-		invite:                      newInviteRepo(tx),
-		billing:                     newBillingRepo(tx),
-		tenantBackgroundState:       newTenantBackgroundStateRepo(tx),
-		riverJob:                    newRiverJobRepo(tx),
-		parent:                      s,
+		tx:                    tx,
+		domain:                newDomainRepoSet(tx, s.tokenJoyCompanyID, s.credentialKey),
+		ledger:                &pgLedgerRepo{db: tx},
+		mappings:              newPlatformKeyMappingRepo(tx),
+		gatewayPrecheck:       newGatewayPrecheckRepo(tx),
+		combinedKeySummaries:  newCombinedKeySummaryRepo(tx),
+		budgetConsumed:        newBudgetConsumedRepo(tx),
+		projectionCursors:     newProjectionCursorRepo(tx),
+		usage:                 &usageRepo{db: tx},
+		notification:          &notificationRepo{db: tx},
+		company:               newCompanyRepo(tx),
+		invite:                newInviteRepo(tx),
+		billing:               newBillingRepo(tx),
+		tenantBackgroundState: newTenantBackgroundStateRepo(tx),
+		riverJob:              newRiverJobRepo(tx),
+		parent:                s,
 	}
 	if err := fn(txView); err != nil {
 		return err
