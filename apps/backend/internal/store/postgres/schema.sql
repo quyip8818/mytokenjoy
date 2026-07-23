@@ -1,3 +1,9 @@
+-- Helper: append to text array only if value not already present.
+CREATE OR REPLACE FUNCTION array_append_distinct(arr TEXT[], val TEXT)
+RETURNS TEXT[] LANGUAGE sql IMMUTABLE AS $$
+    SELECT CASE WHEN val = ANY(arr) THEN arr ELSE array_append(arr, val) END;
+$$;
+
 CREATE TABLE IF NOT EXISTS currencies (
     currency         CHAR(3) PRIMARY KEY,
     quota_per_unit   BIGINT NOT NULL CHECK (quota_per_unit > 0),
@@ -200,6 +206,7 @@ CREATE TABLE IF NOT EXISTS members (
     external_id     TEXT,
     employee_id     TEXT,
     job_title       TEXT,
+    override_fields TEXT[] NOT NULL DEFAULT '{}',
     personal_budget BIGINT NOT NULL DEFAULT 0,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),

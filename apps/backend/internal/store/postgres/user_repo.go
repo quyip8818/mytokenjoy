@@ -144,4 +144,12 @@ func nilUUID(id uuid.UUID) *uuid.UUID {
 	return &id
 }
 
+// nilText returns nil for empty string (for nullable TEXT DB columns).
+func nilText(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
 var _ store.UserRepository = (*userRepo)(nil)

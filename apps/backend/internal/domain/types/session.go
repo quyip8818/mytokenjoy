@@ -18,6 +18,7 @@ type Member struct {
 	Roles          []string  `json:"roles"`
 	Source         string    `json:"source"`
 	ExternalID     *string   `json:"externalId,omitempty"`
+	OverrideFields []string  `json:"overrideFields,omitempty"`
 	PersonalBudget int64     `json:"-"`
 
 	// Input-only fields: used for member creation/update, not persisted on members table.

@@ -173,14 +173,7 @@ func (s *Service) importFromProvider(
 					if members[i].ID != existing.ID {
 						continue
 					}
-					members[i].Alias = remote.Name
-					members[i].DepartmentID = localDept
-					members[i].DepartmentName = deptNameByID[localDept]
-					members[i].ExternalID = stringPtr(remote.ExternalID)
-					members[i].Source = types.MemberSourceImported
-					if members[i].Status == "" {
-						members[i].Status = "active"
-					}
+					syncMember(&members[i], remote, localDept, deptNameByID[localDept])
 					break
 				}
 				result.SuccessMembers++
@@ -200,6 +193,7 @@ func (s *Service) importFromProvider(
 				ID:             memberID,
 				UserID:         userID,
 				Alias:          remote.Name,
+				EmployeeID:     remote.EmployeeNo,
 				DepartmentID:   localDept,
 				DepartmentName: deptNameByID[localDept],
 				Status:         "active",

@@ -114,8 +114,10 @@ func cloneMembers(items []types.Member) []types.Member {
 	for i, member := range items {
 		result[i] = types.Member{
 			ID: member.ID, CompanyID: member.CompanyID, UserID: member.UserID, Alias: member.Alias, Avatar: member.Avatar,
+			EmployeeID: member.EmployeeID, JobTitle: member.JobTitle, HireDate: member.HireDate,
 			DepartmentID: member.DepartmentID, DepartmentName: member.DepartmentName,
 			Status: member.Status, Roles: append([]string{}, member.Roles...), Source: member.Source,
+			OverrideFields: append([]string{}, member.OverrideFields...),
 			PersonalBudget: member.PersonalBudget,
 		}
 		if member.ExternalID != nil {

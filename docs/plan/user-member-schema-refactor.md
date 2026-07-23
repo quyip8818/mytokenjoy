@@ -6,7 +6,7 @@
 
 ```
 users: id, name, phone, email, password_hash, status, created_at, updated_at
-members: id, company_id, user_id, alias, avatar, department_id, status, source, external_id, employee_id, job_title, personal_budget, created_at, updated_at
+members: id, company_id, user_id, alias, avatar, department_id, status, source, external_id, employee_id, job_title, override_fields, personal_budget, created_at, updated_at
 ```
 
 - `users.name`：真实姓名，用户自管（注册时填写、/me 修改）
@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS members (
     external_id     TEXT,
     employee_id     TEXT,
     job_title       TEXT,
+    override_fields TEXT[] NOT NULL DEFAULT '{}',
     personal_budget BIGINT NOT NULL DEFAULT 0,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -112,6 +113,7 @@ type Member struct {
     Roles          []string  `json:"roles"`
     Source         string    `json:"source"`
     ExternalID     *string   `json:"externalId,omitempty"`
+    OverrideFields []string  `json:"overrideFields,omitempty"`  // 被用户/admin 手动修改的 user-owned 字段
     PersonalBudget int64     `json:"-"`
 }
 
@@ -242,24 +244,25 @@ type SessionContext struct {
 -    Phone: remote.Mobile,
 -    Email: remote.Email,
 +    Alias: remote.Name,
++    EmployeeID: remote.EmployeeNo,
      ...
  })
 ```
 
-更新已有成员时同理：
-```diff
--members[i].Name = remote.Name
--members[i].Email = remote.Email
--members[i].Phone = remote.Mobile
-+members[i].Alias = remote.Name
-```
+更新已有成员时使用 `syncMember()` 按字段策略逐字段覆盖（参见 `docs/plan/org-sync-override-strategy.md`）：
+- immutable（employeeId）：本地为空才写入
+- user-owned（alias, avatar）：字段不在 `OverrideFields` 中才覆盖
+- sync-always（departmentId, departmentName）：无条件覆盖
 
 ### UpdateMember
 ```diff
 -if input.Name != "" { existing.Name = input.Name }
 -if input.Phone != "" { existing.Phone = input.Phone }
 -if input.Email != "" { existing.Email = input.Email }
-+if input.Name != "" { existing.Alias = input.Name }  // 管理员改 alias
++if input.Name != "" && input.Name != existing.Alias {
++    existing.OverrideFields = core.TrackOverride(existing.OverrideFields, "alias")
++    existing.Alias = input.Name
++}
 ```
 
 Phone/Email 更新：`UpdateMember` 接口仍接受 phone/email 参数（通过额外请求字段或 handler 层直接操作），但写入目标是 users 表。实现：handler 层拿到 member.UserID，调用 `UserRepository.UpdatePhone/UpdateEmail`。

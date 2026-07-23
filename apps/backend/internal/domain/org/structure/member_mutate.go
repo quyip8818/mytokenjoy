@@ -80,8 +80,10 @@ func (s *LocalService) UpdateMember(ctx context.Context, id uuid.UUID, input typ
 	for i := range members {
 		if members[i].ID == id {
 			existing := members[i]
-			// Merge: only overwrite non-zero fields from input
-			if input.Alias != "" {
+			// Merge: only overwrite non-zero fields from input.
+			// Track user-owned field changes in OverrideFields.
+			if input.Alias != "" && input.Alias != existing.Alias {
+				existing.OverrideFields = core.TrackOverride(existing.OverrideFields, "alias")
 				existing.Alias = input.Alias
 			}
 			if input.Username != "" {
