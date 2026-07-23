@@ -239,7 +239,7 @@ export const ROUTE_META: RouteMeta[] = ROUTE_DEFINITIONS.map((definition) => ({
   path: definition.path as RoutePath,
   label: definition.label,
   icon: definition.icon,
-  requiredPermissions: definition.requiredPermissions ?? [],
+  requiredPermissions: (definition.requiredPermissions ?? []) as readonly PermissionKey[],
   ...('badgeKey' in definition && definition.badgeKey ? { badgeKey: definition.badgeKey } : {}),
 }))
 
