@@ -176,8 +176,8 @@ func (s *Store) BudgetConsumed() store.BudgetConsumedRepository {
 	return newBudgetConsumedRepo(s.pool)
 }
 
-func (s *Store) DashboardProjectionProgress() store.ProjectionProgressRepository {
-	return newDashboardProjectionProgressRepo(s.pool)
+func (s *Store) ProjectionCursors() store.ProjectionCursorRepository {
+	return newProjectionCursorRepo(s.pool)
 }
 
 func (s *Store) PlatformKeyMappings() store.PlatformKeyMappingRepository { return s.mappings }

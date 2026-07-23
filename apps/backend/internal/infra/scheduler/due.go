@@ -143,11 +143,11 @@ func dashboardReconcileDue(tbs *store.TenantBackgroundState, lag bool, now time.
 }
 
 func (s *Service) projectionLag(ctx context.Context, stream string) (bool, error) {
-	var progress *store.ProjectionProgress
+	var progress *store.ProjectionCursor
 	var err error
 	switch stream {
 	case store.DashboardProjectionStream:
-		progress, err = s.store.DashboardProjectionProgress().Get(ctx, stream)
+		progress, err = s.store.ProjectionCursors().Get(ctx, stream)
 	default:
 		return false, nil
 	}

@@ -52,7 +52,7 @@ func (p *Projector) RunBatch(ctx context.Context, companyID uuid.UUID) (bool, er
 
 	var count int
 	err = p.store.WithTx(ctx, func(tx store.Store) error {
-		progress, err := tx.DashboardProjectionProgress().GetForUpdate(ctx, store.DashboardProjectionStream)
+		progress, err := tx.ProjectionCursors().GetForUpdate(ctx, store.DashboardProjectionStream)
 		if err != nil {
 			return err
 		}
@@ -74,7 +74,7 @@ func (p *Projector) RunBatch(ctx context.Context, companyID uuid.UUID) (bool, er
 			}
 		}
 		last := batch[len(batch)-1]
-		if err := tx.DashboardProjectionProgress().Advance(ctx, store.DashboardProjectionStream, last.OccurredAt, last.ID); err != nil {
+		if err := tx.ProjectionCursors().Advance(ctx, store.DashboardProjectionStream, last.OccurredAt, last.ID); err != nil {
 			return err
 		}
 		count = len(batch)

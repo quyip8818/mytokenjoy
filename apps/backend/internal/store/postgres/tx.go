@@ -16,7 +16,7 @@ type txStore struct {
 	gatewayPrecheck             store.GatewayPrecheckRepository
 	combinedKeySummaries        store.CombinedKeySummaryRepository
 	budgetConsumed              store.BudgetConsumedRepository
-	dashboardProjectionProgress store.ProjectionProgressRepository
+	projectionCursors store.ProjectionCursorRepository
 	usage                       store.UsageRepository
 	notification                store.NotificationRepository
 	company                     store.CompanyRepository
@@ -43,8 +43,8 @@ func (s *txStore) BudgetConsumed() store.BudgetConsumedRepository {
 	return s.budgetConsumed
 }
 
-func (s *txStore) DashboardProjectionProgress() store.ProjectionProgressRepository {
-	return s.dashboardProjectionProgress
+func (s *txStore) ProjectionCursors() store.ProjectionCursorRepository {
+	return s.projectionCursors
 }
 
 func (s *txStore) PlatformKeyMappings() store.PlatformKeyMappingRepository {
@@ -130,7 +130,7 @@ func (s *Store) WithTx(ctx context.Context, fn func(store.Store) error) error {
 		gatewayPrecheck:             newGatewayPrecheckRepo(tx),
 		combinedKeySummaries:        newCombinedKeySummaryRepo(tx),
 		budgetConsumed:              newBudgetConsumedRepo(tx),
-		dashboardProjectionProgress: newDashboardProjectionProgressRepo(tx),
+		projectionCursors:           newProjectionCursorRepo(tx),
 		usage:                       &usageRepo{db: tx},
 		notification:                &notificationRepo{db: tx},
 		company:                     newCompanyRepo(tx),

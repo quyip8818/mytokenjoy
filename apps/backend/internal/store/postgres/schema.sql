@@ -514,9 +514,9 @@ CREATE TABLE IF NOT EXISTS budget_consumed (
 CREATE INDEX IF NOT EXISTS idx_budget_consumed_overrun
     ON budget_consumed (company_id, axis_kind, period_key);
 
-CREATE TABLE IF NOT EXISTS dashboard_projection_progress (
+CREATE TABLE IF NOT EXISTS projection_cursors (
     company_id       UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
-    stream           TEXT NOT NULL DEFAULT 'dashboard_buckets',
+    stream           TEXT NOT NULL,
     last_occurred_at TIMESTAMPTZ,
     last_ledger_id   UUID,
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
