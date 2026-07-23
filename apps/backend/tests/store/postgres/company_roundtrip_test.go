@@ -102,7 +102,7 @@ func TestRechargeOrderRoundTrip(t *testing.T) {
 	if err != nil || before == nil {
 		t.Fatal("expected company before recharge")
 	}
-	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted, nil); err != nil {
 		t.Fatal(err)
 	}
 	got, err = st.Billing().GetRechargeOrder(ctx, order.ID)

@@ -137,15 +137,22 @@ type CreditStore interface {
 	WithTx(ctx context.Context, fn func(store.Store) error) error
 }
 
+// PostCreditFunc is called after CreditFromLot commits successfully.
+// It receives the lot that was just credited. Implementations must not fail
+// the overall operation — errors should be logged and swallowed.
+type PostCreditFunc func(ctx context.Context, lot store.RechargeLot)
+
 // CreditFromLot is the sole write path for recharge lot insert + wallet_quota_remain delta.
+// If onCommit is non-nil it is called after the transaction commits successfully.
 func CreditFromLot(
 	ctx context.Context,
 	st CreditStore,
 	order store.RechargeOrder,
 	lotRow store.RechargeLot,
 	deltaQuota int64,
+	onCommit PostCreditFunc,
 ) error {
-	return st.WithTx(ctx, func(tx store.Store) error {
+	err := st.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Billing().ConfirmRechargeWithLot(ctx, order, lotRow); err != nil {
 			return err
 		}
@@ -162,4 +169,11 @@ func CreditFromLot(
 		}
 		return tx.Company().ApplyWalletDelta(ctx, order.CompanyID, deltaQuota, fifoHead)
 	})
+	if err != nil {
+		return err
+	}
+	if onCommit != nil {
+		onCommit(ctx, lotRow)
+	}
+	return nil
 }

@@ -17,7 +17,7 @@ func newBillingService(t *testing.T) (domainbilling.Service, store.Store, contex
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
-	svc := domainbilling.NewService(cfg, st, reader)
+	svc := domainbilling.NewService(cfg, st, reader, nil)
 	co, err := st.Company().GetByID(context.Background(), contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
@@ -56,7 +56,7 @@ func TestGetWalletWithoutNewAPIWalletCompanyIDReturnsZero(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
-	svc := domainbilling.NewService(cfg, st, reader)
+	svc := domainbilling.NewService(cfg, st, reader, nil)
 	ctx := testutil.Ctx()
 	view, err := svc.GetWallet(ctx)
 	if err != nil {

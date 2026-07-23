@@ -3,6 +3,7 @@ package billing
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,6 +24,11 @@ type Service interface {
 	ConfirmPayment(ctx context.Context, orderID uuid.UUID) error
 }
 
+// QuotaSyncer is the minimal interface for syncing quota to NewAPI.
+type QuotaSyncer interface {
+	ManageUser(ctx context.Context, userID int64, action string, value int64) error
+}
+
 // Store is the narrow store surface the billing domain needs.
 type Store interface {
 	Billing() store.BillingRepository
@@ -33,18 +39,42 @@ type Store interface {
 }
 
 type service struct {
-	cfg    config.Config
-	store  Store
-	reader domainusage.Reader
+	cfg         config.Config
+	store       Store
+	reader      domainusage.Reader
+	quotaSyncer QuotaSyncer
 }
 
 func NewService(
 	cfg config.Config,
 	st Store,
 	reader domainusage.Reader,
+	quotaSyncer QuotaSyncer,
 ) Service {
 	return &service{
 		cfg: cfg, store: st, reader: reader,
+		quotaSyncer: quotaSyncer,
+	}
+}
+
+// syncQuotaToNewAPI is the PostCreditFunc called after CreditFromLot commits.
+func (s *service) syncQuotaToNewAPI(ctx context.Context, lot store.RechargeLot) {
+	if lot.LotKind == store.LotKindOverdraft {
+		return
+	}
+	if s.cfg.IsProductionDeploy() && lot.LotKind == store.LotKindMock {
+		return
+	}
+	if s.quotaSyncer == nil {
+		return
+	}
+	walletUserID, ok := company.ResolveNewAPIWalletCompanyID(ctx, s.store.Company())
+	if !ok {
+		return
+	}
+	if err := s.quotaSyncer.ManageUser(ctx, walletUserID, "add_quota", lot.QuotaGranted); err != nil {
+		slog.Warn("sync quota to newapi failed",
+			"company_id", lot.CompanyID, "lot_id", lot.ID, "error", err)
 	}
 }
 

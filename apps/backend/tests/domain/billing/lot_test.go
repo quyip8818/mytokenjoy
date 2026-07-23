@@ -67,7 +67,7 @@ func TestCreditFromLotUpdatesWalletQuotaRemain(t *testing.T) {
 		CreatedBy:      contract.IDMemberAdmin, CreatedAt: now, UpdatedAt: now,
 	}
 	lot := domainbilling.BuildLot(order, common.DefaultBillingCurrency, store.LotKindPaid, order.Amount)
-	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -100,7 +100,7 @@ func TestConsumeLotsDecrementsWalletQuotaRemain(t *testing.T) {
 		CreatedBy:      contract.IDMemberAdmin, CreatedAt: now, UpdatedAt: now,
 	}
 	lot := domainbilling.BuildLot(order, common.DefaultBillingCurrency, store.LotKindPaid, order.Amount)
-	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted, nil); err != nil {
 		t.Fatal(err)
 	}
 	afterCredit, err := st.Company().GetByID(ctx, contract.DefaultCompanyID)
@@ -142,7 +142,7 @@ func TestCreditFromLotSetsFIFOHeadOnFirstRecharge(t *testing.T) {
 
 	order := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001001"), 20, now)
 	lot := domainbilling.BuildLot(order, common.DefaultBillingCurrency, store.LotKindPaid, order.Amount)
-	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -164,13 +164,13 @@ func TestCreditFromLotPreservesFIFOHeadOnSecondRecharge(t *testing.T) {
 
 	orderA := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001002"), 30, base)
 	lotA := domainbilling.BuildLot(orderA, common.DefaultBillingCurrency, store.LotKindPaid, orderA.Amount)
-	if err := billinglot.CreditFromLot(ctx, st, orderA, lotA, lotA.QuotaGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, orderA, lotA, lotA.QuotaGranted, nil); err != nil {
 		t.Fatal(err)
 	}
 
 	orderB := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001003"), 40, base.Add(time.Second))
 	lotB := domainbilling.BuildLot(orderB, common.DefaultBillingCurrency, store.LotKindPaid, orderB.Amount)
-	if err := billinglot.CreditFromLot(ctx, st, orderB, lotB, lotB.QuotaGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, orderB, lotB, lotB.QuotaGranted, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -195,13 +195,13 @@ func TestConsumeLotsDepletesOlderLotFirst(t *testing.T) {
 
 	orderA := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001004"), 100, base)
 	lotA := domainbilling.BuildLot(orderA, common.DefaultBillingCurrency, store.LotKindPaid, orderA.Amount)
-	if err := billinglot.CreditFromLot(ctx, st, orderA, lotA, lotA.QuotaGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, orderA, lotA, lotA.QuotaGranted, nil); err != nil {
 		t.Fatal(err)
 	}
 
 	orderB := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001005"), 100, base.Add(time.Second))
 	lotB := domainbilling.BuildLot(orderB, common.DefaultBillingCurrency, store.LotKindPaid, orderB.Amount)
-	if err := billinglot.CreditFromLot(ctx, st, orderB, lotB, lotB.QuotaGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, orderB, lotB, lotB.QuotaGranted, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -248,13 +248,13 @@ func TestConsumeLotsMovesToNextLotAfterFirstExhausted(t *testing.T) {
 
 	orderA := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001006"), 50, base)
 	lotA := domainbilling.BuildLot(orderA, common.DefaultBillingCurrency, store.LotKindPaid, orderA.Amount)
-	if err := billinglot.CreditFromLot(ctx, st, orderA, lotA, lotA.QuotaGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, orderA, lotA, lotA.QuotaGranted, nil); err != nil {
 		t.Fatal(err)
 	}
 
 	orderB := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001007"), 80, base.Add(time.Second))
 	lotB := domainbilling.BuildLot(orderB, common.DefaultBillingCurrency, store.LotKindPaid, orderB.Amount)
-	if err := billinglot.CreditFromLot(ctx, st, orderB, lotB, lotB.QuotaGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, orderB, lotB, lotB.QuotaGranted, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -292,7 +292,7 @@ func TestConsumeLotsExpandsOverdraftAndReportsDelta(t *testing.T) {
 
 	order := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001008"), 10, now)
 	lot := domainbilling.BuildLot(order, common.DefaultBillingCurrency, store.LotKindPaid, order.Amount)
-	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted, nil); err != nil {
 		t.Fatal(err)
 	}
 

@@ -29,7 +29,7 @@ func (s *service) confirmGiftLot(ctx context.Context, amount float64, createdBy 
 		CreatedAt: now, UpdatedAt: now,
 	}
 	lot := BuildLot(order, currency, store.LotKindGift, 0)
-	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted, s.syncQuotaToNewAPI); err != nil {
 		return err
 	}
 	return nil
@@ -52,7 +52,7 @@ func (s *service) confirmAdjustLot(ctx context.Context, amount, amountDisplay fl
 		CreatedAt: now, UpdatedAt: now,
 	}
 	lot := BuildLot(order, currency, store.LotKindAdjust, amountDisplay)
-	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted, s.syncQuotaToNewAPI); err != nil {
 		return err
 	}
 	return nil
@@ -86,7 +86,7 @@ func (s *service) finishPendingOrder(ctx context.Context, order store.RechargeOr
 	order.Status = store.RechargeStatusConfirmed
 	order.QuotaPerUnit = ppu
 	lot := BuildLot(order, currency, store.LotKindPaid, order.Amount)
-	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted, s.syncQuotaToNewAPI); err != nil {
 		return err
 	}
 	return nil
@@ -112,7 +112,7 @@ func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, sourc
 		CreatedBy:      createdBy, CreatedAt: now, UpdatedAt: now,
 	}
 	lot := BuildLot(order, currency, store.LotKindPaid, order.Amount)
-	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted); err != nil {
+	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted, s.syncQuotaToNewAPI); err != nil {
 		return err
 	}
 	return nil

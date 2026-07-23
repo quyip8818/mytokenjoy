@@ -20,7 +20,7 @@ func TestSeedTrialCreditCreatesTrialLot(t *testing.T) {
 	ctx := newLotTestCompany(t, st, companyID)
 
 	trialQuota := int64(10000)
-	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialQuota); err != nil {
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialQuota, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -59,10 +59,10 @@ func TestSeedTrialCreditRejectsZeroPoints(t *testing.T) {
 	_ = newLotTestCompany(t, st, companyID)
 	ctx := testutil.CtxForCompany(companyID)
 
-	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, 0); err == nil {
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, 0, nil); err == nil {
 		t.Fatal("expected error for zero trial points")
 	}
-	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, -100); err == nil {
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, -100, nil); err == nil {
 		t.Fatal("expected error for negative trial points")
 	}
 }
@@ -75,7 +75,7 @@ func TestExpireMockLotsZerosWalletQuotaRemain(t *testing.T) {
 
 	// Seed trial credit.
 	trialQuota := int64(10000)
-	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialQuota); err != nil {
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialQuota, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -120,7 +120,7 @@ func TestExpireMockLotsPreservesPaidLotBalance(t *testing.T) {
 
 	// 1. Seed trial credit.
 	trialQuota := int64(10000)
-	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialQuota); err != nil {
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialQuota, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -137,8 +137,8 @@ func TestExpireMockLotsPreservesPaidLotBalance(t *testing.T) {
 		PaymentMethod: store.PaymentMethodAlipay, InvoiceStatus: store.InvoiceStatusNone,
 		CreatedBy: contract.IDMemberAdmin, CreatedAt: now, UpdatedAt: now,
 	}
-	paidLot := domainbilling.BuildPaidLot(paidOrder, common.DefaultBillingCurrency)
-	if err := billinglot.CreditFromLot(ctx, st, paidOrder, paidLot, paidLot.QuotaGranted); err != nil {
+	paidLot := domainbilling.BuildLot(paidOrder, common.DefaultBillingCurrency, store.LotKindPaid, paidOrder.Amount)
+	if err := billinglot.CreditFromLot(ctx, st, paidOrder, paidLot, paidLot.QuotaGranted, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -187,7 +187,7 @@ func TestExpireMockLotsAfterPartialConsumption(t *testing.T) {
 
 	// Seed trial credit.
 	trialQuota := int64(10000)
-	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialQuota); err != nil {
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialQuota, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -229,7 +229,7 @@ func TestExpireMockLotsIdempotent(t *testing.T) {
 	ctx := newLotTestCompany(t, st, companyID)
 
 	trialQuota := int64(5000)
-	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialQuota); err != nil {
+	if err := domainbilling.SeedTrialCredit(ctx, st, companyID, trialQuota, nil); err != nil {
 		t.Fatal(err)
 	}
 

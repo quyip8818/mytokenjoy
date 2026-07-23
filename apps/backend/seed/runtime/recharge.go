@@ -58,7 +58,7 @@ func ApplyRechargeOrders(ctx context.Context, st store.Store) error {
 			} else {
 				lot = domainbilling.BuildLot(order, currency, store.LotKindPaid, order.Amount)
 			}
-			if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted); err != nil {
+			if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted, nil); err != nil {
 				return fmt.Errorf("seed recharge lot %s: %w", order.ID, err)
 			}
 			continue
