@@ -162,8 +162,10 @@ func (h *MemberBudgetApprovalHandler) PreCheck(ctx context.Context, req types.Ap
 }
 
 func (h *MemberBudgetApprovalHandler) resolveDeptID(ctx context.Context, req types.ApprovalRequest) uuid.UUID {
-	if req.DepartmentID != uuid.Nil {
-		return req.DepartmentID
+	var meta types.MemberBudgetApprovalMeta
+	json.Unmarshal(req.Metadata, &meta)
+	if meta.DepartmentID != uuid.Nil {
+		return meta.DepartmentID
 	}
 	member, err := h.svc.store.Org().MemberByID(ctx, req.ApplicantID)
 	if err != nil || member == nil {

@@ -13,8 +13,9 @@ import { formatDisplayCurrency } from '@/lib/quota-display'
 
 const TYPE_LABELS: Record<string, string> = {
   key: 'Key 申请',
-  budget: '额度追加',
   member_budget: '额度追加',
+  project_budget: '项目预算',
+  project_member_budget: '项目成员额度',
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -49,9 +50,13 @@ function getReason(approval: ApprovalRequest): string {
   return typeof meta.reason === 'string' ? meta.reason : ''
 }
 
+function getDepartmentName(approval: ApprovalRequest): string {
+  const meta = approval.metadata
+  return typeof meta.departmentName === 'string' ? meta.departmentName : ''
+}
+
 interface ApprovalTableProps {
   approvals: ApprovalRequest[]
-  canResolve: boolean
   onApprove: (id: string) => void
   onReject: (id: string, reason: string) => void
   onRetry?: (id: string) => void
@@ -59,7 +64,6 @@ interface ApprovalTableProps {
 
 export function ApprovalTable({
   approvals,
-  canResolve,
   onApprove,
   onReject,
   onRetry,
@@ -103,7 +107,7 @@ export function ApprovalTable({
               </Badge>
             </TableCell>
             <TableCell className="font-medium">{approval.applicantName}</TableCell>
-            <TableCell className="text-muted-foreground">{approval.departmentName}</TableCell>
+            <TableCell className="text-muted-foreground">{getDepartmentName(approval)}</TableCell>
             <TableCell className="max-w-48 truncate text-sm">{getReason(approval)}</TableCell>
             <TableCell className="text-right tabular-nums">
               {getDisplayAmount(approval) != null
@@ -119,7 +123,6 @@ export function ApprovalTable({
             <TableCell>
               <ApprovalActions
                 approval={approval}
-                canResolve={canResolve}
                 onApprove={onApprove}
                 onReject={onReject}
                 onRetry={onRetry}
@@ -134,18 +137,16 @@ export function ApprovalTable({
 
 function ApprovalActions({
   approval,
-  canResolve,
   onApprove,
   onReject,
   onRetry,
 }: {
   approval: ApprovalRequest
-  canResolve: boolean
   onApprove: (id: string) => void
   onReject: (id: string, reason: string) => void
   onRetry?: (id: string) => void
 }) {
-  if (approval.status === 'pending' && canResolve) {
+  if (approval.status === 'pending' && approval.canResolve) {
     return (
       <div className="flex items-center gap-2">
         <Button
@@ -167,7 +168,7 @@ function ApprovalActions({
       </div>
     )
   }
-  if (approval.status === 'failed' && canResolve && onRetry) {
+  if (approval.status === 'failed' && approval.canResolve && onRetry) {
     return (
       <Button
         variant="ghost"

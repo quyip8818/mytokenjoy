@@ -20,13 +20,13 @@ func (r *pgApprovalRepo) Create(ctx context.Context, req types.ApprovalRequest) 
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO approval_requests (
 			id, company_id, type, status,
-			applicant_id, applicant_name, department_id, department_name,
+			applicant_id, applicant_name, scope_id,
 			metadata, approver_id, approver_name, reject_reason,
 			created_at, resolved_at
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
 	`,
 		req.ID, req.CompanyID, req.Type, req.Status,
-		req.ApplicantID, req.ApplicantName, nilUUID(req.DepartmentID), req.DepartmentName,
+		req.ApplicantID, req.ApplicantName, req.ScopeID,
 		req.Metadata, req.ApproverID, req.ApproverName, req.RejectReason,
 		req.CreatedAt, req.ResolvedAt,
 	)
@@ -40,7 +40,7 @@ func (r *pgApprovalRepo) Get(ctx context.Context, id uuid.UUID) (types.ApprovalR
 	companyID := store.CompanyID(ctx)
 	row := r.db.QueryRow(ctx, `
 		SELECT id, company_id, type, status,
-			applicant_id, applicant_name, department_id, department_name,
+			applicant_id, applicant_name, scope_id,
 			metadata, approver_id, approver_name, reject_reason,
 			created_at, resolved_at
 		FROM approval_requests
@@ -87,6 +87,11 @@ func (r *pgApprovalRepo) List(ctx context.Context, filter store.ApprovalListFilt
 		args = append(args, *filter.ApplicantID)
 		argIdx++
 	}
+	if len(filter.ScopeIDs) > 0 {
+		where += fmt.Sprintf(" AND scope_id = ANY($%d)", argIdx)
+		args = append(args, filter.ScopeIDs)
+		argIdx++
+	}
 
 	// Count
 	var total int
@@ -102,7 +107,7 @@ func (r *pgApprovalRepo) List(ctx context.Context, filter store.ApprovalListFilt
 	}
 	query := fmt.Sprintf(`
 		SELECT id, company_id, type, status,
-			applicant_id, applicant_name, department_id, department_name,
+			applicant_id, applicant_name, scope_id,
 			metadata, approver_id, approver_name, reject_reason,
 			created_at, resolved_at
 		FROM approval_requests %s
@@ -134,11 +139,10 @@ func (r *pgApprovalRepo) List(ctx context.Context, filter store.ApprovalListFilt
 
 func scanApprovalRequest(row scannable) (types.ApprovalRequest, error) {
 	var req types.ApprovalRequest
-	var deptID *uuid.UUID
 	var resolvedAt *time.Time
 	err := row.Scan(
 		&req.ID, &req.CompanyID, &req.Type, &req.Status,
-		&req.ApplicantID, &req.ApplicantName, &deptID, &req.DepartmentName,
+		&req.ApplicantID, &req.ApplicantName, &req.ScopeID,
 		&req.Metadata, &req.ApproverID, &req.ApproverName, &req.RejectReason,
 		&req.CreatedAt, &resolvedAt,
 	)
@@ -147,9 +151,6 @@ func scanApprovalRequest(row scannable) (types.ApprovalRequest, error) {
 	}
 	if err != nil {
 		return types.ApprovalRequest{}, err
-	}
-	if deptID != nil {
-		req.DepartmentID = *deptID
 	}
 	req.ResolvedAt = resolvedAt
 	return req, nil

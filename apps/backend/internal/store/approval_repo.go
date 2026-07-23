@@ -13,6 +13,7 @@ type ApprovalListFilter struct {
 	Status      *types.ApprovalStatus
 	Type        *types.ApprovalType
 	ApplicantID *uuid.UUID
+	ScopeIDs    []uuid.UUID
 	Limit       int
 	Offset      int
 }

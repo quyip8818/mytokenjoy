@@ -135,7 +135,7 @@ func (h *KeyApprovalHandler) OnApprovedTx(ctx context.Context, req types.Approva
 	}
 
 	// Resolve department ID for PostApprove
-	deptID := req.DepartmentID
+	deptID := meta.DepartmentID
 	if deptID == uuid.Nil {
 		if applicant, ok := org.FindMemberByID(members, req.ApplicantID); ok {
 			deptID = applicant.DepartmentID

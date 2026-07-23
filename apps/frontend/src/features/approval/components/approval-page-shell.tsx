@@ -17,7 +17,6 @@ export function ApprovalPageShell({
   refresh,
   tab,
   setTab,
-  canResolve,
   pendingCount,
   handleApprove,
   handleReject,
@@ -59,7 +58,6 @@ export function ApprovalPageShell({
               >
                 <ApprovalTable
                   approvals={approvals}
-                  canResolve={canResolve}
                   onApprove={handleApprove}
                   onReject={handleReject}
                   onRetry={handleRetry}

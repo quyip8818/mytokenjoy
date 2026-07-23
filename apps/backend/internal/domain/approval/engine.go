@@ -42,22 +42,75 @@ func (e *Engine) Create(ctx context.Context, input CreateInput) (types.ApprovalR
 	if err := handler.Validate(ctx, input); err != nil {
 		return types.ApprovalRequest{}, err
 	}
+
+	scopeID := resolveScopeID(input)
+	enrichedMeta := buildMetadata(input)
+
 	req := types.ApprovalRequest{
-		ID:             uuid.Must(uuid.NewV7()),
-		CompanyID:      store.CompanyID(ctx),
-		Type:           input.Type,
-		Status:         types.ApprovalPending,
-		ApplicantID:    input.ApplicantID,
-		ApplicantName:  input.ApplicantName,
-		DepartmentID:   input.DepartmentID,
-		DepartmentName: input.DepartmentName,
-		Metadata:       input.Metadata,
-		CreatedAt:      time.Now().UTC(),
+		ID:            uuid.Must(uuid.NewV7()),
+		CompanyID:     store.CompanyID(ctx),
+		Type:          input.Type,
+		Status:        types.ApprovalPending,
+		ApplicantID:   input.ApplicantID,
+		ApplicantName: input.ApplicantName,
+		ScopeID:       scopeID,
+		Metadata:      enrichedMeta,
+		CreatedAt:     time.Now().UTC(),
 	}
 	if err := e.repo.Create(ctx, req); err != nil {
 		return types.ApprovalRequest{}, err
 	}
 	return req, nil
+}
+
+// resolveScopeID determines the scope entity for this approval based on type.
+func resolveScopeID(input CreateInput) uuid.UUID {
+	switch input.Type {
+	case types.ApprovalTypeKey, types.ApprovalTypeMemberBudget:
+		return input.DepartmentID
+	case types.ApprovalTypeProjectBudget, types.ApprovalTypeProjectMemberBudget:
+		var m struct {
+			ProjectID uuid.UUID `json:"projectId"`
+		}
+		json.Unmarshal(input.Metadata, &m)
+		return m.ProjectID
+	default:
+		return input.DepartmentID
+	}
+}
+
+// buildMetadata enriches the frontend-provided metadata with department/project context.
+func buildMetadata(input CreateInput) json.RawMessage {
+	switch input.Type {
+	case types.ApprovalTypeKey:
+		var m types.KeyApprovalMeta
+		json.Unmarshal(input.Metadata, &m)
+		m.DepartmentID = input.DepartmentID
+		m.DepartmentName = input.DepartmentName
+		out, _ := json.Marshal(m)
+		return out
+	case types.ApprovalTypeMemberBudget:
+		var m types.MemberBudgetApprovalMeta
+		json.Unmarshal(input.Metadata, &m)
+		m.DepartmentID = input.DepartmentID
+		m.DepartmentName = input.DepartmentName
+		out, _ := json.Marshal(m)
+		return out
+	case types.ApprovalTypeProjectBudget:
+		// No enrichment needed — frontend already provides projectId/projectName.
+		// Re-marshal to enforce schema (strip unexpected fields).
+		var m types.ProjectBudgetApprovalMeta
+		json.Unmarshal(input.Metadata, &m)
+		out, _ := json.Marshal(m)
+		return out
+	case types.ApprovalTypeProjectMemberBudget:
+		var m types.ProjectMemberBudgetApprovalMeta
+		json.Unmarshal(input.Metadata, &m)
+		out, _ := json.Marshal(m)
+		return out
+	default:
+		return input.Metadata
+	}
 }
 
 // --- Approve ---

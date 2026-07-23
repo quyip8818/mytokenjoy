@@ -11,7 +11,6 @@ import type { ApprovalTab } from '../lib/types'
 export function useApprovalPage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
   const { has } = usePermissions()
-  const canResolve = has(PERMISSION.BUDGET_APPROVE)
   const canSubmit = has(PERMISSION.SELF_APPROVAL)
 
   const {
@@ -82,7 +81,6 @@ export function useApprovalPage(injectedApis?: AppApis) {
     refresh,
     tab,
     setTab,
-    canResolve,
     canSubmit,
     pendingCount,
     handleApprove,
