@@ -36,7 +36,7 @@ func SeedTrialCredit(ctx context.Context, st billinglot.CreditStore, companyID u
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
-	lot := BuildMockLot(order, currency)
+	lot := BuildLot(order, currency, store.LotKindMock, 0)
 	return billinglot.CreditFromLot(ctx, st, order, lot, trialQuota)
 }
 

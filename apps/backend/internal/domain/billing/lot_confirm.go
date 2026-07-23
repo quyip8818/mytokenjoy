@@ -28,7 +28,7 @@ func (s *service) confirmGiftLot(ctx context.Context, amount float64, createdBy 
 		Status: store.RechargeStatusConfirmed, CreatedBy: createdBy,
 		CreatedAt: now, UpdatedAt: now,
 	}
-	lot := BuildGiftLot(order, currency)
+	lot := BuildLot(order, currency, store.LotKindGift, 0)
 	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted); err != nil {
 		return err
 	}
@@ -51,7 +51,7 @@ func (s *service) confirmAdjustLot(ctx context.Context, amount, amountDisplay fl
 		Status: store.RechargeStatusConfirmed, CreatedBy: createdBy,
 		CreatedAt: now, UpdatedAt: now,
 	}
-	lot := BuildAdjustLot(order, currency, amountDisplay)
+	lot := BuildLot(order, currency, store.LotKindAdjust, amountDisplay)
 	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted); err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func (s *service) finishPendingOrder(ctx context.Context, order store.RechargeOr
 	order.LotKind = store.LotKindPaid
 	order.Status = store.RechargeStatusConfirmed
 	order.QuotaPerUnit = ppu
-	lot := BuildPaidLot(order, currency)
+	lot := BuildLot(order, currency, store.LotKindPaid, order.Amount)
 	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted); err != nil {
 		return err
 	}
@@ -111,7 +111,7 @@ func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, sourc
 		InvoiceStatus:  store.InvoiceStatusNone,
 		CreatedBy:      createdBy, CreatedAt: now, UpdatedAt: now,
 	}
-	lot := BuildPaidLot(order, currency)
+	lot := BuildLot(order, currency, store.LotKindPaid, order.Amount)
 	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted); err != nil {
 		return err
 	}

@@ -170,7 +170,15 @@ export function useSimulateConsumeDialog(
     } finally {
       setSubmitting(false)
     }
-  }, [apis.platformKeyApi, bearer, inputTokens, onSuccess, outputTokens, queryClient, selectedKeyId])
+  }, [
+    apis.platformKeyApi,
+    bearer,
+    inputTokens,
+    onSuccess,
+    outputTokens,
+    queryClient,
+    selectedKeyId,
+  ])
 
   return {
     platformKeys,
