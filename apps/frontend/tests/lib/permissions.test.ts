@@ -82,7 +82,7 @@ describe('getDefaultHomePath', () => {
     expect(getDefaultHomePath([PERMISSION.BUDGET_READ])).toBe(ROUTES.budget)
   })
 
-  it('returns null when no home candidate matches', () => {
-    expect(getDefaultHomePath([PERMISSION.API_CALL])).toBeNull()
+  it('falls back to permission-free route when no admin route matches', () => {
+    expect(getDefaultHomePath([PERMISSION.API_CALL])).toBe(ROUTES.myKeys)
   })
 })

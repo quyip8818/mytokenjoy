@@ -1,5 +1,5 @@
 import { MemberCallLogsPageShell, useMemberCallLogsPage } from '@/features/member'
 
-export default function MemberCallLogsPage() {
+export default function MemberUsagePage() {
   return <MemberCallLogsPageShell {...useMemberCallLogsPage()} />
 }

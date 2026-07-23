@@ -28,7 +28,8 @@ export function canWriteSession(permissions: readonly string[], readOnly: boolea
 
 export function getDefaultHomePath(permissions: readonly string[]): RoutePath | null {
   for (const path of HOME_PATH_CANDIDATES) {
-    if (hasPermission(permissions, routePermissions(path))) return path
+    const required = routePermissions(path)
+    if (required.length === 0 || hasPermission(permissions, required)) return path
   }
   return null
 }
@@ -40,6 +41,6 @@ export function getRouteRequiredPermissions(pathname: string): PermissionKey[] |
 
 export function canAccessRoute(pathname: string, permissions: readonly string[]): boolean {
   const required = getRouteRequiredPermissions(pathname)
-  if (!required) return true
+  if (!required || required.length === 0) return true
   return hasPermission(permissions, required)
 }

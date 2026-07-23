@@ -40,11 +40,11 @@ export const ROUTE_TITLES: Record<string, string> = Object.fromEntries(
 export function getVisibleNavGroups(permissions: readonly string[]): NavGroup[] {
   return NAV_GROUPS.map((group) => ({
     ...group,
-    collapsed: group.collapsed && !group.items.some((item) => hasNavPermission(permissions, item)),
     items: group.items.filter((item) => hasNavPermission(permissions, item)),
   })).filter((group) => group.items.length > 0)
 }
 
 function hasNavPermission(permissions: readonly string[], item: NavItem): boolean {
+  if (item.requiredPermissions.length === 0) return true
   return hasPermission(permissions, item.requiredPermissions)
 }

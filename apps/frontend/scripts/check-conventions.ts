@@ -1,11 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import {
-  getRouteLazyImportPaths,
-  getMemberRouteLazyImportPaths,
-  validateRouteDefinitions,
-} from '../src/config/routes.ts'
+import { getRouteLazyImportPaths, validateRouteDefinitions } from '../src/config/routes.ts'
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const frontendRoot = join(scriptDir, '..')
@@ -65,7 +61,6 @@ function assertRegisteredPagesImportFeatureHook(importPaths: string[], label: st
 }
 
 assertRegisteredPagesImportFeatureHook(getRouteLazyImportPaths(), 'ROUTE_DEFINITIONS')
-assertRegisteredPagesImportFeatureHook(getMemberRouteLazyImportPaths(), 'MEMBER_ROUTE_DEFINITIONS')
 
 const pageShellExemptPaths = new Set(['routes/auth/login.tsx'])
 const routeHookSpreadExemptPaths = new Set(['routes/auth/login.tsx'])
@@ -76,7 +71,7 @@ const crossFeatureComponentImportPattern = /from ['"]@\/features\/([^/'"]+)\/com
 const selfFeatureBarrelImportPattern = /from ['"]@\/features\/([^/'"]+)['"]/
 const selfFeatureHooksImportPattern = /from ['"]@\/features\/([^/'"]+)\/hooks\//
 
-for (const importPath of [...getRouteLazyImportPaths(), ...getMemberRouteLazyImportPaths()]) {
+for (const importPath of getRouteLazyImportPaths()) {
   const resolvedPagePath = resolveLazyPagePath(importPath)
   if (!resolvedPagePath) continue
   const relativePath = relativeToSrc(resolvedPagePath)
@@ -99,21 +94,6 @@ walkFiles(join(srcRoot, 'features'), (filePath) => {
   }
 })
 
-const registeredMemberPages = new Set(
-  getMemberRouteLazyImportPaths()
-    .map((importPath) => resolveLazyPagePath(importPath))
-    .filter((pagePath): pagePath is string => pagePath !== null),
-)
-
-walkFiles(join(srcRoot, 'routes', 'member'), (filePath) => {
-  if (!filePath.endsWith('.tsx')) return
-  const relativePath = relativeToSrc(filePath)
-  if (relativePath.includes('/hooks/') || relativePath.includes('/components/')) return
-  if (!registeredMemberPages.has(filePath)) {
-    fail(`${relativePath} is not registered in MEMBER_ROUTE_DEFINITIONS (orphan member page)`)
-  }
-})
-
 const registeredAdminPages = new Set(
   getRouteLazyImportPaths()
     .map((importPath) => resolveLazyPagePath(importPath))
@@ -121,7 +101,7 @@ const registeredAdminPages = new Set(
 )
 
 const routesDir = join(srcRoot, 'routes')
-const orphanSkipPrefixes = ['routes/auth/', 'routes/member/']
+const orphanSkipPrefixes = ['routes/auth/']
 
 walkFiles(routesDir, (filePath) => {
   if (!filePath.endsWith('.tsx')) return

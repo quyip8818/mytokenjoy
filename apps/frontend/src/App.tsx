@@ -1,17 +1,11 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
 import { LOGIN_PATH } from '@/config/auth'
-import {
-  APP_ROUTES,
-  MEMBER_ROUTE_DEFINITIONS,
-  toMemberRouterPath,
-  toRouterPath,
-} from '@/config/routes'
+import { APP_ROUTES, toRouterPath } from '@/config/routes'
 import { AppErrorBoundary } from '@/components/layout/app-error-boundary'
 import { AppProviders } from '@/components/layout/app-providers'
 import { HomeRedirect } from '@/components/layout/home-redirect'
 import { AdminLayout } from '@/components/layout/admin-layout'
-import { MemberLayout } from '@/components/layout/member-layout'
 import { RouteFallback } from '@/components/layout/route-fallback'
 import { SessionGate } from '@/features/session'
 
@@ -20,11 +14,6 @@ const InviteAcceptPage = lazy(() => import('@/routes/auth/invite-accept'))
 
 const lazyPages = APP_ROUTES.map((entry) => ({
   path: toRouterPath(entry.path),
-  Page: lazy(entry.lazy),
-}))
-
-const memberLazyPages = MEMBER_ROUTE_DEFINITIONS.map((entry) => ({
-  path: toMemberRouterPath(entry.path),
   Page: lazy(entry.lazy),
 }))
 
@@ -37,11 +26,13 @@ function AuthenticatedRoutes() {
           {lazyPages.map(({ path, Page }) => (
             <Route key={path} path={path} element={<Page />} />
           ))}
-        </Route>
-        <Route element={<MemberLayout />}>
-          {memberLazyPages.map(({ path, Page }) => (
-            <Route key={path} path={path} element={<Page />} />
-          ))}
+          {/* Legacy redirects */}
+          <Route path="me" element={<Navigate to="/dashboard/cost" replace />} />
+          <Route path="keys/mine" element={<Navigate to="/me/keys" replace />} />
+          <Route path="me/call-logs" element={<Navigate to="/me/usage" replace />} />
+          <Route path="me/account" element={<Navigate to="/me/settings" replace />} />
+          <Route path="me/notifications" element={<Navigate to="/me/settings" replace />} />
+          <Route path="me/login-activity" element={<Navigate to="/me/settings" replace />} />
         </Route>
       </Routes>
     </SessionGate>

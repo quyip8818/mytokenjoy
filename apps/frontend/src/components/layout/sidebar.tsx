@@ -1,8 +1,9 @@
+import { useCallback, useMemo, useState } from 'react'
 import { NavLink, useLocation } from 'react-router'
 import type { LucideIcon } from 'lucide-react'
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { ChevronDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { getVisibleNavGroups, type NavItem } from '@/config/nav'
+import { getVisibleNavGroups, type NavGroup, type NavItem } from '@/config/nav'
 import { useApprovalPendingCountQuery } from '@/features/approval'
 import { usePermissions } from '@/features/session'
 import { Button } from '@/components/ui/button'
@@ -13,87 +14,195 @@ import {
 } from './sidebar-layout-constants'
 import { useSidebarLayout } from './use-sidebar-layout'
 
-interface SidebarNavIconProps {
-  icon: LucideIcon
-  active: boolean
-  collapsed: boolean
-  badge: number
+// ─── Persistence ───
+
+const STORAGE_KEY = 'nav-collapsed-groups'
+
+function loadCollapsedGroups(): Set<string> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) return new Set(JSON.parse(raw) as string[])
+  } catch {
+    // ignore
+  }
+  return new Set()
 }
 
-function SidebarNavIcon({ icon: Icon, active, collapsed, badge }: SidebarNavIconProps) {
-  return (
-    <span
-      className={cn(
-        'relative flex shrink-0 items-center justify-center rounded-md transition-colors',
-        collapsed ? 'size-9' : 'size-8',
-        active
-          ? 'bg-primary/10 text-primary'
-          : 'text-muted-foreground group-hover/nav:text-sidebar-accent-foreground',
-      )}
-    >
-      <Icon className="size-[18px]" strokeWidth={1.75} />
-      {badge > 0 && collapsed && (
-        <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary ring-2 ring-sidebar" />
-      )}
-    </span>
-  )
+function saveCollapsedGroups(groups: Set<string>) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...groups]))
 }
+
+// ─── Hook ───
+
+function useGroupCollapse(navGroups: NavGroup[], currentPath: string) {
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
+    const persisted = loadCollapsedGroups()
+    if (persisted.size === 0) {
+      const defaults = new Set<string>()
+      for (const group of navGroups) {
+        if (group.collapsed) defaults.add(group.group)
+      }
+      return defaults
+    }
+    return persisted
+  })
+
+  const toggle = useCallback((groupName: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(groupName)) {
+        next.delete(groupName)
+      } else {
+        next.add(groupName)
+      }
+      saveCollapsedGroups(next)
+      return next
+    })
+  }, [])
+
+  const isGroupCollapsed = useCallback(
+    (group: NavGroup) => {
+      if (group.items.some((item) => currentPath === item.path)) return false
+      return collapsedGroups.has(group.group)
+    },
+    [collapsedGroups, currentPath],
+  )
+
+  return { isGroupCollapsed, toggle }
+}
+
+// ─── Nav Item ───
 
 interface SidebarNavItemProps {
   item: NavItem
-  collapsed: boolean
+  sidebarCollapsed: boolean
   badge: number
 }
 
-function SidebarNavItem({ item, collapsed, badge }: SidebarNavItemProps) {
+function SidebarNavItem({ item, sidebarCollapsed, badge }: SidebarNavItemProps) {
   const location = useLocation()
   const isActive = location.pathname === item.path
   const Icon = item.icon
 
-  const className = cn(
-    'group/nav relative flex items-center transition-colors duration-100',
-    collapsed ? 'justify-center rounded-lg p-1' : 'gap-2.5 rounded-md px-3 py-2 text-sm',
-    !collapsed && isActive && 'bg-muted font-medium text-foreground',
-    !collapsed && !isActive && 'text-muted-foreground hover:bg-muted hover:text-foreground',
-    collapsed && !isActive && 'hover:bg-sidebar-accent/70',
-  )
-
-  const content = collapsed ? (
-    <SidebarNavIcon icon={Icon} active={isActive} collapsed={collapsed} badge={badge} />
-  ) : (
-    <>
-      <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-      <span className="flex-1 truncate">{item.label}</span>
-      {badge > 0 && (
-        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-xs font-semibold text-primary-foreground">
-          {badge}
-        </span>
-      )}
-    </>
-  )
-
-  if (!collapsed) {
+  if (sidebarCollapsed) {
     return (
-      <NavLink to={item.path} className={className}>
-        {content}
-      </NavLink>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <NavLink
+            to={item.path}
+            aria-label={item.label}
+            className={cn(
+              'group/nav relative flex items-center justify-center rounded-lg p-1.5 transition-colors duration-100',
+              isActive
+                ? 'bg-primary/8 text-primary'
+                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+            )}
+          >
+            <Icon className="size-[18px]" strokeWidth={1.75} />
+            {badge > 0 && (
+              <span className="absolute top-0.5 right-0.5 size-2 rounded-full bg-primary ring-2 ring-sidebar" />
+            )}
+          </NavLink>
+        </TooltipTrigger>
+        <TooltipContent side="right" sideOffset={8}>
+          {item.label}
+          {badge > 0 ? ` (${badge})` : ''}
+        </TooltipContent>
+      </Tooltip>
     )
   }
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <NavLink to={item.path} aria-label={item.label} className={className}>
-          {content}
-        </NavLink>
-      </TooltipTrigger>
-      <TooltipContent side="right" sideOffset={8}>
-        {item.label}
-        {badge > 0 ? ` (${badge})` : ''}
-      </TooltipContent>
-    </Tooltip>
+    <NavLink
+      to={item.path}
+      className={cn(
+        'group/nav relative flex items-center gap-3 rounded-lg px-3 py-[7px] text-[13px] transition-all duration-100',
+        isActive
+          ? 'bg-primary/8 font-medium text-primary'
+          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+      )}
+    >
+      <Icon
+        className={cn('size-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground/70')}
+        strokeWidth={isActive ? 1.75 : 1.5}
+      />
+      <span className="flex-1 truncate">{item.label}</span>
+      {badge > 0 && (
+        <span className="inline-flex min-w-[18px] items-center justify-center rounded-full bg-primary px-1 py-px text-[10px] font-semibold leading-none text-primary-foreground">
+          {badge}
+        </span>
+      )}
+    </NavLink>
   )
 }
+
+// ─── Nav Group ───
+
+const MY_GROUP_NAME = '我的'
+
+interface SidebarGroupProps {
+  group: NavGroup
+  groupCollapsed: boolean
+  sidebarCollapsed: boolean
+  onToggleGroup: () => void
+  getBadge: (badgeKey?: string) => number
+}
+
+function SidebarGroup({
+  group,
+  groupCollapsed,
+  sidebarCollapsed,
+  onToggleGroup,
+  getBadge,
+}: SidebarGroupProps) {
+  if (sidebarCollapsed) {
+    return (
+      <div className="space-y-0.5">
+        {group.items.map((item) => (
+          <SidebarNavItem
+            key={item.path}
+            item={item}
+            sidebarCollapsed
+            badge={getBadge(item.badgeKey)}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onToggleGroup}
+        className="group/header mb-0.5 flex w-full items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground/70 transition-colors hover:text-muted-foreground"
+        aria-expanded={!groupCollapsed}
+      >
+        <ChevronDown
+          className={cn(
+            'size-3 shrink-0 text-muted-foreground/50 transition-transform duration-150 group-hover/header:text-muted-foreground',
+            groupCollapsed && '-rotate-90',
+          )}
+        />
+        <span className="truncate uppercase">{group.group}</span>
+      </button>
+      {!groupCollapsed && (
+        <div className="space-y-px">
+          {group.items.map((item) => (
+            <SidebarNavItem
+              key={item.path}
+              item={item}
+              sidebarCollapsed={false}
+              badge={getBadge(item.badgeKey)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Header ───
 
 interface SidebarHeaderProps {
   collapsed: boolean
@@ -110,18 +219,15 @@ function SidebarHeader({ collapsed, onToggle }: SidebarHeaderProps) {
           type="button"
           variant="ghost"
           size="icon-sm"
-          className={cn(
-            'shrink-0 text-muted-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-            'group-hover/sidebar:text-muted-foreground',
-          )}
+          className="shrink-0 text-muted-foreground/50 transition-colors hover:bg-accent hover:text-foreground"
           onClick={onToggle}
           aria-expanded={!collapsed}
           aria-label={toggleLabel}
         >
           {collapsed ? (
-            <PanelLeftOpen className="h-4 w-4" />
+            <PanelLeftOpen className="size-4" />
           ) : (
-            <PanelLeftClose className="h-4 w-4" />
+            <PanelLeftClose className="size-4" />
           )}
         </Button>
       </TooltipTrigger>
@@ -133,28 +239,31 @@ function SidebarHeader({ collapsed, onToggle }: SidebarHeaderProps) {
 
   if (collapsed) {
     return (
-      <div className="relative z-10 flex shrink-0 justify-center border-b border-sidebar-border/70 px-2 py-3">
+      <div className="flex shrink-0 justify-center border-b border-border/50 px-2 py-3">
         {toggleButton}
       </div>
     )
   }
 
   return (
-    <div className="relative z-10 flex shrink-0 items-start gap-1 border-b border-sidebar-border/70 px-4 py-5">
+    <div className="flex shrink-0 items-center justify-between border-b border-border/50 px-4 py-4">
       <div className="min-w-0 flex-1">
-        <img src="/logo.png" alt="Tokenjoy" className="h-7 w-auto" />
-        <p className="mt-0.5 truncate text-xs text-muted-foreground">LLM API 管理平台</p>
+        <img src="/logo.png" alt="Tokenjoy" className="h-6 w-auto" />
       </div>
-      <div className="pt-0.5">{toggleButton}</div>
+      {toggleButton}
     </div>
   )
 }
 
+// ─── Main ───
+
 export function Sidebar() {
   const { permissions } = usePermissions()
-  const navGroups = getVisibleNavGroups(permissions)
+  const navGroups = useMemo(() => getVisibleNavGroups(permissions), [permissions])
   const { data: approvalPendingCount = 0 } = useApprovalPendingCountQuery({ poll: true })
   const { collapsed, toggleCollapsed } = useSidebarLayout()
+  const location = useLocation()
+  const { isGroupCollapsed, toggle } = useGroupCollapse(navGroups, location.pathname)
 
   const getBadge = (badgeKey?: string) => {
     if (badgeKey === 'approvalPending' && approvalPendingCount > 0) {
@@ -163,53 +272,60 @@ export function Sidebar() {
     return 0
   }
 
+  // Separate "我的" group from admin groups
+  const adminGroups = navGroups.filter((g) => g.group !== MY_GROUP_NAME)
+  const myGroup = navGroups.find((g) => g.group === MY_GROUP_NAME)
+
   return (
     <TooltipProvider delayDuration={0}>
       <aside
         className={cn(
-          'group/sidebar relative flex shrink-0 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar transition-[width] duration-200 ease-in-out',
+          'group/sidebar relative flex shrink-0 flex-col overflow-hidden border-r border-border/60 bg-sidebar transition-[width] duration-200 ease-in-out',
           collapsed ? SIDEBAR_COLLAPSED_WIDTH_CLASS : SIDEBAR_EXPANDED_WIDTH_CLASS,
         )}
-        style={{ boxShadow: 'var(--shadow-sidebar)' }}
       >
         <SidebarHeader collapsed={collapsed} onToggle={toggleCollapsed} />
 
+        {/* Main nav area */}
         <nav
           className={cn(
-            'relative z-10 flex-1 space-y-5 overflow-y-auto py-3',
-            collapsed ? 'px-1.5' : 'px-2.5',
+            'flex-1 overflow-y-auto py-3',
+            collapsed ? 'space-y-2 px-1.5' : 'space-y-3 px-2',
           )}
         >
-          {navGroups.map((group, groupIndex) => {
-            return (
-              <div key={group.group}>
-                {!collapsed && (
-                  <div
-                    className={cn(
-                      'mb-1.5 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground',
-                      group.collapsed && 'text-muted-foreground/60',
-                    )}
-                  >
-                    {group.group}
-                  </div>
-                )}
-                {collapsed && groupIndex > 0 && (
-                  <div className="mx-auto mb-2 h-px w-5 bg-sidebar-border" />
-                )}
-                <div className="space-y-0.5">
-                  {group.items.map((item) => (
-                    <SidebarNavItem
-                      key={item.path}
-                      item={item}
-                      collapsed={collapsed}
-                      badge={getBadge(item.badgeKey)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )
-          })}
+          {adminGroups.map((group, groupIndex) => (
+            <div key={group.group}>
+              {collapsed && groupIndex > 0 && (
+                <div className="mx-auto mb-2 h-px w-4 rounded-full bg-border/60" />
+              )}
+              <SidebarGroup
+                group={group}
+                groupCollapsed={isGroupCollapsed(group)}
+                sidebarCollapsed={collapsed}
+                onToggleGroup={() => toggle(group.group)}
+                getBadge={getBadge}
+              />
+            </div>
+          ))}
         </nav>
+
+        {/* "我的" section — visually separated at bottom */}
+        {myGroup && (
+          <div
+            className={cn(
+              'shrink-0 border-t border-border/50',
+              collapsed ? 'px-1.5 py-2' : 'px-2 py-2',
+            )}
+          >
+            <SidebarGroup
+              group={myGroup}
+              groupCollapsed={isGroupCollapsed(myGroup)}
+              sidebarCollapsed={collapsed}
+              onToggleGroup={() => toggle(myGroup.group)}
+              getBadge={getBadge}
+            />
+          </div>
+        )}
       </aside>
     </TooltipProvider>
   )
