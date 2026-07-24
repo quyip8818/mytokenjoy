@@ -12,7 +12,11 @@ export { MODEL_NOT_IN_DEPT_MESSAGE } from './lib/constants'
 
 // === 自身 components 通过 self-barrel 消费 ===
 export { useCostDashboardPage } from './hooks/use-cost-dashboard-page'
-export { formatMom, formatTokenCount, type CostStatItem } from './lib/dashboard'
+export {
+  formatMom,
+  formatTokenCount,
+  type CostStatItem,
+} from './lib/dashboard'
 export { departmentUsagePercent } from './lib/department-usage'
 export { CostDistributionChart } from './components/cost-distribution-chart'
 export { DeptComparisonTable } from './components/dept-comparison-table'
