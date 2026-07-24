@@ -153,7 +153,7 @@ export function useSimulateConsumeDialog(
 
     try {
       await postChatCompletions({ bearer: sk, inputTokens, outputTokens })
-      toast.success('Gateway 已受理，入账由 Worker 异步完成')
+      toast.success('模拟消费已提交')
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.audit.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.wallet.all }),
@@ -163,7 +163,7 @@ export function useSimulateConsumeDialog(
       onSuccess?.()
     } catch (err) {
       if (err instanceof GatewayClientError) {
-        setSubmitError(err.body || `Gateway 预检失败 (${err.status})`)
+        setSubmitError(err.body || `请求失败 (${err.status})`)
       } else {
         setSubmitError(err instanceof Error ? err.message : '提交失败')
       }
