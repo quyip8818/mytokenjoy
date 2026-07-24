@@ -2,6 +2,7 @@ package keys
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -118,6 +119,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 	if err := domainbudget.RefreshPlatformKeyCombined(ctx, s.store, created.ID, s.cfg.Clock(), nil); err != nil {
 		return types.PlatformKey{}, err
 	}
+	s.appendKeyCreateLog(ctx, input, result)
 	return result, nil
 }
 
@@ -138,4 +140,21 @@ func validateTestOnlyModels(whitelist []uuid.UUID, catalog []types.ModelInfo) er
 		}
 	}
 	return nil
+}
+
+func (s *service) appendKeyCreateLog(ctx context.Context, input types.CreatePlatformKeyInput, key types.PlatformKey) {
+	if input.OperatorID == uuid.Nil {
+		return
+	}
+	_ = s.store.Audit().AppendOperationLog(ctx, types.OperationLog{
+		ID:         uuid.Must(uuid.NewV7()),
+		Action:     "key_create",
+		Operator:   input.OperatorName,
+		OperatorID: input.OperatorID,
+		ActorType:  store.ActorTypeMember,
+		Target:     fmt.Sprintf("Platform Key: %s", key.Name),
+		Detail:     fmt.Sprintf("创建平台凭证，额度 %d 元", key.Budget),
+		IP:         input.IP,
+		CreatedAt:  time.Now().Format("2006-01-02 15:04"),
+	})
 }

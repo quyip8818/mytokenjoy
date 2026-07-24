@@ -84,6 +84,8 @@ type CreatePlatformKeyInput struct {
 	ProjectID      *uuid.UUID  `json:"projectId"`
 	Budget         int64       `json:"budget"`
 	ModelWhitelist []uuid.UUID `json:"modelWhitelist"`
+
+	AuditMeta `json:"-"`
 }
 
 type UpdatePlatformKeyInput struct {

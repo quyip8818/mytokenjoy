@@ -37,6 +37,7 @@ type Store interface {
 	PlatformKeyMappings() store.PlatformKeyMappingRepository
 	Company() store.CompanyRepository
 	CombinedKeySummaries() store.CombinedKeySummaryRepository
+	Audit() store.AuditRepository
 	WithTx(ctx context.Context, fn func(store.Store) error) error
 }
 

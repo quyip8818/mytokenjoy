@@ -138,6 +138,13 @@ func (h *Handler) PlatformCreate(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
+	if sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context()); ok {
+		body.AuditMeta = types.AuditMeta{
+			OperatorID:   sessionCtx.Member.ID,
+			OperatorName: sessionCtx.Member.Alias,
+			IP:           r.RemoteAddr,
+		}
+	}
 	key, err := h.service.CreatePlatformKey(r.Context(), body)
 	httputil.WriteJSON(w, http.StatusOK, key, err)
 }

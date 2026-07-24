@@ -6,6 +6,14 @@ type AuditSettings struct {
 	ContentRetentionEnabled bool `json:"contentRetentionEnabled"`
 }
 
+// AuditMeta carries operator context for audit logging.
+// Embedded in input structs with json:"-" — set by handler, invisible to JSON.
+type AuditMeta struct {
+	OperatorID   uuid.UUID `json:"-"`
+	OperatorName string    `json:"-"`
+	IP           string    `json:"-"`
+}
+
 type OperationLog struct {
 	ID         uuid.UUID `json:"id"`
 	Action     string    `json:"action"`
