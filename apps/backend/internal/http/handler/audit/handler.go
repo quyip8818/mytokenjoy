@@ -109,3 +109,9 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		With(httpmiddleware.RequireAnyPermission(permission.OrgStructure)).
 		Put("/settings", h.SettingsUpdate)
 }
+
+// Mount registers the audit handler on the given router under /audit.
+func Mount(r chi.Router, d httpdeps.Deps) {
+	h := NewHandler(d.Protected(), d.AuditSvc)
+	r.Route("/audit", h.RegisterRoutes)
+}

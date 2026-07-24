@@ -207,3 +207,9 @@ func (h *Handler) CreateChannel(w http.ResponseWriter, r *http.Request) {
 	key, err := h.p.KeysSvc.CreateProviderKeyForPlatform(r.Context(), body)
 	httputil.WriteJSON(w, http.StatusCreated, key, err)
 }
+
+// Mount registers the platform handler on the given router under /platform (SaaS only).
+func Mount(r chi.Router, d httpdeps.Deps) {
+	h := NewHandler(d.Platform(), d.Protected())
+	r.Route("/platform", h.RegisterRoutes)
+}

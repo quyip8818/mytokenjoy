@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/riverqueue/river"
-	"github.com/tokenjoy/backend/internal/domain/newapisync/outbox"
+	"github.com/tokenjoy/backend/internal/integration/newapisync/outbox"
 )
 
 // IsNonRetryableNewAPIError reports permanent upstream/client errors that must not

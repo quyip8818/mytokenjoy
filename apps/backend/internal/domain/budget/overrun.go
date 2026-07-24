@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/domain/newapisync"
+	"github.com/tokenjoy/backend/internal/domain/port"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/store"
@@ -33,7 +33,7 @@ type OverrunStore interface {
 type OverrunService struct {
 	cfg        config.Config
 	store      OverrunStore
-	keyControl newapisync.OverrunKeyControl
+	keyControl port.OverrunKeyControl
 	notifier   types.Notifier
 	logger     *slog.Logger
 }
@@ -41,7 +41,7 @@ type OverrunService struct {
 func NewOverrunService(
 	cfg config.Config,
 	st OverrunStore,
-	keyControl newapisync.OverrunKeyControl,
+	keyControl port.OverrunKeyControl,
 	notifier types.Notifier,
 	logger *slog.Logger,
 ) *OverrunService {

@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
-	"github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 	"github.com/tokenjoy/backend/internal/store"
@@ -26,19 +25,25 @@ type Store interface {
 	Billing() store.BillingRepository
 }
 
+// ChargeRateResolver resolves a company's billing currency and quota-per-unit.
+// Injected by the wire layer to avoid importing domain/billing.
+type ChargeRateResolver func(ctx context.Context, companyID uuid.UUID) (currency string, quotaPerUnit int64, err error)
+
 type service struct {
-	store    Store
-	cache    *LRUCache
-	revCache *revisionCache
+	store      Store
+	chargeRate ChargeRateResolver
+	cache      *LRUCache
+	revCache   *revisionCache
 }
 
 var _ RevisionReader = (*service)(nil)
 
-func NewService(cfg config.Config, st Store) Service {
+func NewService(cfg config.Config, st Store, chargeRate ChargeRateResolver) Service {
 	return &service{
-		store:    st,
-		cache:    NewLRUCache(cfg.AuthzCacheSize),
-		revCache: newRevisionCache(5 * time.Second),
+		store:      st,
+		chargeRate: chargeRate,
+		cache:      NewLRUCache(cfg.AuthzCacheSize),
+		revCache:   newRevisionCache(5 * time.Second),
 	}
 }
 
@@ -52,7 +57,7 @@ func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, me
 		return types.SessionContext{}, err
 	}
 
-	currency, ppu, err := billing.ResolveCompanyChargeRate(ctx, s.store, companyID)
+	currency, ppu, err := s.chargeRate(ctx, companyID)
 	if err != nil {
 		return types.SessionContext{}, err
 	}

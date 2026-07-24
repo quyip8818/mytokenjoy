@@ -72,3 +72,9 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	rolesWrite.Post("/roles/{roleId}/members", h.RoleMemberAdd)
 	rolesWrite.Delete("/roles/{roleId}/members/{memberId}", h.RoleMemberRemove)
 }
+
+// Mount registers the org handler on the given router under /org.
+func Mount(r chi.Router, d httpdeps.Deps) {
+	h := NewHandler(d.Protected(), d.OrgSvc, d.CompanySvc)
+	r.Route("/org", h.RegisterRoutes)
+}

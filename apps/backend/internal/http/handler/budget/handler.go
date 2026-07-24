@@ -237,3 +237,9 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	policyWrite.Put("/alerts/{id}", h.AlertUpdate)
 	policyWrite.Delete("/alerts/{id}", h.AlertDelete)
 }
+
+// Mount registers the budget handler on the given router under /budget.
+func Mount(r chi.Router, d httpdeps.Deps) {
+	h := NewHandler(d.Protected(), d.BudgetSvc)
+	r.Route("/budget", h.RegisterRoutes)
+}

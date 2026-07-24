@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/adapter"
+	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
@@ -27,7 +27,7 @@ func NewServiceWithEnqueuer(t *testing.T, cfg config.Config, st store.Store, enq
 	t.Helper()
 	factory := datasource.NewFactory(cfg)
 	notifier := notification.NewService(cfg, st, slog.Default())
-	return org.NewService(cfg, st, factory, notifier, common.NewDelayer(false), slog.Default(), permission.NewGrantNormalizer(), adapter.NewOrgEnqueuer(enqueuer, adapter.NewOrgRiverAdminHolder(nil)))
+	return org.NewService(cfg, st, factory, notifier, common.NewDelayer(false), slog.Default(), permission.NewGrantNormalizer(), enqueue.NewOrgEnqueuer(enqueuer, enqueue.NewOrgRiverAdminHolder(nil)))
 }
 
 func NewServiceFromStore(t *testing.T, opts ...testutil.ConfigOption) (config.Config, store.Store, org.Service) {

@@ -3,7 +3,7 @@ package postgres
 import (
 	"time"
 
-	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
+	pkgtime "github.com/tokenjoy/backend/internal/pkg/clock"
 )
 
 func parseAPITime(value string) (time.Time, error) {

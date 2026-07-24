@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/tokenjoy/backend/internal/adapter"
+	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
@@ -73,7 +73,7 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 	}
 
 	holder := jobs.NewHolder(jobs.NoopEnqueuer{})
-	orgAdmin := adapter.NewOrgRiverAdminHolder(nil)
+	orgAdmin := enqueue.NewOrgRiverAdminHolder(nil)
 	registry, err := assembleRegistry(cfg, logger, st, o, holder, orgAdmin)
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 	if err != nil {
 		return nil, err
 	}
-	router := httpapi.NewRouter(registry.HTTPDeps(logger))
+	router := httpapi.NewRouter(registry.Deps)
 
 	workerCtx, cancel := context.WithCancel(context.Background())
 	if !o.skipWorker {

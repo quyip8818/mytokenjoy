@@ -2,7 +2,7 @@ package usage
 
 import (
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgtime "github.com/tokenjoy/backend/internal/pkg/timeutil"
+	pkgtime "github.com/tokenjoy/backend/internal/pkg/clock"
 )
 
 func CallLogFromLedgerEntry(entry types.UsageLedgerEntry) types.CallLog {

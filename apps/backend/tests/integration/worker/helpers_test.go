@@ -6,7 +6,7 @@ import (
 	"context"
 	"testing"
 
-	newapisync "github.com/tokenjoy/backend/internal/domain/newapisync"
+	newapisync "github.com/tokenjoy/backend/internal/integration/newapisync"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 	riverfix "github.com/tokenjoy/backend/tests/testutil/river"

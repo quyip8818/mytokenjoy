@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/adapter"
+	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	"github.com/tokenjoy/backend/internal/config"
-	domainnewapisync "github.com/tokenjoy/backend/internal/domain/newapisync"
-	"github.com/tokenjoy/backend/internal/domain/newapisync/policy"
+	domainnewapisync "github.com/tokenjoy/backend/internal/integration/newapisync"
+	"github.com/tokenjoy/backend/internal/integration/newapisync/policy"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
@@ -71,7 +71,7 @@ func newTestService(t *testing.T, opts TestServiceOpts, cfgOpts []testutil.Confi
 		st,
 		stub,
 		policy.NewChannelPolicy(cfg),
-		adapter.NewNewAPISyncEnqueuer(riverfix.NewInsertOnlyEnqueuer(t, cfg, st)),
+		enqueue.NewNewAPISyncEnqueuer(riverfix.NewInsertOnlyEnqueuer(t, cfg, st)),
 	)
 	return sync, cfg, st
 }

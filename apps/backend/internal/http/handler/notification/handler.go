@@ -46,3 +46,9 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	admin.Get("/admin/stats", h.AdminStats)
 	admin.Post("/admin/test", h.AdminTestSend)
 }
+
+// Mount registers the notification handler on the given router under /notifications.
+func Mount(r chi.Router, d httpdeps.Deps) {
+	h := NewHandler(d.Protected(), d.Notifications(), d.NotificationPreferences(), d.NotificationSvc)
+	r.Route("/notifications", h.RegisterRoutes)
+}

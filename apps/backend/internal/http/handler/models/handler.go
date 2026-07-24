@@ -124,3 +124,9 @@ func (h *Handler) RoutingUpdate(w http.ResponseWriter, r *http.Request) {
 	rule, err := h.service.UpdateRoutingRule(r.Context(), id, body)
 	httputil.WriteJSON(w, http.StatusOK, rule, err)
 }
+
+// Mount registers the models handler on the given router under /models.
+func Mount(r chi.Router, d httpdeps.Deps) {
+	h := NewHandler(d.Protected(), d.ModelsSvc)
+	r.Route("/models", h.RegisterRoutes)
+}

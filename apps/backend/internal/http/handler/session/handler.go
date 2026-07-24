@@ -44,3 +44,9 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	httpx.SetAuthzRevisionHeader(w, ctx.AuthzRevision)
 	httputil.WriteJSON(w, http.StatusOK, ctx, nil)
 }
+
+// Mount registers the session handler on the given router (top-level /session).
+func Mount(r chi.Router, d httpdeps.Deps) {
+	h := NewHandler(d.Protected())
+	h.RegisterRoutes(r)
+}

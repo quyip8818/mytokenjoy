@@ -8,7 +8,7 @@ import (
 	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/tokenjoy/backend/internal/adapter"
+	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	"github.com/tokenjoy/backend/internal/config"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
@@ -34,17 +34,17 @@ type backgroundWorkers struct {
 	logger *slog.Logger
 }
 
-func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Store, reg ServiceRegistry, holder *jobs.Holder, orgAdmin *adapter.OrgRiverAdminHolder) (*backgroundWorkers, error) {
+func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Store, reg ServiceRegistry, holder *jobs.Holder, orgAdmin *enqueue.OrgRiverAdminHolder) (*backgroundWorkers, error) {
 	pool := postgresPool(st)
 	if pool == nil {
 		return nil, fmt.Errorf("postgres pool unavailable")
 	}
 
-	budgetEnqueuer := adapter.NewBudgetEnqueuer(holder)
+	budgetEnqueuer := enqueue.NewBudgetEnqueuer(holder)
 	budgetCache := budgetcheck.WrapStore(reg.Infra.budgetCheck)
 	budgetReconcile := domainbudget.NewReconcileService(cfg, st, budgetEnqueuer, budgetCache, logger)
-	dashboardProjector := domaindashboard.NewProjector(cfg, st, adapter.NewDashboardEnqueuer(holder), logger)
-	dashboardReconcile := domaindashboard.NewReconcileService(cfg, st, adapter.NewDashboardEnqueuer(holder), logger)
+	dashboardProjector := domaindashboard.NewProjector(cfg, st, enqueue.NewDashboardEnqueuer(holder), logger)
+	dashboardReconcile := domaindashboard.NewReconcileService(cfg, st, enqueue.NewDashboardEnqueuer(holder), logger)
 	sched := scheduler.NewService(cfg, st)
 	bulk := scheduler.NewBulkEnqueuer(cfg, holder)
 

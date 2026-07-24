@@ -1,10 +1,13 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/billing"
 	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
 	"github.com/tokenjoy/backend/internal/identity/authz"
 	"github.com/tokenjoy/backend/internal/identity/credentials"
@@ -19,7 +22,10 @@ func wireIdentity(cfg config.Config, st store.Store) (authz.Service, credentials
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("member session token: %w", err)
 	}
-	return authz.NewService(cfg, st), credentials.NewService(cfg, st), memberToken, nil
+	chargeRate := authz.ChargeRateResolver(func(ctx context.Context, companyID uuid.UUID) (string, int64, error) {
+		return billing.ResolveCompanyChargeRate(ctx, st, companyID)
+	})
+	return authz.NewService(cfg, st, chargeRate), credentials.NewService(cfg, st), memberToken, nil
 }
 
 func wirePrecheckService(cfg config.Config, i infra) domaingateway.Prechecker {

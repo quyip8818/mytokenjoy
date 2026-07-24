@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 
-	"github.com/tokenjoy/backend/internal/domain/newapisync/outbox"
+	"github.com/tokenjoy/backend/internal/integration/newapisync/outbox"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/integration/newapi"

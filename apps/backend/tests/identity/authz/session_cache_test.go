@@ -38,7 +38,7 @@ func newCountingAuthzService(t *testing.T) (authz.Service, *countingOrgRepo) {
 	_, base := testutil.NewTestStore(t, testutil.WithConfig(cfg))
 	orgRepo := &countingOrgRepo{OrgRepository: base.Org()}
 	wrapped := &countingStore{Store: base, org: orgRepo}
-	return authz.NewService(cfg, wrapped), orgRepo
+	return authz.NewService(cfg, wrapped, testChargeRate(base)), orgRepo
 }
 
 func TestGetSessionContextCachesByRevision(t *testing.T) {

@@ -1,0 +1,164 @@
+package provision
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+
+	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
+	"github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/integration/newapisync/platformkey"
+	"github.com/tokenjoy/backend/internal/integration/newapisync/syncdeps"
+	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/identity/secrets"
+	"github.com/tokenjoy/backend/internal/store"
+)
+
+// Bootstrap synchronously creates NewAPI tokens for demo seed platform keys
+// inserted directly by seed apply. Local-only; uses the same sync path as production create.
+func Bootstrap(ctx context.Context, d syncdeps.Deps, companyID uuid.UUID) error {
+	if !syncdeps.Enabled(d) || !d.Cfg.AllowsDevHTTPRoutes() {
+		return nil
+	}
+	ctx = company.WithDefaultCompany(ctx, companyID)
+
+	if err := bootstrapDemoWalletUser(ctx, d, companyID); err != nil {
+		slog.Default().Warn("bootstrap demo wallet user failed", "error", err)
+	}
+
+	unready, err := UnreadyPlatformKeyIDs(ctx, d)
+	if err != nil {
+		return err
+	}
+
+	platformKeys, err := d.Store.Keys().PlatformKeys(ctx)
+	if err != nil {
+		return err
+	}
+	budgetCtx, err := budget.LoadBudgetContext(
+		ctx, d.Store.BudgetConsumed(), d.Store.Org(), d.Store.Budget(), d.Store.Keys(), d.Cfg.Clock(),
+	)
+	if err != nil {
+		return fmt.Errorf("load budget context: %w", err)
+	}
+
+	if len(unready) == 0 {
+		// All keys synced — reconcile to ensure upstream state matches DB (quota, group).
+		return reconcileSyncedPlatformKeyMappings(ctx, d, budgetCtx, platformKeys)
+	}
+
+	for _, key := range platformKeys {
+		if key.Status != "active" {
+			continue
+		}
+		mapping, err := d.Mappings.GetMappingByPlatformKeyID(ctx, key.ID)
+		if err != nil {
+			return err
+		}
+		if mapping != nil && mapping.SyncStatus == store.MappingSyncStatusSynced && mapping.NewAPIKeyID != nil {
+			hash, ok, err := d.Store.Keys().PlatformKeyHashByID(ctx, key.ID)
+			if err != nil {
+				return err
+			}
+			if ok && hash != store.HashPlatformKey("pending:"+key.ID.String()) {
+				continue
+			}
+			if _, err := platformkey.TrySyncCreate(ctx, d, key.ID); err != nil {
+				departmentID := platformkey.DepartmentIDForPlatformKey(key, budgetCtx)
+				if departmentID == uuid.Nil {
+					return fmt.Errorf("repair platform key %s: %w", key.ID, err)
+				}
+				if _, err := platformkey.SyncPlatformKeyCreate(ctx, d, key, departmentID); err != nil {
+					return fmt.Errorf("repair platform key %s: %w", key.ID, err)
+				}
+			}
+			continue
+		}
+		departmentID := platformkey.DepartmentIDForPlatformKey(key, budgetCtx)
+		if departmentID == uuid.Nil {
+			continue
+		}
+		if _, err := platformkey.SyncPlatformKeyCreate(ctx, d, key, departmentID); err != nil {
+			return fmt.Errorf("bootstrap platform key %s: %w", key.ID, err)
+		}
+	}
+	if err := reconcileSyncedPlatformKeyMappings(ctx, d, budgetCtx, platformKeys); err != nil {
+		slog.Default().Warn("reconcile synced platform key mappings failed", "error", err)
+	}
+	return nil
+}
+
+func bootstrapDemoWalletUser(ctx context.Context, d syncdeps.Deps, companyID uuid.UUID) error {
+	if !d.Cfg.AllowsDevHTTPRoutes() || companyID != d.Cfg.LocalCompanyID {
+		return nil
+	}
+	co, err := d.Store.Company().GetByID(ctx, companyID)
+	if err != nil {
+		return err
+	}
+	if co == nil {
+		return nil
+	}
+	_, alreadyConfigured := store.ConfiguredNewAPIWalletCompanyID(co)
+	if alreadyConfigured {
+		return nil // wallet user already exists; no further action needed
+	}
+	user, err := d.Client.CreateUser(ctx, adminport.CreateUserInput{
+		Username:    company.WalletUsername(companyID),
+		DisplayName: co.Name,
+		Password:    secrets.RandomHex(8),
+	})
+	if err != nil {
+		return fmt.Errorf("create demo newapi wallet user: %w", err)
+	}
+	if user.ID <= 0 {
+		return fmt.Errorf("create demo newapi wallet user: missing id")
+	}
+	// Give demo wallet user a large quota so test-model requests aren't rejected.
+	if err := d.Client.ManageUser(ctx, user.ID, "add_quota", 500000*500000); err != nil {
+		slog.Default().Warn("bootstrap: failed to add quota to demo wallet user", "error", err)
+	}
+	if err := d.Store.Company().UpdateNewAPIWalletCompanyID(ctx, companyID, user.ID); err != nil {
+		return err
+	}
+	return nil
+}
+
+func reconcileSyncedPlatformKeyMappings(ctx context.Context, d syncdeps.Deps, budgetCtx budget.BudgetContext, platformKeys []types.PlatformKey) error {
+	for _, key := range platformKeys {
+		if key.Status != "active" {
+			continue
+		}
+		mapping, err := d.Mappings.GetMappingByPlatformKeyID(ctx, key.ID)
+		if err != nil {
+			return err
+		}
+		if mapping == nil || mapping.SyncStatus != store.MappingSyncStatusSynced || mapping.NewAPIKeyID == nil {
+			continue
+		}
+		_, err = d.Client.GetToken(ctx, *mapping.NewAPIKeyID)
+		if err != nil {
+			slog.Default().Warn(
+				"reconcile platform key mapping: token missing in newapi, recreate",
+				"platform_key_id", key.ID,
+				"newapi_key_id", *mapping.NewAPIKeyID,
+				"error", err,
+			)
+			departmentID := platformkey.DepartmentIDForPlatformKey(key, budgetCtx)
+			if departmentID == uuid.Nil {
+				continue
+			}
+			if _, err := platformkey.SyncPlatformKeyCreate(ctx, d, key, departmentID); err != nil {
+				slog.Default().Warn("reconcile recreate platform key failed", "platform_key_id", key.ID, "error", err)
+			}
+			continue
+		}
+		// Ensure group and quota stay in sync with current DB state.
+		if err := platformkey.SyncUpdatePlatformKey(ctx, d, key.ID, nil); err != nil {
+			slog.Default().Warn("reconcile platform key sync failed", "platform_key_id", key.ID, "error", err)
+		}
+	}
+	return nil
+}

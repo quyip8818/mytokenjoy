@@ -6,7 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/domain/newapisync/devapi"
+	"github.com/tokenjoy/backend/internal/integration/newapisync/devapi"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
@@ -85,4 +85,10 @@ func (h *Handler) PlatformKeyBearer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httputil.WriteJSON(w, http.StatusOK, platformKeyBearerResponse{Bearer: bearer}, nil)
+}
+
+// Mount registers the dev handler on the given router under /dev.
+func Mount(r chi.Router, d httpdeps.Deps) {
+	h := NewHandler(d.Protected(), d.Config.LocalCompanyID, d.DevBearerResolver, d.DevReadinessChecker)
+	r.Route("/dev", h.RegisterRoutes)
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
-	"github.com/tokenjoy/backend/internal/domain/newapisync/devapi"
+	"github.com/tokenjoy/backend/internal/integration/newapisync/devapi"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
@@ -251,4 +251,10 @@ func isSimulateAllowed(companyType string) bool {
 	default:
 		return false
 	}
+}
+
+// Mount registers the keys handler on the given router under /keys.
+func Mount(r chi.Router, d httpdeps.Deps) {
+	h := NewHandler(d.Protected(), d.KeysSvc, d.DevBearerResolver)
+	r.Route("/keys", h.RegisterRoutes)
 }

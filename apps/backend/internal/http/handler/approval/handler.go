@@ -313,3 +313,9 @@ func (h *Handler) buildProjectOwnerMap(ctx context.Context, items []types.Approv
 	}
 	return m
 }
+
+// Mount registers the approval handler on the given router under /approvals.
+func Mount(r chi.Router, d httpdeps.Deps) {
+	h := NewHandler(d.Protected(), d.ApprovalEngine, d.Budget())
+	r.Route("/approvals", h.RegisterRoutes)
+}

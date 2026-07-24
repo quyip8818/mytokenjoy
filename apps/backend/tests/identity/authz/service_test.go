@@ -15,7 +15,7 @@ func newAuthzService(t *testing.T) authz.Service {
 	t.Helper()
 	cfg := testutil.TestConfig()
 	_, st := testutil.NewTestStore(t, testutil.WithConfig(cfg))
-	return authz.NewService(cfg, st)
+	return authz.NewService(cfg, st, testChargeRate(st))
 }
 
 func TestGetSessionContextSuccess(t *testing.T) {

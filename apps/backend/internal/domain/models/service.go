@@ -13,7 +13,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
-	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
+	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -153,7 +153,7 @@ func (s *service) UpdateModel(ctx context.Context, id uuid.UUID, input types.Upd
 		if pricing, err := s.client.ListModelPricing(ctx); err == nil {
 			for _, p := range pricing {
 				if p.ModelName == existing.Type {
-					curInput, curOutput = newapiunits.PriceFromRatio(p.ModelRatio, p.CompletionRatio)
+					curInput, curOutput = newapi.PriceFromRatio(p.ModelRatio, p.CompletionRatio)
 					break
 				}
 			}
@@ -391,7 +391,7 @@ func (s *service) ListModelsWithPricing(ctx context.Context) ([]types.ModelInfoW
 
 	for i := range result {
 		if p, ok := priceMap[result[i].Type]; ok {
-			result[i].InputPrice, result[i].OutputPrice = newapiunits.PriceFromRatio(p.ModelRatio, p.CompletionRatio)
+			result[i].InputPrice, result[i].OutputPrice = newapi.PriceFromRatio(p.ModelRatio, p.CompletionRatio)
 		}
 	}
 	return result, nil

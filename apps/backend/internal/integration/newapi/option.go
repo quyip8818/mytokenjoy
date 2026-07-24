@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
-	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
 )
 
 type optionEntry struct {
@@ -92,7 +90,7 @@ func (c *Client) UpsertModelRatio(ctx context.Context, modelType string, inputPr
 		byKey[e.Key] = e.Value
 	}
 
-	modelRatio, completionRatio := newapiunits.RatioFromPrice(inputPrice, outputPrice)
+	modelRatio, completionRatio := RatioFromPrice(inputPrice, outputPrice)
 
 	// Update ModelRatio map
 	mrMap := map[string]float64{}

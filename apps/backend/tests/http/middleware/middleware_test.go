@@ -264,9 +264,12 @@ func TestMiddlewareBehaviors(t *testing.T) {
 	t.Run("M7 require session rejects tampered jwt", func(t *testing.T) {
 		t.Parallel()
 		cfg, st := testutil.NewTestStore(t)
+		chargeRate := authz.ChargeRateResolver(func(ctx context.Context, companyID uuid.UUID) (string, int64, error) {
+			return "USD", 500000, nil
+		})
 		protected := httpdeps.Protected{
 			Cfg:          cfg,
-			AuthzSvc:     authz.NewService(cfg, st),
+			AuthzSvc:     authz.NewService(cfg, st, chargeRate),
 			SessionToken: testutil.SessionIssuer(t),
 		}
 		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -1,61 +1,95 @@
 package app
 
 import (
+	"fmt"
 	"log/slog"
 
-	"github.com/tokenjoy/backend/internal/adapter"
+	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	"github.com/tokenjoy/backend/internal/config"
-	domainapproval "github.com/tokenjoy/backend/internal/domain/approval"
-	domainaudit "github.com/tokenjoy/backend/internal/domain/audit"
-	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
-	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
-	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
-	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
-	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
-	domainmemberanalytics "github.com/tokenjoy/backend/internal/domain/memberanalytics"
-	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
-	domainorg "github.com/tokenjoy/backend/internal/domain/org"
-	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
+	"github.com/tokenjoy/backend/internal/integration/newapisync"
+	"github.com/tokenjoy/backend/internal/integration/newapisync/devapi"
+	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
+	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
+	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 )
 
-type domainServices struct {
-	org             domainorg.Service
-	budget          domainbudget.Service
-	keys            domainkeys.Service
-	models          domainmodels.Service
-	dashboard       domaindashboard.Service
-	audit           domainaudit.Service
-	readModel       domainusage.ReadModel
-	ingest          domainusage.Ingestor
-	overrun         domainbudget.OverrunProcessor
-	rebalance       domainbudget.Rebalancer
-	company         domaincompany.Service
-	billing         domainbilling.Service
-	memberAnalytics domainmemberanalytics.Service
-	approval        *domainapproval.Engine
+func ingestMetricsRecorder(cfg config.Config) ingestmetrics.Recorder {
+	if cfg.IngestEnabled() {
+		return ingestmetrics.NewCollector()
+	}
+	return ingestmetrics.NoopCollector()
 }
 
-func buildDomainServices(cfg config.Config, i infra, logger *slog.Logger, enqueuer jobs.Enqueuer, orgAdmin *adapter.OrgRiverAdminHolder) domainServices {
+// buildServiceRegistry constructs all domain services and wires them into the
+// ServiceRegistry (which embeds httpdeps.Deps for the HTTP layer and holds
+// worker-only fields separately).
+func buildServiceRegistry(cfg config.Config, i infra, logger *slog.Logger, holder *jobs.Holder, orgAdmin *enqueue.OrgRiverAdminHolder) ServiceRegistry {
+	// --- Domain services ---
 	reader := wireReader(i)
 	keysSvc := wireKeys(cfg, i)
-	budgetSvc := wireBudget(cfg, i, enqueuer)
+	budgetSvc := wireBudget(cfg, i, holder)
 	grants := permission.NewGrantNormalizer()
-	return domainServices{
-		org:             wireOrg(cfg, i, logger, grants, enqueuer, orgAdmin),
-		budget:          budgetSvc,
-		keys:            keysSvc,
-		models:          wireModels(cfg, i),
-		dashboard:       wireDashboard(cfg, i, reader),
-		audit:           wireAudit(cfg, i, reader),
-		readModel:       reader,
-		ingest:          wireIngestService(cfg, i, logger, enqueuer),
-		overrun:         wireOverrunService(cfg, i, logger),
-		rebalance:       wireRebalance(cfg, i),
-		company:         wireCompany(cfg, i, grants),
-		billing:         wireBilling(cfg, i, reader),
-		memberAnalytics: wireMemberAnalytics(cfg, reader, budgetSvc),
-		approval:        wireApprovalEngine(i, logger, keysSvc, budgetSvc),
+	orgSvc := wireOrg(cfg, i, logger, grants, holder, orgAdmin)
+
+	// --- Identity ---
+	authzSvc, credSvc, memberToken, err := wireIdentity(cfg, i.store)
+	if err != nil {
+		panic(err)
+	}
+
+	// --- Gateway ---
+	var gateway domaingateway.GatewayService
+	if cfg.GatewayEnabled && cfg.NewAPIEnabled {
+		gw, err := wireGatewayService(cfg, i, logger)
+		if err != nil {
+			panic(fmt.Errorf("wire gateway service: %w", err))
+		}
+		gateway = gw
+	}
+
+	// --- Dev API (only if NewAPISync concrete type) ---
+	var devBearer devapi.BearerResolver
+	var devReadiness devapi.ReadinessChecker
+	if sync, ok := i.newAPISync.(*newapisync.NewAPISync); ok {
+		devBearer = sync
+		devReadiness = sync
+	}
+
+	return ServiceRegistry{
+		Deps: httpdeps.Deps{
+			Config:              cfg,
+			Logger:              logger,
+			Store:               i.store,
+			AuthzSvc:            authzSvc,
+			Credentials:         credSvc,
+			SessionToken:        memberToken,
+			OrgSvc:              orgSvc,
+			BudgetSvc:           budgetSvc,
+			KeysSvc:             keysSvc,
+			ModelsSvc:           wireModels(cfg, i),
+			DashboardSvc:        wireDashboard(cfg, i, reader),
+			AuditSvc:            wireAudit(cfg, i, reader),
+			ReadModel:           reader,
+			IngestSvc:           wireIngestService(cfg, i, logger, holder),
+			IngestEnqueuer:      holder,
+			IngestMetrics:       ingestMetricsRecorder(cfg),
+			CompanySvc:          wireCompany(cfg, i, grants),
+			BillingSvc:          wireBilling(cfg, i, reader),
+			MemberAnalyticsSvc:  wireMemberAnalytics(cfg, reader, budgetSvc),
+			CompanyGate:         i.companyGate,
+			ApprovalEngine:      wireApprovalEngine(i, logger, keysSvc, budgetSvc),
+			Gateway:             gateway,
+			DevBearerResolver:   devBearer,
+			DevReadinessChecker: devReadiness,
+			NotificationSvc:     i.notificationSvc,
+			RateLimiter:         i.rateLimiter,
+			VerifyCodeSvc:       i.verifyCodeSvc,
+		},
+		Infra:     i,
+		OrgSync:   orgSvc,
+		Overrun:   wireOverrunService(cfg, i, logger),
+		Rebalance: wireRebalance(cfg, i),
 	}
 }

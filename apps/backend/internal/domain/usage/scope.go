@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/authzscope"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 )
@@ -61,13 +60,13 @@ func IsDepartmentAccessible(departments []types.Department, scope SessionScope, 
 }
 
 func hasOrgWideDashboardAccess(permissions []string, cfg DashboardScopeConfig) bool {
-	if authzscope.HasAny(permissions, "*") {
+	if common.HasAny(permissions, "*") {
 		return true
 	}
 	if len(cfg.OrgWidePermissions) == 0 {
 		return false
 	}
-	return authzscope.HasAny(permissions, cfg.OrgWidePermissions...)
+	return common.HasAny(permissions, cfg.OrgWidePermissions...)
 }
 
 func collectSubtreeIDs(departments []types.Department, rootID uuid.UUID) []uuid.UUID {

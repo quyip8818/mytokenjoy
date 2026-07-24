@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/adapter"
+	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/budget"
@@ -77,7 +77,7 @@ func newRuntime(t *testing.T, stub *mock.StubAdminClient, orgSync domainorg.Sync
 	pool := postgres.MainPool(st)
 	budgetEnqueuer := budgetEnqueuerFromHolder(holder)
 	budgetReconcile := budget.NewReconcileService(cfg, st, budgetEnqueuer, budgetcheck.WrapStore(budgetcheck.Noop{}), logger)
-	dashboardEnqueuer := adapter.NewDashboardEnqueuer(holder)
+	dashboardEnqueuer := enqueue.NewDashboardEnqueuer(holder)
 	sched := scheduler.NewService(cfg, st)
 	bulk := scheduler.NewBulkEnqueuer(cfg, holder)
 	client, err := riverinfra.NewClient(cfg, pool, riverinfra.Deps{

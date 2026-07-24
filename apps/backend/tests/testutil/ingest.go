@@ -5,7 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/adapter"
+	"github.com/tokenjoy/backend/internal/adapter/bridge"
+	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
@@ -22,7 +23,7 @@ func NewIngestService(t *testing.T, cfg config.Config, st store.Store) *usage.In
 func NewIngestServiceWithEnqueuer(t *testing.T, cfg config.Config, st store.Store, enqueuer jobs.Enqueuer) *usage.IngestService {
 	t.Helper()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	budgetOps := adapter.NewUsageBudgetOps(nil, nil, logger)
-	lotConsumer := adapter.NewUsageLotConsumer()
-	return usage.NewIngestService(cfg, st, st.Logs(), logger, adapter.NewUsageIngestEnqueuer(enqueuer), nil, budgetOps, lotConsumer)
+	budgetOps := bridge.NewUsageBudgetOps(nil, nil, logger)
+	lotConsumer := bridge.NewUsageLotConsumer()
+	return usage.NewIngestService(cfg, st, st.Logs(), logger, enqueue.NewUsageIngestEnqueuer(enqueuer), nil, budgetOps, lotConsumer)
 }

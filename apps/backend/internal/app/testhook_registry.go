@@ -6,9 +6,9 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/tokenjoy/backend/internal/adapter"
+	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	"github.com/tokenjoy/backend/internal/config"
-	newapisync "github.com/tokenjoy/backend/internal/domain/newapisync"
+	newapisync "github.com/tokenjoy/backend/internal/integration/newapisync"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/store"
@@ -20,7 +20,7 @@ func BuildRegistry(cfg config.Config, logger *slog.Logger, st store.Store, opts 
 		opt(&o)
 	}
 	holder := jobs.NewHolder(jobs.NoopEnqueuer{})
-	orgAdmin := adapter.NewOrgRiverAdminHolder(nil)
+	orgAdmin := enqueue.NewOrgRiverAdminHolder(nil)
 	registry, err := assembleRegistry(cfg, logger, st, o, holder, orgAdmin)
 	if err != nil {
 		return ServiceRegistry{}, nil, err

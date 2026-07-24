@@ -90,3 +90,10 @@ func isTrialOrDemoCompany(r *http.Request) bool {
 	info, ok := ctxcompany.From(r.Context())
 	return ok && (info.Type == store.CompanyTypeTrial || info.Type == store.CompanyTypeDemo)
 }
+
+// Mount registers the billing handler on the given router.
+// Routes are mounted at root level (e.g. /billing/wallet) matching legacy layout.
+func Mount(r chi.Router, d httpdeps.Deps) {
+	h := NewHandler(d.Protected(), d.BillingSvc)
+	h.RegisterRoutes(r)
+}

@@ -4,7 +4,8 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/tokenjoy/backend/internal/adapter"
+	"github.com/tokenjoy/backend/internal/adapter/bridge"
+	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	"github.com/tokenjoy/backend/internal/config"
 	domainapproval "github.com/tokenjoy/backend/internal/domain/approval"
 	domainaudit "github.com/tokenjoy/backend/internal/domain/audit"
@@ -31,13 +32,13 @@ func dashboardScopeConfig() domainusage.DashboardScopeConfig {
 	}
 }
 
-func wireOrg(cfg config.Config, i infra, logger *slog.Logger, grants domaingrants.Normalizer, enqueuer jobs.Enqueuer, orgAdmin *adapter.OrgRiverAdminHolder) domainorg.Service {
+func wireOrg(cfg config.Config, i infra, logger *slog.Logger, grants domaingrants.Normalizer, enqueuer jobs.Enqueuer, orgAdmin *enqueue.OrgRiverAdminHolder) domainorg.Service {
 	factory := datasource.NewFactory(cfg)
-	return domainorg.NewService(cfg, i.store, factory, i.notifier, i.delayer, logger, grants, adapter.NewOrgEnqueuer(enqueuer, orgAdmin))
+	return domainorg.NewService(cfg, i.store, factory, i.notifier, i.delayer, logger, grants, enqueue.NewOrgEnqueuer(enqueuer, orgAdmin))
 }
 
 func wireBudget(cfg config.Config, i infra, enqueuer jobs.Enqueuer) domainbudget.Service {
-	return domainbudget.NewService(cfg, i.store, i.delayer, adapter.NewBudgetEnqueuer(enqueuer))
+	return domainbudget.NewService(cfg, i.store, i.delayer, enqueue.NewBudgetEnqueuer(enqueuer))
 }
 
 func wireOverrunService(cfg config.Config, i infra, logger *slog.Logger) domainbudget.OverrunProcessor {
@@ -81,11 +82,11 @@ func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, budget do
 }
 
 func wireIngestService(cfg config.Config, i infra, logger *slog.Logger, enqueuer jobs.Enqueuer) *domainusage.IngestService {
-	alertPub := adapter.NewBudgetAlertPublisher(i.notificationSvc)
+	alertPub := bridge.NewBudgetAlertPublisher(i.notificationSvc)
 	cache := budgetcheck.WrapStore(i.budgetCheck)
-	budgetOps := adapter.NewUsageBudgetOps(cache, alertPub, logger)
-	lotConsumer := adapter.NewUsageLotConsumer()
-	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), logger, adapter.NewUsageIngestEnqueuer(enqueuer), i.notifier, budgetOps, lotConsumer)
+	budgetOps := bridge.NewUsageBudgetOps(cache, alertPub, logger)
+	lotConsumer := bridge.NewUsageLotConsumer()
+	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), logger, enqueue.NewUsageIngestEnqueuer(enqueuer), i.notifier, budgetOps, lotConsumer)
 }
 
 func wireReader(i infra) domainusage.Reader {

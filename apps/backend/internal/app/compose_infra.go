@@ -6,13 +6,13 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/tokenjoy/backend/internal/adapter"
+	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
-	"github.com/tokenjoy/backend/internal/domain/newapisync"
-	"github.com/tokenjoy/backend/internal/domain/newapisync/policy"
+	"github.com/tokenjoy/backend/internal/integration/newapisync"
+	"github.com/tokenjoy/backend/internal/integration/newapisync/policy"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/identity/verifycode"
 	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
@@ -64,7 +64,7 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store,
 		adminPort:       adminPort,
 		channelPolicy:   channelPolicy,
 		companyGate:     domaincompany.NewGate(cfg),
-		newAPISync:      newapisync.New(cfg, st, adminPort, channelPolicy, adapter.NewNewAPISyncEnqueuer(enqueuer)),
+		newAPISync:      newapisync.New(cfg, st, adminPort, channelPolicy, enqueue.NewNewAPISyncEnqueuer(enqueuer)),
 		notifier:        notifySvc,
 		notificationSvc: notifySvc,
 		delayer:         common.NewDelayer(cfg.SimulateDelay),

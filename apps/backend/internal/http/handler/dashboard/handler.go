@@ -131,3 +131,9 @@ func parseCostQueryParams(r *http.Request) types.CostQueryParams {
 		Granularity: query.Get("granularity"),
 	}
 }
+
+// Mount registers the dashboard handler on the given router under /dashboard.
+func Mount(r chi.Router, d httpdeps.Deps) {
+	h := NewHandler(d.Protected(), d.DashboardSvc)
+	r.Route("/dashboard", h.RegisterRoutes)
+}

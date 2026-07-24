@@ -7,11 +7,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/adapter"
+	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/budget"
-	"github.com/tokenjoy/backend/internal/domain/newapisync"
-	"github.com/tokenjoy/backend/internal/domain/newapisync/policy"
+	"github.com/tokenjoy/backend/internal/integration/newapisync"
+	"github.com/tokenjoy/backend/internal/integration/newapisync/policy"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
@@ -27,7 +27,7 @@ func NewOverrunService(
 	notifier types.Notifier,
 ) *budget.OverrunService {
 	t.Helper()
-	newAPISync := newapisync.New(cfg, st, stub, policy.NewChannelPolicy(cfg), adapter.NewNewAPISyncEnqueuer(jobs.NoopEnqueuer{}))
+	newAPISync := newapisync.New(cfg, st, stub, policy.NewChannelPolicy(cfg), enqueue.NewNewAPISyncEnqueuer(jobs.NoopEnqueuer{}))
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	if notifier == nil {
 		notifier = notification.NewService(cfg, st, logger)

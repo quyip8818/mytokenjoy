@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/adapter"
+	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
@@ -38,7 +38,7 @@ func TestDashboardReconcileRepairsBucketDrift(t *testing.T) {
 	entry := entries[0]
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	dashboardEnqueuer := adapter.NewDashboardEnqueuer(runner.Enqueuer)
+	dashboardEnqueuer := enqueue.NewDashboardEnqueuer(runner.Enqueuer)
 	projector := domaindashboard.NewProjector(runner.Cfg, st, dashboardEnqueuer, logger)
 	if _, err := projector.RunBatch(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)

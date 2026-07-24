@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/secrets"
+	"github.com/tokenjoy/backend/internal/identity/secrets"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

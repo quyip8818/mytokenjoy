@@ -11,7 +11,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
-	"github.com/tokenjoy/backend/internal/pkg/newapiunits"
+	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/seed/runtime"
@@ -74,7 +74,7 @@ func seedDefaultMapping(t *testing.T, st store.Store) {
 		MemberID:      &memberID,
 		DepartmentID:  deptID,
 		SyncStatus:    store.MappingSyncStatusSynced,
-		NewAPIGroup:   newapiunits.NewAPIGroupForDepartment(deptID),
+		NewAPIGroup:   newapi.NewAPIGroupForDepartment(deptID),
 	}); err != nil {
 		t.Fatal(err)
 	}

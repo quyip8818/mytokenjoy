@@ -6,8 +6,8 @@ import (
 
 	"github.com/riverqueue/river"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/domain/newapisync"
-	"github.com/tokenjoy/backend/internal/domain/newapisync/outbox"
+	"github.com/tokenjoy/backend/internal/integration/newapisync"
+	"github.com/tokenjoy/backend/internal/integration/newapisync/outbox"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 )
 

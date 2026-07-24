@@ -57,3 +57,9 @@ func (h *Handler) GetDashboard(w http.ResponseWriter, r *http.Request) {
 	view, err := h.memberAnalytics.GetDashboard(r.Context(), sessionCtx.Member.ID)
 	httputil.WriteJSON(w, http.StatusOK, view, err)
 }
+
+// Mount registers the me handler on the given router under /me.
+func Mount(r chi.Router, d httpdeps.Deps) {
+	h := NewHandler(d.Protected(), d.MemberAnalyticsSvc, d.Users(), d.Org(), d.Sessions(), d.VerifyCodeSvc)
+	r.Route("/me", h.RegisterRoutes)
+}

@@ -6,8 +6,23 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
-	httphandler "github.com/tokenjoy/backend/internal/http/handler"
+	approvalhandler "github.com/tokenjoy/backend/internal/http/handler/approval"
+	audithandler "github.com/tokenjoy/backend/internal/http/handler/audit"
+	authhandler "github.com/tokenjoy/backend/internal/http/handler/auth"
+	billinghandler "github.com/tokenjoy/backend/internal/http/handler/billing"
+	budgethandler "github.com/tokenjoy/backend/internal/http/handler/budget"
+	dashboardhandler "github.com/tokenjoy/backend/internal/http/handler/dashboard"
+	devhandler "github.com/tokenjoy/backend/internal/http/handler/dev"
 	healthhandler "github.com/tokenjoy/backend/internal/http/handler/health"
+	ingesthandler "github.com/tokenjoy/backend/internal/http/handler/ingest"
+	keyshandler "github.com/tokenjoy/backend/internal/http/handler/keys"
+	mehandler "github.com/tokenjoy/backend/internal/http/handler/me"
+	modelshandler "github.com/tokenjoy/backend/internal/http/handler/models"
+	notificationhandler "github.com/tokenjoy/backend/internal/http/handler/notification"
+	orghandler "github.com/tokenjoy/backend/internal/http/handler/org"
+	platformhandler "github.com/tokenjoy/backend/internal/http/handler/platform"
+	registerhandler "github.com/tokenjoy/backend/internal/http/handler/register"
+	sessionhandler "github.com/tokenjoy/backend/internal/http/handler/session"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/http/response"
 	"github.com/tokenjoy/backend/internal/infra/ratelimit"
@@ -38,8 +53,6 @@ func NewRouter(deps httpdeps.Deps) http.Handler {
 	healthhandler.RegisterRoutes(r)
 
 	// --- /api routes ---
-	reg := httphandler.NewRegistry(deps)
-
 	r.Route("/api", func(api chi.Router) {
 		api.Use(httpmiddleware.RequestTimeout(deps.Config.RequestTimeoutSec))
 		api.Use(httpmiddleware.CompanyResolve(deps.Config, deps.CompanySvc, deps.SessionToken))
@@ -60,10 +73,43 @@ func NewRouter(deps httpdeps.Deps) http.Handler {
 		if deps.CompanyGate != nil {
 			api.Use(httpmiddleware.CompanyReadOnlyMiddleware(deps.CompanyGate))
 		}
-		reg.RegisterAPIRoutes(api)
+		mountAPI(api, deps)
 	})
 
 	return r
+}
+
+// mountAPI registers all API handlers. Adding a new handler = one line here.
+func mountAPI(api chi.Router, d httpdeps.Deps) {
+	sessionhandler.Mount(api, d)
+	authhandler.Mount(api, d)
+	ingesthandler.Mount(api, d)
+	billinghandler.Mount(api, d)
+
+	// SaaS only: register endpoints
+	api.Group(func(r chi.Router) {
+		r.Use(httpmiddleware.RequireSaaS(d.Config))
+		registerhandler.Mount(r, d)
+	})
+
+	// SaaS only: platform management
+	if d.Config.SupportSaas {
+		platformhandler.Mount(api, d)
+	}
+
+	orghandler.Mount(api, d)
+	budgethandler.Mount(api, d)
+	keyshandler.Mount(api, d)
+	modelshandler.Mount(api, d)
+	dashboardhandler.Mount(api, d)
+	audithandler.Mount(api, d)
+	approvalhandler.Mount(api, d)
+	mehandler.Mount(api, d)
+	notificationhandler.Mount(api, d)
+
+	if d.Config.AllowsDevHTTPRoutes() {
+		devhandler.Mount(api, d)
+	}
 }
 
 func jsonNotFound(w http.ResponseWriter, _ *http.Request) {
