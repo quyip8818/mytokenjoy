@@ -32,9 +32,9 @@ import (
 // ---------------------------------------------------------------------------
 
 type stressEnvOpts struct {
-	KeyBudget       int64
-	MemberBudget    int64
-	DeptBudget      int64
+	KeyBudget       float64
+	MemberBudget    float64
+	DeptBudget      float64
 	AlertThresholds []int
 }
 
@@ -124,6 +124,11 @@ func buildStressEnv(t *testing.T, opts stressEnvOpts) *stressEnv {
 	// Reset consumed to 0 so tests start fresh
 	budgetfix.SetPlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1, 0)
 	budgetfix.SetMemberSnapshotConsumed(t, st, contract.IDMember1, 0)
+
+	// Initialize combined_key_remain so DecrementBatch can operate on it.
+	if opts.KeyBudget > 0 {
+		budgetfix.SetCombinedKeyRemain(t, st, contract.IDPlatformKey1, opts.KeyBudget)
+	}
 
 	return &stressEnv{
 		Cfg:      cfg,
@@ -312,12 +317,12 @@ func keyHashForPlatformKey(t *testing.T, st store.Store) string {
 }
 
 // consumedForKey returns the current budget_consumed value for a platform key.
-func consumedForKey(t *testing.T, st store.Store, keyID uuid.UUID) int64 {
+func consumedForKey(t *testing.T, st store.Store, keyID uuid.UUID) float64 {
 	t.Helper()
 	return budgetfix.PlatformKeySnapshotConsumed(t, st, keyID)
 }
 
-// formatPoints formats an int64 quota value for logging.
-func formatPoints(v int64) string {
-	return fmt.Sprintf("%d", v)
+// formatPoints formats a float64 quota value for logging.
+func formatPoints(v float64) string {
+	return fmt.Sprintf("%.0f", v)
 }

@@ -317,7 +317,11 @@ for (const featureEntry of readdirSync(featuresDir, { withFileTypes: true })) {
     const m = line.match(/export\s+(?:type\s+)?{([^}]+)}\s+from/)
     if (!m) continue
     for (const token of m[1].split(',')) {
-      const name = token.trim().replace(/^type\s+/, '').replace(/\s+as\s+\w+/, '').trim()
+      const name = token
+        .trim()
+        .replace(/^type\s+/, '')
+        .replace(/\s+as\s+\w+/, '')
+        .trim()
       if (name) exportedNames.push(name)
     }
   }
@@ -332,7 +336,10 @@ for (const featureEntry of readdirSync(featuresDir, { withFileTypes: true })) {
       const rel = relativeToSrc(filePath)
       if (rel.startsWith(`features/${featureName}/hooks/`)) continue
       for (const block of blocks) {
-        if (pattern.test(block)) { hasConsumer = true; break }
+        if (pattern.test(block)) {
+          hasConsumer = true
+          break
+        }
       }
     }
 
@@ -340,7 +347,10 @@ for (const featureEntry of readdirSync(featuresDir, { withFileTypes: true })) {
       for (const [, blocks] of allTestImports) {
         if (hasConsumer) break
         for (const block of blocks) {
-          if (pattern.test(block)) { hasConsumer = true; break }
+          if (pattern.test(block)) {
+            hasConsumer = true
+            break
+          }
         }
       }
     }

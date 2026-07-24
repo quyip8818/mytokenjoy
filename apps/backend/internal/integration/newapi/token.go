@@ -53,10 +53,11 @@ func validateCreatedToken(req adminport.CreateTokenInput, token Token) error {
 }
 
 func (c *Client) UpdateToken(ctx context.Context, req adminport.UpdateTokenInput) (adminport.TokenResult, error) {
-	// TJ always creates tokens with unlimited quota, never-expire, no model_limits.
-	// Since we control all writes, we can skip the GET and build the PUT body directly
-	// using these known invariants + the caller-supplied overrides.
-	payload := BuildTokenPut(req)
+	cur, err := c.getToken(ctx, req.ID)
+	if err != nil {
+		return adminport.TokenResult{}, fmt.Errorf("UpdateToken GET current: %w", err)
+	}
+	payload := MergeTokenPut(cur, req)
 	var token Token
 	if err := c.do(ctx, "PUT", "/api/token/", payload, &token); err != nil {
 		return adminport.TokenResult{}, err
