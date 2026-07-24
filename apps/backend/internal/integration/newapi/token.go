@@ -65,28 +65,6 @@ func (c *Client) UpdateToken(ctx context.Context, req adminport.UpdateTokenInput
 	return tokenToResult(token), nil
 }
 
-// BuildTokenPut constructs the full PUT payload using TJ's token creation invariants.
-// ponytail: relies on TJ always creating tokens as unlimited/never-expire.
-// If NewAPI-side manual edits break this assumption, revisit.
-func BuildTokenPut(req adminport.UpdateTokenInput) TokenPutBody {
-	status := adminport.TokenStatusEnabled
-	if req.Status != nil {
-		status = *req.Status
-	}
-	expiredTime := TokenExpiredNever
-	if req.ExpiredTime != nil {
-		expiredTime = *req.ExpiredTime
-	}
-	return TokenPutBody{
-		ID:             req.ID,
-		Name:           req.Name,
-		Status:         status,
-		UnlimitedQuota: true,
-		Group:          req.Group,
-		ExpiredTime:    expiredTime,
-	}
-}
-
 func MergeTokenPut(cur Token, req adminport.UpdateTokenInput) TokenPutBody {
 	return TokenPutBody{
 		ID:                 req.ID,
