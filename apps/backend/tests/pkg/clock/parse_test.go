@@ -89,3 +89,17 @@ func TestFormatDateOnly(t *testing.T) {
 		t.Errorf("FormatDateOnly = %q, want %q", got, want)
 	}
 }
+
+
+func TestTruncateInTZDayBoundary(t *testing.T) {
+	t.Parallel()
+	loc, err := clock.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ts := time.Date(2026, 6, 10, 15, 30, 0, 0, time.UTC)
+	truncated := clock.TruncateInTZ(ts, 24*time.Hour, loc)
+	if truncated.Hour() != 0 || truncated.Location().String() != loc.String() {
+		t.Fatalf("unexpected truncated time: %v", truncated)
+	}
+}

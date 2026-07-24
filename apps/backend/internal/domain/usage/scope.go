@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 )
@@ -90,7 +91,7 @@ func collectSubtreeIDsFromNode(dept types.Department) []uuid.UUID {
 }
 
 func ParseSeriesTimeRange(startRaw, endRaw, granularity, timezone string) (time.Time, time.Time, error) {
-	loc, err := common.LoadLocation(timezone)
+	loc, err := clock.LoadLocation(timezone)
 	if err != nil {
 		return time.Time{}, time.Time{}, err
 	}
@@ -123,9 +124,9 @@ func parseBoundary(value string, loc *time.Location, isEnd bool) (time.Time, err
 		return time.Time{}, domain.BadRequest(fmt.Sprintf("invalid time: %s", value))
 	}
 	if isEnd {
-		return common.TruncateInTZ(t, 24*time.Hour, loc).Add(24 * time.Hour), nil
+		return clock.TruncateInTZ(t, 24*time.Hour, loc).Add(24 * time.Hour), nil
 	}
-	return common.TruncateInTZ(t, 24*time.Hour, loc), nil
+	return clock.TruncateInTZ(t, 24*time.Hour, loc), nil
 }
 
 func ValidateWindow(start, end time.Time, granularity string) error {

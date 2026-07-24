@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 )
 
 // ResolvedRange is a dashboard / cost-query time window (not a budget snapshot period_key).
@@ -20,7 +20,7 @@ func Resolve(params types.CostQueryParams, now time.Time, timezone string) (Reso
 	if timezone == "" {
 		timezone = types.UsageDefaultTimezone
 	}
-	loc, err := common.LoadLocation(timezone)
+	loc, err := clock.LoadLocation(timezone)
 	if err != nil {
 		return ResolvedRange{}, err
 	}
@@ -37,13 +37,13 @@ func Resolve(params types.CostQueryParams, now time.Time, timezone string) (Reso
 	var start, end time.Time
 	switch period {
 	case types.CostPeriodCurrentMonth:
-		start = common.TruncateMonthInTZ(nowLocal, loc)
+		start = clock.TruncateMonthInTZ(nowLocal, loc)
 		end = start.AddDate(0, 1, 0)
 	case types.CostPeriodLastMonth:
-		end = common.TruncateMonthInTZ(nowLocal, loc)
+		end = clock.TruncateMonthInTZ(nowLocal, loc)
 		start = end.AddDate(0, -1, 0)
 	case types.CostPeriodLast7Days:
-		end = common.TruncateInTZ(nowLocal.Add(24*time.Hour), 24*time.Hour, loc)
+		end = clock.TruncateInTZ(nowLocal.Add(24*time.Hour), 24*time.Hour, loc)
 		start = end.AddDate(0, 0, -7)
 	case types.CostPeriodCustom:
 		if params.StartDate == "" || params.EndDate == "" {
@@ -58,7 +58,7 @@ func Resolve(params types.CostQueryParams, now time.Time, timezone string) (Reso
 			return ResolvedRange{}, err
 		}
 	default:
-		start = common.TruncateMonthInTZ(nowLocal, loc)
+		start = clock.TruncateMonthInTZ(nowLocal, loc)
 		end = start.AddDate(0, 1, 0)
 	}
 
@@ -99,5 +99,5 @@ func parseDateEnd(value string, loc *time.Location) (time.Time, error) {
 	if err != nil {
 		return time.Time{}, fmt.Errorf("invalid end date: %w", err)
 	}
-	return common.TruncateInTZ(t, 24*time.Hour, loc).Add(24 * time.Hour).UTC(), nil
+	return clock.TruncateInTZ(t, 24*time.Hour, loc).Add(24 * time.Hour).UTC(), nil
 }

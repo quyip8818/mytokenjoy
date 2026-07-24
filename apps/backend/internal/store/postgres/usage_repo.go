@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -147,7 +147,7 @@ func (r *usageRepo) queryAggregated(ctx context.Context, q types.UsageAggregateQ
 	if err != nil {
 		return nil, err
 	}
-	loc, err := common.LoadLocation(q.Timezone)
+	loc, err := clock.LoadLocation(q.Timezone)
 	if err != nil {
 		return nil, err
 	}

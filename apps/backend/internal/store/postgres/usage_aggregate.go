@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 )
 
 type usageAggKey struct {
@@ -27,17 +27,17 @@ func uuidSet(items []uuid.UUID) map[uuid.UUID]struct{} {
 func truncateUsageBucket(t time.Time, granularity string, loc *time.Location) time.Time {
 	switch granularity {
 	case types.UsageGranularityDay:
-		return common.TruncateInTZ(t, 24*time.Hour, loc)
+		return clock.TruncateInTZ(t, 24*time.Hour, loc)
 	case types.UsageGranularityHour:
-		return common.TruncateInTZ(t, time.Hour, loc)
+		return clock.TruncateInTZ(t, time.Hour, loc)
 	case types.UsageGranularityMinute:
-		return common.TruncateInTZ(t, time.Minute, loc)
+		return clock.TruncateInTZ(t, time.Minute, loc)
 	case types.UsageGranularityWeek:
-		return common.TruncateWeekInTZ(t, loc)
+		return clock.TruncateWeekInTZ(t, loc)
 	case types.UsageGranularityMonth:
-		return common.TruncateMonthInTZ(t, loc)
+		return clock.TruncateMonthInTZ(t, loc)
 	default:
-		return common.TruncateInTZ(t, 24*time.Hour, loc)
+		return clock.TruncateInTZ(t, 24*time.Hour, loc)
 	}
 }
 
@@ -72,7 +72,7 @@ func aggregateUsageRows(
 		}
 		existing := buckets[key]
 		if existing.Bucket == "" && granularity != "" {
-			existing.Bucket = common.FormatBucketISO(truncated)
+			existing.Bucket = clock.FormatBucketISO(truncated)
 		}
 		existing.DepartmentID = key.DepartmentID
 		existing.MemberID = key.MemberID
