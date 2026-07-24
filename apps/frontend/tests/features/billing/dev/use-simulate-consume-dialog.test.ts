@@ -1,10 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { act, waitFor } from '@testing-library/react'
-import { useSimulateConsumeDialog } from '@/features/dev/hooks/use-simulate-consume-dialog'
+import { useSimulateConsumeDialog } from '@/features/billing/dev/hooks/use-simulate-consume-dialog'
 import { createMockApis, renderHookWithProviders } from '@tests/utils'
-import * as simulateConsume from '@/features/dev/lib/simulate-consume'
+import * as simulateConsume from '@/features/billing/dev/lib/simulate-consume'
 
-vi.mock('@/features/dev/lib/simulate-consume', async (importOriginal) => {
+vi.mock('@/features/billing/dev/lib/simulate-consume', async (importOriginal) => {
   const actual = await importOriginal<typeof simulateConsume>()
   return {
     ...actual,

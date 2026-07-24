@@ -1,11 +1,16 @@
+// === 页面入口（route page 消费）===
 export { modelsKeys } from './query-keys'
 export { useModelListPage } from './hooks/use-model-list-page'
 export { useModelRoutingPage } from './hooks/use-model-routing-page'
-export { useModelLabels } from './hooks/use-model-labels'
-export { ModelListTable } from './components/model-list-table'
-export { RoutingRulesTable } from './components/routing-rules-table'
 export { ModelListPageShell } from './components/model-list-page-shell'
 export { ModelRoutingPageShell } from './components/model-routing-page-shell'
-export { PROVIDER_LABELS, PROVIDER_BADGE_STYLES, PROVIDER_CHIP_STYLES } from './lib/labels'
+
+// === 跨 feature 共享 ===
+// consumed by: workflow (approval-review, key-form, approval-submit), keys (platform-keys-page-shell)
+export { useModelLabels } from './hooks/use-model-labels'
+// consumed by: workflow/whitelist-config, self components
 export { modelRefLabel } from './lib/model-catalog'
-export { isBuiltinModel, isCustomModel } from './lib/model-kind'
+// consumed by: workflow/model-picker
+export { isBuiltinModel } from './lib/model-kind'
+// consumed by: workflow/model-edit
+export { isCustomModel } from './lib/model-kind'
