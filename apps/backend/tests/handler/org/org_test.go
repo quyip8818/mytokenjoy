@@ -17,7 +17,7 @@ import (
 func TestMemberCreateHTTP(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
-	body := []byte(fmt.Sprintf(`{"name":"测试用户","phone":"13800000000","email":"test@example.com","departmentId":"%s"}`, contract.IDDept3.String()))
+	body := []byte(fmt.Sprintf(`{"alias":"测试用户","phone":"13800000000","email":"test@example.com","departmentId":"%s"}`, contract.IDDept3.String()))
 	req := httptest.NewRequest(http.MethodPost, "/api/org/members", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Cookie", testhttp.AdminCookie(t))

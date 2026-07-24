@@ -31,6 +31,9 @@ func normalizeGatewayOpts(opts GatewayScenarioOpts) GatewayScenarioOpts {
 	if opts.CompanyStatus == "" {
 		opts.CompanyStatus = store.CompanyStatusActive
 	}
+	if opts.CompanyType == "" {
+		opts.CompanyType = store.CompanyTypeTesting
+	}
 	return opts
 }
 
@@ -46,6 +49,9 @@ func applyGatewayCompanyState(t *testing.T, cfg config.Config, st store.Store, o
 		t.Fatal(err)
 	}
 	if err := st.Company().UpdateNewAPIWalletCompanyID(ctx, opts.CompanyID, opts.NewAPIWalletCompanyID); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Company().UpdateType(ctx, opts.CompanyID, opts.CompanyType); err != nil {
 		t.Fatal(err)
 	}
 	if opts.CompanyStatus != store.CompanyStatusActive {

@@ -33,7 +33,7 @@ func newKeysService(t *testing.T) (domainkeys.Service, store.Store) {
 
 func newKeysServiceWithNewAPI(t *testing.T) (domainkeys.Service, store.Store, *mock.StubAdminClient) {
 	t.Helper()
-	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 883, Key: "sk-test-key", RemainQuota: 1000}}
+	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 883, Key: "test-key", RemainQuota: 1000}}
 	cfg, st := testutil.NewTestStore(t,
 		testutil.WithNewAPIEnabled(true),
 		testutil.WithNewAPIBaseURL("http://newapi.test"),

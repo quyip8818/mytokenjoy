@@ -40,7 +40,6 @@ func SharedTestStore(t *testing.T, opts ...ConfigOption) (config.Config, store.S
 			sharedErr = err
 			return
 		}
-		resetRuntimeTables(t, cfg, st)
 		sharedCfg = cfg
 		sharedStore = st
 	})

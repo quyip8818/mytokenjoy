@@ -4,11 +4,15 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/tests/testutil"
+	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
+	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
 )
 
 func TestIngestEnqueueFailureRollsBackLedger(t *testing.T) {
 	fix := newIngestFixture(t, withEnqueuer(mock.FailingEnqueuer{}))
+	// Set combined key remain to negative so overrun enqueue is triggered.
+	budgetfix.SetCombinedKeyRemain(t, fix.Store, newapisynctf.DefaultMappingOpts().PlatformKeyID, -1)
 	testutil.SeedConsumeLog(t, fix.Store, testutil.DefaultConsumeLog(4102, 99))
 
 	err := fix.Ingest.IngestByLogID(testutil.Ctx(), 4102, "webhook")

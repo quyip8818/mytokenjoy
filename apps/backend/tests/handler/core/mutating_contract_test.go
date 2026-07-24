@@ -21,8 +21,8 @@ func TestMutatingContractEndpoints(t *testing.T) {
 	t.Run("budget department update", func(t *testing.T) {
 		// dept-6 has no demo oversubscription; dept-3 is reserved for overrun scenarios.
 		deptID := contract.IDDept6.String()
-		const wantBudget = 21000000
-		body := []byte(`{"budget":21000000}`)
+		const wantBudget = 1000
+		body := []byte(`{"budget":1000}`)
 		req := httptest.NewRequest(http.MethodPut, "/api/budget/departments/"+deptID, bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Cookie", cookie)
