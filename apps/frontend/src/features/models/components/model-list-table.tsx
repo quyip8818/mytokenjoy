@@ -59,13 +59,9 @@ export function ModelListTable({
     <Table>
       <TableHeader>
         <TableRow className="hover:bg-transparent border-border/60">
-          <TableHead className="text-xs font-medium text-muted-foreground">
-            模型
-          </TableHead>
+          <TableHead className="text-xs font-medium text-muted-foreground">模型</TableHead>
           {showProviderColumn && (
-            <TableHead className="text-xs font-medium text-muted-foreground">
-              来源
-            </TableHead>
+            <TableHead className="text-xs font-medium text-muted-foreground">来源</TableHead>
           )}
           <TableHead className="text-right text-xs font-medium text-muted-foreground">
             输入价格
@@ -74,9 +70,7 @@ export function ModelListTable({
             输出价格
           </TableHead>
           {showProviderColumn && (
-            <TableHead className="text-xs font-medium text-muted-foreground">
-              部署地址
-            </TableHead>
+            <TableHead className="text-xs font-medium text-muted-foreground">部署地址</TableHead>
           )}
           {canManage && (
             <TableHead className="w-[140px] text-right text-xs font-medium text-muted-foreground">
@@ -101,9 +95,7 @@ export function ModelListTable({
                 <span className="text-sm font-medium leading-tight text-foreground">
                   {model.name}
                 </span>
-                <span className="font-mono text-xs text-muted-foreground/80">
-                  {model.type}
-                </span>
+                <span className="font-mono text-xs text-muted-foreground/80">{model.type}</span>
               </div>
             </TableCell>
             {showProviderColumn && (

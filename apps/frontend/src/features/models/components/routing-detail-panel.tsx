@@ -109,19 +109,22 @@ export function RoutingDetailPanel({
               const isDefault = defaultModelId === model.modelId
               const isFallback = fallbackModelId === model.modelId
               return (
-                <div
-                  key={model.modelId}
-                  className="flex items-center justify-between px-4 py-2.5"
-                >
+                <div key={model.modelId} className="flex items-center justify-between px-4 py-2.5">
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-foreground">{model.name || model.type}</span>
                     {isDefault && (
-                      <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-[10px] text-indigo-700">
+                      <Badge
+                        variant="outline"
+                        className="border-indigo-200 bg-indigo-50 text-[10px] text-indigo-700"
+                      >
                         默认
                       </Badge>
                     )}
                     {isFallback && (
-                      <Badge variant="outline" className="border-amber-200 bg-amber-50 text-[10px] text-amber-700">
+                      <Badge
+                        variant="outline"
+                        className="border-amber-200 bg-amber-50 text-[10px] text-amber-700"
+                      >
                         降级
                       </Badge>
                     )}

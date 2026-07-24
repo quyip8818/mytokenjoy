@@ -76,9 +76,19 @@ function TreeNode({
           <span className="size-4 shrink-0" />
         )}
         {hasChildren ? (
-          <Building2 className={cn('size-3.5 shrink-0', isSelected ? 'text-primary/70' : 'text-muted-foreground')} />
+          <Building2
+            className={cn(
+              'size-3.5 shrink-0',
+              isSelected ? 'text-primary/70' : 'text-muted-foreground',
+            )}
+          />
         ) : (
-          <Users className={cn('size-3.5 shrink-0', isSelected ? 'text-primary/70' : 'text-muted-foreground')} />
+          <Users
+            className={cn(
+              'size-3.5 shrink-0',
+              isSelected ? 'text-primary/70' : 'text-muted-foreground',
+            )}
+          />
         )}
         <span className="truncate">{department.name}</span>
       </div>

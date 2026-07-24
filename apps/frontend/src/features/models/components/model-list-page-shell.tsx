@@ -12,7 +12,15 @@ import { ModelListTable } from './model-list-table'
 
 type ModelListPageShellProps = ReturnType<typeof useModelListPage>
 
-function StatChip({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: number }) {
+function StatChip({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType
+  label: string
+  value: number
+}) {
   return (
     <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-1.5">
       <Icon className="size-3.5 text-muted-foreground" />
