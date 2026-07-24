@@ -42,7 +42,7 @@ func usageBucketsEmpty(ctx context.Context, st store.Store) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return totals.CallCount == 0 && totals.QuotaConsumed == 0 && totals.DisplayCost == 0, nil
+	return totals.CallCount == 0 && totals.QuotaConsumed == 0 && totals.Cost == 0, nil
 }
 
 func buildUsageBuckets(refDate string) []types.UsageBucketRow {
@@ -116,7 +116,7 @@ func buildUsageBuckets(refDate string) []types.UsageBucketRow {
 			MemberID:      e.member,
 			Model:         e.model,
 			QuotaConsumed: int64(display * ppu),
-			DisplayCost:   display,
+			Cost:          display,
 			CallCount:     e.calls,
 		}
 	}

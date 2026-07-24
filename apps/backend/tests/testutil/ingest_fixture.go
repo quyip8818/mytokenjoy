@@ -16,7 +16,7 @@ type IngestBudgetFixture struct {
 	DepartmentID  uuid.UUID
 	PlatformKeyID uuid.UUID
 	MemberID      uuid.UUID // empty when ingest mapping has no member quota axis
-	Amount        int64     // ledger quota amount; converted to display for budget headroom
+	Amount        int64     // ledger quota amount; converted to currency for budget headroom
 }
 
 func DefaultConsumeLogQuota() int64 {
@@ -33,7 +33,7 @@ func PrepareIngestBudgetHeadroom(t *testing.T, st store.Store, fixture IngestBud
 	if fixture.Amount <= 0 {
 		fixture.Amount = DefaultConsumeLogQuota()
 	}
-	spend := common.QuotaToDisplay(fixture.Amount, common.DefaultQuotaPerUnit)
+	spend := common.QuotaToMoney(fixture.Amount, common.DefaultQuotaPerUnit)
 
 	ctx := Ctx()
 	if fixture.MemberID != uuid.Nil {

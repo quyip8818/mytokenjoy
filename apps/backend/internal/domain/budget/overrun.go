@@ -247,7 +247,7 @@ func (s *OverrunService) checkDepartmentOverrun(ctx context.Context, payload ove
 	if err != nil || !deptFound || deptBudget <= 0 {
 		return
 	}
-	deptSpent, err := s.store.Ledger().SumAmountByDepartment(ctx, payload.DepartmentID, periodKey)
+	deptSpent, err := s.store.Ledger().SumCostByDepartment(ctx, payload.DepartmentID, periodKey)
 	if err != nil {
 		return
 	}

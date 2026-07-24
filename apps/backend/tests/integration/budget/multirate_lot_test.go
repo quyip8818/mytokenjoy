@@ -26,7 +26,7 @@ import (
 //	consume 6M → lot1 drains 5M (display ¥10), lot2 takes 1M (display ¥1.6667)
 //
 // This exercises the key design property: each lot segment carries its own QuotaPerUnit
-// snapshot, so DisplayAmount is computed per-lot, not globally.
+// snapshot, so Cost is computed per-lot, not globally.
 func TestMultiRateRechargeAndConsume(t *testing.T) {
 	t.Parallel()
 	companyID := uuid.MustParse("00000000-0000-7000-0000-000000009201")
@@ -37,7 +37,7 @@ func TestMultiRateRechargeAndConsume(t *testing.T) {
 	// --- Recharge lot 1: ¥10 at QPU=500000 → 5,000,000 quota ---
 	qpu1 := int64(500_000)
 	amount1 := 10.0
-	quota1 := common.QuotaFromAmount(amount1, qpu1)
+	quota1 := common.MoneyToQuota(amount1, qpu1)
 	if quota1 != 5_000_000 {
 		t.Fatalf("lot1 quota: got %d want 5000000", quota1)
 	}
@@ -58,7 +58,7 @@ func TestMultiRateRechargeAndConsume(t *testing.T) {
 	// --- Recharge lot 2: ¥10 at QPU=600000 → 6,000,000 quota ---
 	qpu2 := int64(600_000)
 	amount2 := 10.0
-	quota2 := common.QuotaFromAmount(amount2, qpu2)
+	quota2 := common.MoneyToQuota(amount2, qpu2)
 	if quota2 != 6_000_000 {
 		t.Fatalf("lot2 quota: got %d want 6000000", quota2)
 	}
@@ -111,9 +111,9 @@ func TestMultiRateRechargeAndConsume(t *testing.T) {
 	if seg1.QuotaPerUnit != qpu1 {
 		t.Fatalf("seg1 QPU: got %d want %d", seg1.QuotaPerUnit, qpu1)
 	}
-	// DisplayAmount = 5000000 / 500000 = 10.0
-	if seg1.DisplayAmount != 10.0 {
-		t.Fatalf("seg1 display: got %v want 10.0", seg1.DisplayAmount)
+	// Cost = 5000000 / 500000 = 10.0
+	if seg1.Cost != 10.0 {
+		t.Fatalf("seg1 display: got %v want 10.0", seg1.Cost)
 	}
 
 	// Segment 2: 1M from lot2.
@@ -126,10 +126,10 @@ func TestMultiRateRechargeAndConsume(t *testing.T) {
 	if seg2.QuotaPerUnit != qpu2 {
 		t.Fatalf("seg2 QPU: got %d want %d", seg2.QuotaPerUnit, qpu2)
 	}
-	// DisplayAmount = 1000000 / 600000 ≈ 1.6667
+	// Cost = 1000000 / 600000 ≈ 1.6667
 	wantDisplay2 := float64(1_000_000) / float64(600_000)
-	if math.Abs(seg2.DisplayAmount-wantDisplay2) > 0.0001 {
-		t.Fatalf("seg2 display: got %v want ≈%v", seg2.DisplayAmount, wantDisplay2)
+	if math.Abs(seg2.Cost-wantDisplay2) > 0.0001 {
+		t.Fatalf("seg2 display: got %v want ≈%v", seg2.Cost, wantDisplay2)
 	}
 
 	// Verify no overdraft.
@@ -168,30 +168,30 @@ func TestMultiRateRechargeAndConsume(t *testing.T) {
 
 	// --- Verify LedgerSegments carry per-lot display amounts ---
 	baseEntry := types.UsageLedgerEntry{
-		ID:        uuid.Must(uuid.NewV7()),
-		Amount:    consume,
-		EventType: types.EventTypeCallSettled,
+		ID:          uuid.Must(uuid.NewV7()),
+		QuotaAmount: consume,
+		EventType:   types.EventTypeCallSettled,
 	}
 	ledgerEntries := billinglot.LedgerSegmentsFromEntry(baseEntry, result.Segments)
 	if len(ledgerEntries) != 2 {
 		t.Fatalf("expected 2 ledger entries, got %d", len(ledgerEntries))
 	}
-	if ledgerEntries[0].Amount != 5_000_000 {
-		t.Fatalf("ledger[0].Amount: got %d want 5000000", ledgerEntries[0].Amount)
+	if ledgerEntries[0].QuotaAmount != 5_000_000 {
+		t.Fatalf("ledger[0].Amount: got %d want 5000000", ledgerEntries[0].QuotaAmount)
 	}
-	if ledgerEntries[0].DisplayAmount != 10.0 {
-		t.Fatalf("ledger[0].DisplayAmount: got %v want 10.0", ledgerEntries[0].DisplayAmount)
+	if ledgerEntries[0].Cost != 10.0 {
+		t.Fatalf("ledger[0].Cost: got %v want 10.0", ledgerEntries[0].Cost)
 	}
-	if ledgerEntries[1].Amount != 1_000_000 {
-		t.Fatalf("ledger[1].Amount: got %d want 1000000", ledgerEntries[1].Amount)
+	if ledgerEntries[1].QuotaAmount != 1_000_000 {
+		t.Fatalf("ledger[1].Amount: got %d want 1000000", ledgerEntries[1].QuotaAmount)
 	}
-	if math.Abs(ledgerEntries[1].DisplayAmount-wantDisplay2) > 0.0001 {
-		t.Fatalf("ledger[1].DisplayAmount: got %v want ≈%v", ledgerEntries[1].DisplayAmount, wantDisplay2)
+	if math.Abs(ledgerEntries[1].Cost-wantDisplay2) > 0.0001 {
+		t.Fatalf("ledger[1].Cost: got %v want ≈%v", ledgerEntries[1].Cost, wantDisplay2)
 	}
 }
 
-// TestGiftLotUsesCompanyQPUForDisplay verifies that gift lots (AmountDisplay=0)
-// still produce meaningful DisplayAmount during consumption using the lot's QPU snapshot.
+// TestGiftLotUsesCompanyQPUForDisplay verifies that gift lots (PaidAmount=0)
+// still produce meaningful Cost during consumption using the lot's QPU snapshot.
 func TestGiftLotUsesCompanyQPUForDisplay(t *testing.T) {
 	t.Parallel()
 	companyID := uuid.MustParse("00000000-0000-7000-0000-000000009202")
@@ -226,9 +226,9 @@ func TestGiftLotUsesCompanyQPUForDisplay(t *testing.T) {
 	if seg.Quota != giftQuota {
 		t.Fatalf("segment quota: got %d want %d", seg.Quota, giftQuota)
 	}
-	// Gift lot DisplayAmount = 1000000 / 500000 = ¥2.00 (equivalent value, not "paid")
-	if seg.DisplayAmount != 2.0 {
-		t.Fatalf("gift segment display: got %v want 2.0", seg.DisplayAmount)
+	// Gift lot Cost = 1000000 / 500000 = ¥2.00 (equivalent value, not "paid")
+	if seg.Cost != 2.0 {
+		t.Fatalf("gift segment display: got %v want 2.0", seg.Cost)
 	}
 }
 
@@ -277,8 +277,8 @@ func TestOverdraftWithMultiRateLots(t *testing.T) {
 	if result.Segments[0].Quota != 500_000 {
 		t.Fatalf("paid segment quota: got %d want 500000", result.Segments[0].Quota)
 	}
-	if result.Segments[0].DisplayAmount != 1.0 {
-		t.Fatalf("paid segment display: got %v want 1.0", result.Segments[0].DisplayAmount)
+	if result.Segments[0].Cost != 1.0 {
+		t.Fatalf("paid segment display: got %v want 1.0", result.Segments[0].Cost)
 	}
 
 	// Overdraft segment: 300,000 quota.
@@ -314,7 +314,7 @@ func TestCompanyQPUSwitchMidLifecycle(t *testing.T) {
 
 	// Recharge ¥20 → 10,000,000 quota at QPU=500000.
 	amount1 := 20.0
-	quota1 := common.QuotaFromAmount(amount1, qpu1)
+	quota1 := common.MoneyToQuota(amount1, qpu1)
 	order1 := store.RechargeOrder{
 		ID: uuid.MustParse("00000000-0000-7000-0000-000000009241"), CompanyID: companyID,
 		Amount: amount1, Currency: common.DefaultBillingCurrency,
@@ -346,7 +346,7 @@ func TestCompanyQPUSwitchMidLifecycle(t *testing.T) {
 	// --- Phase 2: QPU = 600000 ---
 	// Recharge ¥20 → 12,000,000 quota at QPU=600000.
 	amount2 := 20.0
-	quota2 := common.QuotaFromAmount(amount2, qpu2)
+	quota2 := common.MoneyToQuota(amount2, qpu2)
 	if quota2 != 12_000_000 {
 		t.Fatalf("lot2 quota: got %d want 12000000", quota2)
 	}
@@ -394,8 +394,8 @@ func TestCompanyQPUSwitchMidLifecycle(t *testing.T) {
 		t.Fatalf("seg1 QPU snapshot: got %d want %d (original rate)", seg1.QuotaPerUnit, qpu1)
 	}
 	wantDisplay1 := float64(quota1) / float64(qpu1) // 10M/500000 = 20.0
-	if seg1.DisplayAmount != wantDisplay1 {
-		t.Fatalf("seg1 display: got %v want %v", seg1.DisplayAmount, wantDisplay1)
+	if seg1.Cost != wantDisplay1 {
+		t.Fatalf("seg1 display: got %v want %v", seg1.Cost, wantDisplay1)
 	}
 
 	// Segment 2: 1M from lot2 (QPU=600000 → display ≈ ¥1.6667).
@@ -406,14 +406,14 @@ func TestCompanyQPUSwitchMidLifecycle(t *testing.T) {
 		t.Fatalf("seg2 QPU snapshot: got %d want %d (new rate)", seg2.QuotaPerUnit, qpu2)
 	}
 	wantDisplay2 := float64(1_000_000) / float64(qpu2)
-	if math.Abs(seg2.DisplayAmount-wantDisplay2) > 0.0001 {
-		t.Fatalf("seg2 display: got %v want ≈%v", seg2.DisplayAmount, wantDisplay2)
+	if math.Abs(seg2.Cost-wantDisplay2) > 0.0001 {
+		t.Fatalf("seg2 display: got %v want ≈%v", seg2.Cost, wantDisplay2)
 	}
 
 	// Key invariant: total display cost ≠ simple quota/currentQPU.
 	// If you naively computed 11M / 600000 = ¥18.33 that would be WRONG.
 	// Correct: ¥20 + ¥1.6667 = ¥21.6667.
-	totalDisplay := seg1.DisplayAmount + seg2.DisplayAmount
+	totalDisplay := seg1.Cost + seg2.Cost
 	naiveDisplay := float64(consume) / float64(qpu2)
 	if math.Abs(totalDisplay-naiveDisplay) < 1 {
 		t.Fatalf("total display should NOT match naive single-rate calculation — got %v ≈ %v", totalDisplay, naiveDisplay)

@@ -18,7 +18,7 @@ func makeRow(bucket time.Time, dept, member uuid.UUID, model string, cost float6
 		MemberID:      member,
 		Model:         model,
 		QuotaConsumed: int64(cost),
-		DisplayCost:   cost,
+		Cost:   cost,
 		CallCount:     calls,
 		InputTokens:   int64(calls * 100),
 		OutputTokens:  int64(calls * 50),
@@ -94,10 +94,10 @@ func TestSummaryTotals(t *testing.T) {
 func TestLimitByCost(t *testing.T) {
 	t.Parallel()
 	rows := []types.UsageAggregateRow{
-		{QuotaConsumed: 10, DisplayCost: 10},
-		{QuotaConsumed: 50, DisplayCost: 50},
-		{QuotaConsumed: 30, DisplayCost: 30},
-		{QuotaConsumed: 20, DisplayCost: 20},
+		{QuotaConsumed: 10, Cost: 10},
+		{QuotaConsumed: 50, Cost: 50},
+		{QuotaConsumed: 30, Cost: 30},
+		{QuotaConsumed: 20, Cost: 20},
 	}
 
 	t.Run("limits to top N", func(t *testing.T) {
@@ -105,8 +105,8 @@ func TestLimitByCost(t *testing.T) {
 		if len(result) != 2 {
 			t.Fatalf("expected 2, got %d", len(result))
 		}
-		if result[0].DisplayCost != 50 {
-			t.Errorf("first should be highest display cost 50, got %v", result[0].DisplayCost)
+		if result[0].Cost != 50 {
+			t.Errorf("first should be highest cost 50, got %v", result[0].Cost)
 		}
 	})
 

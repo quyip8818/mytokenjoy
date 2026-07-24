@@ -18,7 +18,7 @@ type IngestJobEnqueuer interface {
 // BudgetOps is the port for budget domain operations needed during ingest.
 type BudgetOps interface {
 	// ConsumptionDeltas computes budget axis increments for a settled entry.
-	// spend is Σ lot segment DisplayAmount (currency).
+	// spend is Σ lot segment Cost (currency).
 	ConsumptionDeltas(ctx context.Context, entry types.UsageLedgerEntry, open pkgbudget.OpenBudgetPeriod, spend float64) ([]ConsumedDelta, error)
 	// RefreshCombinedKeySummaries writes PG-derived summaries into the optional cache (best-effort).
 	RefreshCombinedKeySummaries(ctx context.Context, companyID uuid.UUID, summaries []store.CombinedKeySummary)
@@ -56,6 +56,6 @@ type LotSegment struct {
 	LotID           uuid.UUID
 	Quota           int64
 	QuotaPerUnit    int64
-	DisplayAmount   float64
+	Cost            float64
 	BillingCurrency string
 }

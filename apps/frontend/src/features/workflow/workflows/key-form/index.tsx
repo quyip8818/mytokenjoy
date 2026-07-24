@@ -93,7 +93,7 @@ export function KeyFormWorkflow({
     budgetSummary,
     projectBudgetRemaining,
     subBudgetRemaining,
-    budgetQuota,
+    budgetAmount,
     budgetInsufficient,
     budgetExceedsRemaining,
     projectBudgetExceeds,
@@ -135,7 +135,7 @@ export function KeyFormWorkflow({
       toast.error(BUDGET_INSUFFICIENT_MESSAGE)
       return
     }
-    if (budgetSummary && budgetQuota > budgetSummary.remaining) {
+    if (budgetSummary && budgetAmount > budgetSummary.remaining) {
       toast.error(`额度不能超过剩余 ${formatMoney(budgetSummary.remaining)}`)
       return
     }
@@ -159,7 +159,7 @@ export function KeyFormWorkflow({
               ? effectiveMemberId || undefined
               : undefined,
         projectId: scope === 'project' || scope === 'project_member' ? projectId : undefined,
-        budget: budgetQuota,
+        budget: budgetAmount,
         modelWhitelist: models,
       })
       toast.success('Key 创建成功')
@@ -371,7 +371,7 @@ export function KeyFormWorkflow({
           {isCreate ? (
             <div className="space-y-2 text-muted-foreground">
               <p>名称：{name || '—'}</p>
-              <p>额度：{formatMoney(budgetQuota)}</p>
+              <p>额度：{formatMoney(budgetAmount)}</p>
               <p>模型：{models.length} 个</p>
             </div>
           ) : (

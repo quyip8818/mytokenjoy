@@ -87,12 +87,12 @@ func (r *billingRepo) ConfirmRechargeWithLot(
 	lotTag, err := r.db.Exec(ctx, `
 		INSERT INTO company_recharge_lots (
 			id, company_id, recharge_order_id, billing_currency, lot_kind,
-			amount_display, quota_per_unit, quota_granted, quota_remaining,
+			paid_amount, quota_per_unit, quota_granted, quota_remaining,
 			status, created_at, updated_at
 		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
 		ON CONFLICT (id) DO NOTHING
 	`, lot.ID, lot.CompanyID, lot.RechargeOrderID, lot.BillingCurrency, lot.LotKind,
-		lot.AmountDisplay, lot.QuotaPerUnit, lot.QuotaGranted, lot.QuotaRemaining,
+		lot.PaidAmount, lot.QuotaPerUnit, lot.QuotaGranted, lot.QuotaRemaining,
 		lot.Status, lot.CreatedAt, lot.UpdatedAt)
 	if err != nil {
 		return err

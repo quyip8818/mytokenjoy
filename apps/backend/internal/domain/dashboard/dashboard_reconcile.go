@@ -113,7 +113,7 @@ func bucketKeyFromRow(row types.UsageBucketRow) bucketKey {
 
 func bucketDrift(expected, actual types.UsageBucketRow) bool {
 	return expected.QuotaConsumed != actual.QuotaConsumed ||
-		!floatClose(expected.DisplayCost, actual.DisplayCost) ||
+		!floatClose(expected.Cost, actual.Cost) ||
 		expected.CallCount != actual.CallCount ||
 		expected.InputTokens != actual.InputTokens ||
 		expected.OutputTokens != actual.OutputTokens

@@ -51,11 +51,11 @@ func TestApplyUsageBucketsProducesNonZeroDashboardSummary(t *testing.T) {
 	if totals.QuotaConsumed <= 0 || totals.CallCount <= 0 {
 		t.Fatalf("expected non-zero summary, got %+v", totals)
 	}
-	if totals.DisplayCost <= 0 {
+	if totals.Cost <= 0 {
 		t.Fatalf("expected non-zero display spend, got %+v", totals)
 	}
 	wantDisplay := totals.QuotaConsumed / float64(common.DefaultQuotaPerUnit)
-	if math.Abs(totals.DisplayCost-wantDisplay) > 0.01 {
-		t.Fatalf("display_cost should be point/PPU: cost=%v display=%v want≈%v", totals.QuotaConsumed, totals.DisplayCost, wantDisplay)
+	if math.Abs(totals.Cost-wantDisplay) > 0.01 {
+		t.Fatalf("cost should be point/PPU: cost=%v display=%v want≈%v", totals.QuotaConsumed, totals.Cost, wantDisplay)
 	}
 }

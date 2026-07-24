@@ -17,7 +17,7 @@ func CallLogFromLedgerEntry(entry types.UsageLedgerEntry) types.CallLog {
 		OutputTokens:   float64(entry.OutputTokens),
 		LatencyMs:      entry.CallDetail.LatencyMs,
 		Status:         entry.CallDetail.Status,
-		Cost:           entry.DisplayAmount,
+		Cost:           entry.Cost,
 		CreatedAt:      pkgtime.FormatSyncLog(entry.OccurredAt.UTC()),
 		PreviewSnippet: entry.CallDetail.PreviewSnippet,
 	}

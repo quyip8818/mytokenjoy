@@ -127,7 +127,7 @@ func checkBudgetAlertsImpl(
 		}
 		periodKey := open.String()
 
-		consumed, err := st.Ledger().SumAmountByDepartment(ctx, deptID, periodKey)
+		consumed, err := st.Ledger().SumCostByDepartment(ctx, deptID, periodKey)
 		if err != nil {
 			continue
 		}

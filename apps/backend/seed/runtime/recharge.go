@@ -49,7 +49,7 @@ func ApplyRechargeOrders(ctx context.Context, st store.Store) error {
 	for _, order := range buildSeedRechargeOrders() {
 		order.Currency = currency
 		order.QuotaPerUnit = ppu
-		order.QuotaGranted = common.QuotaFromAmount(order.Amount, ppu)
+		order.QuotaGranted = common.MoneyToQuota(order.Amount, ppu)
 		order.LotKind = lotKind
 		if lotKind == store.LotKindMock {
 			order.Amount = 0 // mock lots have no real payment

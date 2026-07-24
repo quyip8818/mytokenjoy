@@ -1,4 +1,4 @@
-import { displayToQuota, formatDisplayCurrency } from '@/lib/quota-display'
+import { moneyToQuota, formatQuotaAsMoney } from '@/lib/quota-display'
 
 /** Catalog type shared by TokenJoy seed, NewAPI channel, and Gateway calls. */
 export const TEST_MODEL = 'test-model'
@@ -14,11 +14,11 @@ const OUTPUT_PRICE_DISPLAY = 0.6
 const TOKENS_PER_MILLION = 1_000_000
 
 export function estimateQuotaConsumed(inputTokens: number, outputTokens: number): number {
-  const inputCost = (inputTokens / TOKENS_PER_MILLION) * displayToQuota(INPUT_PRICE_DISPLAY)
-  const outputCost = (outputTokens / TOKENS_PER_MILLION) * displayToQuota(OUTPUT_PRICE_DISPLAY)
+  const inputCost = (inputTokens / TOKENS_PER_MILLION) * moneyToQuota(INPUT_PRICE_DISPLAY)
+  const outputCost = (outputTokens / TOKENS_PER_MILLION) * moneyToQuota(OUTPUT_PRICE_DISPLAY)
   return Math.round(inputCost + outputCost)
 }
 
 export function formatEstimatedConsume(inputTokens: number, outputTokens: number): string {
-  return formatDisplayCurrency(estimateQuotaConsumed(inputTokens, outputTokens))
+  return formatQuotaAsMoney(estimateQuotaConsumed(inputTokens, outputTokens))
 }

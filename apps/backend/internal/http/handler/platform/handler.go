@@ -173,8 +173,8 @@ func (h *Handler) GiftCompany(w http.ResponseWriter, r *http.Request) {
 }
 
 type adjustBody struct {
-	Amount        float64 `json:"amount"`
-	AmountDisplay float64 `json:"amountDisplay"`
+	Amount     float64 `json:"amount"`
+	PaidAmount float64 `json:"paidAmount"`
 }
 
 func (h *Handler) AdjustCompany(w http.ResponseWriter, r *http.Request) {
@@ -189,7 +189,7 @@ func (h *Handler) AdjustCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	operatorID := operatorIDFromSession(r)
-	err = h.p.BillingSvc.PlatformAdjust(r.Context(), id, body.Amount, body.AmountDisplay, operatorID)
+	err = h.p.BillingSvc.PlatformAdjust(r.Context(), id, body.Amount, body.PaidAmount, operatorID)
 	httputil.WriteVoid(w, err)
 }
 

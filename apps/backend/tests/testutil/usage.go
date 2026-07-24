@@ -20,7 +20,7 @@ type UsageBucketOpts struct {
 	MemberID      uuid.UUID
 	Model         string
 	QuotaConsumed int64
-	DisplayCost   float64
+	Cost   float64
 	CallCount     int
 }
 
@@ -31,7 +31,7 @@ func DefaultUsageBucketOpts() UsageBucketOpts {
 		MemberID:      contract.IDMember1,
 		Model:         "gpt-4o",
 		QuotaConsumed: 1,
-		DisplayCost:   1,
+		Cost:   1,
 		CallCount:     1,
 	}
 }
@@ -54,12 +54,12 @@ func SeedUsageBucket(t *testing.T, st store.Store, opts UsageBucketOpts) {
 	if opts.CallCount == 0 {
 		opts.CallCount = def.CallCount
 	}
-	if opts.DisplayCost == 0 && opts.QuotaConsumed != 0 {
-		opts.DisplayCost = float64(opts.QuotaConsumed)
+	if opts.Cost == 0 && opts.QuotaConsumed != 0 {
+		opts.Cost = float64(opts.QuotaConsumed)
 	}
 	if err := st.Usage().UpsertBucket(Ctx(), types.UsageBucketRow{
 		BucketStart: opts.BucketStart, DepartmentID: opts.DepartmentID, MemberID: opts.MemberID,
-		Model: opts.Model, QuotaConsumed: opts.QuotaConsumed, DisplayCost: opts.DisplayCost, CallCount: opts.CallCount,
+		Model: opts.Model, QuotaConsumed: opts.QuotaConsumed, Cost: opts.Cost, CallCount: opts.CallCount,
 	}); err != nil {
 		t.Fatal(err)
 	}

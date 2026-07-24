@@ -32,7 +32,7 @@ func paidRechargeOrder(companyID uuid.UUID, id uuid.UUID, amount float64, create
 	ppu := domainbilling.DefaultQuotaPerUnit()
 	return store.RechargeOrder{
 		ID: id, CompanyID: companyID, Amount: amount, Currency: common.DefaultBillingCurrency,
-		QuotaPerUnit: ppu, QuotaGranted: common.QuotaFromAmount(amount, ppu),
+		QuotaPerUnit: ppu, QuotaGranted: common.MoneyToQuota(amount, ppu),
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		Status:         store.RechargeStatusConfirmed,
 		DisplayOrderID: "ORD-" + id.String(),
@@ -58,7 +58,7 @@ func TestCreditFromLotUpdatesWalletRemainQuota(t *testing.T) {
 	key := "idem-wallet-credit"
 	order := store.RechargeOrder{
 		ID: uuid.MustParse("00000000-0000-7000-0000-000000002001"), CompanyID: contract.DefaultCompanyID, Amount: 50, Currency: common.DefaultBillingCurrency,
-		QuotaPerUnit: ppu, QuotaGranted: common.QuotaFromAmount(50, ppu),
+		QuotaPerUnit: ppu, QuotaGranted: common.MoneyToQuota(50, ppu),
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		IdempotencyKey: &key, Status: store.RechargeStatusConfirmed,
 		DisplayOrderID: "ORD20260101130000",
@@ -87,7 +87,7 @@ func TestConsumeLotsDecrementsWalletRemainQuota(t *testing.T) {
 	ctx := testutil.Ctx()
 	now := time.Now().UTC()
 	ppu := domainbilling.DefaultQuotaPerUnit()
-	grant := common.QuotaFromAmount(10, ppu)
+	grant := common.MoneyToQuota(10, ppu)
 
 	order := store.RechargeOrder{
 		ID: uuid.MustParse("00000000-0000-7000-0000-000000002002"), CompanyID: contract.DefaultCompanyID, Amount: 10, Currency: common.DefaultBillingCurrency,
@@ -296,7 +296,7 @@ func TestConsumeLotsExpandsOverdraftAndReportsDelta(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	extra := common.QuotaFromAmount(3, domainbilling.DefaultQuotaPerUnit())
+	extra := common.MoneyToQuota(3, domainbilling.DefaultQuotaPerUnit())
 	consume := lot.QuotaGranted + extra
 	result, err := billinglot.ConsumeLots(ctx, st, companyID, consume)
 	if err != nil {

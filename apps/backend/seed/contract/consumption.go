@@ -5,7 +5,7 @@ import (
 )
 
 // Demo consumption numbers shared by budget tree, platform keys, projects, and usage bucket scaling.
-// Values are in company billing_currency (display amount).
+// Values are in company billing_currency .
 
 var DemoLeafDeptConsumed = map[uuid.UUID]float64{
 	IDDept3: 21000,

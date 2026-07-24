@@ -26,8 +26,8 @@ type AxisDelta struct {
 }
 
 // ConsumptionDeltas computes the budget_consumed axis increments for a settled call.
-// spend is Σ lot segment DisplayAmount (currency); never use entry.Amount (quota) or
-// entry.DisplayAmount (unset on BuildCallSettledEntry).
+// spend is Σ lot segment Cost (currency); never use entry.QuotaAmount (quota) or
+// entry.Cost (unset on BuildCallSettledEntry, only populated after LedgerSegmentsFromEntry).
 func ConsumptionDeltas(_ context.Context, _ store.OrgNodeRepository, entry types.UsageLedgerEntry, open pkgbudget.OpenBudgetPeriod, spend float64) ([]AxisDelta, error) {
 	if open.IsZero() {
 		return nil, fmt.Errorf("consumption deltas require open budget period")

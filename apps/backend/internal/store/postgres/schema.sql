@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS company_recharge_lots (
     recharge_order_id  UUID NOT NULL UNIQUE REFERENCES company_recharge_orders (id),
     billing_currency   CHAR(3) NOT NULL,
     lot_kind           TEXT NOT NULL,
-    amount_display     NUMERIC(18, 6) NOT NULL,
+    paid_amount        NUMERIC(18, 6) NOT NULL,
     quota_per_unit     BIGINT NOT NULL,
     quota_granted      BIGINT NOT NULL,
     quota_remaining    BIGINT NOT NULL,
@@ -109,9 +109,9 @@ CREATE TABLE IF NOT EXISTS company_recharge_lots (
     CHECK (quota_granted > 0),
     CHECK (quota_remaining >= 0 AND quota_remaining <= quota_granted),
     CHECK (
-        (lot_kind IN ('gift', 'overdraft', 'mock') AND amount_display = 0)
-        OR (lot_kind = 'paid' AND amount_display > 0)
-        OR (lot_kind = 'adjust' AND amount_display >= 0)
+        (lot_kind IN ('gift', 'overdraft', 'mock') AND paid_amount = 0)
+        OR (lot_kind = 'paid' AND paid_amount > 0)
+        OR (lot_kind = 'adjust' AND paid_amount >= 0)
     )
 );
 
@@ -426,8 +426,8 @@ CREATE TABLE IF NOT EXISTS usage_ledger (
     idempotency_key  TEXT NOT NULL,
     segment_index    INT NOT NULL DEFAULT 0,
     lot_id           UUID NOT NULL REFERENCES company_recharge_lots (id),
-    amount           BIGINT NOT NULL DEFAULT 0,
-    display_amount   NUMERIC(18, 6) NOT NULL DEFAULT 0,
+    quota_amount     BIGINT NOT NULL DEFAULT 0,
+    cost             NUMERIC(18, 6) NOT NULL DEFAULT 0,
     billing_currency CHAR(3) NOT NULL,
     department_id    UUID NOT NULL,
     member_id        UUID,
@@ -468,7 +468,7 @@ CREATE TABLE IF NOT EXISTS usage_buckets (
     member_scope  TEXT GENERATED ALWAYS AS (COALESCE(member_id::text, '')) STORED,
     model         TEXT NOT NULL,
     quota_consumed BIGINT NOT NULL DEFAULT 0,
-    display_cost  NUMERIC(18, 6) NOT NULL DEFAULT 0,
+    cost          NUMERIC(18, 6) NOT NULL DEFAULT 0,
     call_count    INT NOT NULL DEFAULT 0,
     input_tokens  BIGINT NOT NULL DEFAULT 0,
     output_tokens BIGINT NOT NULL DEFAULT 0,

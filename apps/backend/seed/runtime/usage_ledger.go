@@ -73,7 +73,7 @@ func ensureSeedLot(ctx context.Context, st store.Store) error {
 		RechargeOrderID: contract.IDSeedLotOrder,
 		BillingCurrency: common.DefaultBillingCurrency,
 		LotKind:         store.LotKindMock,
-		AmountDisplay:   0,
+		PaidAmount:   0,
 		QuotaPerUnit:    ppu,
 		QuotaGranted:    quota,
 		QuotaRemaining:  quota,

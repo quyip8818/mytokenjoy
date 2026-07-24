@@ -15,15 +15,15 @@ export function createBillingExchange(
 ) {
   const qpu = quotaPerUnit > 0 ? quotaPerUnit : DEFAULT_QUOTA_PER_UNIT
   const currency = billingCurrency || DEFAULT_BILLING_CURRENCY
-  const quotaToDisplayFn = (quota: number) => (qpu > 0 ? quota / qpu : 0)
-  const displayToQuotaFn = (display: number) => Math.round(display * qpu)
+  const quotaToMoneyFn = (quota: number) => (qpu > 0 ? quota / qpu : 0)
+  const moneyToQuotaFn = (money: number) => Math.round(money * qpu)
   return {
     quotaPerUnit: qpu,
     billingCurrency: currency,
-    quotaToDisplay: quotaToDisplayFn,
-    displayToQuota: displayToQuotaFn,
-    formatDisplayCurrency: (quota: number) =>
-      formatCurrencyAmount(quotaToDisplayFn(quota), currency),
+    quotaToMoney: quotaToMoneyFn,
+    moneyToQuota: moneyToQuotaFn,
+    formatQuotaAsMoney: (quota: number) =>
+      formatCurrencyAmount(quotaToMoneyFn(quota), currency),
     formatMoney: (amount: number) => formatCurrencyAmount(amount, currency),
   }
 }
@@ -40,19 +40,19 @@ export function getActiveBillingExchange(): BillingExchange {
   return active
 }
 
-/** Convert quota to display amount (e.g. CNY). */
-export function quotaToDisplay(quota: number): number {
-  return active.quotaToDisplay(quota)
+/** Convert quota to money amount (e.g. CNY). */
+export function quotaToMoney(quota: number): number {
+  return active.quotaToMoney(quota)
 }
 
-/** Convert display amount to quota. */
-export function displayToQuota(display: number): number {
-  return active.displayToQuota(display)
+/** Convert money amount to quota. */
+export function moneyToQuota(money: number): number {
+  return active.moneyToQuota(money)
 }
 
-/** Format legacy quota amounts using active company exchange (wallet / NewAPI quota). */
-export function formatDisplayCurrency(quota: number): string {
-  return active.formatDisplayCurrency(quota)
+/** Format quota as money string using active company exchange (wallet / NewAPI quota). */
+export function formatQuotaAsMoney(quota: number): string {
+  return active.formatQuotaAsMoney(quota)
 }
 
 /** Format budget/spend amounts already in company billing currency. */

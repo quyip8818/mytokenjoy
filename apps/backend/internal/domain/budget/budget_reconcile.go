@@ -214,8 +214,8 @@ func expectedConsumedByEntryTime(ctx context.Context, nodes store.OrgNodeReposit
 		if err != nil {
 			return nil, err
 		}
-		// Ledger rows already carry DisplayAmount from lot segments.
-		deltas, err := ConsumptionDeltas(ctx, nodes, entry, open, entry.DisplayAmount)
+		// Ledger rows already carry Cost from lot segments.
+		deltas, err := ConsumptionDeltas(ctx, nodes, entry, open, entry.Cost)
 		if err != nil {
 			return nil, err
 		}

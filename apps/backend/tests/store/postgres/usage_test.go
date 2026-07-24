@@ -21,14 +21,14 @@ func TestUsageBucketUpsertAccumulates(t *testing.T) {
 		MemberID:      uuid.MustParse("00000000-0000-7000-8000-00000000ee01"),
 		Model:         "gpt-4o",
 		QuotaConsumed: 1,
-		DisplayCost:   0.015,
+		Cost:   0.015,
 		CallCount:     1,
 	}
 	if err := st.Usage().UpsertBucket(ctx, row); err != nil {
 		t.Fatal(err)
 	}
 	row.QuotaConsumed = 2
-	row.DisplayCost = 0.025
+	row.Cost = 0.025
 	row.CallCount = 1
 	if err := st.Usage().UpsertBucket(ctx, row); err != nil {
 		t.Fatal(err)
@@ -45,7 +45,7 @@ func TestUsageBucketUpsertAccumulates(t *testing.T) {
 	var displayCost float64
 	var callCount int
 	err = conn.QueryRow(ctx, `
-		SELECT quota_consumed, display_cost, call_count FROM usage_buckets
+		SELECT quota_consumed, cost, call_count FROM usage_buckets
 		WHERE bucket_start = $1 AND department_id = $2 AND member_id = $3 AND model = $4
 	`, bucket, row.DepartmentID, row.MemberID, row.Model).Scan(&quotaConsumed, &displayCost, &callCount)
 	if err != nil {
@@ -63,7 +63,7 @@ func TestUsageBucketQuerySeriesDay(t *testing.T) {
 	bucket := time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC)
 	if err := st.Usage().UpsertBucket(ctx, types.UsageBucketRow{
 		BucketStart: bucket, DepartmentID: uuid.MustParse("00000000-0000-7000-8000-00000000dd02"), MemberID: uuid.MustParse("00000000-0000-7000-8000-00000000ee02"),
-		Model: "gpt-4o", QuotaConsumed: 5000, DisplayCost: 5, CallCount: 2,
+		Model: "gpt-4o", QuotaConsumed: 5000, Cost: 5, CallCount: 2,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -78,6 +78,6 @@ func TestUsageBucketQuerySeriesDay(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(points) != 1 || points[0].Cost != 5 {
-		t.Fatalf("expected one day point with display cost 5, got %+v", points)
+		t.Fatalf("expected one day point with cost 5, got %+v", points)
 	}
 }

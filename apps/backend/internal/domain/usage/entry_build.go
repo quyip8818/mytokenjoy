@@ -78,7 +78,7 @@ func BuildCallSettledEntry(input EntryBuildInput) (types.UsageLedgerEntry, error
 		ID:               uuid.Must(uuid.NewV7()),
 		EventType:        types.EventTypeCallSettled,
 		IdempotencyKey:   NewAPIIdempotencyKey(input.Raw.ID),
-		Amount:           input.Raw.Quota, // direct pass-through, no conversion
+		QuotaAmount:      input.Raw.Quota, // direct pass-through, no conversion
 		DepartmentID:     input.Mapping.DepartmentID,
 		MemberID:         memberID,
 		ProjectID:        input.Mapping.ProjectID,

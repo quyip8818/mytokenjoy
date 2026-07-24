@@ -98,7 +98,7 @@ export function useKeyFormBudget({
     }
   }, [apis, effectiveMemberId, isCreate, projectId, scope])
 
-  const budgetQuota = Number(budget) || 0
+  const budgetAmount = Number(budget) || 0
   const budgetSummary = budgetState?.memberId === effectiveMemberId ? budgetState.summary : null
   const budgetInsufficient =
     isCreate &&
@@ -110,23 +110,23 @@ export function useKeyFormBudget({
     isCreate &&
     scope === 'member' &&
     budgetSummary !== null &&
-    budgetQuota > budgetSummary.remaining
+    budgetAmount > budgetSummary.remaining
   const projectBudgetExceeds =
     isCreate &&
     scope === 'project' &&
     projectBudgetRemaining !== null &&
-    budgetQuota > projectBudgetRemaining
+    budgetAmount > projectBudgetRemaining
   const subBudgetExceeds =
     isCreate &&
     scope === 'project_member' &&
     subBudgetRemaining !== null &&
-    budgetQuota > subBudgetRemaining
+    budgetAmount > subBudgetRemaining
 
   return {
     budgetSummary,
     projectBudgetRemaining,
     subBudgetRemaining,
-    budgetQuota,
+    budgetAmount,
     budgetInsufficient,
     budgetExceedsRemaining,
     projectBudgetExceeds,
