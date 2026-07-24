@@ -21,7 +21,7 @@ func TestUsageBucketUpsertAccumulates(t *testing.T) {
 		MemberID:      uuid.MustParse("00000000-0000-7000-8000-00000000ee01"),
 		Model:         "gpt-4o",
 		QuotaConsumed: 1,
-		Cost:   0.015,
+		Cost:          0.015,
 		CallCount:     1,
 	}
 	if err := st.Usage().UpsertBucket(ctx, row); err != nil {

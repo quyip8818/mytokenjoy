@@ -39,7 +39,7 @@ func SeedDeptOverrun(t *testing.T, st store.Store, deptID uuid.UUID, spent float
 		IdempotencyKey:   fmt.Sprintf("test:dept-overrun:%s:%g", deptID, spent),
 		LotID:            lots[0].ID,
 		QuotaAmount:      quota,
-		Cost:    spent,
+		Cost:             spent,
 		BillingCurrency:  common.DefaultBillingCurrency,
 		DepartmentID:     deptID,
 		MemberID:         &memberID,

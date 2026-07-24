@@ -54,8 +54,7 @@ export function BudgetAllocationTable({
               child.budget > 0 ? Math.round((child.consumed / child.budget) * 100) : 0
             const draftBudget = drafts[child.id]?.budget ?? String(child.budget)
             const draftValue = parseFloat(draftBudget)
-            const budgetOver =
-              editing && !Number.isNaN(draftValue) && draftValue > node.budget
+            const budgetOver = editing && !Number.isNaN(draftValue) && draftValue > node.budget
 
             return (
               <TableRow key={child.id} className="even:bg-muted/40 hover:bg-muted/50">

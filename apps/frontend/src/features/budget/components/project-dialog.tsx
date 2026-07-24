@@ -131,9 +131,7 @@ export function ProjectDialog({
           placeholder="输入额度"
           className="h-8 text-sm tabular-nums"
         />
-        <p className="text-xs text-muted-foreground">
-          可用额度：{formatMoney(available)}
-        </p>
+        <p className="text-xs text-muted-foreground">可用额度：{formatMoney(available)}</p>
       </div>
 
       <div className="grid gap-1.5">

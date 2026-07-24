@@ -209,14 +209,10 @@ function MemberRow({
             autoFocus
           />
         ) : (
-          <span className="text-muted-foreground">
-            {formatMoney(member.personalBudget)}
-          </span>
+          <span className="text-muted-foreground">{formatMoney(member.personalBudget)}</span>
         )}
       </td>
-      <td className="py-2 tabular-nums text-muted-foreground">
-        {formatMoney(member.consumed)}
-      </td>
+      <td className="py-2 tabular-nums text-muted-foreground">{formatMoney(member.consumed)}</td>
       <td className="py-2 text-right">
         {editing ? (
           <div className="flex items-center justify-end gap-1">

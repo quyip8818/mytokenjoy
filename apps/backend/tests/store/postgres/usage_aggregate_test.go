@@ -18,7 +18,7 @@ func makeRow(bucket time.Time, dept, member uuid.UUID, model string, cost float6
 		MemberID:      member,
 		Model:         model,
 		QuotaConsumed: int64(cost),
-		Cost:   cost,
+		Cost:          cost,
 		CallCount:     calls,
 		InputTokens:   int64(calls * 100),
 		OutputTokens:  int64(calls * 50),

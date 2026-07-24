@@ -378,9 +378,7 @@ export function KeyFormWorkflow({
             key && (
               <>
                 <p className="text-muted-foreground font-mono">{key.keyPrefix}</p>
-                <p className="text-muted-foreground">
-                  已消耗：{formatMoney(key.consumed)}
-                </p>
+                <p className="text-muted-foreground">已消耗：{formatMoney(key.consumed)}</p>
               </>
             )
           )}

@@ -55,7 +55,7 @@ func TestDashboardReconcileRepairsBucketDrift(t *testing.T) {
 		MemberID:      bucketMemberID,
 		Model:         entry.Model,
 		QuotaConsumed: 1,
-		Cost:   0,
+		Cost:          0,
 		CallCount:     1,
 		InputTokens:   1,
 		OutputTokens:  1,

@@ -208,8 +208,7 @@ export function BudgetDetailTeam({
                 >
                   <span className="flex-1 text-sm font-medium text-foreground">{project.name}</span>
                   <span className="text-xs tabular-nums text-muted-foreground">
-                    {formatMoney(project.budget)} /{' '}
-                    {formatMoney(project.consumed)}
+                    {formatMoney(project.budget)} / {formatMoney(project.consumed)}
                   </span>
                   <div className="w-24">
                     <Progress value={projectPct} className="h-1.5" />

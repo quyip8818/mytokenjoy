@@ -13,7 +13,7 @@ func BuildLot(order store.RechargeOrder, billingCurrency string, kind string, pa
 		RechargeOrderID: order.ID,
 		BillingCurrency: billingCurrency,
 		LotKind:         kind,
-		PaidAmount:   paidAmount,
+		PaidAmount:      paidAmount,
 		QuotaPerUnit:    order.QuotaPerUnit,
 		QuotaGranted:    order.QuotaGranted,
 		QuotaRemaining:  order.QuotaGranted,

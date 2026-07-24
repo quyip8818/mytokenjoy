@@ -20,7 +20,7 @@ type UsageBucketOpts struct {
 	MemberID      uuid.UUID
 	Model         string
 	QuotaConsumed int64
-	Cost   float64
+	Cost          float64
 	CallCount     int
 }
 
@@ -31,7 +31,7 @@ func DefaultUsageBucketOpts() UsageBucketOpts {
 		MemberID:      contract.IDMember1,
 		Model:         "gpt-4o",
 		QuotaConsumed: 1,
-		Cost:   1,
+		Cost:          1,
 		CallCount:     1,
 	}
 }

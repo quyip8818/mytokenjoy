@@ -22,8 +22,7 @@ export function createBillingExchange(
     billingCurrency: currency,
     quotaToMoney: quotaToMoneyFn,
     moneyToQuota: moneyToQuotaFn,
-    formatQuotaAsMoney: (quota: number) =>
-      formatCurrencyAmount(quotaToMoneyFn(quota), currency),
+    formatQuotaAsMoney: (quota: number) => formatCurrencyAmount(quotaToMoneyFn(quota), currency),
     formatMoney: (amount: number) => formatCurrencyAmount(amount, currency),
   }
 }

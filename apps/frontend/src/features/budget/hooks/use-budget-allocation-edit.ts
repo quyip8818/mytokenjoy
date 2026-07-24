@@ -90,9 +90,7 @@ export function useBudgetAllocationEdit({
     const reservedPool = reservedDisplay
     const allocated = computeAllocated(draftBudgets, reservedPool)
     if (allocated > node.budget) {
-      setError(
-        `分配总额 ${formatMoney(allocated)} 超出节点额度 ${formatMoney(node.budget)}`,
-      )
+      setError(`分配总额 ${formatMoney(allocated)} 超出节点额度 ${formatMoney(node.budget)}`)
       return false
     }
     return true

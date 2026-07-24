@@ -96,9 +96,7 @@ export function ProjectSettingsForm({
         <div className="grid grid-cols-2 gap-4">
           <div className="grid gap-1.5">
             <Label className="text-xs text-muted-foreground">项目额度（元）</Label>
-            <p className="text-sm font-medium tabular-nums">
-              {formatMoney(project.budget)}
-            </p>
+            <p className="text-sm font-medium tabular-nums">{formatMoney(project.budget)}</p>
           </div>
           <div className="grid gap-1.5">
             <Label className="text-xs text-muted-foreground">负责人</Label>
@@ -109,8 +107,7 @@ export function ProjectSettingsForm({
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>本月消耗进度</span>
             <span className="tabular-nums">
-              {formatMoney(project.consumed)} / {formatMoney(project.budget)} (
-              {pct}%)
+              {formatMoney(project.consumed)} / {formatMoney(project.budget)} ({pct}%)
             </span>
           </div>
         </div>

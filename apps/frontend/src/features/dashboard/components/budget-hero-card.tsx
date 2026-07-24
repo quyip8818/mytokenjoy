@@ -56,9 +56,7 @@ export function BudgetHeroCard({ budget, consumed, loading }: BudgetHeroCardProp
       </div>
       <div className="mt-3 flex items-end gap-3">
         <span className="text-2xl font-bold tabular-nums">{formatMoney(consumed)}</span>
-        <span className="mb-0.5 text-sm text-muted-foreground">
-          / {formatMoney(budget)}
-        </span>
+        <span className="mb-0.5 text-sm text-muted-foreground">/ {formatMoney(budget)}</span>
       </div>
       <div className="mt-3 flex items-center gap-3">
         <Progress
