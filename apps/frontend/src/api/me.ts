@@ -1,5 +1,5 @@
 import { request, buildQuery } from './client'
-import type { MemberDashboardView } from './types/member'
+import type { MyDashboardView } from './types/mydashboard'
 
 export interface ProfileCompany {
   companyId: string
@@ -67,5 +67,5 @@ export const meApi = {
     request<LoginActivityResponse>(`/me/login-activity${buildQuery(params)}`),
 
   // --- analytics ---
-  getDashboard: () => request<MemberDashboardView>('/me/dashboard'),
+  getDashboard: () => request<MyDashboardView>('/me/dashboard'),
 }

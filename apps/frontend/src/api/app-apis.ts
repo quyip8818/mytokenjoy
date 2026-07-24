@@ -8,7 +8,7 @@ import { devApi } from './dev'
 import { platformKeyApi, providerKeyApi } from './keys'
 import { meApi } from './me'
 import { modelApi, routingApi } from './models'
-import { notificationApi } from './notification'
+import { notificationApi } from './notifications'
 import { dataSourceApi, departmentApi, memberApi, roleApi, syncApi } from './org'
 import { sessionApi } from './session'
 

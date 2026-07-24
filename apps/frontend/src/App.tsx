@@ -27,6 +27,7 @@ function AuthenticatedRoutes() {
             <Route key={path} path={path} element={<Page />} />
           ))}
           {/* Legacy redirects */}
+          <Route path="wallet" element={<Navigate to="/billing" replace />} />
           <Route path="me" element={<Navigate to="/dashboard/cost" replace />} />
           <Route path="keys/mine" element={<Navigate to="/me/keys" replace />} />
           <Route path="me/call-logs" element={<Navigate to="/me/usage" replace />} />

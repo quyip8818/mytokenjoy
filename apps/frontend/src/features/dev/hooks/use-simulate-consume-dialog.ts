@@ -156,7 +156,7 @@ export function useSimulateConsumeDialog(
       toast.success('模拟消费已提交')
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.audit.all }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.wallet.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.billing.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.budget.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
       ])

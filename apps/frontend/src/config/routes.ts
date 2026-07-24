@@ -127,12 +127,12 @@ const ROUTE_DEFINITIONS_INTERNAL = [
     navGroup: '预算与财务',
   },
   {
-    key: 'wallet',
-    path: '/wallet',
+    key: 'billing',
+    path: '/billing',
     label: '钱包管理',
     icon: Wallet,
     requiredPermissions: [PERMISSION.BILLING_READ],
-    lazy: () => import('@/routes/wallet'),
+    lazy: () => import('@/routes/billing'),
     navGroup: '预算与财务',
   },
   // ─── 组织与权限（默认折叠）───
@@ -190,7 +190,7 @@ const ROUTE_DEFINITIONS_INTERNAL = [
     path: '/me/keys',
     label: '我的 Key',
     icon: Key,
-    lazy: () => import('@/routes/member/keys'),
+    lazy: () => import('@/routes/me/keys'),
     navGroup: '我的',
     navGroupCollapsed: true,
   },
@@ -199,7 +199,7 @@ const ROUTE_DEFINITIONS_INTERNAL = [
     path: '/me/usage',
     label: '我的用量',
     icon: FileText,
-    lazy: () => import('@/routes/member/usage'),
+    lazy: () => import('@/routes/me/usage'),
     navGroup: '我的',
   },
   {
@@ -207,7 +207,7 @@ const ROUTE_DEFINITIONS_INTERNAL = [
     path: '/me/settings',
     label: '设置',
     icon: Settings,
-    lazy: () => import('@/routes/member/settings'),
+    lazy: () => import('@/routes/me/settings'),
     navGroup: '我的',
   },
 ] as const satisfies readonly RouteDefinition[]
