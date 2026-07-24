@@ -11,6 +11,7 @@ import (
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/seed/contract"
 )
 
@@ -94,5 +95,13 @@ func AssertUsageBucketCount(t *testing.T, st store.Store, want int) {
 func AdminDashboardScope() domainusage.SessionScope {
 	return domainusage.SessionScope{
 		MemberID: contract.IDMemberAdmin, Permissions: []string{permission.DashboardCost, "*"},
+	}
+}
+
+func TruncateUsageBuckets(t *testing.T, st store.Store) {
+	t.Helper()
+	pool := postgres.MainPool(st)
+	if _, err := pool.Exec(Ctx(), "DELETE FROM usage_buckets WHERE TRUE"); err != nil {
+		t.Fatalf("truncate usage_buckets: %v", err)
 	}
 }

@@ -32,7 +32,7 @@ func TestIngestDoesNotWriteUsageBucketDirectly(t *testing.T) {
 	beforeBuckets := testutil.UsageBucketCount(fix.Store)
 
 	testutil.SeedConsumeLog(t, fix.Store, store.RawConsumeLog{
-		ID: 4001, TokenID: 99, Quota: 100000, ModelName: "gpt-4o", CreatedAt: 1717200000,
+		ID: 4001, TokenID: 99, Quota: 100000, ModelName: "gpt-4o", CreatedAt: 1781866800,
 	})
 	if err := fix.Ingest.IngestByLogID(testutil.Ctx(), 4001, types.SourceWebhook); err != nil {
 		t.Fatal(err)

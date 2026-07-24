@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/config"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
@@ -52,9 +53,9 @@ func TestGetWalletReturnsBalance(t *testing.T) {
 	}
 }
 
-func TestGetWalletWithoutNewAPIWalletCompanyIDReturnsZero(t *testing.T) {
+func TestGetWalletWithoutRechargeReturnsZero(t *testing.T) {
 	t.Parallel()
-	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
+	cfg, st := testutil.NewTestStore(t, testutil.WithBootstrapMode(config.BootstrapMinimal))
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	svc := domainbilling.NewService(cfg, st, reader, nil)
 	ctx := testutil.Ctx()

@@ -128,7 +128,9 @@ func TestConfig(opts ...ConfigOption) config.Config {
 			SimulateDelay: false,
 		},
 		DatabaseConfig: config.DatabaseConfig{
-			DatabaseURL: defaultTestDatabaseURL(),
+			DatabaseURL:   defaultTestDatabaseURL(),
+			DBMaxConnsEnv: 3,
+			DBMinConnsEnv: 1,
 			StoreBootstrap: config.StoreBootstrap{
 				TestPartitionMonths: 12,
 			},

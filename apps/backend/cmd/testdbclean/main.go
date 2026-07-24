@@ -20,8 +20,8 @@ func main() {
 		fmt.Fprintln(os.Stderr, "DATABASE_URL required")
 		os.Exit(1)
 	}
-	if err := pg.DropOrphanTestSchemas(context.Background(), baseURL); err != nil {
-		fmt.Fprintf(os.Stderr, "cleanup test schemas: %v\n", err)
+	if err := pg.DropOrphanTestDatabases(context.Background(), baseURL); err != nil {
+		fmt.Fprintf(os.Stderr, "cleanup test databases: %v\n", err)
 		os.Exit(1)
 	}
 }

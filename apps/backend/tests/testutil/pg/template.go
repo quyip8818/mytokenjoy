@@ -6,150 +6,107 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"testing"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 )
 
-const testTemplateVersion = 41 // bump when schema.sql (incl. River DDL), seed data, or clone policy changes
+const (
+	templateDBName      = "test_template_db"
+	testTemplateVersion = 42 // bump when schema/seed changes
+)
 
 var (
 	templateOnce sync.Once
 	templateErr  error
-	clonePlan    ClonePlan
 )
 
-func EnsureTemplate(ctx context.Context, baseURL string, templateCfg config.Config) error {
+// EnsureTemplateDB creates (or verifies) the template database used by
+// CREATE DATABASE ... TEMPLATE in OpenCloned. Safe for concurrent callers.
+func EnsureTemplateDB(ctx context.Context, baseURL string, templateCfg config.Config) error {
 	templateOnce.Do(func() {
-		pool, err := EnsureAdminPool(ctx, baseURL)
-		if err != nil {
-			templateErr = fmt.Errorf("connect postgres for template: %w", err)
-			return
-		}
-		templateErr = withTemplateLock(ctx, pool, func() error {
-			cleanupOrphanTestSchemas(ctx, pool)
-			if version, ok := readTemplateVersion(ctx, pool); ok && version == testTemplateVersion {
-				clonePlan, err = LoadClonePlan(ctx, pool, testTemplateSchema)
-				return err
-			}
-			if err := buildTestTemplate(ctx, baseURL, templateCfg); err != nil {
-				return err
-			}
-			if err := markTemplateVersion(ctx, pool); err != nil {
-				return err
-			}
-			clonePlan, err = LoadClonePlan(ctx, pool, testTemplateSchema)
-			return err
-		})
+		templateErr = buildOrVerifyTemplateDB(ctx, baseURL, templateCfg)
 	})
 	return templateErr
 }
 
-func withTemplateLock(ctx context.Context, pool *pgxpool.Pool, fn func() error) error {
-	const templateLockID int64 = 0x746573745f746d70
-	if _, err := pool.Exec(ctx, `SELECT pg_advisory_lock($1)`, templateLockID); err != nil {
-		return fmt.Errorf("acquire template lock: %w", err)
-	}
-	defer func() { _, _ = pool.Exec(ctx, `SELECT pg_advisory_unlock($1)`, templateLockID) }()
-	return fn()
-}
-
-func buildTestTemplate(ctx context.Context, baseURL string, templateCfg config.Config) error {
-	pool, err := EnsureAdminPool(ctx, baseURL)
+func buildOrVerifyTemplateDB(ctx context.Context, baseURL string, templateCfg config.Config) error {
+	adminConn, err := pgx.Connect(ctx, baseURL)
 	if err != nil {
-		return fmt.Errorf("connect postgres for template: %w", err)
+		return fmt.Errorf("connect admin: %w", err)
+	}
+	defer adminConn.Close(ctx)
+
+	// Clean up orphan test databases left by previous abnormal exits.
+	cleanupOrphanTestDatabases(ctx, adminConn)
+
+	// Check if template DB already exists at current version.
+	if version, ok := readDBVersion(ctx, adminConn, templateDBName); ok && version == testTemplateVersion {
+		return nil
 	}
 
-	schemaSQL := pgx.Identifier{testTemplateSchema}.Sanitize()
-	if _, err := pool.Exec(ctx, "DROP SCHEMA IF EXISTS "+schemaSQL+" CASCADE"); err != nil {
-		return fmt.Errorf("drop stale template schema: %w", err)
-	}
-	if _, err := pool.Exec(ctx, "CREATE SCHEMA "+schemaSQL); err != nil {
-		return fmt.Errorf("create template schema: %w", err)
+	// Terminate any lingering connections to the template DB.
+	terminateDBConnections(ctx, adminConn, templateDBName)
+
+	// Drop stale template DB.
+	_, _ = adminConn.Exec(ctx, fmt.Sprintf(
+		"DROP DATABASE IF EXISTS %s",
+		pgx.Identifier{templateDBName}.Sanitize(),
+	))
+
+	// Create fresh template DB.
+	_, err = adminConn.Exec(ctx, fmt.Sprintf(
+		"CREATE DATABASE %s",
+		pgx.Identifier{templateDBName}.Sanitize(),
+	))
+	if err != nil {
+		return fmt.Errorf("create template db: %w", err)
 	}
 
-	templateURL := WithSearchPath(baseURL, testTemplateSchema)
+	// Bootstrap schema + seed inside the template DB.
+	templateURL := replaceDBName(baseURL, templateDBName)
 	cfg := templateCfg
 	cfg.DatabaseURL = templateURL
 	cfg.LogDatabaseURL = templateURL
-	cfg.LogSchemaIsolated = true
 	cfg.StoreBootstrap.SchemaPrepared = false
-	cfg.BootstrapMode = config.BootstrapDemo
 
 	st, err := postgres.New(ctx, cfg)
 	if err != nil {
-		return fmt.Errorf("build test template: %w", err)
+		return fmt.Errorf("bootstrap template db: %w", err)
 	}
 	if pg, ok := st.(*postgres.Store); ok {
-		if err := clearIngestRuntimeTables(ctx, pg); err != nil {
-			pg.Close()
-			return fmt.Errorf("clear template ingest tables: %w", err)
-		}
 		pg.Close()
 	}
-	return nil
+
+	// Stamp version so subsequent runs skip rebuild.
+	return markDBVersion(ctx, adminConn, templateDBName, testTemplateVersion)
 }
 
-func clearIngestRuntimeTables(ctx context.Context, st *postgres.Store) error {
-	logPool := postgres.LogPool(st)
-	_, err := logPool.Exec(ctx, `
-		TRUNCATE logs, ingest_jobs RESTART IDENTITY;
-		UPDATE reconcile_cursors SET last_log_id = 0, updated_at = NOW();
-	`)
-	return err
+func terminateDBConnections(ctx context.Context, conn *pgx.Conn, dbName string) {
+	_, _ = conn.Exec(ctx, `
+		SELECT pg_terminate_backend(pid)
+		FROM pg_stat_activity
+		WHERE datname = $1 AND pid <> pg_backend_pid()
+	`, dbName)
 }
 
-func readTemplateVersion(ctx context.Context, pool *pgxpool.Pool) (int, bool) {
-	var comment *string
-	err := pool.QueryRow(ctx, `
-		SELECT obj_description(n.oid, 'pg_namespace')
-		FROM pg_namespace n
-		WHERE n.nspname = $1
-	`, testTemplateSchema).Scan(&comment)
-	if err != nil || comment == nil {
-		return 0, false
+func cleanupOrphanTestDatabases(ctx context.Context, conn *pgx.Conn) {
+	rows, _ := conn.Query(ctx, `
+		SELECT datname FROM pg_database
+		WHERE datname ~ '^test_[0-9a-f]{16}$'
+		AND datname <> $1
+	`, templateDBName)
+	if rows == nil {
+		return
 	}
-	var version int
-	if _, err := fmt.Sscanf(*comment, "version:%d", &version); err != nil {
-		return 0, false
+	defer rows.Close()
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			continue
+		}
+		terminateDBConnections(ctx, conn, name)
+		_, _ = conn.Exec(ctx, "DROP DATABASE IF EXISTS "+pgx.Identifier{name}.Sanitize())
 	}
-	return version, true
-}
-
-func markTemplateVersion(ctx context.Context, pool *pgxpool.Pool) error {
-	schemaSQL := pgx.Identifier{testTemplateSchema}.Sanitize()
-	_, err := pool.Exec(ctx, fmt.Sprintf("COMMENT ON SCHEMA %s IS 'version:%d'", schemaSQL, testTemplateVersion))
-	return err
-}
-
-func OpenCloned(t *testing.T, baseURL string, templateCfg config.Config) Handle {
-	t.Helper()
-	if h, ok := CachedHandle(t); ok {
-		return h
-	}
-	ctx := context.Background()
-	if err := EnsureTemplate(ctx, baseURL, templateCfg); err != nil {
-		t.Fatalf("ensure test template: %v", err)
-	}
-	pool, err := EnsureAdminPool(ctx, baseURL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	schema := NewTestSchemaName()
-	if err := CloneSchema(ctx, pool, testTemplateSchema, schema, clonePlan); err != nil {
-		t.Fatalf("clone test schema: %v", err)
-	}
-	return registerTestSchema(t, pool, baseURL, schema)
-}
-
-func DropOrphanTestSchemas(ctx context.Context, baseURL string) error {
-	pool, err := EnsureAdminPool(ctx, baseURL)
-	if err != nil {
-		return err
-	}
-	cleanupOrphanTestSchemas(ctx, pool)
-	return nil
 }

@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/adapter"
-	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
+	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	newapisynctf "github.com/tokenjoy/backend/tests/testutil/newapisync"
@@ -21,14 +21,13 @@ func TestIngestNotifiesOnOverdraftExpansion(t *testing.T) {
 	ctx := testutil.Ctx()
 	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
 
-	co, err := st.Company().GetByID(ctx, contract.DefaultCompanyID)
-	if err != nil || co == nil {
-		t.Fatal("expected default company")
+	// Drain all lots so the next ingest must expand overdraft.
+	pool := postgres.MainPool(st)
+	if _, err := pool.Exec(ctx, `TRUNCATE company_recharge_lots, usage_ledger RESTART IDENTITY CASCADE`); err != nil {
+		t.Fatal(err)
 	}
-	if co.WalletRemainQuota > 0 {
-		if _, err := billinglot.ConsumeLots(ctx, st, contract.DefaultCompanyID, co.WalletRemainQuota); err != nil {
-			t.Fatal(err)
-		}
+	if err := st.Company().SetWalletRemainQuota(ctx, contract.DefaultCompanyID, 0, nil); err != nil {
+		t.Fatal(err)
 	}
 
 	notifier := &testutil.RecordingNotifier{}
@@ -74,14 +73,13 @@ func TestIngestSkipsOverdraftNotificationWhenNotifierNil(t *testing.T) {
 	ctx := testutil.Ctx()
 	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
 
-	co, err := st.Company().GetByID(ctx, contract.DefaultCompanyID)
-	if err != nil || co == nil {
-		t.Fatal("expected default company")
+	// Drain all lots so the next ingest must expand overdraft.
+	pool := postgres.MainPool(st)
+	if _, err := pool.Exec(ctx, `TRUNCATE company_recharge_lots, usage_ledger RESTART IDENTITY CASCADE`); err != nil {
+		t.Fatal(err)
 	}
-	if co.WalletRemainQuota > 0 {
-		if _, err := billinglot.ConsumeLots(ctx, st, contract.DefaultCompanyID, co.WalletRemainQuota); err != nil {
-			t.Fatal(err)
-		}
+	if err := st.Company().SetWalletRemainQuota(ctx, contract.DefaultCompanyID, 0, nil); err != nil {
+		t.Fatal(err)
 	}
 
 	ingest := testutil.NewIngestService(t, cfg, st)

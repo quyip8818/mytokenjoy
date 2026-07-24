@@ -19,6 +19,7 @@ import (
 func newDashboardSvc(t *testing.T) (dashboard.Service, store.Store) {
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t)
+	testutil.TruncateUsageBuckets(t, st)
 	return dashboard.NewService(cfg, st, domainusage.NewReader(st.Usage(), st.Ledger()), domainusage.DashboardScopeConfig{
 		OrgWidePermissions: []string{permission.DashboardCost, permission.DashboardUsage},
 	}), st

@@ -18,7 +18,7 @@ func TestIngestVisibleInAuditCalls(t *testing.T) {
 	const logID int64 = 9100
 	const input = "audit e2e snippet"
 	testutil.SeedConsumeLog(t, fix.Store, store.RawConsumeLog{
-		ID: logID, TokenID: 99, Quota: 500000, ModelName: "gpt-4o", CreatedAt: 1717200000,
+		ID: logID, TokenID: 99, Quota: 500000, ModelName: "gpt-4o", CreatedAt: 1781866800,
 		PromptTokens: 100, CompletionTokens: 50, UseTime: 250, Content: input,
 	})
 	if err := fix.Ingest.IngestByLogID(ctx, logID, types.SourceWebhook); err != nil {

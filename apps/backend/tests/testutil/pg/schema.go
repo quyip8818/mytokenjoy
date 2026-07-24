@@ -13,108 +13,167 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/tokenjoy/backend/internal/config"
 )
 
-const testTemplateSchema = "test_template"
-
+// Handle is the per-test database reference returned by OpenCloned or OpenSlow.
 type Handle struct {
-	BaseURL string
-	Schema  string
-	URL     string
+	DBName string
+	URL    string
 }
 
-// schemaByTest keys on *testing.T (not t.Name()) so -count with t.Parallel()
-// does not reuse one schema across concurrent invocations of the same test name.
-var schemaByTest sync.Map
+// handleByTest keys on *testing.T so -count with t.Parallel() does not reuse
+// one database across concurrent invocations of the same test name.
+var handleByTest sync.Map
 
 func CachedHandle(t *testing.T) (Handle, bool) {
-	v, ok := schemaByTest.Load(t)
+	v, ok := handleByTest.Load(t)
 	if !ok {
 		return Handle{}, false
 	}
 	return *v.(*Handle), true
 }
 
-func NewTestSchemaName() string {
-	var b [8]byte
-	_, _ = rand.Read(b[:])
-	return "test_" + hex.EncodeToString(b[:])
-}
-
-func WithSearchPath(dbURL, schema string) string {
-	// test_template holds shared River enums/functions; per-test schema holds tenant tables.
-	u, err := url.Parse(dbURL)
-	if err != nil {
-		panic(fmt.Sprintf("parse database url: %v", err))
-	}
-	q := u.Query()
-	q.Set("options", fmt.Sprintf("-c search_path=%s,%s,public", schema, testTemplateSchema))
-	u.RawQuery = q.Encode()
-	return u.String()
-}
-
-func registerTestSchema(t *testing.T, pool *pgxpool.Pool, baseURL, schema string) Handle {
+// OpenCloned creates a fresh database by cloning the template DB via
+// CREATE DATABASE ... TEMPLATE. Each test gets its own isolated database.
+func OpenCloned(t *testing.T, baseURL string, templateCfg config.Config) Handle {
 	t.Helper()
-	h := Handle{
-		BaseURL: baseURL,
-		Schema:  schema,
-		URL:     WithSearchPath(baseURL, schema),
+	if h, ok := CachedHandle(t); ok {
+		return h
 	}
-	schemaByTest.Store(t, &h)
-	schemaSQL := pgx.Identifier{schema}.Sanitize()
+
+	ctx := context.Background()
+	if err := EnsureTemplateDB(ctx, baseURL, templateCfg); err != nil {
+		t.Fatalf("ensure template db: %v", err)
+	}
+
+	dbName := newTestDBName()
+
+	// CREATE DATABASE cannot run inside a transaction; use a dedicated admin connection.
+	adminConn, err := pgx.Connect(ctx, baseURL)
+	if err != nil {
+		t.Fatalf("admin connect: %v", err)
+	}
+
+	// Defensive: terminate any lingering connections to the template DB.
+	// EnsureTemplateDB closes its bootstrap connection, but this guards against
+	// edge cases like idle pool keepalive from a previous failed run.
+	terminateDBConnections(ctx, adminConn, templateDBName)
+
+	_, err = adminConn.Exec(ctx, fmt.Sprintf(
+		"CREATE DATABASE %s TEMPLATE %s",
+		pgx.Identifier{dbName}.Sanitize(),
+		pgx.Identifier{templateDBName}.Sanitize(),
+	))
+	adminConn.Close(ctx)
+	if err != nil {
+		t.Fatalf("clone database: %v", err)
+	}
+
+	h := Handle{
+		DBName: dbName,
+		URL:    replaceDBName(baseURL, dbName),
+	}
+	handleByTest.Store(t, &h)
+
 	t.Cleanup(func() {
-		_, _ = pool.Exec(context.Background(), "DROP SCHEMA IF EXISTS "+schemaSQL+" CASCADE")
-		schemaByTest.Delete(t)
+		conn, err := pgx.Connect(context.Background(), baseURL)
+		if err != nil {
+			return
+		}
+		defer conn.Close(context.Background())
+		terminateDBConnections(context.Background(), conn, dbName)
+		_, _ = conn.Exec(context.Background(), fmt.Sprintf(
+			"DROP DATABASE IF EXISTS %s",
+			pgx.Identifier{dbName}.Sanitize(),
+		))
+		handleByTest.Delete(t)
 	})
 	return h
 }
 
+// OpenSlow creates an empty schema in the base database for minimal-bootstrap tests.
+// No template cloning — the caller is expected to run its own bootstrap.
 func OpenSlow(t *testing.T, baseURL string) Handle {
 	t.Helper()
 	if h, ok := CachedHandle(t); ok {
 		return h
 	}
-	pool, err := EnsureAdminPool(context.Background(), baseURL)
+	ctx := context.Background()
+	pool, err := EnsureAdminPool(ctx, baseURL)
 	if err != nil {
 		t.Fatal(err)
 	}
-	schema := NewTestSchemaName()
+	schema := newTestSchemaName()
 	schemaSQL := pgx.Identifier{schema}.Sanitize()
-	if _, err := pool.Exec(context.Background(), "CREATE SCHEMA "+schemaSQL); err != nil {
-		t.Fatal(err)
+	if _, err := pool.Exec(ctx, "CREATE SCHEMA "+schemaSQL); err != nil {
+		t.Fatalf("create schema: %v", err)
 	}
-	return registerTestSchema(t, pool, baseURL, schema)
+	h := Handle{
+		DBName: schema,
+		URL:    withSearchPath(baseURL, schema),
+	}
+	handleByTest.Store(t, &h)
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), "DROP SCHEMA IF EXISTS "+schemaSQL+" CASCADE")
+		handleByTest.Delete(t)
+	})
+	return h
 }
 
-func cleanupOrphanTestSchemas(ctx context.Context, pool *pgxpool.Pool) {
-	rows, err := pool.Query(ctx, `
-		SELECT nspname
-		FROM pg_namespace
-		WHERE nspname ~ '^test_[0-9a-f]{16}$'
-		ORDER BY oid
-	`)
+func newTestDBName() string {
+	var b [8]byte
+	_, _ = rand.Read(b[:])
+	return "test_" + hex.EncodeToString(b[:])
+}
+
+func newTestSchemaName() string {
+	return newTestDBName() // same format, reuse
+}
+
+func replaceDBName(connStr, newDB string) string {
+	u, err := url.Parse(connStr)
 	if err != nil {
-		return
+		panic(err)
 	}
-	defer rows.Close()
-
-	var schemas []string
-	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
-			return
-		}
-		schemas = append(schemas, name)
-	}
-	if err := rows.Err(); err != nil {
-		return
-	}
-	const keepRecent = 32
-	if len(schemas) <= keepRecent {
-		return
-	}
-	for _, schema := range schemas[:len(schemas)-keepRecent] {
-		schemaSQL := pgx.Identifier{schema}.Sanitize()
-		_, _ = pool.Exec(ctx, "DROP SCHEMA IF EXISTS "+schemaSQL+" CASCADE")
-	}
+	u.Path = "/" + newDB
+	return u.String()
 }
+
+// withSearchPath is used only by OpenSlow for schema-level isolation.
+func withSearchPath(dbURL, schema string) string {
+	u, err := url.Parse(dbURL)
+	if err != nil {
+		panic(fmt.Sprintf("parse database url: %v", err))
+	}
+	q := u.Query()
+	q.Set("options", fmt.Sprintf("-c search_path=%s,public", schema))
+	u.RawQuery = q.Encode()
+	return u.String()
+}
+
+// DropOrphanTestDatabases cleans up orphan test databases left by abnormal exits.
+// Called from cmd/testdbclean.
+func DropOrphanTestDatabases(ctx context.Context, baseURL string) error {
+	conn, err := pgx.Connect(ctx, baseURL)
+	if err != nil {
+		return err
+	}
+	defer conn.Close(ctx)
+	cleanupOrphanTestDatabases(ctx, conn)
+	return nil
+}
+
+// EnsureAdminPool returns a shared pool for admin operations (schema DDL in OpenSlow).
+func EnsureAdminPool(ctx context.Context, baseURL string) (*pgxpool.Pool, error) {
+	adminOnce.Do(func() {
+		adminPool, adminErr = pgxpool.New(ctx, baseURL)
+	})
+	return adminPool, adminErr
+}
+
+var (
+	adminOnce sync.Once
+	adminPool *pgxpool.Pool
+	adminErr  error
+)

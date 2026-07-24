@@ -29,9 +29,6 @@ func NewTestStore(t *testing.T, opts ...ConfigOption) (config.Config, store.Stor
 	if err != nil {
 		t.Fatalf("create postgres store: %v", err)
 	}
-	if !cfg.BootstrapIsMinimal() {
-		resetRuntimeTables(t, cfg, st)
-	}
 	t.Cleanup(func() {
 		if pg, ok := st.(*postgres.Store); ok {
 			pg.Close()
