@@ -51,13 +51,11 @@ func ApplyRechargeOrders(ctx context.Context, st store.Store) error {
 		order.QuotaPerUnit = ppu
 		order.QuotaGranted = common.QuotaFromAmount(order.Amount, ppu)
 		order.LotKind = lotKind
+		if lotKind == store.LotKindMock {
+			order.Amount = 0 // mock lots have no real payment
+		}
 		if order.Status == store.RechargeStatusConfirmed {
-			var lot store.RechargeLot
-			if lotKind == store.LotKindMock {
-				lot = domainbilling.BuildLot(order, currency, store.LotKindMock, 0)
-			} else {
-				lot = domainbilling.BuildLot(order, currency, store.LotKindPaid, order.Amount)
-			}
+			lot := domainbilling.BuildLot(order, currency, lotKind, order.Amount)
 			if err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted); err != nil {
 				return fmt.Errorf("seed recharge lot %s: %w", order.ID, err)
 			}

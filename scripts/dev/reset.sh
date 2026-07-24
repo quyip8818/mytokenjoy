@@ -59,6 +59,9 @@ else
   SEED="${SEED}" pnpm -F @tokenjoy/backend dev-bootstrap
 fi
 
+# Re-sync NewAPI channel abilities after dev-bootstrap to ensure test-model is routable.
+"${NEWAPI_SCRIPTS}/setup-dev-mock-channel.sh" || true
+
 echo ""
 echo "Reset complete (mode=${MODE}, seed=${SEED})."
 echo "Next: pnpm start"

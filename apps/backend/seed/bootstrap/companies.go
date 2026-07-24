@@ -24,7 +24,7 @@ func insertCompanies(ctx context.Context, exec TableWriter, appCfg config.Config
 	name := resolveCompanyName(appCfg, bsCfg)
 	companyType := store.CompanyTypeSelfhosted
 	if appCfg.SupportSaas {
-		companyType = store.CompanyTypeTesting
+		companyType = store.CompanyTypeDemo
 	}
 	if _, err := exec.Exec(ctx, `
 		INSERT INTO companies (id, name, type, status)
