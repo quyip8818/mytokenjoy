@@ -113,9 +113,9 @@ func (r *pgOrgNodeRepo) SetTree(ctx context.Context, tree []types.OrgNode) error
 	return nil
 }
 
-func (r *pgOrgNodeRepo) GetNodeBudget(ctx context.Context, nodeID uuid.UUID) (int64, bool, error) {
+func (r *pgOrgNodeRepo) GetNodeBudget(ctx context.Context, nodeID uuid.UUID) (float64, bool, error) {
 	companyID := store.CompanyID(ctx)
-	var budget int64
+	var budget float64
 	err := r.db.QueryRow(ctx, `
 		SELECT budget FROM org_nodes WHERE company_id = $1 AND id = $2
 	`, companyID, nodeID).Scan(&budget)

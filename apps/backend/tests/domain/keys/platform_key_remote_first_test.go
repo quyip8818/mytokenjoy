@@ -102,7 +102,7 @@ func TestRotatePlatformKeySuccess(t *testing.T) {
 		if id != tokenID {
 			t.Fatalf("expected token id %d, got %d", tokenID, id)
 		}
-		return adminport.TokenResult{ID: id, Key: "sk-rotated-key"}, nil
+		return adminport.TokenResult{ID: id, Key: "rotated-key"}, nil
 	}
 	rotated, err := svc.RotatePlatformKey(ctx, contract.IDPlatformKey1)
 	if err != nil {

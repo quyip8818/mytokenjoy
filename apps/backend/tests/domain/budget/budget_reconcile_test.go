@@ -20,7 +20,7 @@ func TestReconcileWindowStart(t *testing.T) {
 
 func TestCollectPeriodKeys(t *testing.T) {
 	t.Parallel()
-	expected := map[budget.AxisKey]int64{
+	expected := map[budget.AxisKey]float64{
 		{Kind: "platform_key", AxisID: uuid.MustParse("00000000-0000-7000-0000-000000000f01"), PeriodKey: "2026-07"}: 100,
 		{Kind: "member", AxisID: uuid.MustParse("00000000-0000-7000-0000-000000000e01"), PeriodKey: "2026-07"}:       50,
 		{Kind: "platform_key", AxisID: uuid.MustParse("00000000-0000-7000-0000-000000000f02"), PeriodKey: "2026-06"}: 200,
@@ -64,8 +64,8 @@ func TestConsumedDrift(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		expected int64
-		actual   int64
+		expected float64
+		actual   float64
 		drift    bool
 	}{
 		{"exact match", 100, 100, false},

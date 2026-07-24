@@ -41,7 +41,7 @@ const (
 type RechargeOrder struct {
 	ID             uuid.UUID
 	CompanyID      uuid.UUID
-	Amount         float64 // display amount (CNY)
+	Amount         float64 // payment amount (billing currency)
 	Currency       string
 	QuotaPerUnit   int64
 	QuotaGranted   int64
@@ -63,7 +63,7 @@ type RechargeLot struct {
 	RechargeOrderID uuid.UUID
 	BillingCurrency string
 	LotKind         string
-	AmountDisplay   float64 // paid amount in display currency (gift/overdraft = 0)
+	PaidAmount      float64 // paid currency amount (gift/overdraft = 0)
 	QuotaPerUnit    int64   // snapshot at recharge time
 	QuotaGranted    int64
 	QuotaRemaining  int64

@@ -82,7 +82,10 @@ var (
 	IDProject4 = uuid.MustParse("00000000-0000-7000-8000-000000000104")
 )
 
-// --- Roles (全局预设角色引用 grants.ID*，自定义角色用固定 seed UUID) ---
+// --- Roles ---
+// IDRole1-5 是全局 preset role ID 的别名，供测试和 alert_rules seed 引用。
+// Prod 中公司不创建 preset role 副本，直接引用全局 preset roles。
+// 自定义角色（如 BudgetApprover）用独立 seed UUID。
 
 var (
 	IDRole1 = grants.IDSuperAdmin

@@ -57,7 +57,7 @@ func TestCombinedKeySummaryDecrementBatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[uuid.UUID]int64{
+	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[uuid.UUID]float64{
 		contract.IDPlatformKey1:                                12,
 		uuid.MustParse("00000000-0000-7000-0000-ffffffffffff"): 1,
 	})
@@ -86,7 +86,7 @@ func TestCombinedKeySummaryDecrementBatchFloorsAtZero(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[uuid.UUID]int64{
+	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[uuid.UUID]float64{
 		contract.IDPlatformKey1: 12,
 	})
 	if err != nil {
@@ -105,7 +105,7 @@ func TestCombinedKeySummaryDecrementBatchSkipsNullRemain(t *testing.T) {
 	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 
-	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[uuid.UUID]int64{
+	summaries, err := st.CombinedKeySummaries().DecrementBatch(ctx, map[uuid.UUID]float64{
 		contract.IDPlatformKey1: 1,
 	})
 	if err != nil {

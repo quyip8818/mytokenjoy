@@ -20,7 +20,7 @@ func (s *service) confirmGiftLot(ctx context.Context, amount float64, createdBy 
 	}
 	now := time.Now().UTC()
 	orderID := uuid.Must(uuid.NewV7())
-	quotaGranted := common.QuotaFromAmount(amount, ppu)
+	quotaGranted := common.MoneyToQuota(amount, ppu)
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: 0, Currency: currency,
 		QuotaPerUnit: ppu, QuotaGranted: quotaGranted,
@@ -35,7 +35,7 @@ func (s *service) confirmGiftLot(ctx context.Context, amount float64, createdBy 
 	return nil
 }
 
-func (s *service) confirmAdjustLot(ctx context.Context, amount, amountDisplay float64, createdBy uuid.UUID) error {
+func (s *service) confirmAdjustLot(ctx context.Context, amount, paidAmount float64, createdBy uuid.UUID) error {
 	companyID := company.CompanyID(ctx)
 	currency, ppu, err := s.resolveChargeRate(ctx, companyID)
 	if err != nil {
@@ -43,15 +43,15 @@ func (s *service) confirmAdjustLot(ctx context.Context, amount, amountDisplay fl
 	}
 	now := time.Now().UTC()
 	orderID := uuid.Must(uuid.NewV7())
-	quotaGranted := common.QuotaFromAmount(amount, ppu)
+	quotaGranted := common.MoneyToQuota(amount, ppu)
 	order := store.RechargeOrder{
-		ID: orderID, CompanyID: companyID, Amount: amountDisplay, Currency: currency,
+		ID: orderID, CompanyID: companyID, Amount: paidAmount, Currency: currency,
 		QuotaPerUnit: ppu, QuotaGranted: quotaGranted,
 		Source: store.RechargeSourceAdjust, LotKind: store.LotKindAdjust,
 		Status: store.RechargeStatusConfirmed, CreatedBy: createdBy,
 		CreatedAt: now, UpdatedAt: now,
 	}
-	lot := BuildLot(order, currency, store.LotKindAdjust, amountDisplay)
+	lot := BuildLot(order, currency, store.LotKindAdjust, paidAmount)
 	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted, s.syncQuotaToNewAPI); err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (s *service) finishPendingOrder(ctx context.Context, order store.RechargeOr
 		}
 	}
 	if order.QuotaGranted <= 0 {
-		order.QuotaGranted = common.QuotaFromAmount(order.Amount, ppu)
+		order.QuotaGranted = common.MoneyToQuota(order.Amount, ppu)
 	}
 	order.Currency = currency
 	order.LotKind = store.LotKindPaid
@@ -100,7 +100,7 @@ func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, sourc
 	}
 	now := time.Now().UTC()
 	orderID := uuid.Must(uuid.NewV7())
-	quotaGranted := common.QuotaFromAmount(amount, ppu)
+	quotaGranted := common.MoneyToQuota(amount, ppu)
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: amount, Currency: currency,
 		QuotaPerUnit: ppu, QuotaGranted: quotaGranted,

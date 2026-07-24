@@ -42,8 +42,8 @@ type PlatformKey struct {
 	DepartmentID   uuid.UUID   `json:"departmentId"`
 	DepartmentName string      `json:"departmentName"`
 	Status         string      `json:"status"`
-	Budget         int64       `json:"budget"`
-	Consumed       int64       `json:"consumed"`
+	Budget         float64     `json:"budget"`
+	Consumed       float64     `json:"consumed"`
 	ModelWhitelist []uuid.UUID `json:"modelWhitelist"`
 	CreatedAt      string      `json:"createdAt"`
 	ExpiresAt      *string     `json:"expiresAt"`
@@ -57,10 +57,10 @@ type PlatformKeyListFilter struct {
 }
 
 type MemberBudgetSummary struct {
-	TotalBudget  int64 `json:"totalBudget"`
-	Consumed     int64 `json:"consumed"`
-	Remaining    int64 `json:"remaining"`
-	ReservedPool int64 `json:"reservedPool"`
+	TotalBudget  float64 `json:"totalBudget"`
+	Consumed     float64 `json:"consumed"`
+	Remaining    float64 `json:"remaining"`
+	ReservedPool float64 `json:"reservedPool"`
 }
 
 type CreateProviderKeyInput struct {
@@ -82,7 +82,7 @@ type CreatePlatformKeyInput struct {
 	Scope          string      `json:"scope"`
 	MemberID       *uuid.UUID  `json:"memberId"`
 	ProjectID      *uuid.UUID  `json:"projectId"`
-	Budget         int64       `json:"budget"`
+	Budget         float64     `json:"budget"`
 	ModelWhitelist []uuid.UUID `json:"modelWhitelist"`
 
 	AuditMeta `json:"-"`
@@ -90,7 +90,7 @@ type CreatePlatformKeyInput struct {
 
 type UpdatePlatformKeyInput struct {
 	Name           *string     `json:"name"`
-	Budget         *int64      `json:"budget"`
+	Budget         *float64    `json:"budget"`
 	ModelWhitelist []uuid.UUID `json:"modelWhitelist"`
 }
 

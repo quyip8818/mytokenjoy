@@ -17,8 +17,8 @@ func (r *billingRepo) AggregateWallet(ctx context.Context, companyID uuid.UUID) 
 	}
 	rows, err := r.db.Query(ctx, `
 		SELECT billing_currency,
-			COALESCE(SUM(CASE WHEN lot_kind IN ('paid','adjust') THEN amount_display ELSE 0 END), 0),
-			COALESCE(SUM(CASE WHEN lot_kind IN ('paid','adjust') THEN quota_remaining * amount_display / NULLIF(quota_granted, 0) ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN lot_kind IN ('paid','adjust') THEN paid_amount ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN lot_kind IN ('paid','adjust') THEN quota_remaining * paid_amount / NULLIF(quota_granted, 0) ELSE 0 END), 0),
 			COALESCE(SUM(CASE WHEN lot_kind = 'gift' THEN quota_remaining ELSE 0 END), 0),
 			COALESCE(SUM(CASE WHEN lot_kind = 'overdraft' THEN quota_remaining ELSE 0 END), 0)
 		FROM company_recharge_lots
@@ -76,7 +76,7 @@ func scanRechargeLot(row rechargeScanner) (*store.RechargeLot, error) {
 	var lot store.RechargeLot
 	if err := row.Scan(
 		&lot.ID, &lot.CompanyID, &lot.RechargeOrderID, &lot.BillingCurrency, &lot.LotKind,
-		&lot.AmountDisplay, &lot.QuotaPerUnit, &lot.QuotaGranted, &lot.QuotaRemaining,
+		&lot.PaidAmount, &lot.QuotaPerUnit, &lot.QuotaGranted, &lot.QuotaRemaining,
 		&lot.Status, &lot.CreatedAt, &lot.UpdatedAt,
 	); err != nil {
 		return nil, err

@@ -72,7 +72,7 @@ func RejectionCases() []RejectionCase {
 		{
 			Name: "exhausted combined key remain",
 			MutatePC: func(pc *domaingateway.PrecheckContext) {
-				zero := int64(0)
+				zero := float64(0)
 				pc.Budget.Remain = &zero
 			},
 			Model: "gpt-4o",

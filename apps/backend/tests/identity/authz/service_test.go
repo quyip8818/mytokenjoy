@@ -1,3 +1,5 @@
+//go:build testhook
+
 package authz_test
 
 import (

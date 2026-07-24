@@ -13,7 +13,7 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil/saas"
 )
 
-func TestSaaSLoginRequiresCompanyID(t *testing.T) {
+func TestSaaSLoginWithoutCompanyID(t *testing.T) {
 	t.Parallel()
 	mock := saas.StartNewAPIMock(t)
 	app := testutil.NewTestApp(t, func(cfg *config.Config) {
@@ -27,8 +27,9 @@ func TestSaaSLoginRequiresCompanyID(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400, got %d body=%s", rec.Code, rec.Body.String())
+	// User doesn't exist → 401
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 

@@ -51,8 +51,8 @@ func TestDashboardProjectorUpsertBucketFromLedger(t *testing.T) {
 	if len(points) != 1 {
 		t.Fatalf("expected one bucket, got %+v", points)
 	}
-	if points[0].Cost != entries[0].DisplayAmount {
-		t.Fatalf("series cost should be display_amount %f, got %f", entries[0].DisplayAmount, points[0].Cost)
+	if points[0].Cost != entries[0].Cost {
+		t.Fatalf("series cost should be cost %f, got %f", entries[0].Cost, points[0].Cost)
 	}
 	buckets, err := st.Usage().ListBucketsSince(ctx, occurred.Truncate(time.Hour))
 	if err != nil {
@@ -63,12 +63,12 @@ func TestDashboardProjectorUpsertBucketFromLedger(t *testing.T) {
 	}
 	found := false
 	for _, b := range buckets {
-		if b.Model == entries[0].Model && b.QuotaConsumed == entries[0].Amount && b.DisplayCost == entries[0].DisplayAmount {
+		if b.Model == entries[0].Model && b.QuotaConsumed == entries[0].QuotaAmount && b.Cost == entries[0].Cost {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Fatalf("expected bucket with quota_consumed=%d display_cost=%f, got %+v", entries[0].Amount, entries[0].DisplayAmount, buckets)
+		t.Fatalf("expected bucket with quota_consumed=%d cost=%f, got %+v", entries[0].QuotaAmount, entries[0].Cost, buckets)
 	}
 }

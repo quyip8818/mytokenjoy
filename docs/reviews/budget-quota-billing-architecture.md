@@ -96,8 +96,8 @@ flowchart TB
   BA -->|写 limit| ONB & MEM
   KA -->|写 Key budget| PK
   BA & KA -->|enqueue Rebalance| CKR
-  BI -->|CreditFromLot| WAL
-  BI -->|TopUp delta| NA
+  BI -->|PreCreditFunc: add_quota| NA
+  BI -->|CreditFromLot tx| WAL
 
   GW -->|读| WAL & CKR & RC
   GW -->|proxy| NA
@@ -153,14 +153,14 @@ flowchart TB
 sequenceDiagram
   participant Admin as 管理员
   participant API as Billing API
-  participant PG as Postgres
   participant NA as NewAPI
+  participant PG as Postgres
 
   Admin->>API: 充值确认（gift/adjust/paid）
   API->>API: QuotaFromAmount(amount, QPU)
-  API->>PG: CreditFromLot<br/>(insert lot + wallet_remain_quota += delta)
-  API->>NA: TopUp(walletCompanyID, +delta)
-  Note over NA: best-effort，失败仅 Warn
+  API->>NA: PreCreditFunc: ManageUser(add_quota, +delta)
+  Note over NA: 失败则充值中止
+  API->>PG: CreditFromLot tx<br/>(insert lot + wallet_remain_quota += delta)
   API-->>Admin: 成功
 ```
 
@@ -168,8 +168,10 @@ sequenceDiagram
 
 1. 计算 `quotaGranted = QuotaFromAmount(amount, ppu)`
 2. 构建 `RechargeOrder` + `RechargeLot`
-3. `CreditFromLot`：事务内 insert lot + `ApplyWalletDelta(+quotaGranted)`
-4. `topUpNewAPIQuota`：best-effort 调 NewAPI Admin TopUp
+3. `CreditFromLot(ctx, st, order, lot, delta, s.syncQuotaToNewAPI)`：
+   - PreCreditFunc 先执行——调 NewAPI `ManageUser(add_quota, delta)`
+   - 成功后事务内 insert lot + `ApplyWalletDelta(+quotaGranted)`
+   - PreCreditFunc 失败 → 充值不执行，用户重试
 
 **FIFO lot 队列（`domain/billing/lot/consume.go`）：**
 - 充值产生 lot（paid/gift/adjust/overdraft 四种）
@@ -398,7 +400,7 @@ sequenceDiagram
 | 改部门/成员预算 | 写 limit + Rebalance | 不调用 | 不变 |
 | 改 Key budget | 写 + RefreshPlatformKeyCombined | UpdateToken 只同步 status/models/group | 不变 |
 | 创建 Key | 写 + Refresh | CreateToken(Unlimited=true) | 不变 |
-| 充值 | Credit lot + wallet | 不变 | TopUp(+delta) |
+| 充值 | Credit lot + wallet | 不变 | PreCreditFunc: add_quota(+delta)，失败阻止充值 |
 | 消费入账 | wallet/consumed/remain 递减 | user quota 由 NewAPI 自扣 | — |
 | 月初重置 | consumed 新月自动归零（按 periodKey 查） | 不调用 | 不变 |
 
@@ -691,7 +693,7 @@ sequenceDiagram
 
 | 现状 | 问题 | 建议 |
 |------|------|------|
-| **NewAPI User TopUp** 镜像钱包 | 仅防直连穿透，但增加了充值路径复杂度和 TopUp 失败告警噪音 | 如果所有流量必须经过 Gateway，可评估移除 User quota 依赖，改为网络层封堵直连 |
+| **NewAPI User TopUp** 镜像钱包 | 仅防直连穿透，通过 PreCreditFunc 保证同步——失败则充值中止，不产生不一致 | 如果所有流量必须经过 Gateway，可评估移除 User quota 依赖，改为网络层封堵直连 |
 | **Overrun job 异步 Disable** | 入账与 Disable 之间有时间窗口，期间可能多放行 1-2 个请求 | 若 combined_key_remain 已 ≤ 0，Gateway 下一请求自然拦截；Overrun Disable 是补充保险，当前设计可接受 |
 | **tree_mutate.go 过时注释** | L218/L227 仍写 "NewAPI token remain_quota" | 改为 "refresh combined_key_remain"（纯文本修改，零风险） |
 
@@ -720,7 +722,7 @@ flowchart LR
 | 风险 | 影响 | 收紧方案 | 成本 |
 |------|------|---------|------|
 | **Precheck → Ingest 超卖** | 最后一滴额度可能多放 N 个并发请求 | Redis 原子 DECRBY 预扣（粗估费用），Ingest 后 reconcile | Gateway 增加 Redis 写；需处理估价不准时的 reconcile |
-| **TopUp best-effort 失败** | PG 已充值，NewAPI user 偏低，直连时被拒 | 已有 bootstrap 补齐；可加「TopUp 失败」告警 + 重试队列 | 低成本 |
+| **TopUp PreCreditFunc 失败** | 充值中止，用户重试 | 当前设计已保证不会出现"本地有余额但 NewAPI 不足"的不一致 | 零成本（已解决） |
 | **absoluteRecompute 锁竞争** | 新 Key 首次消费走 LockPlatformKeysForUpdate | 创建 Key 时同步 INSERT combined_key_summaries 初始行 | 极低成本 |
 
 ### 10.4 架构层面的简化机会

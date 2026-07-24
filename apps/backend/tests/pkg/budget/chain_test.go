@@ -10,11 +10,12 @@ import (
 func TestGatewayChainRemain(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name  string
-		scope string
-		in    pkgbudget.ChainInputs
-		want  int64
-		limit string
+		name     string
+		scope    string
+		in       pkgbudget.ChainInputs
+		want     float64
+		limit    string
+		uncapped bool
 	}{
 		{
 			name:  "member limited by personal",
@@ -47,10 +48,22 @@ func TestGatewayChainRemain(t *testing.T) {
 			want:  1000,
 			limit: pkgbudget.LimitingPlatformKey,
 		},
+		{
+			name:     "uncapped when no budgets",
+			scope:    "",
+			in:       pkgbudget.ChainInputs{},
+			uncapped: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, limiting := pkgbudget.GatewayChainRemain(tt.scope, tt.in)
+			got, limiting, uncapped := pkgbudget.GatewayChainRemain(tt.scope, tt.in)
+			if uncapped != tt.uncapped {
+				t.Fatalf("uncapped = %v, want %v", uncapped, tt.uncapped)
+			}
+			if tt.uncapped {
+				return
+			}
 			if got != tt.want {
 				t.Fatalf("remain = %v, want %v", got, tt.want)
 			}

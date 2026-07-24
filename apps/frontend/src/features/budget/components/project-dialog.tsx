@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import type { BudgetNode, Department, Member } from '@/api/types'
-import { displayToQuota, formatDisplayCurrency } from '@/lib/quota-display'
+import { formatMoney } from '@/lib/quota-display'
 import { BudgetOrgMemberPicker } from './budget-org-member-picker'
 import { FormDialog } from '@/components/ui/form-dialog'
 import { Input } from '@/components/ui/input'
@@ -73,8 +73,8 @@ export function ProjectDialog({
       setError('请输入有效的项目额度')
       return
     }
-    if (displayToQuota(budgetNum) > available) {
-      setError(`团队可用额度为 ${formatDisplayCurrency(available)}，请调低项目额度`)
+    if (budgetNum > available) {
+      setError(`团队可用额度为 ${formatMoney(available)}，请调低项目额度`)
       return
     }
 
@@ -82,7 +82,7 @@ export function ProjectDialog({
     try {
       await onCreateProject({
         name: trimmedName,
-        budget: displayToQuota(budgetNum),
+        budget: budgetNum,
         memberIds,
         ownerDepartmentId: department.id,
       })
@@ -131,9 +131,7 @@ export function ProjectDialog({
           placeholder="输入额度"
           className="h-8 text-sm tabular-nums"
         />
-        <p className="text-xs text-muted-foreground">
-          可用额度：{formatDisplayCurrency(available)}
-        </p>
+        <p className="text-xs text-muted-foreground">可用额度：{formatMoney(available)}</p>
       </div>
 
       <div className="grid gap-1.5">

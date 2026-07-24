@@ -113,7 +113,7 @@ func TestCreateSelfRechargeUsesCurrenciesPointsPerUnit(t *testing.T) {
 	if order.QuotaPerUnit != cur.QuotaPerUnit {
 		t.Fatalf("points_per_unit: got %d want %d (from currencies)", order.QuotaPerUnit, cur.QuotaPerUnit)
 	}
-	wantGranted := common.QuotaFromAmount(15, cur.QuotaPerUnit)
+	wantGranted := common.MoneyToQuota(15, cur.QuotaPerUnit)
 	if order.QuotaGranted != wantGranted {
 		t.Fatalf("points_granted: got %v want %v", order.QuotaGranted, wantGranted)
 	}

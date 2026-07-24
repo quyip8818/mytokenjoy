@@ -68,9 +68,8 @@ type loginBody struct {
 
 // Login authenticates by password. The "email" field accepts either a phone number or email.
 // Flow: resolve user → verify password → route by member count (single/multi/none).
-// companyId is NEVER required at login time. After password verification:
-//   - If companyId is provided and valid, log in directly to that company.
-//   - Otherwise, routeByMembership: 1 company → auto-enter, N → select_company, 0 → create_company.
+// companyId is optional. If provided and valid, log in directly to that company.
+// Otherwise, routeByMembership: 1 company → auto-enter, N → select_company, 0 → create_company.
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var body loginBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {

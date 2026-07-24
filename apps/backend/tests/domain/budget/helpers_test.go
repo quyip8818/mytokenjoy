@@ -12,7 +12,6 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
-	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
 func newBudgetService(t *testing.T) (budget.Service, store.Store) {
@@ -83,7 +82,7 @@ func prepareDept3NodeUpdateFixture(t *testing.T, st store.Store) {
 
 // chooseValidDeptBudget picks the smallest budget >= allocated obligations that passes
 // the same validation as domain UpdateNode, optionally bumped when parent headroom allows.
-func chooseValidDeptBudget(t *testing.T, st store.Store, deptID uuid.UUID, reserved int64) int64 {
+func chooseValidDeptBudget(t *testing.T, st store.Store, deptID uuid.UUID, reserved float64) float64 {
 	t.Helper()
 	inputs := loadDeptBudgetInputs(t, st, deptID)
 	node := pkgbudget.FindBudgetNode(inputs.tree, deptID)
@@ -92,7 +91,7 @@ func chooseValidDeptBudget(t *testing.T, st store.Store, deptID uuid.UUID, reser
 		pkgbudget.ProjectsBudgetForDept(inputs.projects, deptID) +
 		pkgbudget.MemberBudgetSumForDept(inputs.members, deptID)
 
-	candidates := []int64{floor + budgetfix.QuotaFromDisplay(1000), floor}
+	candidates := []float64{floor + 1000, floor}
 	for _, budget := range candidates {
 		if msg := pkgbudget.ValidateBudgetNodeUpdate(
 			inputs.tree, deptID, budget, reserved, inputs.projects, inputs.members,

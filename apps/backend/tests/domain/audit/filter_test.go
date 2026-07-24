@@ -101,7 +101,7 @@ func TestListOperationsPagination(t *testing.T) {
 
 func TestListCallsModelFilter(t *testing.T) {
 	t.Parallel()
-	_, st := testutil.NewTestStoreWithDemoRuntime(t)
+	_, st := testutil.SharedTestStoreWithDemoRuntime(t)
 	querier := domainusage.NewCallLogQuerier(st.Ledger())
 	ctx := testutil.Ctx()
 
@@ -131,7 +131,7 @@ func TestListCallsModelFilter(t *testing.T) {
 
 func TestListCallsStatusFilter(t *testing.T) {
 	t.Parallel()
-	_, st := testutil.NewTestStoreWithDemoRuntime(t)
+	_, st := testutil.SharedTestStoreWithDemoRuntime(t)
 	querier := domainusage.NewCallLogQuerier(st.Ledger())
 	ctx := testutil.Ctx()
 
@@ -151,7 +151,7 @@ func TestListCallsStatusFilter(t *testing.T) {
 
 func TestListCallsCallDetailFilters(t *testing.T) {
 	t.Parallel()
-	_, st := testutil.NewTestStoreWithDemoRuntime(t)
+	_, st := testutil.SharedTestStoreWithDemoRuntime(t)
 	querier := domainusage.NewCallLogQuerier(st.Ledger())
 	ctx := testutil.Ctx()
 
@@ -199,7 +199,7 @@ func TestListCallsCallDetailFilters(t *testing.T) {
 
 func TestListCallsPagination(t *testing.T) {
 	t.Parallel()
-	_, st := testutil.NewTestStoreWithDemoRuntime(t)
+	_, st := testutil.SharedTestStoreWithDemoRuntime(t)
 	querier := domainusage.NewCallLogQuerier(st.Ledger())
 	ctx := testutil.Ctx()
 

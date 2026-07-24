@@ -13,7 +13,7 @@ import (
 func (r *billingRepo) ListActiveLotsFIFO(ctx context.Context, companyID uuid.UUID, fifoHeadID *uuid.UUID) ([]store.RechargeLot, error) {
 	query := `
 		SELECT id, company_id, recharge_order_id, billing_currency, lot_kind,
-			amount_display, quota_per_unit, quota_granted, quota_remaining,
+			paid_amount, quota_per_unit, quota_granted, quota_remaining,
 			status, created_at, updated_at
 		FROM company_recharge_lots
 		WHERE company_id = $1 AND status = $2 AND quota_remaining > 0
@@ -56,7 +56,7 @@ func (r *billingRepo) UpdateLotRemaining(ctx context.Context, lot store.Recharge
 func (r *billingRepo) GetLotByID(ctx context.Context, lotID uuid.UUID) (*store.RechargeLot, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT id, company_id, recharge_order_id, billing_currency, lot_kind,
-			amount_display, quota_per_unit, quota_granted, quota_remaining,
+			paid_amount, quota_per_unit, quota_granted, quota_remaining,
 			status, created_at, updated_at
 		FROM company_recharge_lots WHERE id = $1
 	`, lotID)
@@ -109,7 +109,7 @@ func (r *billingRepo) ExpandOverdraftLot(ctx context.Context, companyID uuid.UUI
 	lot := store.RechargeLot{
 		ID: lotID, CompanyID: companyID, RechargeOrderID: orderID,
 		BillingCurrency: billingCurrency, LotKind: store.LotKindOverdraft,
-		AmountDisplay: 0, QuotaPerUnit: 1, QuotaGranted: quotaDelta, QuotaRemaining: quotaDelta,
+		PaidAmount: 0, QuotaPerUnit: 1, QuotaGranted: quotaDelta, QuotaRemaining: quotaDelta,
 		Status: store.LotStatusActive, CreatedAt: now, UpdatedAt: now,
 	}
 	if err := r.ConfirmRechargeWithLot(ctx, order, lot); err != nil {

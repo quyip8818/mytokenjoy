@@ -55,7 +55,7 @@ func TestDashboardReconcileRepairsBucketDrift(t *testing.T) {
 		MemberID:      bucketMemberID,
 		Model:         entry.Model,
 		QuotaConsumed: 1,
-		DisplayCost:   0,
+		Cost:          0,
 		CallCount:     1,
 		InputTokens:   1,
 		OutputTokens:  1,
@@ -83,11 +83,11 @@ func TestDashboardReconcileRepairsBucketDrift(t *testing.T) {
 	if repaired == nil {
 		t.Fatalf("expected repaired bucket, got %+v", buckets)
 	}
-	if repaired.QuotaConsumed != entry.Amount {
-		t.Fatalf("expected quota cost %d after reconcile, got %d", entry.Amount, repaired.QuotaConsumed)
+	if repaired.QuotaConsumed != entry.QuotaAmount {
+		t.Fatalf("expected quota cost %d after reconcile, got %d", entry.QuotaAmount, repaired.QuotaConsumed)
 	}
-	if repaired.DisplayCost != entry.DisplayAmount {
-		t.Fatalf("expected display cost %f after reconcile, got %f", entry.DisplayAmount, repaired.DisplayCost)
+	if repaired.Cost != entry.Cost {
+		t.Fatalf("expected display cost %f after reconcile, got %f", entry.Cost, repaired.Cost)
 	}
 	if repaired.CallCount != 1 {
 		t.Fatalf("expected call count 1 after reconcile, got %d", repaired.CallCount)

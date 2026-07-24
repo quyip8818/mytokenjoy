@@ -47,8 +47,7 @@ func TestGatewayAllowsTestModelForDemoCompany(t *testing.T) {
 
 func TestGatewayRejectsTestModelForStandardCompany(t *testing.T) {
 	t.Parallel()
-	sc := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{Budget: 1000})
-	// Default company type from seed is standard.
+	sc := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{Budget: 1000, CompanyType: store.CompanyTypeStandard})
 
 	req := gatewaytf.GatewayRequestWithModel(sc.FullKey, "test-model")
 	rec := httptest.NewRecorder()

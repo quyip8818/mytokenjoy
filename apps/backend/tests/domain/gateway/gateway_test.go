@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/store"
 	gatewaytf "github.com/tokenjoy/backend/tests/testutil/gateway"
 )
 
@@ -140,6 +141,7 @@ func TestGatewayRejectsDevModelOutsideLocal(t *testing.T) {
 				Budget:          1000,
 				ProxyBackendURL: backend.URL,
 				DeployEnv:       env,
+				CompanyType:     store.CompanyTypeStandard,
 			})
 
 			req := gatewaytf.GatewayRequestWithModel(scenario.FullKey, "test-model")

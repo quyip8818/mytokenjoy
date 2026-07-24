@@ -84,7 +84,7 @@ func TestCreateProjectKeyQuotaExceeded(t *testing.T) {
 func TestUpdatePlatformKeyQuota(t *testing.T) {
 	t.Parallel()
 	svc, _, _ := newKeysServiceWithNewAPI(t)
-	quota := int64(99_000_000_000)
+	quota := float64(99_000_000_000)
 	_, err := svc.UpdatePlatformKey(testutil.Ctx(), contract.IDPlatformKey1, types.UpdatePlatformKeyInput{
 		Budget: &quota,
 	})
@@ -103,11 +103,11 @@ func TestUpdatePlatformKeyProjectMemberBudget(t *testing.T) {
 
 	for _, tc := range []struct {
 		name    string
-		budget  int64
+		budget  float64
 		wantErr int
 	}{
-		{name: "rejects over member sub cap", budget: budgetfix.QuotaFromDisplay(7000), wantErr: domain.StatusUnprocessable},
-		{name: "allows within member sub cap", budget: budgetfix.QuotaFromDisplay(5500)},
+		{name: "rejects over member sub cap", budget: 7000, wantErr: domain.StatusUnprocessable},
+		{name: "allows within member sub cap", budget: 5500},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			updated, err := svc.UpdatePlatformKey(ctx, contract.IDPlatformKey6, types.UpdatePlatformKeyInput{Budget: &tc.budget})
@@ -131,7 +131,7 @@ func TestUpdatePlatformKeyRefreshesGatewaySoft(t *testing.T) {
 	ctx := testutil.Ctx()
 	newapisynctf.UpsertMapping(t, st, newapisynctf.DefaultMappingOpts())
 	versionBefore := budgetfix.CombinedKeyRemainVersion(t, st, contract.IDPlatformKey1)
-	newBudget := budgetfix.QuotaFromDisplay(4000)
+	newBudget := 4000.0
 	if _, err := svc.UpdatePlatformKey(ctx, contract.IDPlatformKey1, types.UpdatePlatformKeyInput{
 		Budget: &newBudget,
 	}); err != nil {

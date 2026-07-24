@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/seed/contract"
-	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
 func TestValidateProjectKeyBudget(t *testing.T) {
@@ -17,7 +16,7 @@ func TestValidateProjectKeyBudget(t *testing.T) {
 
 	for _, project := range projects {
 		if project.ID == contract.IDProject1 {
-			if msg := budget.ValidateProjectKeyBudget(project, keys, budgetfix.QuotaFromDisplay(99999), uuid.Nil); msg == nil {
+			if msg := budget.ValidateProjectKeyBudget(project, keys, 99999, uuid.Nil); msg == nil {
 				t.Fatal("expected validation error when budget exceeds project remaining")
 			}
 			return

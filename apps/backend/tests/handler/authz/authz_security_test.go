@@ -120,7 +120,7 @@ func TestDashboardCostWithoutUsagePermission(t *testing.T) {
 	}
 	usageRec := testhttp.ServeAuthz(
 		t, router, http.MethodGet,
-		"/api/dashboard/usage/series?granularity=day&start=2026-06-10&end=2026-06-11",
+		"/api/dashboard/usage/models",
 		memberCookie, "", nil,
 	)
 	if usageRec.Code != http.StatusForbidden {

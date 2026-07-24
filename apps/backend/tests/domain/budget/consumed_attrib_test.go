@@ -19,10 +19,11 @@ func TestConsumptionDeltas_MemberScope(t *testing.T) {
 		PlatformKeyID:    pkID,
 		PlatformKeyScope: types.PlatformKeyScopeMember,
 		MemberID:         &memberID,
-		Amount:           42,
+		QuotaAmount:      42,
 	}
 	open := pkgbudget.TestOpenBudgetPeriod("2026-07")
-	deltas, err := budget.ConsumptionDeltas(context.Background(), nil, entry, open)
+	const spend = 0.084
+	deltas, err := budget.ConsumptionDeltas(context.Background(), nil, entry, open, spend)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +33,7 @@ func TestConsumptionDeltas_MemberScope(t *testing.T) {
 	if deltas[0].Kind != store.AxisKindPlatformKey || deltas[0].AxisID != pkID {
 		t.Errorf("delta[0] = %+v", deltas[0])
 	}
-	if deltas[0].Amount != 42 || deltas[0].PeriodKey != "2026-07" {
+	if deltas[0].Amount != spend || deltas[0].PeriodKey != "2026-07" {
 		t.Errorf("delta[0] amount/period = %v/%v", deltas[0].Amount, deltas[0].PeriodKey)
 	}
 	if deltas[1].Kind != store.AxisKindMember || deltas[1].AxisID != memberID {
@@ -48,10 +49,11 @@ func TestConsumptionDeltas_ProjectScope(t *testing.T) {
 		PlatformKeyID:    pkID2,
 		PlatformKeyScope: types.PlatformKeyScopeProject,
 		ProjectID:        &projectID,
-		Amount:           10,
+		QuotaAmount:      10,
 	}
 	open := pkgbudget.TestOpenBudgetPeriod("2026-06")
-	deltas, err := budget.ConsumptionDeltas(context.Background(), nil, entry, open)
+	const spend = 0.02
+	deltas, err := budget.ConsumptionDeltas(context.Background(), nil, entry, open, spend)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,6 +63,9 @@ func TestConsumptionDeltas_ProjectScope(t *testing.T) {
 	if deltas[1].Kind != store.AxisKindProject || deltas[1].AxisID != projectID {
 		t.Errorf("delta[1] = %+v", deltas[1])
 	}
+	if deltas[0].Amount != spend {
+		t.Errorf("delta[0] amount = %v, want %v", deltas[0].Amount, spend)
+	}
 }
 
 func TestConsumptionDeltas_ZeroPeriodError(t *testing.T) {
@@ -68,9 +73,9 @@ func TestConsumptionDeltas_ZeroPeriodError(t *testing.T) {
 	entry := types.UsageLedgerEntry{
 		PlatformKeyID:    uuid.MustParse("00000000-0000-7000-0000-00000000f001"),
 		PlatformKeyScope: types.PlatformKeyScopeMember,
-		Amount:           10,
+		QuotaAmount:      10,
 	}
-	_, err := budget.ConsumptionDeltas(context.Background(), nil, entry, pkgbudget.OpenBudgetPeriod{})
+	_, err := budget.ConsumptionDeltas(context.Background(), nil, entry, pkgbudget.OpenBudgetPeriod{}, 1)
 	if err == nil {
 		t.Error("expected error for zero open period")
 	}

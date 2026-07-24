@@ -166,7 +166,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		}
 
 		// 3. Consume lots (company already locked).
-		result, err := s.lotConsumer.ConsumeLotsLocked(ctx, st, co, entry.Amount)
+		result, err := s.lotConsumer.ConsumeLotsLocked(ctx, st, co, entry.QuotaAmount)
 		if err != nil {
 			return err
 		}
@@ -183,11 +183,16 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		}
 
 		// 5. Write budget_consumed — batch UPSERT for open-budget period axes.
+		// spend is Σ segment Cost (currency); never entry.QuotaAmount.
+		var spend float64
+		for _, seg := range consumeResult.Segments {
+			spend += seg.Cost
+		}
 		open, err := pkgbudget.OpenDepartmentPeriod(ctx, st.Org().Nodes(), entry.DepartmentID, s.cfg.Clock())
 		if err != nil {
 			return err
 		}
-		deltas, err := s.budgetOps.ConsumptionDeltas(ctx, entry, open)
+		deltas, err := s.budgetOps.ConsumptionDeltas(ctx, entry, open, spend)
 		if err != nil {
 			return err
 		}
@@ -207,7 +212,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		// 6. Decrement combined_key_remain.
 		var summaries []store.CombinedKeySummary
 		if entry.PlatformKeyID != uuid.Nil {
-			decrements := map[uuid.UUID]int64{entry.PlatformKeyID: entry.Amount}
+			decrements := map[uuid.UUID]float64{entry.PlatformKeyID: spend}
 			summaries, err = st.CombinedKeySummaries().DecrementBatch(ctx, decrements)
 			if err != nil {
 				return err

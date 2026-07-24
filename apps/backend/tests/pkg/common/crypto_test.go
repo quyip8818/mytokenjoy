@@ -34,3 +34,22 @@ func TestParseKeyAcceptsBase64(t *testing.T) {
 		t.Fatalf("expected 32 bytes, got %d", len(key))
 	}
 }
+
+func TestEncryptDecryptFieldRoundTrip(t *testing.T) {
+	t.Parallel()
+	key := common.DevDefaultKey()
+	encrypted, err := common.EncryptField(key, "sk-provider-secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !common.IsEncryptedField(encrypted) {
+		t.Fatalf("expected encrypted prefix, got %q", encrypted)
+	}
+	plain, err := common.DecryptField(key, encrypted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plain != "sk-provider-secret" {
+		t.Fatalf("expected round-trip plaintext, got %q", plain)
+	}
+}

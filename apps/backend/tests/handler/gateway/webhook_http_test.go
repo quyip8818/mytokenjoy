@@ -23,7 +23,7 @@ func TestWebhookUnauthorized(t *testing.T) {
 	})
 	router := app.Router
 
-	body, _ := json.Marshal(map[string]int64{"log_id": 1})
+	body, _ := json.Marshal(map[string]float64{"log_id": 1})
 	req := httptest.NewRequest(http.MethodPost, "/api/internal/webhooks/newapi-log", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()

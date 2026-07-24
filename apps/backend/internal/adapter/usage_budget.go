@@ -28,8 +28,8 @@ func NewUsageBudgetOps(cache domainbudget.CombinedKeyCache, alertPublisher domai
 	return &usageBudgetOps{cache: cache, alertPublisher: alertPublisher, logger: logger}
 }
 
-func (a *usageBudgetOps) ConsumptionDeltas(ctx context.Context, entry types.UsageLedgerEntry, open pkgbudget.OpenBudgetPeriod) ([]domainusage.ConsumedDelta, error) {
-	deltas, err := domainbudget.ConsumptionDeltas(ctx, nil, entry, open)
+func (a *usageBudgetOps) ConsumptionDeltas(ctx context.Context, entry types.UsageLedgerEntry, open pkgbudget.OpenBudgetPeriod, spend float64) ([]domainusage.ConsumedDelta, error) {
+	deltas, err := domainbudget.ConsumptionDeltas(ctx, nil, entry, open, spend)
 	if err != nil {
 		return nil, err
 	}

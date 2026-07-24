@@ -11,7 +11,7 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
-func TestCostSummaryUsesDisplayCostNotPointsOrPPU(t *testing.T) {
+func TestCostSummaryUsesCostNotPointsOrPPU(t *testing.T) {
 	t.Parallel()
 	svc, st := newDashboardSvc(t)
 	ctx := testutil.Ctx()
@@ -20,14 +20,14 @@ func TestCostSummaryUsesDisplayCostNotPointsOrPPU(t *testing.T) {
 	// Paid lot-priced spend: 5000 point at unit_price 0.002 => 10 display (not 5000/1000=5).
 	if err := st.Usage().UpsertBucket(ctx, types.UsageBucketRow{
 		BucketStart: bucket, DepartmentID: contract.IDDept3, MemberID: contract.IDMember1,
-		Model: "gpt-4o", QuotaConsumed: 5000, DisplayCost: 10, CallCount: 2,
+		Model: "gpt-4o", QuotaConsumed: 5000, Cost: 10, CallCount: 2,
 	}); err != nil {
 		t.Fatal(err)
 	}
 	// Gift/overdraft segment: points consume with zero display spend.
 	if err := st.Usage().UpsertBucket(ctx, types.UsageBucketRow{
 		BucketStart: bucket, DepartmentID: contract.IDDept3, MemberID: contract.IDMember1,
-		Model: "gpt-4o-mini", QuotaConsumed: 3000, DisplayCost: 0, CallCount: 1,
+		Model: "gpt-4o-mini", QuotaConsumed: 3000, Cost: 0, CallCount: 1,
 	}); err != nil {
 		t.Fatal(err)
 	}

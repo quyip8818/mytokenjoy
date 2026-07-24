@@ -11,7 +11,6 @@ import (
 	"github.com/tokenjoy/backend/seed"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
-	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
 func requireDatabaseURL(t *testing.T) string {
@@ -84,13 +83,13 @@ func TestApplyTablesMatchesSnapshot(t *testing.T) {
 	assertCount(t, ctx, pool, "models", len(snap.Models))
 	assertCount(t, ctx, pool, "provider_keys", len(snap.ProviderKeys))
 	assertCount(t, ctx, pool, "platform_keys", len(snap.PlatformKeys))
-	assertSeedOrgNodeBudget(t, ctx, pool, contract.IDDept3, budgetfix.QuotaFromDisplay(20000), budgetfix.QuotaFromDisplay(1500))
+	assertSeedOrgNodeBudget(t, ctx, pool, contract.IDDept3, 20000, 1500)
 }
 
-func assertSeedOrgNodeBudget(t *testing.T, ctx context.Context, pool *pgxpool.Pool, nodeID uuid.UUID, wantBudget, wantReserved int64) {
+func assertSeedOrgNodeBudget(t *testing.T, ctx context.Context, pool *pgxpool.Pool, nodeID uuid.UUID, wantBudget, wantReserved float64) {
 	t.Helper()
-	var budget int64
-	var reserved *int64
+	var budget float64
+	var reserved *float64
 	err := pool.QueryRow(ctx, `
 		SELECT budget, reserved_pool
 		FROM org_nodes

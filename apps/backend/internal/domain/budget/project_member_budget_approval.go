@@ -65,7 +65,7 @@ func (h *ProjectMemberBudgetApprovalHandler) PreApprove(ctx context.Context, req
 		return err
 	}
 	if available < meta.Amount {
-		return domain.Validation(fmt.Sprintf("项目未分配余额不足，当前剩余 %d quota", available))
+		return domain.Validation(fmt.Sprintf("项目未分配余额不足，当前剩余 %.2f", available))
 	}
 	return nil
 }
@@ -94,18 +94,18 @@ func (h *ProjectMemberBudgetApprovalHandler) OnApprovedTx(ctx context.Context, r
 	}
 
 	// Check unallocated budget
-	allocated := int64(0)
+	allocated := float64(0)
 	for _, b := range projects[idx].MemberBudgets {
 		allocated += b
 	}
 	available := projects[idx].Budget - allocated
 	if available < meta.Amount {
-		return nil, domain.Validation(fmt.Sprintf("项目未分配余额不足，当前剩余 %d quota", available))
+		return nil, domain.Validation(fmt.Sprintf("项目未分配余额不足，当前剩余 %g quota", available))
 	}
 
 	// Increase member budget
 	if projects[idx].MemberBudgets == nil {
-		projects[idx].MemberBudgets = make(map[uuid.UUID]int64)
+		projects[idx].MemberBudgets = make(map[uuid.UUID]float64)
 	}
 	projects[idx].MemberBudgets[req.ApplicantID] += meta.Amount
 
@@ -143,14 +143,14 @@ func (h *ProjectMemberBudgetApprovalHandler) PreCheck(ctx context.Context, req t
 	})
 }
 
-func (h *ProjectMemberBudgetApprovalHandler) projectUnallocated(ctx context.Context, projectID uuid.UUID) (int64, error) {
+func (h *ProjectMemberBudgetApprovalHandler) projectUnallocated(ctx context.Context, projectID uuid.UUID) (float64, error) {
 	projects, err := h.svc.store.Budget().Projects(ctx)
 	if err != nil {
 		return 0, err
 	}
 	for _, p := range projects {
 		if p.ID == projectID {
-			allocated := int64(0)
+			allocated := float64(0)
 			for _, b := range p.MemberBudgets {
 				allocated += b
 			}

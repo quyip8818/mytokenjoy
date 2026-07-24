@@ -30,9 +30,9 @@ func newWebhookApp(t *testing.T, mutate func(*config.Config)) *app.App {
 	})
 }
 
-func postWebhook(t *testing.T, application *app.App, logID int64) *httptest.ResponseRecorder {
+func postWebhook(t *testing.T, application *app.App, logID float64) *httptest.ResponseRecorder {
 	t.Helper()
-	body, _ := json.Marshal(map[string]int64{"log_id": logID})
+	body, _ := json.Marshal(map[string]float64{"log_id": logID})
 	req := httptest.NewRequest(http.MethodPost, "/api/internal/webhooks/newapi-log", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Webhook-Secret", webhookSecret)

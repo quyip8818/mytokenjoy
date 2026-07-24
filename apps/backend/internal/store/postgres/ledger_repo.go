@@ -20,7 +20,7 @@ type pgLedgerRepo struct {
 
 const ledgerSelectColumns = `
 	id, event_type, idempotency_key, segment_index, lot_id,
-	amount, display_amount, billing_currency,
+	quota_amount, cost, billing_currency,
 	department_id, member_id, project_id, platform_key_id, platform_key_scope,
 	source, occurred_at, period_key, model, input_tokens, output_tokens,
 	call_detail, created_at
@@ -65,7 +65,7 @@ func (r *pgLedgerRepo) QueryMinuteSeries(ctx context.Context, q types.UsageSerie
 	where, args := buildLedgerSeriesWhere(companyID, q)
 	query := fmt.Sprintf(`
 		SELECT occurred_at, department_id, COALESCE(member_id, '00000000-0000-0000-0000-000000000000'::uuid), model,
-			amount, display_amount, input_tokens, output_tokens
+			quota_amount, cost, input_tokens, output_tokens
 		FROM usage_ledger
 		WHERE %s
 	`, where)
@@ -85,17 +85,17 @@ func (r *pgLedgerRepo) QueryMinuteSeries(ctx context.Context, q types.UsageSerie
 		var occurredAt time.Time
 		var row types.UsageBucketRow
 		var amount int64
-		var displayAmount float64
+		var cost float64
 		var inputTokens, outputTokens int64
 		if err := rows.Scan(
 			&occurredAt, &row.DepartmentID, &row.MemberID, &row.Model,
-			&amount, &displayAmount, &inputTokens, &outputTokens,
+			&amount, &cost, &inputTokens, &outputTokens,
 		); err != nil {
 			return nil, err
 		}
 		row.BucketStart = truncateUsageBucket(occurredAt, types.UsageGranularityMinute, loc)
 		row.QuotaConsumed = amount
-		row.DisplayCost = displayAmount
+		row.Cost = cost
 		row.CallCount = 1
 		row.InputTokens = inputTokens
 		row.OutputTokens = outputTokens
@@ -197,7 +197,7 @@ func scanLedgerRows(rows pgx.Rows) ([]types.UsageLedgerEntry, error) {
 		var occurredAt, createdAt time.Time
 		if err := rows.Scan(
 			&item.ID, &item.EventType, &item.IdempotencyKey, &item.SegmentIndex, &item.LotID,
-			&item.Amount, &item.DisplayAmount, &item.BillingCurrency,
+			&item.QuotaAmount, &item.Cost, &item.BillingCurrency,
 			&item.DepartmentID, &memberID, &projectID, &item.PlatformKeyID, &item.PlatformKeyScope,
 			&item.Source, &occurredAt, &item.PeriodKey, &item.Model, &item.InputTokens, &item.OutputTokens,
 			&detailJSON, &createdAt,
@@ -218,11 +218,11 @@ func scanLedgerRows(rows pgx.Rows) ([]types.UsageLedgerEntry, error) {
 	return items, rows.Err()
 }
 
-func (r *pgLedgerRepo) SumAmountByDepartment(ctx context.Context, departmentID uuid.UUID, periodKey string) (int64, error) {
+func (r *pgLedgerRepo) SumCostByDepartment(ctx context.Context, departmentID uuid.UUID, periodKey string) (float64, error) {
 	companyID := store.CompanyID(ctx)
-	var total int64
+	var total float64
 	err := r.db.QueryRow(ctx, `
-		SELECT COALESCE(SUM(amount), 0)
+		SELECT COALESCE(SUM(cost), 0)
 		FROM usage_ledger
 		WHERE company_id = $1
 		  AND department_id = $2

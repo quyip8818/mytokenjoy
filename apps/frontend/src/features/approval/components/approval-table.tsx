@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { formatDisplayCurrency } from '@/lib/quota-display'
+import { formatMoney } from '@/lib/quota-display'
 
 const TYPE_LABELS: Record<string, string> = {
   key: 'Key 申请',
@@ -34,7 +34,7 @@ const STATUS_LABELS: Record<string, string> = {
   failed: '执行失败',
 }
 
-function getDisplayAmount(approval: ApprovalRequest): number | null {
+function getRequestedBudget(approval: ApprovalRequest): number | null {
   const meta = approval.metadata
   if ('requestedBudget' in meta && typeof meta.requestedBudget === 'number') {
     return meta.requestedBudget
@@ -105,8 +105,8 @@ export function ApprovalTable({ approvals, onApprove, onReject, onRetry }: Appro
             <TableCell className="text-muted-foreground">{getDepartmentName(approval)}</TableCell>
             <TableCell className="max-w-48 truncate text-sm">{getReason(approval)}</TableCell>
             <TableCell className="text-right tabular-nums">
-              {getDisplayAmount(approval) != null
-                ? formatDisplayCurrency(getDisplayAmount(approval)!)
+              {getRequestedBudget(approval) != null
+                ? formatMoney(getRequestedBudget(approval)!)
                 : '—'}
             </TableCell>
             <TableCell>

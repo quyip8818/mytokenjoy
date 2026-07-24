@@ -25,13 +25,13 @@ func ResolveBillingCurrency(code string) string {
 
 const NewAPIGroupPrefix = "dept-"
 
-// QuotaFromAmount converts a display amount (e.g. CNY) to quota using the given quotaPerUnit.
-func QuotaFromAmount(amount float64, quotaPerUnit int64) int64 {
+// MoneyToQuota converts a currency amount (e.g. CNY) to quota using the given quotaPerUnit.
+func MoneyToQuota(amount float64, quotaPerUnit int64) int64 {
 	return int64(math.Round(amount * float64(quotaPerUnit)))
 }
 
-// QuotaToDisplay converts quota to display amount using the given quotaPerUnit.
-func QuotaToDisplay(quota int64, quotaPerUnit int64) float64 {
+// QuotaToMoney converts quota to currency amount using the given quotaPerUnit.
+func QuotaToMoney(quota int64, quotaPerUnit int64) float64 {
 	if quotaPerUnit <= 0 {
 		return 0
 	}

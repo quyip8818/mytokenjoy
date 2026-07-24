@@ -81,7 +81,7 @@ func TestRechargeOrderRoundTrip(t *testing.T) {
 
 	order := store.RechargeOrder{
 		ID: uuid.MustParse("00000000-0000-7000-0000-0000000000b1"), CompanyID: contract.DefaultCompanyID, Amount: 99, Currency: common.DefaultBillingCurrency,
-		QuotaPerUnit: ppu, QuotaGranted: common.QuotaFromAmount(99, ppu),
+		QuotaPerUnit: ppu, QuotaGranted: common.MoneyToQuota(99, ppu),
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		IdempotencyKey: &key, Status: store.RechargeStatusPending,
 		DisplayOrderID: "ORD20260101120000",

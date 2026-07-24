@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS company_recharge_lots (
     recharge_order_id  UUID NOT NULL UNIQUE REFERENCES company_recharge_orders (id),
     billing_currency   CHAR(3) NOT NULL,
     lot_kind           TEXT NOT NULL,
-    amount_display     NUMERIC(18, 6) NOT NULL,
+    paid_amount        NUMERIC(18, 6) NOT NULL,
     quota_per_unit     BIGINT NOT NULL,
     quota_granted      BIGINT NOT NULL,
     quota_remaining    BIGINT NOT NULL,
@@ -109,9 +109,9 @@ CREATE TABLE IF NOT EXISTS company_recharge_lots (
     CHECK (quota_granted > 0),
     CHECK (quota_remaining >= 0 AND quota_remaining <= quota_granted),
     CHECK (
-        (lot_kind IN ('gift', 'overdraft', 'mock') AND amount_display = 0)
-        OR (lot_kind = 'paid' AND amount_display > 0)
-        OR (lot_kind = 'adjust' AND amount_display >= 0)
+        (lot_kind IN ('gift', 'overdraft', 'mock') AND paid_amount = 0)
+        OR (lot_kind = 'paid' AND paid_amount > 0)
+        OR (lot_kind = 'adjust' AND paid_amount >= 0)
     )
 );
 
@@ -177,10 +177,10 @@ CREATE TABLE IF NOT EXISTS org_nodes (
     default_model_id  UUID,
     fallback_model_id UUID,
     routing_inherited BOOLEAN NOT NULL DEFAULT FALSE,
-    budget            BIGINT NOT NULL DEFAULT 0,
-    reserved_pool     BIGINT,
+    budget            NUMERIC(18,6) NOT NULL DEFAULT 0,
+    reserved_pool     NUMERIC(18,6),
     period            TEXT NOT NULL DEFAULT 'monthly' CHECK (period IN ('monthly')),
-    member_avg_budget BIGINT NOT NULL DEFAULT 0,
+    member_avg_budget NUMERIC(18,6) NOT NULL DEFAULT 0,
     created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (company_id, id),
@@ -207,7 +207,7 @@ CREATE TABLE IF NOT EXISTS members (
     employee_id     TEXT,
     job_title       TEXT,
     override_fields TEXT[] NOT NULL DEFAULT '{}',
-    personal_budget BIGINT NOT NULL DEFAULT 0,
+    personal_budget NUMERIC(18,6) NOT NULL DEFAULT 0,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (company_id, id),
@@ -277,7 +277,7 @@ CREATE TABLE IF NOT EXISTS projects (
     id                   UUID NOT NULL,
     company_id           UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
     name                 TEXT NOT NULL,
-    budget               BIGINT NOT NULL DEFAULT 0,
+    budget               NUMERIC(18,6) NOT NULL DEFAULT 0,
     owner_department_id  UUID NOT NULL,
     owner_id             UUID,
     updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -290,7 +290,7 @@ CREATE TABLE IF NOT EXISTS project_members (
     company_id UUID NOT NULL,
     project_id UUID NOT NULL,
     member_id  UUID NOT NULL,
-    member_budget BIGINT NOT NULL DEFAULT 0,
+    member_budget NUMERIC(18,6) NOT NULL DEFAULT 0,
     PRIMARY KEY (company_id, project_id, member_id),
     FOREIGN KEY (company_id, project_id) REFERENCES projects (company_id, id) ON DELETE CASCADE,
     FOREIGN KEY (company_id, member_id) REFERENCES members (company_id, id) ON DELETE CASCADE
@@ -365,11 +365,11 @@ CREATE TABLE IF NOT EXISTS platform_keys (
     project_id      UUID,
     scope           TEXT NOT NULL,
     status          TEXT NOT NULL,
-    budget          BIGINT NOT NULL DEFAULT 0,
+    budget          NUMERIC(18,6) NOT NULL DEFAULT 0,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at      TIMESTAMPTZ,
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    combined_key_remain  BIGINT,
+    combined_key_remain  NUMERIC(18,6),
     combined_key_remain_at      TIMESTAMPTZ,
     combined_key_remain_version BIGINT NOT NULL DEFAULT 0,
     PRIMARY KEY (company_id, id),
@@ -426,8 +426,8 @@ CREATE TABLE IF NOT EXISTS usage_ledger (
     idempotency_key  TEXT NOT NULL,
     segment_index    INT NOT NULL DEFAULT 0,
     lot_id           UUID NOT NULL REFERENCES company_recharge_lots (id),
-    amount           BIGINT NOT NULL DEFAULT 0,
-    display_amount   NUMERIC(18, 6) NOT NULL DEFAULT 0,
+    quota_amount     BIGINT NOT NULL DEFAULT 0,
+    cost             NUMERIC(18, 6) NOT NULL DEFAULT 0,
     billing_currency CHAR(3) NOT NULL,
     department_id    UUID NOT NULL,
     member_id        UUID,
@@ -468,7 +468,7 @@ CREATE TABLE IF NOT EXISTS usage_buckets (
     member_scope  TEXT GENERATED ALWAYS AS (COALESCE(member_id::text, '')) STORED,
     model         TEXT NOT NULL,
     quota_consumed BIGINT NOT NULL DEFAULT 0,
-    display_cost  NUMERIC(18, 6) NOT NULL DEFAULT 0,
+    cost          NUMERIC(18, 6) NOT NULL DEFAULT 0,
     call_count    INT NOT NULL DEFAULT 0,
     input_tokens  BIGINT NOT NULL DEFAULT 0,
     output_tokens BIGINT NOT NULL DEFAULT 0,
@@ -506,7 +506,7 @@ CREATE TABLE IF NOT EXISTS budget_consumed (
     axis_kind  TEXT NOT NULL CHECK (axis_kind IN ('project', 'platform_key', 'member')),
     axis_id    UUID NOT NULL,
     period_key TEXT NOT NULL,
-    consumed   BIGINT NOT NULL DEFAULT 0,
+    consumed   NUMERIC(18,6) NOT NULL DEFAULT 0,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (company_id, axis_kind, axis_id, period_key)
 );

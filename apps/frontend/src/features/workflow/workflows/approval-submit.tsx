@@ -33,7 +33,7 @@ export function ApprovalSubmitWorkflow({
 }: WorkflowComponentProps<'approval-submit'>) {
   const apis = useInjectedApis()
   const { closeAll } = useWorkflow()
-  const { displayToQuota, billingCurrency } = useBillingExchange()
+  const { billingCurrency } = useBillingExchange()
   const currencyLabel = currencySymbol(billingCurrency)
   const { resolveAllowedModelIds } = useMemberWhitelist()
   const { labelFor } = useModelLabels(apis)
@@ -75,14 +75,15 @@ export function ApprovalSubmitWorkflow({
     if (!(await validateModels())) return
     setSubmitting(true)
     try {
+      const requestedAmount = Number(requestedBudget) || 0
       const metadata =
         type === 'project_budget' || type === 'project_member_budget'
-          ? { projectId, projectName, amount: displayToQuota(Number(requestedBudget) || 0), reason }
+          ? { projectId, projectName, amount: requestedAmount, reason }
           : type === 'member_budget'
-            ? { amount: displayToQuota(Number(requestedBudget) || 0), reason }
+            ? { amount: requestedAmount, reason }
             : {
                 reason,
-                requestedBudget: displayToQuota(Number(requestedBudget) || 0),
+                requestedBudget: requestedAmount,
                 requestedModels: models,
               }
       await apis.approvalApi.create({ type, metadata })

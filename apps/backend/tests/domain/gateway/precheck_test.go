@@ -3,7 +3,6 @@ package gateway_test
 import (
 	"testing"
 
-	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 	gatewaytf "github.com/tokenjoy/backend/tests/testutil/gateway"
 )
 
@@ -61,7 +60,7 @@ func TestPrecheckAllowsModelsListingWithoutModelField(t *testing.T) {
 
 func TestPrecheckPassesRegardlessOfDeptConsumed(t *testing.T) {
 	t.Parallel()
-	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: budgetfix.QuotaFromDisplay(1000)})
+	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: 1000})
 	if err := fx.Run("deepseek-v4-pro", false); err != nil {
 		t.Fatalf("expected precheck to pass without budget consumed join, got %v", err)
 	}

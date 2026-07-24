@@ -47,8 +47,8 @@ func TestSeedTrialCreditCreatesTrialLot(t *testing.T) {
 	if lots[0].QuotaGranted != trialQuota {
 		t.Fatalf("quota granted: got %v want %v", lots[0].QuotaGranted, trialQuota)
 	}
-	if lots[0].AmountDisplay != 0 {
-		t.Fatalf("amount display should be 0 for trial lot, got %v", lots[0].AmountDisplay)
+	if lots[0].PaidAmount != 0 {
+		t.Fatalf("paid amount should be 0 for trial lot, got %v", lots[0].PaidAmount)
 	}
 }
 
@@ -127,7 +127,7 @@ func TestExpireMockLotsPreservesPaidLotBalance(t *testing.T) {
 	// 2. Add a paid lot (simulates real recharge before upgrade).
 	ppu := domainbilling.DefaultQuotaPerUnit()
 	paidAmount := float64(50)
-	paidPoints := common.QuotaFromAmount(paidAmount, ppu)
+	paidPoints := common.MoneyToQuota(paidAmount, ppu)
 	now := time.Now().UTC()
 	paidOrder := store.RechargeOrder{
 		ID: uuid.MustParse("00000000-0000-7000-0000-000000009204"), CompanyID: companyID, Amount: paidAmount,

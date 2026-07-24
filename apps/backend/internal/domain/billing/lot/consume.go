@@ -13,7 +13,7 @@ type Segment struct {
 	LotID           uuid.UUID
 	Quota           int64
 	QuotaPerUnit    int64   // lot's snapshot rate
-	DisplayAmount   float64 // = float64(Quota) / float64(QuotaPerUnit)
+	Cost            float64 // = float64(Quota) / float64(QuotaPerUnit)
 	BillingCurrency string
 }
 
@@ -70,12 +70,12 @@ func consumeLotsWithCompany(ctx context.Context, st LotStore, co *store.Company,
 		if take > remaining {
 			take = remaining
 		}
-		display := common.QuotaToDisplay(take, lotRow.QuotaPerUnit)
+		cost := common.QuotaToMoney(take, lotRow.QuotaPerUnit)
 		segments = append(segments, Segment{
 			LotID:           lotRow.ID,
 			Quota:           take,
 			QuotaPerUnit:    lotRow.QuotaPerUnit,
-			DisplayAmount:   display,
+			Cost:            cost,
 			BillingCurrency: lotRow.BillingCurrency,
 		})
 		lotRow.QuotaRemaining -= take
@@ -101,7 +101,7 @@ func consumeLotsWithCompany(ctx context.Context, st LotStore, co *store.Company,
 			LotID:           od.ID,
 			Quota:           remaining,
 			QuotaPerUnit:    od.QuotaPerUnit,
-			DisplayAmount:   0,
+			Cost:            0,
 			BillingCurrency: od.BillingCurrency,
 		})
 		od.QuotaRemaining -= remaining

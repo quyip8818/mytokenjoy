@@ -68,15 +68,15 @@ type UsageBucketRow struct {
 	DepartmentID  uuid.UUID
 	MemberID      uuid.UUID
 	Model         string
-	QuotaConsumed int64   // Σ ledger.amount (quota)
-	DisplayCost   float64 // display currency (Σ ledger.display_amount)
+	QuotaConsumed int64   // Σ ledger.quota_amount (quota)
+	Cost          float64 // billing currency (Σ ledger.cost)
 	CallCount     int
 	InputTokens   int64
 	OutputTokens  int64
 }
 
-// Spend is the display-currency amount for dashboard / series APIs.
-func (r UsageBucketRow) Spend() float64 { return r.DisplayCost }
+// Spend is the billing-currency amount for dashboard / series APIs.
+func (r UsageBucketRow) Spend() float64 { return r.Cost }
 
 type UsageSeriesQuery struct {
 	Granularity  string
@@ -131,25 +131,25 @@ type UsageAggregateRow struct {
 	MemberID      uuid.UUID
 	Model         string
 	QuotaConsumed float64 // Σ quota (float64 for aggregation arithmetic)
-	DisplayCost   float64 // display currency
+	Cost          float64 // billing currency
 	CallCount     int
 	InputTokens   int64
 	OutputTokens  int64
 }
 
-// Spend is the display-currency amount for dashboard / series APIs.
-func (r UsageAggregateRow) Spend() float64 { return r.DisplayCost }
+// Spend is the billing-currency amount for dashboard / series APIs.
+func (r UsageAggregateRow) Spend() float64 { return r.Cost }
 
 type UsageSummaryTotals struct {
 	QuotaConsumed float64 // Σ quota (float64 for aggregation arithmetic)
-	DisplayCost   float64 // display currency
+	Cost          float64 // billing currency
 	CallCount     int
 	InputTokens   int64
 	OutputTokens  int64
 }
 
-// Spend is the display-currency amount for dashboard / series APIs.
-func (t UsageSummaryTotals) Spend() float64 { return t.DisplayCost }
+// Spend is the billing-currency amount for dashboard / series APIs.
+func (t UsageSummaryTotals) Spend() float64 { return t.Cost }
 
 type NotificationLogEntry struct {
 	ID        uuid.UUID

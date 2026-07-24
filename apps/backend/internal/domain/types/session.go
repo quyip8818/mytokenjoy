@@ -19,7 +19,7 @@ type Member struct {
 	Source         string    `json:"source"`
 	ExternalID     *string   `json:"externalId,omitempty"`
 	OverrideFields []string  `json:"overrideFields,omitempty"`
-	PersonalBudget int64     `json:"-"`
+	PersonalBudget float64   `json:"-"`
 
 	// Input-only fields: used for member creation/update, not persisted on members table.
 	// Phone/Email are used to resolve/create the user record and stored in users table.

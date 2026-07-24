@@ -28,7 +28,7 @@ func (a *usageLotConsumer) ConsumeLotsLocked(ctx context.Context, st store.Store
 			LotID:           seg.LotID,
 			Quota:           seg.Quota,
 			QuotaPerUnit:    seg.QuotaPerUnit,
-			DisplayAmount:   seg.DisplayAmount,
+			Cost:            seg.Cost,
 			BillingCurrency: seg.BillingCurrency,
 		}
 	}
@@ -46,7 +46,7 @@ func (a *usageLotConsumer) LedgerSegmentsFromEntry(base types.UsageLedgerEntry, 
 			LotID:           seg.LotID,
 			Quota:           seg.Quota,
 			QuotaPerUnit:    seg.QuotaPerUnit,
-			DisplayAmount:   seg.DisplayAmount,
+			Cost:            seg.Cost,
 			BillingCurrency: seg.BillingCurrency,
 		}
 	}

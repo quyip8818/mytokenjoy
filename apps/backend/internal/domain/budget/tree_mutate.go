@@ -12,7 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (s *service) UpdateNode(ctx context.Context, id uuid.UUID, budget int64, reservedPool *int64) (types.BudgetNode, error) {
+func (s *service) UpdateNode(ctx context.Context, id uuid.UUID, budget float64, reservedPool *float64) (types.BudgetNode, error) {
 	if budget < 0 {
 		return types.BudgetNode{}, domain.Validation("budget must be non-negative")
 	}
@@ -40,7 +40,7 @@ func (s *service) UpdateNode(ctx context.Context, id uuid.UUID, budget int64, re
 		if reservedPool != nil {
 			reserved = reservedPool
 		}
-		var reservedValue int64
+		var reservedValue float64
 		if reserved != nil {
 			reservedValue = *reserved
 		}
@@ -75,7 +75,7 @@ func (s *service) UpdateNode(ctx context.Context, id uuid.UUID, budget int64, re
 	return result, err
 }
 
-func (s *service) UpdateMemberBudget(ctx context.Context, memberID uuid.UUID, personalBudget int64) (types.MemberBudget, error) {
+func (s *service) UpdateMemberBudget(ctx context.Context, memberID uuid.UUID, personalBudget float64) (types.MemberBudget, error) {
 	if personalBudget < 0 {
 		return types.MemberBudget{}, domain.Validation("personalBudget must be non-negative")
 	}
@@ -107,7 +107,7 @@ func (s *service) UpdateMemberBudget(ctx context.Context, memberID uuid.UUID, pe
 	return result, err
 }
 
-func (s *service) ApplyAverageBudget(ctx context.Context, deptID uuid.UUID, personalBudget int64, recursive bool) error {
+func (s *service) ApplyAverageBudget(ctx context.Context, deptID uuid.UUID, personalBudget float64, recursive bool) error {
 	if personalBudget < 0 {
 		return domain.Validation("额度不能为负数")
 	}
@@ -154,19 +154,19 @@ func (s *service) ApplyAverageBudget(ctx context.Context, deptID uuid.UUID, pers
 				delete(deptIDs, id)
 				continue
 			}
-			var childrenSum int64
+			var childrenSum float64
 			for _, child := range node.Children {
 				childrenSum += child.Budget
 			}
 			projectSum := pkgbudget.ProjectsBudgetForDept(groups, id)
 			memberCount := countMembersInDept(members, id)
-			totalAfter := childrenSum + projectSum + int64(memberCount)*personalBudget
+			totalAfter := childrenSum + projectSum + float64(memberCount)*personalBudget
 
 			if totalAfter > node.Budget {
 				if id == deptID {
 					return domain.Validation(fmt.Sprintf(
-						"额度不足：设置后成员额度总和（%d人×%d=%d）加上已分配（%d）超出部门总额度（%d quota）",
-						memberCount, personalBudget, int64(memberCount)*personalBudget,
+						"额度不足：设置后成员额度总和（%d人×%.2f=%.2f）加上已分配（%.2f）超出部门总额度（%.2f）",
+						memberCount, personalBudget, float64(memberCount)*personalBudget,
 						childrenSum+projectSum, node.Budget,
 					))
 				}

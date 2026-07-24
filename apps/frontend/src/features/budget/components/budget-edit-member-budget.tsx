@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { displayToQuota, formatDisplayCurrency, quotaToDisplay } from '@/lib/quota-display'
+import { formatMoney } from '@/lib/quota-display'
 import { cn } from '@/lib/utils'
 import { Users, Pencil, Check, X, Loader2, Search } from 'lucide-react'
 import { useAsyncFetch } from '@/features/budget'
@@ -57,7 +57,7 @@ export function BudgetEditMemberBudget({
         <div className="min-w-0 flex-1">
           <p className="text-xs text-muted-foreground">人均默认额度</p>
           <p className="text-sm font-medium tabular-nums">
-            {node.memberAvgBudget > 0 ? formatDisplayCurrency(node.memberAvgBudget) : '未设置'}
+            {node.memberAvgBudget > 0 ? formatMoney(node.memberAvgBudget) : '未设置'}
           </p>
         </div>
       </div>
@@ -142,10 +142,9 @@ function MemberBudgetEditDialog({
     }
     setSavingAverage(true)
     try {
-      const quota = displayToQuota(value)
-      await applyAverageBudget(departmentId, { personalBudget: quota, recursive: true })
+      await applyAverageBudget(departmentId, { personalBudget: value, recursive: true })
       onUpdated()
-      toast.success(`已将所有成员额度设置为 ${formatDisplayCurrency(quota)}/人`)
+      toast.success(`已将所有成员额度设置为 ${formatMoney(value)}/人`)
       handleClose()
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : '设置失败，请重试')
@@ -156,7 +155,7 @@ function MemberBudgetEditDialog({
 
   const startEdit = useCallback((member: MemberBudget) => {
     setEditingId(member.memberId)
-    setDraft(String(quotaToDisplay(member.personalBudget)))
+    setDraft(String(member.personalBudget))
   }, [])
 
   const cancelEdit = useCallback(() => {
@@ -174,7 +173,7 @@ function MemberBudgetEditDialog({
       setSaving(true)
       try {
         const updated = await updateMemberBudget(memberId, {
-          personalBudget: displayToQuota(value),
+          personalBudget: value,
         })
         replaceMembers(members.map((m) => (m.memberId === memberId ? updated : m)))
         setEditingId(null)
@@ -304,12 +303,12 @@ function MemberBudgetEditDialog({
                             />
                           ) : (
                             <span className="text-muted-foreground">
-                              {formatDisplayCurrency(member.personalBudget)}
+                              {formatMoney(member.personalBudget)}
                             </span>
                           )}
                         </td>
                         <td className="py-2 tabular-nums text-muted-foreground">
-                          {formatDisplayCurrency(member.consumed)}
+                          {formatMoney(member.consumed)}
                         </td>
                         <td className="py-2 text-right">
                           {editingId === member.memberId ? (
