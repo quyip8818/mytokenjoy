@@ -14,7 +14,7 @@ export function WalletStats({ wallet, loading }: WalletStatsProps) {
   const balance = primary?.balance ?? 0
   const totalConsumed = primary?.totalConsumed ?? 0
   const totalTopup = primary?.totalTopup ?? 0
-  const walletQuotaRemain = wallet?.walletQuotaRemain ?? 0
+  const walletRemainQuota = wallet?.walletRemainQuota ?? 0
   const giftQuota = wallet?.giftQuota ?? 0
   const overdraftQuota = wallet?.overdraftQuota ?? 0
   const totalRequests = wallet?.totalRequests ?? 0
@@ -40,7 +40,7 @@ export function WalletStats({ wallet, loading }: WalletStatsProps) {
           icon={BarChart3}
           iconLayout="inline"
           label="可用 quota"
-          value={loading ? '—' : walletQuotaRemain.toLocaleString()}
+          value={loading ? '—' : walletRemainQuota.toLocaleString()}
         />
         <StatCard
           icon={Gift}

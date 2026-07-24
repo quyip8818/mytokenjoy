@@ -113,11 +113,11 @@ func consumeLotsWithCompany(ctx context.Context, st LotStore, co *store.Company,
 		}
 		remaining = 0
 	}
-	newRemain := co.WalletQuotaRemain - amount + overdraftAdded
+	newRemain := co.WalletRemainQuota - amount + overdraftAdded
 	if newRemain < 0 {
 		newRemain = 0
 	}
-	if err := st.Company().SetWalletQuotaRemain(ctx, companyID, newRemain, nextHead); err != nil {
+	if err := st.Company().SetWalletRemainQuota(ctx, companyID, newRemain, nextHead); err != nil {
 		return ConsumeResult{}, err
 	}
 	if remaining > 0 {
@@ -152,7 +152,7 @@ type CreditStore interface {
 //     is "I paid but can't use the service" — much worse.
 type PreCreditFunc func(ctx context.Context, lot store.RechargeLot) error
 
-// CreditFromLot is the sole write path for recharge lot insert + wallet_quota_remain delta.
+// CreditFromLot is the sole write path for recharge lot insert + wallet_remain_quota delta.
 //
 // If a PreCreditFunc is provided, it runs before the transaction. This allows external
 // systems (e.g. NewAPI) to be updated first, ensuring the user is never in a state

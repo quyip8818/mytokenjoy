@@ -24,13 +24,13 @@ func TestSeedTrialCreditCreatesTrialLot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Verify wallet_quota_remain is credited.
+	// Verify wallet_remain_quota is credited.
 	co, err := st.Company().GetByID(ctx, companyID)
 	if err != nil || co == nil {
 		t.Fatal("expected company after trial credit")
 	}
-	if co.WalletQuotaRemain != trialQuota {
-		t.Fatalf("wallet_quota_remain: got %v want %v", co.WalletQuotaRemain, trialQuota)
+	if co.WalletRemainQuota != trialQuota {
+		t.Fatalf("wallet_remain_quota: got %v want %v", co.WalletRemainQuota, trialQuota)
 	}
 
 	// Verify lot exists with correct kind.
@@ -67,7 +67,7 @@ func TestSeedTrialCreditRejectsZeroPoints(t *testing.T) {
 	}
 }
 
-func TestExpireMockLotsZerosWalletQuotaRemain(t *testing.T) {
+func TestExpireMockLotsZerosWalletRemainQuota(t *testing.T) {
 	t.Parallel()
 	companyID := uuid.MustParse("00000000-0000-7000-0000-000000009203")
 	_, st := testutil.NewTestStore(t)
@@ -84,8 +84,8 @@ func TestExpireMockLotsZerosWalletQuotaRemain(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected company")
 	}
-	if co.WalletQuotaRemain != trialQuota {
-		t.Fatalf("before expire: wallet_quota_remain got %v want %v", co.WalletQuotaRemain, trialQuota)
+	if co.WalletRemainQuota != trialQuota {
+		t.Fatalf("before expire: wallet_remain_quota got %v want %v", co.WalletRemainQuota, trialQuota)
 	}
 
 	// Expire trial lots (simulates upgrade).
@@ -98,8 +98,8 @@ func TestExpireMockLotsZerosWalletQuotaRemain(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected company after expire")
 	}
-	if co.WalletQuotaRemain != 0 {
-		t.Fatalf("after expire: wallet_quota_remain got %v want 0", co.WalletQuotaRemain)
+	if co.WalletRemainQuota != 0 {
+		t.Fatalf("after expire: wallet_remain_quota got %v want 0", co.WalletRemainQuota)
 	}
 
 	// Lot should be expired.
@@ -148,8 +148,8 @@ func TestExpireMockLotsPreservesPaidLotBalance(t *testing.T) {
 		t.Fatal("expected company")
 	}
 	expectedBefore := trialQuota + paidPoints
-	if co.WalletQuotaRemain != expectedBefore {
-		t.Fatalf("before expire: wallet_quota_remain got %v want %v", co.WalletQuotaRemain, expectedBefore)
+	if co.WalletRemainQuota != expectedBefore {
+		t.Fatalf("before expire: wallet_remain_quota got %v want %v", co.WalletRemainQuota, expectedBefore)
 	}
 
 	// 3. Expire trial lots.
@@ -162,8 +162,8 @@ func TestExpireMockLotsPreservesPaidLotBalance(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected company after expire")
 	}
-	if co.WalletQuotaRemain != paidPoints {
-		t.Fatalf("after expire: wallet_quota_remain got %v want %v (paid lot only)", co.WalletQuotaRemain, paidPoints)
+	if co.WalletRemainQuota != paidPoints {
+		t.Fatalf("after expire: wallet_remain_quota got %v want %v (paid lot only)", co.WalletRemainQuota, paidPoints)
 	}
 
 	// Only paid lot should be active.
@@ -203,8 +203,8 @@ func TestExpireMockLotsAfterPartialConsumption(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected company")
 	}
-	if co.WalletQuotaRemain != trialQuota-consumed {
-		t.Fatalf("after consume: wallet_quota_remain got %v want %v", co.WalletQuotaRemain, trialQuota-consumed)
+	if co.WalletRemainQuota != trialQuota-consumed {
+		t.Fatalf("after consume: wallet_remain_quota got %v want %v", co.WalletRemainQuota, trialQuota-consumed)
 	}
 
 	// Expire trial lots.
@@ -217,8 +217,8 @@ func TestExpireMockLotsAfterPartialConsumption(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected company after expire")
 	}
-	if co.WalletQuotaRemain != 0 {
-		t.Fatalf("after expire: wallet_quota_remain got %v want 0", co.WalletQuotaRemain)
+	if co.WalletRemainQuota != 0 {
+		t.Fatalf("after expire: wallet_remain_quota got %v want 0", co.WalletRemainQuota)
 	}
 }
 
@@ -247,7 +247,7 @@ func TestExpireMockLotsIdempotent(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected company")
 	}
-	if co.WalletQuotaRemain != 0 {
-		t.Fatalf("wallet_quota_remain should stay 0 after double expire, got %v", co.WalletQuotaRemain)
+	if co.WalletRemainQuota != 0 {
+		t.Fatalf("wallet_remain_quota should stay 0 after double expire, got %v", co.WalletRemainQuota)
 	}
 }

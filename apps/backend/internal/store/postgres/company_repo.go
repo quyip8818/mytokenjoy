@@ -21,7 +21,7 @@ func newCompanyRepo(db dbQuerier) *companyRepo {
 func (r *companyRepo) GetByID(ctx context.Context, id uuid.UUID) (*store.Company, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT id, name, industry, size, type, status, root_dept_id, newapi_wallet_company_id, authz_revision,
-			billing_currency, fifo_head_lot_id, wallet_quota_remain,
+			billing_currency, fifo_head_lot_id, wallet_remain_quota,
 			created_at, updated_at
 		FROM companies WHERE id = $1
 	`, id)
@@ -34,7 +34,7 @@ func (r *companyRepo) GetByIDs(ctx context.Context, ids []uuid.UUID) ([]store.Co
 	}
 	rows, err := r.db.Query(ctx, `
 		SELECT id, name, industry, size, type, status, root_dept_id, newapi_wallet_company_id, authz_revision,
-			billing_currency, fifo_head_lot_id, wallet_quota_remain,
+			billing_currency, fifo_head_lot_id, wallet_remain_quota,
 			created_at, updated_at
 		FROM companies WHERE id = ANY($1)
 	`, ids)
@@ -63,12 +63,12 @@ func (r *companyRepo) Create(ctx context.Context, company store.Company) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO companies (
 			id, name, industry, size, type, status, root_dept_id, newapi_wallet_company_id, authz_revision,
-			billing_currency, fifo_head_lot_id, wallet_quota_remain,
+			billing_currency, fifo_head_lot_id, wallet_remain_quota,
 			created_at, updated_at
 		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
 	`, company.ID, company.Name, company.Industry, company.Size, company.Type, company.Status,
 		company.RootDeptID, company.NewAPIWalletCompanyID, company.AuthzRevision,
-		company.BillingCurrency, company.FIFOHeadLotID, company.WalletQuotaRemain,
+		company.BillingCurrency, company.FIFOHeadLotID, company.WalletRemainQuota,
 		company.CreatedAt, company.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("create company: %w", err)
@@ -106,7 +106,7 @@ func (r *companyRepo) UpdateRootDeptID(ctx context.Context, id uuid.UUID, rootDe
 func (r *companyRepo) List(ctx context.Context) ([]store.Company, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, name, industry, size, type, status, root_dept_id, newapi_wallet_company_id, authz_revision,
-			billing_currency, fifo_head_lot_id, wallet_quota_remain,
+			billing_currency, fifo_head_lot_id, wallet_remain_quota,
 			created_at, updated_at
 		FROM companies ORDER BY id
 	`)
@@ -148,7 +148,7 @@ func (r *companyRepo) BumpAuthzRevision(ctx context.Context, id uuid.UUID) (int6
 func (r *companyRepo) LockForUpdate(ctx context.Context, id uuid.UUID) (*store.Company, error) {
 	row := r.db.QueryRow(ctx, `
 		SELECT id, name, industry, size, type, status, root_dept_id, newapi_wallet_company_id, authz_revision,
-			billing_currency, fifo_head_lot_id, wallet_quota_remain,
+			billing_currency, fifo_head_lot_id, wallet_remain_quota,
 			created_at, updated_at
 		FROM companies WHERE id = $1 FOR UPDATE
 	`, id)
@@ -158,7 +158,7 @@ func (r *companyRepo) LockForUpdate(ctx context.Context, id uuid.UUID) (*store.C
 func (r *companyRepo) ApplyWalletDelta(ctx context.Context, id uuid.UUID, delta int64, fifoHeadLotID *uuid.UUID) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE companies SET
-			wallet_quota_remain = wallet_quota_remain + $2,
+			wallet_remain_quota = wallet_remain_quota + $2,
 			fifo_head_lot_id = COALESCE($3, fifo_head_lot_id),
 			updated_at = NOW()
 		WHERE id = $1
@@ -166,10 +166,10 @@ func (r *companyRepo) ApplyWalletDelta(ctx context.Context, id uuid.UUID, delta 
 	return err
 }
 
-func (r *companyRepo) SetWalletQuotaRemain(ctx context.Context, id uuid.UUID, remain int64, fifoHeadLotID *uuid.UUID) error {
+func (r *companyRepo) SetWalletRemainQuota(ctx context.Context, id uuid.UUID, remain int64, fifoHeadLotID *uuid.UUID) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE companies SET
-			wallet_quota_remain = $2,
+			wallet_remain_quota = $2,
 			fifo_head_lot_id = COALESCE($3, fifo_head_lot_id),
 			updated_at = NOW()
 		WHERE id = $1
@@ -189,7 +189,7 @@ func scanCompanyExtended(row scannable) (*store.Company, error) {
 	var c store.Company
 	err := row.Scan(&c.ID, &c.Name, &c.Industry, &c.Size, &c.Type, &c.Status,
 		&c.RootDeptID, &c.NewAPIWalletCompanyID, &c.AuthzRevision,
-		&c.BillingCurrency, &c.FIFOHeadLotID, &c.WalletQuotaRemain,
+		&c.BillingCurrency, &c.FIFOHeadLotID, &c.WalletRemainQuota,
 		&c.CreatedAt, &c.UpdatedAt)
 	if err != nil {
 		return nil, err

@@ -176,7 +176,7 @@ UPDATE recharge_lots SET quota_remaining = quota_remaining - take ...
 
 #### 方案 C：Lot 消耗预扣 + 异步确认
 
-将 wallet_quota_remain 视为 "预扣余额"，先 `DecrementWalletQuotaRemain`（原子），然后异步写 lot 明细。
+将 wallet_remain_quota 视为 "预扣余额"，先 `DecrementWalletRemainQuota`（原子），然后异步写 lot 明细。
 
 **适用场景**：如果 lot FIFO 逻辑不需要实时精确到每笔 lot 分段。  
 **风险**：lot 分段账目短暂不准，需强力 reconcile 补偿。
@@ -252,7 +252,7 @@ func (IngestArgs) InsertOpts() river.InsertOpts {
 **建议**：
 1. 将去重窗口从 5s 提高到 **30s~60s**（NewAPI quota 不需要实时同步）
 2. 使用 **delta 累积**模式：在本地累积 delta，定期 flush 一次 TopUp
-3. `ReconcileWalletDrift` 改为分页 + 只处理 `wallet_quota_remain` 变化的公司
+3. `ReconcileWalletDrift` 改为分页 + 只处理 `wallet_remain_quota` 变化的公司
 
 ### 4.7 可考虑的开源库/工具
 
@@ -290,7 +290,7 @@ func (IngestArgs) InsertOpts() river.InsertOpts {
 s.store.WithTx(ctx, func(st store.Store) error {
     // 1. LockForUpdate              ← 必须，1 SQL
     // 2. ExistsIdempotency          ← 必须，1 SQL
-    // 3. ConsumeLotsLocked          ← 必须，但当前 N+2 SQL (ListFIFO + N×Update + SetWalletQuotaRemain)
+    // 3. ConsumeLotsLocked          ← 必须，但当前 N+2 SQL (ListFIFO + N×Update + SetWalletRemainQuota)
     // 4. InsertSegments             ← 必须，1 SQL
     // 5. IncrementConsumedBatch     ← 必须（同公司串行一致性），1 SQL
     // 6. DecrementBatch             ← 必须（同上），1 SQL
@@ -324,7 +324,7 @@ WHERE r.id = c.id
 RETURNING r.id, c.take, r.billing_currency, r.unit_price_display;
 
 -- 2. 如有 remaining > 0 → ExpandOverdraftLot (1 SQL)
--- 3. SetWalletQuotaRemain (1 SQL)
+-- 3. SetWalletRemainQuota (1 SQL)
 ```
 
 **收益**：N 个活跃 lot 的情况下，从 N+2 SQL 降至 2~3 SQL，显著减少锁持有时间  

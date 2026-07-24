@@ -174,7 +174,7 @@ func (s *service) UpgradeToStandard(ctx context.Context, companyID uuid.UUID) er
 		if err != nil {
 			return fmt.Errorf("sum active lots: %w", err)
 		}
-		return tx.Company().SetWalletQuotaRemain(ctx, companyID, remain, nil)
+		return tx.Company().SetWalletRemainQuota(ctx, companyID, remain, nil)
 	}); err != nil {
 		return err
 	}

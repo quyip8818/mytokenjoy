@@ -11,7 +11,7 @@ import (
 
 var ErrBudgetExhausted = errors.New("insufficient member or key quota")
 
-// minWalletQuota is the minimum wallet_quota_remain (in quota units) to allow a request through.
+// minWalletQuota is the minimum wallet_remain_quota (in quota units) to allow a request through.
 // Equivalent to a trivially small spend threshold.
 const minWalletQuota int64 = 1
 
@@ -26,7 +26,7 @@ func EvaluateAt(pc PrecheckContext, model string, opts PrecheckOpts, now time.Ti
 	if domaincompany.IsGatewayBlocked(pc.Wallet.CompanyStatus) {
 		return fmt.Errorf("company not active")
 	}
-	if pc.Wallet.WalletQuotaRemain < minWalletQuota {
+	if pc.Wallet.WalletRemainQuota < minWalletQuota {
 		return fmt.Errorf("insufficient company wallet")
 	}
 	if pc.Routing.KeyStatus != "active" {

@@ -61,7 +61,7 @@ flowchart TB
 | 部门 + 节点预算 + 路由      | `org_nodes`（HTTP 投影 `Department` / `BudgetNode` / `RoutingRule`） |
 | 平台 Key 归因               | `platform_keys`；`platform_key_mappings` 仅同步状态                         |
 | 消耗 SSOT / 看板 / Gateway 软缓存 | `usage_ledger` / `usage_buckets` / `budget_consumed` + `gateway_soft_*` |
-| 企业钱包余额                | SSOT：`company_recharge_lots` / `wallet_quota_remain`；NewAPI `users.quota` 为派生通道配额（`newapi_wallet_company_id`） |
+| 企业钱包余额                | SSOT：`company_recharge_lots` / `wallet_remain_quota`；NewAPI `users.quota` 为派生通道配额（`newapi_wallet_company_id`） |
 | SaaS 上游 Key               | 全局 `provider_keys`（无 `company_id`）                              |
 
 ---
@@ -223,7 +223,7 @@ flowchart LR
 | `departmentId`          | = `org_nodes.id` = `members.department_id`                    |
 | `RoutingRule.id`        | = `nodeId`                                                    |
 | `sk-xxx`                | → `platform_keys.key_hash` → `platform_key_mappings.newapi_key_id` |
-| `newapi_wallet_company_id` | → NewAPI `users.quota`（派生缓存；SSOT 为 lot / `wallet_quota_remain`） |
+| `newapi_wallet_company_id` | → NewAPI `users.quota`（派生缓存；SSOT 为 lot / `wallet_remain_quota`） |
 | `TOKENJOY_COMPANY_ID`   | 平台模型源公司 UUID（默认 `00000000-0000-7000-8000-000000000001`）|
 | `LOCAL_COMPANY_ID`      | 本地化部署业务公司 UUID（默认 `00000000-0000-7000-8000-000000000002`）|
 | SaaS 公司 ID            | 创建时由 `uuid.NewV7()` 生成                                    |
@@ -252,7 +252,7 @@ flowchart LR
     PQ[members.personal_budget]
     PRJ[projects.budget]
     PKQ[platform_keys.budget]
-    WAL[companies.wallet_quota_remain / lots]
+    WAL[companies.wallet_remain_quota / lots]
   end
 
   subgraph spend [累计 consumed]
@@ -278,7 +278,7 @@ flowchart LR
 
 | 轴           | limit 权威源                                                                           | consumed 权威源                         | 交汇点                               |
 | ------------ | -------------------------------------------------------------------------------------- | --------------------------------------- | ------------------------------------ |
-| **企业钱包** | `Σ lot.quota_remaining` / `companies.wallet_quota_remain`                                   | FIFO 扣 lot；ledger 事实                | NewAPI token unlimited，无需同步 remain |
+| **企业钱包** | `Σ lot.quota_remaining` / `companies.wallet_remain_quota`                                   | FIFO 扣 lot；ledger 事实                | NewAPI token unlimited，无需同步 remain |
 | **组织预算** | `org_nodes.budget` · `personal_budget` · `projects.budget` · `project_members.member_budget`† · `platform_keys.budget`（均为 int64 quota） | **`budget_consumed`**（三轴‡，int64 quota） | Gateway 预检（`combined_key_remain`）、预算树、Overrun        |
 
 † `member_budget`，见 [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-预算.md](./Backend-预算.md) §3。‡ **三轴** `platform_key` · `member` · `project`；部门花费读 `usage_ledger` 聚合。
@@ -294,7 +294,7 @@ flowchart LR
 | **limit**     | `projects.budget`                                             | 项目                              | 池额度                                        |
 | **limit**     | `project_members.member_budget`                               | 项目成员                            | 项目内子额度                            |
 | **limit**     | `platform_keys.budget`                                              | 平台 Key                            | Key 分配额                                    |
-| **limit**     | `companies.wallet_quota_remain` / lot 剩余                               | 企业钱包                            | 预付资金硬顶（point）；NewAPI quota 为派生    |
+| **limit**     | `companies.wallet_remain_quota` / lot 剩余                               | 企业钱包                            | 预付资金硬顶（point）；NewAPI quota 为派生    |
 | **limit**     | NewAPI `remain_quota` / `platform_key_mappings.newapi_key_remain_quota` | NewAPIKey                           | NewAPIKey 侧剩余额度（分配视图，非组织 consumed） |
 | **consumed**  | `budget_consumed.consumed`                                        | 三轴                    | **组织轴 consumed SSOT**；部门报表改 `usage_ledger` 聚合 |
 | **consumed**  | `usage_ledger.amount`                                              | 单笔调用                            | 事实账本（point）；含 `platform_key_scope` 供投影 |

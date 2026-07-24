@@ -162,7 +162,7 @@ Due 判据（只读 store，见 `infra/scheduler/due.go`）：
 
 ### 6.1 `wallet_sync`
 
-- 读权威 `users.quota`（`FreshNewAPIUnits`）与 `wallet_quota_remain` → `ToNewAPIUnits` → `QuotaDelta` → `TopUp`
+- 读权威 `users.quota`（`FreshNewAPIUnits`）与 `wallet_remain_quota` → `ToNewAPIUnits` → `QuotaDelta` → `TopUp`
 - 公司无 `NewAPIWalletCompanyID` → `billing.ErrWalletNotConfigured` → `river.JobCancel`
 - NewAPI / PG `bigint out of range`（SQLSTATE 22003）、缺 `newapi_wallet_company_id` 等配置错误 → `IsNonRetryableNewAPIError` → `JobCancel`（rebalance / newapi_sync / overrun 同策略）
 
@@ -170,7 +170,7 @@ Due 判据（只读 store，见 `infra/scheduler/due.go`）：
 
 - Args 带 `company_id` + axis / payload
 - rebalance 纯粹按月度预算限额计算 `RemainQuota`（`ComputeRemainForMapping` → `ToNewAPIUnits`），不再与 wallet 做 min
-- Gateway 独立检查 `wallet_quota_remain`（硬约束），与 per-key `RemainQuota` 解耦
+- Gateway 独立检查 `wallet_remain_quota`（硬约束），与 per-key `RemainQuota` 解耦
 - company 轴成功 → 写 `tenant_background_state.last_rebalanced_period`（`EnsureRow` 后 `SetLastRebalancedPeriod`）
 - 充值不再触发 rebalance（只触发 `wallet_sync`）；触发场景：月切、reconcile、approval、project 删除、newapisync 完成
 

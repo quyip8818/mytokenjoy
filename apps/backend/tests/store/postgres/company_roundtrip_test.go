@@ -127,7 +127,7 @@ func TestRechargeOrderRoundTrip(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected company after recharge")
 	}
-	if co.WalletQuotaRemain != before.WalletQuotaRemain+lot.QuotaGranted {
-		t.Fatalf("wallet_quota_remain: got %v want %v", co.WalletQuotaRemain, before.WalletQuotaRemain+lot.QuotaGranted)
+	if co.WalletRemainQuota != before.WalletRemainQuota+lot.QuotaGranted {
+		t.Fatalf("wallet_remain_quota: got %v want %v", co.WalletRemainQuota, before.WalletRemainQuota+lot.QuotaGranted)
 	}
 }

@@ -56,7 +56,7 @@
 | 约束 | 实现方式 |
 | --- | --- |
 | 模拟资金只能用于 mock 模型 | Gateway allowlist 仅含 mock model → 非 mock 请求 403，根本不进 ingest |
-| 升级后模拟资金不可用 | 升级时 expire 所有 `lot_kind='mock'` 的 lot，`wallet_quota_remain` 按实际 active lot 重算 |
+| 升级后模拟资金不可用 | 升级时 expire 所有 `lot_kind='mock'` 的 lot，`wallet_remain_quota` 按实际 active lot 重算 |
 | Trial 期间看板可见消费 | Mock lot 正常走 FIFO 消费 → ledger 有条目 → 看板展示 |
 
 核心逻辑：**Gateway allowlist 做模型隔离（消费侧守卫），lot_kind='mock' 做资金标记（升级清零依据）**，不给 ingest/lot-consume 加任何 if-else。
@@ -94,9 +94,9 @@ UPDATE recharge_lots
    SET status = 'expired', updated_at = now()
  WHERE company_id = $1 AND lot_kind = 'mock' AND status = 'active';
 
--- 2. wallet_quota_remain 按剩余 active lot 重算（非 mock lot 余额之和）
+-- 2. wallet_remain_quota 按剩余 active lot 重算（非 mock lot 余额之和）
 UPDATE companies
-   SET wallet_quota_remain = (
+   SET wallet_remain_quota = (
        SELECT COALESCE(SUM(quota_remaining), 0)
          FROM recharge_lots
         WHERE company_id = $1 AND status = 'active'
@@ -105,7 +105,7 @@ UPDATE companies
  WHERE id = $1;
 ```
 
-无真实充值时 `wallet_quota_remain` 归零；若升级前已有 paid/gift lot，保留其余额。
+无真实充值时 `wallet_remain_quota` 归零；若升级前已有 paid/gift lot，保留其余额。
 
 ### 2.4 为什么不用双账本
 
@@ -178,7 +178,7 @@ Trial 公司的充值流程变为**升级确认**：
 
 确认后：
 1. 创建充值订单（paid lot）
-2. 执行 mock lot expire + wallet_quota_remain 重算
+2. 执行 mock lot expire + wallet_remain_quota 重算
 3. `companies.type` 改为 `standard`
 4. Banner 消失，Key allowlist 解锁
 
@@ -237,7 +237,7 @@ routes/register.tsx
 - [ ] CSV 解析（部门层级 + 成员 + 角色映射）
 - [ ] Gateway: 产线级 `trial-mock-model` 定义（model_id ≥ 100）
 - [ ] NewAPI: mock channel 配置（路由到 echo LLM 服务）
-- [ ] 升级接口: expire mock lots + wallet_quota_remain 重算
+- [ ] 升级接口: expire mock lots + wallet_remain_quota 重算
 - [ ] `REGISTRATION_ENABLED` 守卫
 - [ ] 成员上限守卫
 - [ ] 充值接口 Trial 拦截（禁止真实充值）

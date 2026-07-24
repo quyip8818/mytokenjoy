@@ -12,7 +12,7 @@ type PrecheckContextRow struct {
 	CompanyID         uuid.UUID
 	CompanyType       string
 	CompanyStatus     string
-	WalletQuotaRemain int64
+	WalletRemainQuota int64
 
 	PlatformKeyID uuid.UUID
 	KeyStatus     string

@@ -47,7 +47,7 @@ Trial 账户只有 mock lot，不允许充值。这意味着 **mock 和 real lot
 
 好处：
 - 不需要在 FIFO 消耗时区分 lot kind（trial 阶段所有 active lot 都是 mock）
-- 不需要拆分 `wallet_quota_remain`
+- 不需要拆分 `wallet_remain_quota`
 - 不需要修改 `consumeLotsWithCompany` 的签名
 - FIFO head 指针语义不变
 - 升级时一刀切过期所有 lot 即可
@@ -69,9 +69,9 @@ Trial 账户只有 mock lot，不允许充值。这意味着 **mock 和 real lot
 
 这是可接受的：testing 环境不需要财务精确性，mock lot 只是种子数据用于验证流程。如果 testing 环境需要隔离，可在 P2 给 `consumeLotsWithCompany` 加 `callType` 参数（见 §11 未来扩展）。
 
-### 2.4 wallet_quota_remain
+### 2.4 wallet_remain_quota
 
-Trial 阶段：`wallet_quota_remain` = mock lot 总和。语义清晰，就是"试用余额"。
+Trial 阶段：`wallet_remain_quota` = mock lot 总和。语义清晰，就是"试用余额"。
 
 升级后：`ExpireMockLots` 将其归零，充值后写入 real lot 额度。
 
@@ -271,7 +271,7 @@ flowchart LR
 
 事务内（原子操作）：
 1. `UpdateCompanyType(companyID, "standard")` — 先改类型
-2. `ExpireMockLots(companyID)` — 过期所有 mock lot，重算 `wallet_quota_remain`（归零）
+2. `ExpireMockLots(companyID)` — 过期所有 mock lot，重算 `wallet_remain_quota`（归零）
 
 事务提交后：
 3. **主动 invalidate Gateway precheck cache** — 调用 `precheckCache.Evict(companyID)` 或按 key hash 逐出。确保后续 test-model 请求立即被拒。

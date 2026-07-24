@@ -42,7 +42,7 @@ func paidRechargeOrder(companyID uuid.UUID, id uuid.UUID, amount float64, create
 	}
 }
 
-func TestCreditFromLotUpdatesWalletQuotaRemain(t *testing.T) {
+func TestCreditFromLotUpdatesWalletRemainQuota(t *testing.T) {
 	t.Parallel()
 	_, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
@@ -53,7 +53,7 @@ func TestCreditFromLotUpdatesWalletQuotaRemain(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected default company")
 	}
-	before := co.WalletQuotaRemain
+	before := co.WalletRemainQuota
 
 	key := "idem-wallet-credit"
 	order := store.RechargeOrder{
@@ -76,12 +76,12 @@ func TestCreditFromLotUpdatesWalletQuotaRemain(t *testing.T) {
 		t.Fatal("expected company after credit")
 	}
 	want := before + lot.QuotaGranted
-	if got.WalletQuotaRemain != want {
-		t.Fatalf("wallet_quota_remain: got %v want %v", got.WalletQuotaRemain, want)
+	if got.WalletRemainQuota != want {
+		t.Fatalf("wallet_remain_quota: got %v want %v", got.WalletRemainQuota, want)
 	}
 }
 
-func TestConsumeLotsDecrementsWalletQuotaRemain(t *testing.T) {
+func TestConsumeLotsDecrementsWalletRemainQuota(t *testing.T) {
 	t.Parallel()
 	_, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
@@ -127,9 +127,9 @@ func TestConsumeLotsDecrementsWalletQuotaRemain(t *testing.T) {
 	if err != nil || afterConsume == nil {
 		t.Fatal("expected company after consume")
 	}
-	want := afterCredit.WalletQuotaRemain - consume
-	if afterConsume.WalletQuotaRemain != want {
-		t.Fatalf("wallet_quota_remain: got %v want %v", afterConsume.WalletQuotaRemain, want)
+	want := afterCredit.WalletRemainQuota - consume
+	if afterConsume.WalletRemainQuota != want {
+		t.Fatalf("wallet_remain_quota: got %v want %v", afterConsume.WalletRemainQuota, want)
 	}
 }
 
@@ -327,7 +327,7 @@ func TestConsumeLotsExpandsOverdraftAndReportsDelta(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected company")
 	}
-	if co.WalletQuotaRemain != 0 {
-		t.Fatalf("wallet_quota_remain after overdraft: got %v want 0", co.WalletQuotaRemain)
+	if co.WalletRemainQuota != 0 {
+		t.Fatalf("wallet_remain_quota after overdraft: got %v want 0", co.WalletRemainQuota)
 	}
 }

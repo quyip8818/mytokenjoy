@@ -34,7 +34,7 @@
 
 ## 2. 设计目标
 
-- NewAPI `user.remain_quota` 始终 >= 本地 `wallet_quota_remain`，保证有钱时 NewAPI 不拦截
+- NewAPI `user.remain_quota` 始终 >= 本地 `wallet_remain_quota`，保证有钱时 NewAPI 不拦截
 - 额度同步是**宽松方向**的（允许 NewAPI 端多于本地），精确扣减在本地 FIFO lot 完成
 - NewAPI quota 是"粗粒度闸门"，本地 lot 系统是"精确计量"
 
@@ -159,13 +159,13 @@ ManageUser(ctx, walletUserID, "add_quota", -currentNewAPIRemain)
 充值流程：
   充值 → CreditFromLot(本地事务) → commit 后 SyncCallback
               ↓                              ↓
-     wallet_quota_remain += Δ      ManageUser(add_quota, Δ)
+     wallet_remain_quota += Δ      ManageUser(add_quota, Δ)
 
 请求流程：
   用户 → NewAPI 扣 user.remain_quota → 转发上游 → consume_log
 
 入账流程：
-  consume_log → Ingest → ConsumeLots(FIFO) → wallet_quota_remain -= Δ
+  consume_log → Ingest → ConsumeLots(FIFO) → wallet_remain_quota -= Δ
                                               (不通知 NewAPI)
 ```
 
@@ -173,7 +173,7 @@ ManageUser(ctx, walletUserID, "add_quota", -currentNewAPIRemain)
 
 ## 7. 不变量
 
-1. `NewAPI user.remain_quota >= 本地 wallet_quota_remain - 未入账消耗`
+1. `NewAPI user.remain_quota >= 本地 wallet_remain_quota - 未入账消耗`
 2. Token 始终 unlimited，额度检查只在 user 层
 3. 同步只加不减（升级清零除外）
 4. Prod mock lot 不同步；Prod trial/demo 创建时一次性给大额

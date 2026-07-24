@@ -41,7 +41,7 @@ func RejectionCases() []RejectionCase {
 		{
 			Name: "insufficient wallet",
 			MutatePC: func(pc *domaingateway.PrecheckContext) {
-				pc.Wallet.WalletQuotaRemain = 0
+				pc.Wallet.WalletRemainQuota = 0
 			},
 			Scenario: GatewayScenarioOpts{
 				Budget:             1000,

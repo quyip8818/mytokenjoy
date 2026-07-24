@@ -82,7 +82,7 @@ type WalletCurrencyBalance struct {
 type WalletAggregate struct {
 	BillingCurrency   string
 	Balances          []WalletCurrencyBalance
-	WalletQuotaRemain int64
+	WalletRemainQuota int64
 	GiftQuota         int64
 	OverdraftQuota    int64
 }

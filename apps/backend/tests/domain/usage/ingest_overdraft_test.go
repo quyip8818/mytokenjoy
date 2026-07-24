@@ -25,8 +25,8 @@ func TestIngestNotifiesOnOverdraftExpansion(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected default company")
 	}
-	if co.WalletQuotaRemain > 0 {
-		if _, err := billinglot.ConsumeLots(ctx, st, contract.DefaultCompanyID, co.WalletQuotaRemain); err != nil {
+	if co.WalletRemainQuota > 0 {
+		if _, err := billinglot.ConsumeLots(ctx, st, contract.DefaultCompanyID, co.WalletRemainQuota); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -78,8 +78,8 @@ func TestIngestSkipsOverdraftNotificationWhenNotifierNil(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected default company")
 	}
-	if co.WalletQuotaRemain > 0 {
-		if _, err := billinglot.ConsumeLots(ctx, st, contract.DefaultCompanyID, co.WalletQuotaRemain); err != nil {
+	if co.WalletRemainQuota > 0 {
+		if _, err := billinglot.ConsumeLots(ctx, st, contract.DefaultCompanyID, co.WalletRemainQuota); err != nil {
 			t.Fatal(err)
 		}
 	}

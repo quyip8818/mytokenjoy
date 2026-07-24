@@ -153,7 +153,7 @@ CREATE TABLE IF NOT EXISTS companies (
     authz_revision            BIGINT NOT NULL DEFAULT 0,
     billing_currency          CHAR(3) NOT NULL DEFAULT 'CNY',
     fifo_head_lot_id          UUID,
-    wallet_quota_remain             BIGINT NOT NULL DEFAULT 0,
+    wallet_remain_quota             BIGINT NOT NULL DEFAULT 0,
     created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

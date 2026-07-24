@@ -33,7 +33,7 @@ func GatewayChainRemain(scope string, in ChainInputs) (remain int64, limiting st
 		val  int64
 		name string
 	}
-	// wallet_quota_remain is checked independently in the precheck path (real-time from PG).
+	// wallet_remain_quota is checked independently in the precheck path (real-time from PG).
 	// This chain only evaluates budget-control constraints: key, member, project.
 	var candidates []candidate
 

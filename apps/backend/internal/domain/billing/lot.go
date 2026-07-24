@@ -23,6 +23,11 @@ func BuildLot(order store.RechargeOrder, billingCurrency string, kind string, am
 	}
 }
 
+// BuildPaidLot is a convenience wrapper for paid lots where amountDisplay = order.Amount.
+func BuildPaidLot(order store.RechargeOrder, billingCurrency string) store.RechargeLot {
+	return BuildLot(order, billingCurrency, store.LotKindPaid, order.Amount)
+}
+
 func DefaultQuotaPerUnit() int64 {
 	return common.DefaultQuotaPerUnit
 }

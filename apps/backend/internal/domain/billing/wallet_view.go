@@ -19,7 +19,7 @@ type WalletView struct {
 	CompanyID         uuid.UUID            `json:"companyId"`
 	BillingCurrency   string               `json:"billingCurrency"`
 	Balances          []WalletCurrencyView `json:"balances"`
-	WalletQuotaRemain int64                `json:"walletQuotaRemain"`
+	WalletRemainQuota int64                `json:"walletRemainQuota"`
 	GiftQuota         int64                `json:"giftQuota"`
 	OverdraftQuota    int64                `json:"overdraftQuota"`
 	TotalRequests     int64                `json:"totalRequests"`
@@ -49,7 +49,7 @@ func (s *service) GetWallet(ctx context.Context) (WalletView, error) {
 	view := WalletView{
 		CompanyID:         companyCtx.CompanyID,
 		BillingCurrency:   agg.BillingCurrency,
-		WalletQuotaRemain: agg.WalletQuotaRemain,
+		WalletRemainQuota: agg.WalletRemainQuota,
 		GiftQuota:         agg.GiftQuota,
 		OverdraftQuota:    agg.OverdraftQuota,
 	}

@@ -48,7 +48,7 @@ type TrialUpgradeStore interface {
 }
 
 // ExpireMockLots expires all active mock lots for a company and recomputes
-// wallet_quota_remain based on remaining active (non-mock) lots.
+// wallet_remain_quota based on remaining active (non-mock) lots.
 // This is called during the trial→standard upgrade flow.
 func ExpireMockLots(ctx context.Context, st TrialUpgradeStore, companyID uuid.UUID) error {
 	return st.WithTx(ctx, func(tx store.Store) error {
@@ -67,14 +67,14 @@ func ExpireMockLots(ctx context.Context, st TrialUpgradeStore, companyID uuid.UU
 			return err
 		}
 
-		// 3. Recompute wallet_quota_remain = sum of remaining active lot quota.
+		// 3. Recompute wallet_remain_quota = sum of remaining active lot quota.
 		remain, err := tx.Billing().SumActiveLotsRemaining(ctx, companyID)
 		if err != nil {
 			return err
 		}
 
-		// 4. Update wallet_quota_remain (clear FIFO head if no active lots remain).
+		// 4. Update wallet_remain_quota (clear FIFO head if no active lots remain).
 		var fifoHead *uuid.UUID
-		return tx.Company().SetWalletQuotaRemain(ctx, companyID, remain, fifoHead)
+		return tx.Company().SetWalletRemainQuota(ctx, companyID, remain, fifoHead)
 	})
 }

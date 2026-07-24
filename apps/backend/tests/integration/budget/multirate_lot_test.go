@@ -82,8 +82,8 @@ func TestMultiRateRechargeAndConsume(t *testing.T) {
 		t.Fatal("expected company")
 	}
 	wantWallet := quota1 + quota2 // 11,000,000
-	if co.WalletQuotaRemain != wantWallet {
-		t.Fatalf("wallet after recharge: got %d want %d", co.WalletQuotaRemain, wantWallet)
+	if co.WalletRemainQuota != wantWallet {
+		t.Fatalf("wallet after recharge: got %d want %d", co.WalletRemainQuota, wantWallet)
 	}
 
 	// --- Consume 6,000,000 quota (drains lot1=5M, then 1M from lot2) ---
@@ -142,8 +142,8 @@ func TestMultiRateRechargeAndConsume(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected company after consume")
 	}
-	if co.WalletQuotaRemain != wantWallet-consume {
-		t.Fatalf("wallet after consume: got %d want %d", co.WalletQuotaRemain, wantWallet-consume)
+	if co.WalletRemainQuota != wantWallet-consume {
+		t.Fatalf("wallet after consume: got %d want %d", co.WalletRemainQuota, wantWallet-consume)
 	}
 
 	// Verify lot1 is exhausted, lot2 has 5M remaining.
@@ -291,8 +291,8 @@ func TestOverdraftWithMultiRateLots(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected company")
 	}
-	if co.WalletQuotaRemain != 0 {
-		t.Fatalf("wallet after overdraft: got %d want 0", co.WalletQuotaRemain)
+	if co.WalletRemainQuota != 0 {
+		t.Fatalf("wallet after overdraft: got %d want 0", co.WalletRemainQuota)
 	}
 }
 
@@ -369,8 +369,8 @@ func TestCompanyQPUSwitchMidLifecycle(t *testing.T) {
 	if err != nil || co == nil {
 		t.Fatal("expected company")
 	}
-	if co.WalletQuotaRemain != quota1+quota2 {
-		t.Fatalf("wallet: got %d want %d", co.WalletQuotaRemain, quota1+quota2)
+	if co.WalletRemainQuota != quota1+quota2 {
+		t.Fatalf("wallet: got %d want %d", co.WalletRemainQuota, quota1+quota2)
 	}
 
 	// --- Consume 11,000,000 quota (drains lot1=10M, then 1M from lot2) ---

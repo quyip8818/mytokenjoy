@@ -64,8 +64,8 @@ func TestUpgradeToStandardChangesTypeAndInvalidatesCache(t *testing.T) {
 	}
 
 	// Verify wallet zeroed (mock lots expired).
-	if co.WalletQuotaRemain != 0 {
-		t.Fatalf("wallet after upgrade: got %v want 0", co.WalletQuotaRemain)
+	if co.WalletRemainQuota != 0 {
+		t.Fatalf("wallet after upgrade: got %v want 0", co.WalletRemainQuota)
 	}
 
 	// Verify cache was invalidated.
@@ -119,7 +119,7 @@ func TestUpgradeToStandardFromDemo(t *testing.T) {
 	if co.Type != store.CompanyTypeStandard {
 		t.Fatalf("type after demo upgrade: got %q want %q", co.Type, store.CompanyTypeStandard)
 	}
-	if co.WalletQuotaRemain != 0 {
-		t.Fatalf("wallet after demo upgrade: got %v want 0", co.WalletQuotaRemain)
+	if co.WalletRemainQuota != 0 {
+		t.Fatalf("wallet after demo upgrade: got %v want 0", co.WalletRemainQuota)
 	}
 }

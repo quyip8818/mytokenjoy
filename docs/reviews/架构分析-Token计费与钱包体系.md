@@ -97,7 +97,7 @@ flowchart LR
 | 世界 | 含义 | 典型字段 | 特征 |
 |------|------|----------|------|
 | **Usage** | LLM 原始 token 计数 | `input_tokens`, `output_tokens` | 与模型厂商对齐 |
-| **Point** | 内部统一货币单位 | `wallet_quota_remain`, `budget_consumed`, `ledger.amount` | 所有业务逻辑的计算基础 |
+| **Point** | 内部统一货币单位 | `wallet_remain_quota`, `budget_consumed`, `ledger.amount` | 所有业务逻辑的计算基础 |
 | **Wallet 展示币** | 用户可见的法币金额 | `display_amount`, `balances[].balance` | 入账时冻结，历史不可改 |
 
 ### 2.2 核心转换公式
@@ -153,7 +153,7 @@ sequenceDiagram
   User->>API: 确认支付 ConfirmPayment
   API->>DB: BEGIN TX
   API->>DB: BuildPaidLot → INSERT lot（锁定单价+币种）
-  API->>DB: wallet_quota_remain += quota_granted
+  API->>DB: wallet_remain_quota += quota_granted
   API->>DB: COMMIT
   API->>DB: 入队 wallet_sync + rebalance
   Note over NA: 异步 Worker
@@ -179,7 +179,7 @@ totalTopup − totalConsumed = balance
 
 ### 3.4 充值不涨部门预算
 
-充值只增加 `wallet_quota_remain`（企业硬顶），不自动增加 `org_nodes.budget`。
+充值只增加 `wallet_remain_quota`（企业硬顶），不自动增加 `org_nodes.budget`。
 这是产品设计约定：钱包是资金层，组织预算是管理层，两者独立。
 
 ---
@@ -266,7 +266,7 @@ flowchart LR
 - 跨 lot 消费产生多段 ledger（同一 idempotency_key）
 - gift/overdraft 段的 `display_amount = 0`
 - lot 不足时自动扩展 overdraft lot（不让 webhook 永久失败）
-- `wallet_quota_remain` 在同事务内同步更新（强一致）
+- `wallet_remain_quota` 在同事务内同步更新（强一致）
 
 ### 4.4 双路径可靠性保障
 
@@ -286,7 +286,7 @@ flowchart LR
 ```mermaid
 flowchart TB
   subgraph wallet_axis [轴 1：企业钱包（资金硬顶）]
-    CHARGE[充值 → lot] --> WAL[wallet_quota_remain]
+    CHARGE[充值 → lot] --> WAL[wallet_remain_quota]
     WAL -->|ingest 同事务| DEDUCT[扣减]
   end
 
@@ -432,7 +432,7 @@ flowchart TB
 ```mermaid
 flowchart TB
   subgraph strong [强一致 · Ingest 同事务]
-    WAL[wallet_quota_remain]
+    WAL[wallet_remain_quota]
     LED[usage_ledger]
     LOTS[company_recharge_lots]
   end
@@ -450,7 +450,7 @@ flowchart TB
 
 | 数据 | 一致性 | Gateway 能否当事实 | 漂移修复 |
 |------|--------|-------------------|----------|
-| `wallet_quota_remain` | **Strong** | 是（L0 hard） | 充值/lot |
+| `wallet_remain_quota` | **Strong** | 是（L0 hard） | 充值/lot |
 | `usage_ledger` | **Strong** | 是（SSOT） | 追加不可改 |
 | `budget_consumed` | Eventually | 否 | `budget_reconcile` 30min |
 | `gateway_soft_remain` | Eventually | 是（带 lag） | Projector + Reconcile |
@@ -461,13 +461,13 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-  L0[L0 钱包硬顶<br/>wallet_quota_remain<br/>无 lag] --> L1[L1 预算软限<br/>gateway_soft_remain<br/>≤ Projection Lag]
+  L0[L0 钱包硬顶<br/>wallet_remain_quota<br/>无 lag] --> L1[L1 预算软限<br/>gateway_soft_remain<br/>≤ Projection Lag]
   L1 --> L2[L2 超限封禁<br/>Overrun Disable Key<br/>≥ L1 lag]
 ```
 
 | 层级 | 机制 | 数据 | 超卖窗口 |
 |------|------|------|----------|
-| L0 | `wallet_quota_remain >= ε` | 强一致 | 无 |
+| L0 | `wallet_remain_quota >= ε` | 强一致 | 无 |
 | L1 | `gateway_soft_remain <= 0` → 403 | 最终一致 | ≤ Projection Lag |
 | L2 | Overrun → Disable Key | 异步 | ≥ L1 |
 
@@ -683,7 +683,7 @@ gantt
 |----|------|--------|
 | `usage_ledger` | 消耗 SSOT | Strong |
 | `company_recharge_lots` | 充值批次 / FIFO 队列 | Strong |
-| `companies.wallet_quota_remain` | 企业钱包余额 | Strong |
+| `companies.wallet_remain_quota` | 企业钱包余额 | Strong |
 | `budget_consumed` | 三轴 consumed | Eventually |
 | `platform_keys.gateway_soft_*` | Gateway 预检摘要 | Eventually |
 | `usage_buckets` | 看板聚合 | Eventually |

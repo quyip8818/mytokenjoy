@@ -23,6 +23,7 @@ export function createMockSession(
 ): SessionContext {
   return {
     companyId: '00000000-0000-7000-8000-000000000002',
+    companyName: '测试公司',
     companyType: 'selfhosted',
     authzRevision: 0,
     user: { name: '管理员' },
