@@ -157,9 +157,10 @@ ManageUser(ctx, walletUserID, "add_quota", -currentNewAPIRemain)
 
 ```
 充值流程：
-  充值 → CreditFromLot(本地事务) → commit 后 SyncCallback
-              ↓                              ↓
-     wallet_remain_quota += Δ      ManageUser(add_quota, Δ)
+  充值 → PreCreditFunc: ManageUser(add_quota, Δ) → 成功 → CreditFromLot(本地事务)
+                  ↓                                              ↓
+         NewAPI user.quota += Δ                     wallet_remain_quota += Δ
+         （失败则充值中止）
 
 请求流程：
   用户 → NewAPI 扣 user.remain_quota → 转发上游 → consume_log
@@ -181,11 +182,11 @@ ManageUser(ctx, walletUserID, "add_quota", -currentNewAPIRemain)
 
 ---
 
-## 8. 实施清单
+## 8. 实施清单（已完成）
 
-| 优先级 | 任务 |
-|--------|------|
-| **P0** | `CreditFromLot` 增加 post-commit SyncCallback 机制 |
-| **P0** | billing service 注入 adminport client，实现 `newAPISyncCallback` |
-| **P0** | 删除 `provision/bootstrap.go` 中的独立 `add_quota`（非 prod 由通用路径覆盖） |
-| **P1** | 升级流程中 `ExpireMockLots` 后清零 NewAPI quota |
+| 优先级 | 任务 | 状态 |
+|--------|------|------|
+| **P0** | `CreditFromLot` 增加 PreCreditFunc variadic 参数（事务前执行） | ✅ 已实现 |
+| **P0** | billing service 注入 `QuotaSyncer`，实现 `syncQuotaToNewAPI` | ✅ 已实现 |
+| **P0** | 删除 `provision/bootstrap.go` 中的独立 `add_quota`（非 prod 由通用路径覆盖） | ✅ 已实现 |
+| **P1** | 升级流程中 `ExpireMockLots` 后清零 NewAPI quota | 待实现 |

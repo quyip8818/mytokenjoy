@@ -30,35 +30,43 @@ tokenjoy wallet_remain_quota = SSOT（单一事实源）
 NewAPI user quota = 物理止损镜像（≥ wallet_remain_quota 即可）
 ```
 
-### 同步方向：单向、增量、事务后
+### 同步方向：单向、增量、事务前（PreCreditFunc）
 
 ```
-充值事务 (PG)                          NewAPI Admin API
+NewAPI Admin API                       充值事务 (PG)
 ─────────────────                     ─────────────────
-CreditFromLot (tx) ──commit──►  topUpNewAPIQuota(companyID, quotaGranted)
-                                         │
-                                         ▼
-                                  POST /api/user/topup
-                                  { user_id, quota: +quotaGranted }
+syncQuotaToNewAPI(lot) ──成功──►  CreditFromLot (tx commit)
+         │                                    │
+         ▼                                    ▼
+  POST /api/user/manage               insert lot + wallet += delta
+  { id, action: "add_quota",
+    mode: "add", value: delta }
 ```
 
 - **单向**：tokenjoy → NewAPI，永不反向读取
-- **增量**：每次充值只 TopUp 充入的 delta，不重算全量
-- **事务后**：TopUp 在 PG 事务 commit 后执行，失败不回滚充值
+- **增量**：每次充值只 add_quota 充入的 delta，不重算全量
+- **事务前**：同步在 PG 事务 commit **之前**执行（PreCreditFunc）。失败时充值不会成功，保证用户不会出现"本地有余额但 NewAPI 拒绝"的情况
 
 ### 触发点
 
-所有充值路径的公共出口：`lot_confirm.go` 中每个 `CreditFromLot` 成功后。
+所有充值路径的公共出口：`CreditFromLot` 的 `PreCreditFunc` 参数。
 
 ```go
-// lot_confirm.go
+// lot_confirm.go — 所有 confirm 方法统一传入 s.syncQuotaToNewAPI 作为 PreCreditFunc
 func (s *service) confirmPaidRecharge(...) error {
     ...
-    if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted); err != nil {
-        return err
-    }
-    s.topUpNewAPIQuota(ctx, companyID, lot.QuotaGranted) // post-commit, best-effort
-    return nil
+    lot := BuildLot(order, currency, store.LotKindPaid, order.Amount)
+    return billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted, s.syncQuotaToNewAPI)
+}
+
+// service.go
+func (s *service) syncQuotaToNewAPI(ctx context.Context, lot store.RechargeLot) error {
+    if lot.LotKind == store.LotKindOverdraft { return nil }
+    if s.cfg.IsProductionDeploy() && lot.LotKind == store.LotKindMock { return nil }
+    if s.quotaSyncer == nil { return nil }
+    walletUserID, ok := company.ResolveNewAPIWalletCompanyID(ctx, s.store.Company())
+    if !ok { return nil }
+    return s.quotaSyncer.ManageUser(ctx, walletUserID, "add_quota", lot.QuotaGranted)
 }
 ```
 
@@ -66,11 +74,14 @@ func (s *service) confirmPaidRecharge(...) error {
 
 | 场景 | 影响 | 恢复 |
 |------|------|------|
-| TopUp HTTP 超时 | tokenjoy 侧正常，NewAPI user quota 不足 | 下次充值补上；bootstrap 启动补齐 |
-| TopUp 返回错误 | 同上 | 同上 |
-| NewAPI 宕机 | Gateway precheck 正常（读 PG），NewAPI 转发失败 | NewAPI 恢复后 bootstrap 补齐 |
+| ManageUser HTTP 超时/错误 | **充值失败**——PreCreditFunc 返回 error，本地事务不执行 | 用户重试即可 |
+| NewAPI 宕机 | 同上——所有充值被阻断 | NewAPI 恢复后用户重试 |
+| PreCreditFunc 成功但本地 tx 失败 | NewAPI 多了额度（宽松闸门），本地无余额 | 安全——多余 quota 在正常消费中自然扣减或由 bootstrap 修正 |
 
-**不一致窗口**：从 TopUp 失败到下次补齐之间。此时 Gateway precheck 放行但 NewAPI 拒绝。概率极低（NewAPI 99.9%+ 可用），影响可接受——和 ingest 延迟导致的短暂超发是同类风险。
+**设计理由（"先加后提交"）：**
+- PreCreditFunc 成功 + 本地 tx 失败 → NewAPI 多了额度，宽松闸门不影响正确性
+- PreCreditFunc 失败 → 本地 tx 不执行，用户看到"充值失败"重试即可
+- 反过来（先提交后同步）→ 本地有余额但 NewAPI 拒绝请求，用户体验极差（"付了钱但不能用"）
 
 ### Bootstrap 补齐
 
@@ -96,16 +107,16 @@ if currentQuota < co.WalletRemainQuota {
 
 ---
 
-## 改动清单
+## 改动清单（已实现）
 
 | 文件 | 变更 |
 |------|------|
-| `domain/billing/service.go` | `service` struct 加 `adminClient adminport.Port`；`NewService` 接收 port |
-| `domain/billing/wallet_topup.go`（新） | `topUpNewAPIQuota(ctx, companyID, delta)` 实现 |
-| `domain/billing/lot_confirm.go` | 4 个充值路径调用 `s.topUpNewAPIQuota` |
-| `newapisync/provision/bootstrap.go` | 已有 user 时 TopUp 到 `wallet_remain_quota`（替换 MaxInt32 hacky 逻辑） |
-| `adapter/billing.go`（如需要） | wire NewService 时传入 adminport.Port |
-| 测试 | 验证 TopUp 被调用 + delta 正确 |
+| `domain/billing/service.go` | `service` struct 加 `quotaSyncer QuotaSyncer`；`syncQuotaToNewAPI` 作为 PreCreditFunc |
+| `domain/billing/lot/consume.go` | `CreditFromLot` 接收 `beforeCommit ...PreCreditFunc`，事务前执行 |
+| `domain/billing/lot_confirm.go` | 4 个充值路径传入 `s.syncQuotaToNewAPI` |
+| `domain/billing/trial.go` | `SeedTrialCredit` 接收 `beforeCommit ...PreCreditFunc` |
+| `integration/newapi/user.go` | `ManageUser` 实现 `add_quota` + `mode: "add"` |
+| 测试 | mock QuotaSyncer 验证调用 |
 
 ---
 
@@ -162,8 +173,8 @@ billing service 增加了对 `adminport.Port` 的依赖。在 NewAPI 未配置�
 
 ## 决策
 
-采用**单向增量 TopUp**方案。相比旧 wallet_sync：
+采用**单向增量 PreCreditFunc**方案。相比旧 wallet_sync：
 - 删除了双向 reconcile 的全部复杂性
 - 删除了 River job + debounce + drift 检测
 - 保留了 NewAPI user quota 作为物理止损的安全属性
-- 失败容错由 bootstrap 启动补齐覆盖，无需定时任务
+- 同步失败直接阻止充值（不产生不一致），bootstrap 补齐仅作为历史数据的 safety net

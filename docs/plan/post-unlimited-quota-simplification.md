@@ -200,13 +200,15 @@ func resolveDepartmentID(ctx context.Context, d syncdeps.Deps, key types.Platfor
 
 ---
 
-## 六、NewAPI User Quota 同步策略（详见 ADR）
+## 六、NewAPI User Quota 同步策略（已实现）
 
 | 时机 | 操作 | 实现位置 |
 |------|------|---------|
-| 充值成功后 | `TopUp(walletCompanyID, quotaGranted)` | `billing/lot_confirm.go` 每个路径的 CreditFromLot 后 |
-| 应用启动 | `TopUp(walletCompanyID, max(0, walletRemainQuota - currentQuota))` | `provision/bootstrap.go` |
+| 充值成功前 | `PreCreditFunc: ManageUser("add_quota", quotaGranted)` | `billing/service.go` `syncQuotaToNewAPI` |
+| 应用启动 | `ManageUser("add_quota", max(0, walletRemainQuota - currentQuota))` | `provision/bootstrap.go` |
 | 消费 | **不需要操作** — NewAPI 消费时自动扣 user quota | — |
+
+**注意**：同步在事务前执行（PreCreditFunc）。失败时充值不执行，保证不出现"本地有余额但 NewAPI 拒绝"的不一致。
 
 ---
 
@@ -217,8 +219,9 @@ func resolveDepartmentID(ctx context.Context, d syncdeps.Deps, key types.Platfor
 | create.go 删 budget 计算 | 新 key 没有初始 combined_key_remain | 安全 — absoluteRecompute/rebalance/key创建后的 `RefreshPlatformKeyCombined` 覆盖 |
 | update.go 删 combined_key_remain 更新 | status/group 变更后 remain 不立即刷新 | 安全 — 调用方（keys domain）已自行调 `RefreshPlatformKeyCombined`；update.go 的是冗余 |
 | bootstrap TopUp to wallet_remain_quota | 启动前的消费可能让 NewAPI quota < tokenjoy wallet_remain_quota | 不可能 — NewAPI 消费和 tokenjoy ingest 扣同样的值 |
-| 充值后 TopUp 失败 | NewAPI user quota < wallet_remain_quota | 可接受 — 下次充值/启动补齐；Gateway precheck 仍正常 |
-| 充值后 TopUp 重复执行 | NewAPI user quota > wallet_remain_quota | 安全 — Gateway precheck 在 NewAPI 之前拦截；多余 quota 不造成安全风险 |
+| 充值后 PreCreditFunc 失败 | 充值不执行 | 用户重试即可，不产生不一致 |
+| PreCreditFunc 成功但本地 tx 失败 | NewAPI user quota > wallet_remain_quota | 安全 — Gateway precheck 在 NewAPI 之前拦截；多余 quota 在消费中自然扣减 |
+| 充值后重复执行 PreCreditFunc | NewAPI user quota > wallet_remain_quota | 安全 — 同上 |
 
 ### 调用链验证（update.go 的 combined 更新是冗余的证据）
 
@@ -258,38 +261,18 @@ func resolveDepartmentID(ctx context.Context, d syncdeps.Deps, key types.Platfor
 | `provision/bootstrap.go` | 新建 user 时 `Quota: co.WalletRemainQuota`；已有 user 时 `TopUp(walletCompanyID, max(0, co.WalletRemainQuota - currentQuota))` |
 | | 删除 `math` import 和 MaxInt32 常量 |
 
-### Phase 3：充值后 TopUp（新增功能）
+### Phase 3：充值时 PreCreditFunc 同步（已实现）
 
-**依赖注入**：`billing.NewService` 加一个 `adminport.Port` 参数（可为 nil）。调用方 `compose_domain_wire.go` → `wireBilling` 传入 `i.newAPIClient`（已存在的 adminport adapter）。
+**依赖注入**：`billing.NewService` 接收 `QuotaSyncer` 接口（可为 nil）。实现为 `integration/newapi/selfhealing.go` 的 `SelfHealingPort`。
 
-**walletCompanyID 获取路径**：`topUpNewAPIQuota` 内部调 `company.ResolveNewAPIWalletCompanyID(ctx, s.store.Company())`。先从 context 读缓存，fallback 查 DB。不需要每个 confirm 方法单独获取——统一在 `topUpNewAPIQuota` 里做。
+**实现方式**：`syncQuotaToNewAPI` 作为 `PreCreditFunc` 传入 `CreditFromLot`，在本地事务 commit 前执行。失败阻止充值。
 
 | 文件 | 改动 |
 |------|------|
-| `billing/service.go` | `service` struct 加 `adminClient adminport.Port`；`NewService` 签名加参数（nil-safe） |
-| `billing/wallet_topup.go`（新） | 实现 `topUpNewAPIQuota(ctx, companyID, delta int64)` |
-| `billing/lot_confirm.go` | 4 个路径在 CreditFromLot 成功后调 `s.topUpNewAPIQuota(ctx, companyID, lot.QuotaGranted)` |
-| `app/compose_domain_wire.go` | `wireBilling` 传入 adminport.Port |
-| 测试中 `NewService` 调用 | 增加 nil 参数（或 stub） |
-
-```go
-// wallet_topup.go
-func (s *service) topUpNewAPIQuota(ctx context.Context, delta int64) {
-    if s.adminClient == nil || delta <= 0 {
-        return
-    }
-    walletCompanyID, ok := company.ResolveNewAPIWalletCompanyID(ctx, s.store.Company())
-    if !ok {
-        return
-    }
-    if err := s.adminClient.TopUp(ctx, adminport.TopUpInput{
-        CompanyID: walletCompanyID,
-        Quota:     delta,
-    }); err != nil {
-        slog.Warn("topup: NewAPI TopUp failed", "company_id", company.CompanyID(ctx), "delta", delta, "error", err)
-    }
-}
-```
+| `billing/service.go` | `service` struct 加 `quotaSyncer QuotaSyncer`；`syncQuotaToNewAPI` 实现 PreCreditFunc 接口 |
+| `billing/lot/consume.go` | `CreditFromLot` 签名加 `beforeCommit ...PreCreditFunc` |
+| `billing/lot_confirm.go` | 4 个路径传入 `s.syncQuotaToNewAPI` |
+| `integration/newapi/user.go` | `ManageUser` 实现 `add_quota` + `mode: "add"` |
 
 ### Phase 4：测试
 
@@ -335,5 +318,5 @@ func (s *service) topUpNewAPIQuota(ctx context.Context, delta int64) {
 
 两层防线的不变量：`NewAPI user quota ≥ tokenjoy wallet_remain_quota`
 
-- 正常运行时始终成立（两者扣减量相等，TopUp 增量相等）
-- 唯一不一致窗口：TopUp HTTP 失败时（概率极低，下次充值/重启自动修复）
+- 正常运行时始终成立（两者扣减量相等，PreCreditFunc 增量相等）
+- 唯一不一致窗口：PreCreditFunc 成功但本地 tx 失败时（概率极低，多余 quota 在消费中自然扣减）

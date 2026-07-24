@@ -72,7 +72,7 @@ func buildRoles(members []types.Member) []types.Role {
 		permission.RoleAuditor,
 		permission.RoleAPICaller,
 	}
-	
+
 	presetRoleIDs := []uuid.UUID{
 		contract.IDRole1, // RoleSuperAdmin
 		contract.IDRole2, // RoleOrgAdmin
@@ -80,7 +80,7 @@ func buildRoles(members []types.Member) []types.Role {
 		contract.IDRole4, // RoleAuditor
 		contract.IDRole5, // RoleAPICaller
 	}
-	
+
 	var roles []types.Role
 	for i, name := range presetRoleNames {
 		roles = append(roles, types.Role{
@@ -92,7 +92,7 @@ func buildRoles(members []types.Member) []types.Role {
 			MemberCount: org.CountMembersByRole(members, name),
 		})
 	}
-	
+
 	// Add custom roles
 	roles = append(roles, types.Role{
 		ID:          contract.IDRoleBudgetApprover,
@@ -102,7 +102,7 @@ func buildRoles(members []types.Member) []types.Role {
 		Permissions: mustRoleGrantIDs(types.Role{Type: "custom", Name: permission.RoleBudgetApprover, Permissions: []string{"p-6"}}),
 		MemberCount: org.CountMembersByRole(members, permission.RoleBudgetApprover),
 	})
-	
+
 	return roles
 }
 
