@@ -33,8 +33,8 @@ func (h *Handler) Tree(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdateNode(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Budget       int64  `json:"budget"`
-		ReservedPool *int64 `json:"reservedPool"`
+		Budget       float64  `json:"budget"`
+		ReservedPool *float64 `json:"reservedPool"`
 	}
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
@@ -86,8 +86,8 @@ func (h *Handler) UpdateMemberBudget(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) ApplyAverageBudget(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		PersonalBudget int64 `json:"personalBudget"`
-		Recursive      bool  `json:"recursive"`
+		PersonalBudget float64 `json:"personalBudget"`
+		Recursive      bool    `json:"recursive"`
 	}
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)

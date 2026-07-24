@@ -45,7 +45,7 @@ func TestCreateDepartmentPersistsAndProvisions(t *testing.T) {
 		t.Fatal("budget node not created")
 	}
 	if budgetNode.Budget != 0 {
-		t.Fatalf("expected budget 0, got %d", budgetNode.Budget)
+		t.Fatalf("expected budget 0, got %v", budgetNode.Budget)
 	}
 
 	rules, err := common.LoadRoutingRules(ctx, st.Org().Nodes(), st.Models().Allowlist())
@@ -111,7 +111,7 @@ func TestDeleteDepartmentWithChildren422(t *testing.T) {
 	err := svc.DeleteDepartment(testutil.Ctx(), contract.IDDept2)
 	de := asDomainError(t, err)
 	if de.Status != domain.StatusUnprocessable {
-		t.Fatalf("expected 422, got %d", de.Status)
+		t.Fatalf("expected 422, got %v", de.Status)
 	}
 	if de.Message != domainorg.DeptDeleteBlockedMsg {
 		t.Fatalf("unexpected message %q", de.Message)
@@ -124,7 +124,7 @@ func TestDeleteDepartmentWithMembers422(t *testing.T) {
 	err := svc.DeleteDepartment(testutil.Ctx(), contract.IDDept3)
 	de := asDomainError(t, err)
 	if de.Status != domain.StatusUnprocessable {
-		t.Fatalf("expected 422, got %d", de.Status)
+		t.Fatalf("expected 422, got %v", de.Status)
 	}
 }
 

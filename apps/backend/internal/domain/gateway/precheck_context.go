@@ -22,7 +22,7 @@ type RoutingState struct {
 }
 
 type BudgetState struct {
-	Remain  *int64
+	Remain  *float64
 	Version int64
 }
 

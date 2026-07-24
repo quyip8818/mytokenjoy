@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { BudgetNode, ProjectView } from '@/api/types'
-import { displayToQuota, formatDisplayCurrency, quotaToDisplay } from '@/lib/quota-display'
+import { formatMoney } from '@/lib/quota-display'
 import { nodeReservedPool } from '../lib/mappers'
 
 type RowDraft = {
@@ -38,9 +38,9 @@ export function useBudgetAllocationEdit({
   function startEdit() {
     const initial: Record<string, RowDraft> = {}
     for (const child of children) {
-      initial[child.id] = { budget: String(quotaToDisplay(child.budget)) }
+      initial[child.id] = { budget: String(child.budget) }
     }
-    setReservedDraft(String(quotaToDisplay(nodeReservedPool(node))))
+    setReservedDraft(String(nodeReservedPool(node)))
     setDrafts(initial)
     setError(null)
     setEditing(true)
@@ -75,23 +75,23 @@ export function useBudgetAllocationEdit({
     const draftBudgets: Record<string, number> = {}
     for (const child of children) {
       const raw = drafts[child.id]?.budget
-      const displayValue = raw !== undefined ? parseFloat(raw) : quotaToDisplay(child.budget)
+      const displayValue = raw !== undefined ? parseFloat(raw) : child.budget
       if (Number.isNaN(displayValue) || displayValue < 0) {
         setError(`"${child.name}" 额度无效`)
         return false
       }
-      draftBudgets[child.id] = displayToQuota(displayValue)
+      draftBudgets[child.id] = displayValue
     }
     const reservedDisplay = parseFloat(reservedDraft)
     if (Number.isNaN(reservedDisplay) || reservedDisplay < 0) {
       setError('预留池余额无效')
       return false
     }
-    const reservedPool = displayToQuota(reservedDisplay)
+    const reservedPool = reservedDisplay
     const allocated = computeAllocated(draftBudgets, reservedPool)
     if (allocated > node.budget) {
       setError(
-        `分配总额 ${formatDisplayCurrency(allocated)} 超出节点额度 ${formatDisplayCurrency(node.budget)}`,
+        `分配总额 ${formatMoney(allocated)} 超出节点额度 ${formatMoney(node.budget)}`,
       )
       return false
     }
@@ -102,17 +102,12 @@ export function useBudgetAllocationEdit({
     if (!validate()) return
     setSaving(true)
     try {
-      const reservedPool = displayToQuota(parseFloat(reservedDraft))
-      // Update reserved pool first if changed
+      const reservedPool = parseFloat(reservedDraft)
       if (reservedPool !== nodeReservedPool(node)) {
         await onUpdateDepartment(node.id, { budget: node.budget, reservedPool })
       }
-      // Update children sequentially to avoid partial failures from parallel writes
       for (const child of children) {
-        const nextDisplay = parseFloat(
-          drafts[child.id]?.budget ?? String(quotaToDisplay(child.budget)),
-        )
-        const nextBudget = displayToQuota(nextDisplay)
+        const nextBudget = parseFloat(drafts[child.id]?.budget ?? String(child.budget))
         if (nextBudget !== child.budget) {
           await onUpdateDepartment(child.id, { budget: nextBudget })
         }
@@ -131,11 +126,9 @@ export function useBudgetAllocationEdit({
   for (const child of children) {
     const raw = drafts[child.id]?.budget
     const displayValue = raw !== undefined ? parseFloat(raw) : Number.NaN
-    draftBudgetMap[child.id] = Number.isNaN(displayValue)
-      ? child.budget
-      : displayToQuota(displayValue)
+    draftBudgetMap[child.id] = Number.isNaN(displayValue) ? child.budget : displayValue
   }
-  const reservedValue = editing ? displayToQuota(parseFloat(reservedDraft)) : nodeReservedPool(node)
+  const reservedValue = editing ? parseFloat(reservedDraft) : nodeReservedPool(node)
   const projectSum = nodeProjects.reduce((sum, project) => sum + project.budget, 0)
   const usedSum =
     Object.values(draftBudgetMap).reduce((sum, value) => sum + value, 0) +

@@ -17,8 +17,8 @@ func TestGetBudgetRemaining(t *testing.T) {
 	keys := snapshot.PlatformKeys
 
 	remaining := budget.GetBudgetRemaining(members, keys, contract.IDMember1)
-	if remaining != budgetfix.QuotaFromDisplay(3000) {
-		t.Fatalf("expected remaining %v (10000 personal - 7000 allocated), got %v", budgetfix.QuotaFromDisplay(3000), remaining)
+	if remaining != 3000 {
+		t.Fatalf("expected remaining %v (10000 personal - 7000 allocated), got %v", 3000, remaining)
 	}
 }
 
@@ -30,14 +30,14 @@ func TestBuildBudgetSummary(t *testing.T) {
 	reserved := budget.GetReservedPoolForMember(types.OrgNodesToBudgetTree(snapshot.OrgNodes), members, contract.IDMember1)
 
 	summary := budget.BuildBudgetSummary(members, keys, contract.IDMember1, reserved)
-	if summary.TotalBudget != budgetfix.QuotaFromDisplay(10000) {
-		t.Fatalf("expected total quota %v, got %v", budgetfix.QuotaFromDisplay(10000), summary.TotalBudget)
+	if summary.TotalBudget != 10000 {
+		t.Fatalf("expected total quota %v, got %v", 10000, summary.TotalBudget)
 	}
-	if summary.Remaining != budgetfix.QuotaFromDisplay(3000) {
-		t.Fatalf("expected remaining %v, got %v", budgetfix.QuotaFromDisplay(3000), summary.Remaining)
+	if summary.Remaining != 3000 {
+		t.Fatalf("expected remaining %v, got %v", 3000, summary.Remaining)
 	}
-	if summary.ReservedPool != budgetfix.QuotaFromDisplay(1500) {
-		t.Fatalf("expected reserved pool %v, got %v", budgetfix.QuotaFromDisplay(1500), summary.ReservedPool)
+	if summary.ReservedPool != 1500 {
+		t.Fatalf("expected reserved pool %v, got %v", 1500, summary.ReservedPool)
 	}
 }
 
@@ -57,7 +57,7 @@ func TestValidateMemberBudgetBelowAllocated(t *testing.T) {
 func TestValidateMemberBudgetExceedsDeptCapacity(t *testing.T) {
 	t.Parallel()
 	tree := []types.BudgetNode{
-		{ID: uuid.MustParse("00000000-0000-7000-0000-00000000dd03"), Budget: 20000, ReservedPool: budgetfix.Int64Ptr(2000)},
+		{ID: uuid.MustParse("00000000-0000-7000-0000-00000000dd03"), Budget: 20000, ReservedPool: budgetfix.FloatPtr(2000)},
 	}
 	members := []types.Member{
 		{ID: uuid.MustParse("00000000-0000-7000-0000-00000000ee01"), DepartmentID: uuid.MustParse("00000000-0000-7000-0000-00000000dd03"), PersonalBudget: 10000},

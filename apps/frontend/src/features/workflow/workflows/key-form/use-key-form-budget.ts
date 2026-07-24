@@ -2,15 +2,14 @@ import { useEffect, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import type { MemberBudgetSummary, PlatformKey, PlatformKeyScope } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
-import { useBillingExchange } from '@/features/session'
-import { formatDisplayCurrency } from '@/lib/quota-display'
+import { formatMoney } from '@/lib/quota-display'
 
 export function formatBudgetContext(
   summary: MemberBudgetSummary | null,
   department?: string,
 ): string {
   if (!summary) return department ? `部门：${department}` : ''
-  const parts = [`剩余额度 ${formatDisplayCurrency(summary.remaining)}`]
+  const parts = [`剩余额度 ${formatMoney(summary.remaining)}`]
   if (department) parts.unshift(department)
   return parts.join(' · ')
 }
@@ -35,7 +34,6 @@ export function useKeyFormBudget({
   injectedApis,
 }: UseKeyFormBudgetOptions) {
   const apis = useInjectedApis(injectedApis)
-  const { displayToQuota } = useBillingExchange()
   const [budgetState, setBudgetState] = useState<{
     memberId: string
     summary: MemberBudgetSummary
@@ -100,7 +98,7 @@ export function useKeyFormBudget({
     }
   }, [apis, effectiveMemberId, isCreate, projectId, scope])
 
-  const budgetQuota = displayToQuota(Number(budget) || 0)
+  const budgetQuota = Number(budget) || 0
   const budgetSummary = budgetState?.memberId === effectiveMemberId ? budgetState.summary : null
   const budgetInsufficient =
     isCreate &&
@@ -142,7 +140,6 @@ export interface UseKeyFormStateOptions {
   defaultMemberId: string
   initialTargetMemberId?: string
   initialName?: string
-  /** Display-currency initial budget (optional). Quota budgets come from key.budget. */
   initialBudget?: string
 }
 
@@ -154,13 +151,12 @@ export function useKeyFormState({
   initialName,
   initialBudget,
 }: UseKeyFormStateOptions) {
-  const { quotaToDisplay } = useBillingExchange()
   const [step, setStep] = useState(1)
   const [name, setName] = useState(key?.name ?? initialName ?? '')
   const [budget, setBudget] = useState(() => {
-    if (key != null) return String(quotaToDisplay(key.budget))
+    if (key != null) return String(key.budget)
     if (initialBudget != null) return initialBudget
-    return String(quotaToDisplay(5000))
+    return '5000'
   })
   const [models, setModels] = useState<string[]>(key?.modelWhitelist ?? [])
   const [targetMemberId, setTargetMemberId] = useState(

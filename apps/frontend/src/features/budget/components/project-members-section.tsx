@@ -3,7 +3,7 @@ import type { ProjectView, Member } from '@/api/types'
 import { ApiError } from '@/api/client'
 import { toast } from 'sonner'
 import { budgetApi } from '@/api/budget'
-import { formatDisplayCurrency } from '@/lib/quota-display'
+import { formatMoney } from '@/lib/quota-display'
 import { BudgetMemberPicker } from './budget-member-picker'
 import {
   Dialog,
@@ -146,7 +146,7 @@ export function ProjectMembersSection({
                   <TableRow key={m.id} className="even:bg-muted/40 hover:bg-muted/50">
                     <TableCell className="font-medium">{m.alias}</TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatDisplayCurrency(memberBudget)}
+                      {formatMoney(memberBudget)}
                       {isCurrentUser && (
                         <Button
                           variant="link"
@@ -166,7 +166,7 @@ export function ProjectMembersSection({
                       )}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatDisplayCurrency(memberConsumed)}
+                      {formatMoney(memberConsumed)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums text-muted-foreground">
                       {memberPct}%

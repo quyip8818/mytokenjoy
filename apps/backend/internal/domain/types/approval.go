@@ -54,7 +54,7 @@ type KeyApprovalMeta struct {
 }
 
 type MemberBudgetApprovalMeta struct {
-	Amount         int64     `json:"amount"`
+	Amount         float64   `json:"amount"`
 	Reason         string    `json:"reason"`
 	DepartmentID   uuid.UUID `json:"departmentId"`
 	DepartmentName string    `json:"departmentName"`
@@ -63,13 +63,13 @@ type MemberBudgetApprovalMeta struct {
 type ProjectBudgetApprovalMeta struct {
 	ProjectID   uuid.UUID `json:"projectId"`
 	ProjectName string    `json:"projectName"`
-	Amount      int64     `json:"amount"`
+	Amount      float64   `json:"amount"`
 	Reason      string    `json:"reason"`
 }
 
 type ProjectMemberBudgetApprovalMeta struct {
 	ProjectID   uuid.UUID `json:"projectId"`
 	ProjectName string    `json:"projectName"`
-	Amount      int64     `json:"amount"`
+	Amount      float64   `json:"amount"`
 	Reason      string    `json:"reason"`
 }

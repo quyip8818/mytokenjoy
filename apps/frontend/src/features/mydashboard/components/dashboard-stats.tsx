@@ -6,7 +6,7 @@ import type {
   UsageStats,
 } from '@/api/types/mydashboard'
 import { MyStatGroup } from '@/features/mydashboard'
-import { formatDisplayCurrency, formatMoney } from '@/lib/quota-display'
+import { formatMoney } from '@/lib/quota-display'
 
 interface MyDashboardStatsProps {
   loading: boolean
@@ -31,7 +31,7 @@ export function MyDashboardStats({
         items={[
           {
             label: '预算剩余',
-            value: loading ? '—' : formatDisplayCurrency(accountData.budgetRemaining),
+            value: loading ? '—' : formatMoney(accountData.budgetRemaining),
             icon: Coins,
           },
           {

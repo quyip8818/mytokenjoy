@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Pencil } from 'lucide-react'
-import { displayToQuota, formatDisplayCurrency, quotaToDisplay } from '@/lib/quota-display'
+import { formatMoney } from '@/lib/quota-display'
 
 type ProjectSettingsFormProps = {
   project: ProjectView
@@ -44,7 +44,7 @@ export function ProjectSettingsForm({
   const ownerName = members.find((m) => m.id === project.ownerId)?.alias ?? '未设置'
 
   function openDialog() {
-    setDraftBudget(String(quotaToDisplay(project.budget)))
+    setDraftBudget(String(project.budget))
     setDraftOwnerId(project.ownerId ?? '')
     setDialogOpen(true)
   }
@@ -55,13 +55,13 @@ export function ProjectSettingsForm({
       toast.error('请输入有效的额度')
       return
     }
-    if (budgetNum < quotaToDisplay(project.consumed)) {
-      toast.error(`额度不能低于已消耗 ${formatDisplayCurrency(project.consumed)}`)
+    if (budgetNum < project.consumed) {
+      toast.error(`额度不能低于已消耗 ${formatMoney(project.consumed)}`)
       return
     }
     setSaving(true)
     try {
-      const data: { budget?: number; ownerId?: string } = { budget: displayToQuota(budgetNum) }
+      const data: { budget?: number; ownerId?: string } = { budget: budgetNum }
       if (draftOwnerId && draftOwnerId !== project.ownerId) {
         data.ownerId = draftOwnerId
       }
@@ -97,7 +97,7 @@ export function ProjectSettingsForm({
           <div className="grid gap-1.5">
             <Label className="text-xs text-muted-foreground">项目额度（元）</Label>
             <p className="text-sm font-medium tabular-nums">
-              {formatDisplayCurrency(project.budget)}
+              {formatMoney(project.budget)}
             </p>
           </div>
           <div className="grid gap-1.5">
@@ -109,7 +109,7 @@ export function ProjectSettingsForm({
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>本月消耗进度</span>
             <span className="tabular-nums">
-              {formatDisplayCurrency(project.consumed)} / {formatDisplayCurrency(project.budget)} (
+              {formatMoney(project.consumed)} / {formatMoney(project.budget)} (
               {pct}%)
             </span>
           </div>
@@ -139,7 +139,7 @@ export function ProjectSettingsForm({
                 autoFocus
               />
               <p className="text-xs text-muted-foreground">
-                已消耗：{formatDisplayCurrency(project.consumed)}
+                已消耗：{formatMoney(project.consumed)}
               </p>
             </div>
             {members.length > 0 && (

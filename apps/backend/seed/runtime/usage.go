@@ -53,10 +53,10 @@ func buildUsageBuckets(refDate string) []types.UsageBucketRow {
 	currentMonth := time.Date(anchor.Year(), anchor.Month(), 1, 0, 0, 0, 0, time.UTC)
 	lastMonth := currentMonth.AddDate(0, -1, 0)
 
-	// DemoLeafDeptConsumed is already in quota (×QPU). Entry sketch costs are display yuan.
-	rootQuota := contract.DemoRootConsumed()
+	// DemoRootConsumed is display currency; entry sketch costs are also display yuan.
+	rootDisplay := contract.DemoRootConsumed()
 	const rawDisplayTotal = 39.5
-	quotaScale := float64(rootQuota) / rawDisplayTotal
+	displayScale := rootDisplay / rawDisplayTotal
 	ppu := float64(common.DefaultQuotaPerUnit)
 
 	type entry struct {
@@ -109,14 +109,14 @@ func buildUsageBuckets(refDate string) []types.UsageBucketRow {
 	}
 
 	toBucket := func(e entry, when time.Time) types.UsageBucketRow {
-		quota := e.cost * quotaScale
+		display := e.cost * displayScale
 		return types.UsageBucketRow{
 			BucketStart:   when,
 			DepartmentID:  e.dept,
 			MemberID:      e.member,
 			Model:         e.model,
-			QuotaConsumed: int64(quota),
-			DisplayCost:   quota / ppu,
+			QuotaConsumed: int64(display * ppu),
+			DisplayCost:   display,
 			CallCount:     e.calls,
 		}
 	}

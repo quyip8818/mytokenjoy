@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { ApiError } from '@/api/client'
 import { FormDialog } from '@/components/ui/form-dialog'
 import { Input } from '@/components/ui/input'
-import { displayToQuota, formatDisplayCurrency, quotaToDisplay } from '@/lib/quota-display'
+import { formatMoney } from '@/lib/quota-display'
 
 interface BudgetAllocationDialogProps {
   open: boolean
@@ -39,7 +39,7 @@ export function BudgetAllocationDialog({
     } else {
       const initial: Record<string, string> = {}
       for (const child of children) {
-        initial[child.id] = String(quotaToDisplay(child.budget))
+        initial[child.id] = String(child.budget)
       }
       setDrafts(initial)
       setError(null)
@@ -51,26 +51,26 @@ export function BudgetAllocationDialog({
     setError(null)
     const updates: { id: string; budget: number }[] = []
     for (const child of children) {
-      const raw = drafts[child.id] ?? String(quotaToDisplay(child.budget))
+      const raw = drafts[child.id] ?? String(child.budget)
       const value = parseFloat(raw)
       if (Number.isNaN(value) || value < 0) {
         setError(`"${child.name}" 额度无效`)
         return
       }
-      const budget = displayToQuota(value)
+      const budget = value
       if (budget !== child.budget) {
         updates.push({ id: child.id, budget })
       }
     }
 
     const newChildSum = children.reduce((sum, child) => {
-      const raw = drafts[child.id] ?? String(quotaToDisplay(child.budget))
-      return sum + displayToQuota(parseFloat(raw))
+      const raw = drafts[child.id] ?? String(child.budget)
+      return sum + parseFloat(raw)
     }, 0)
     const projectSum = nodeProjects.reduce((sum, p) => sum + p.budget, 0)
     if (newChildSum + projectSum > node.budget) {
       setError(
-        `分配总额 ${formatDisplayCurrency(newChildSum + projectSum)} 超出节点额度 ${formatDisplayCurrency(node.budget)}`,
+        `分配总额 ${formatMoney(newChildSum + projectSum)} 超出节点额度 ${formatMoney(node.budget)}`,
       )
       return
     }
@@ -107,7 +107,7 @@ export function BudgetAllocationDialog({
             <Input
               type="number"
               min={0}
-              value={drafts[child.id] ?? String(quotaToDisplay(child.budget))}
+              value={drafts[child.id] ?? String(child.budget)}
               onChange={(e) => {
                 setDrafts((prev) => ({ ...prev, [child.id]: e.target.value }))
                 setError(null)
@@ -116,7 +116,7 @@ export function BudgetAllocationDialog({
               placeholder="元"
             />
             <span className="w-20 text-right text-xs tabular-nums text-muted-foreground">
-              已消耗 {formatDisplayCurrency(child.consumed)}
+              已消耗 {formatMoney(child.consumed)}
             </span>
           </div>
         ))}

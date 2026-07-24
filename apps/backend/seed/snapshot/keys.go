@@ -47,7 +47,7 @@ func loadPlatformKeys() []types.PlatformKey {
 		keys[i] = types.PlatformKey{
 			ID: uuid.MustParse(item.ID), Name: item.Name, KeyPrefix: item.KeyPrefix, Scope: item.Scope,
 			MemberID: memberID, ProjectID: projectID,
-			Status: item.Status, Budget: seedQuota(item.Budget),
+			Status: item.Status, Budget: item.Budget,
 			ModelWhitelist: modelWhitelist,
 			CreatedAt:      item.CreatedAt, ExpiresAt: item.ExpiresAt,
 		}

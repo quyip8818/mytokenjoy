@@ -31,7 +31,7 @@ func newApprovalEngine(t *testing.T) (*domainapproval.Engine, store.Store) {
 }
 
 // setReservedPool sets the reserved pool for a department in the test store.
-func setReservedPool(t *testing.T, st store.Store, deptID uuid.UUID, reserved int64) {
+func setReservedPool(t *testing.T, st store.Store, deptID uuid.UUID, reserved float64) {
 	t.Helper()
 	ctx := testutil.Ctx()
 	row, found, err := st.Budget().OrgNodeBudget().Get(ctx, deptID)
@@ -47,7 +47,7 @@ func setReservedPool(t *testing.T, st store.Store, deptID uuid.UUID, reserved in
 	}
 }
 
-func getReservedPool(t *testing.T, st store.Store, deptID uuid.UUID) int64 {
+func getReservedPool(t *testing.T, st store.Store, deptID uuid.UUID) float64 {
 	t.Helper()
 	ctx := testutil.Ctx()
 	row, found, err := st.Budget().OrgNodeBudget().Get(ctx, deptID)
@@ -66,7 +66,7 @@ func TestKeyApproval_DeductsReservedPoolOnTopUp(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	// Set a known reserved pool for dept3 (IDMember1's department)
-	const initialReserved int64 = 50_000_000_000 // 100k CNY in quota
+	const initialReserved float64 = 50_000_000_000 // 100k CNY in quota
 	setReservedPool(t, st, contract.IDDept3, initialReserved)
 
 	// Zero out member1's personal budget so any key request needs a top-up
@@ -99,7 +99,7 @@ func TestKeyApproval_DeductsReservedPoolOnTopUp(t *testing.T) {
 	}
 
 	// Request a key — since personalBudget=0 and no existing keys, all budget needs top-up
-	const requestedBudget int64 = 1_000_000 // 2 CNY
+	const requestedBudget float64 = 1_000_000 // 2 CNY
 	meta, _ := json.Marshal(types.KeyApprovalMeta{
 		Reason:          "need a key",
 		RequestedBudget: float64(requestedBudget),
@@ -131,7 +131,7 @@ func TestKeyApproval_DeductsReservedPoolOnTopUp(t *testing.T) {
 	after := getReservedPool(t, st, contract.IDDept3)
 	deducted := initialReserved - after
 	if deducted != requestedBudget {
-		t.Fatalf("expected reserved pool deduction of %d, got %d (before=%d after=%d)",
+		t.Fatalf("expected reserved pool deduction of %v, got %v (before=%v after=%v)",
 			requestedBudget, deducted, initialReserved, after)
 	}
 }
@@ -172,11 +172,11 @@ func TestKeyApproval_NoDeductionWhenSufficientRemaining(t *testing.T) {
 	}
 
 	// Set reserved pool
-	const initialReserved int64 = 50_000_000_000
+	const initialReserved float64 = 50_000_000_000
 	setReservedPool(t, st, contract.IDDept3, initialReserved)
 
 	// Request a small key that fits within existing budget
-	const requestedBudget int64 = 1_000_000
+	const requestedBudget float64 = 1_000_000
 	meta, _ := json.Marshal(types.KeyApprovalMeta{
 		Reason:          "small key",
 		RequestedBudget: float64(requestedBudget),
@@ -205,7 +205,7 @@ func TestKeyApproval_NoDeductionWhenSufficientRemaining(t *testing.T) {
 	// Reserved pool should be unchanged
 	after := getReservedPool(t, st, contract.IDDept3)
 	if after != initialReserved {
-		t.Fatalf("expected reserved pool unchanged at %d, got %d", initialReserved, after)
+		t.Fatalf("expected reserved pool unchanged at %v, got %v", initialReserved, after)
 	}
 }
 

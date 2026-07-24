@@ -8,7 +8,6 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
-	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
 func TestOrgNodeBudgetRepositoryRoundTrip(t *testing.T) {
@@ -17,7 +16,7 @@ func TestOrgNodeBudgetRepositoryRoundTrip(t *testing.T) {
 	ctx := testutil.Ctx()
 	repo := st.Budget().OrgNodeBudget()
 
-	reserved := budgetfix.QuotaFromDisplay(800)
+	reserved := 800.0
 	row := store.OrgNodeBudgetRow{
 		NodeID: contract.IDDept3, Budget: 900, ReservedPool: &reserved,
 		Period: pkgbudget.PeriodMonthly, MemberAvgBudget: 120,
@@ -50,7 +49,7 @@ func TestPersistNodeBudgetPreservesPeriodAndMemberAvg(t *testing.T) {
 	if err != nil || !found {
 		t.Fatalf("seed budget missing: found=%v err=%v", found, err)
 	}
-	newBudget := budgetfix.QuotaFromDisplay(22000)
+	newBudget := 22000.0
 	if err := pkgbudget.PersistNodeBudget(ctx, repo, contract.IDDept3, types.BudgetNode{
 		Budget: newBudget, ReservedPool: before.ReservedPool,
 	}); err != nil {
@@ -81,7 +80,7 @@ func TestPersistMemberAvgBudgetUpdatesOnlyMemberAvg(t *testing.T) {
 	if err != nil || !found {
 		t.Fatalf("seed budget missing: found=%v err=%v", found, err)
 	}
-	wantAvg := budgetfix.QuotaFromDisplay(16000)
+	wantAvg := 16000.0
 	if err := pkgbudget.PersistMemberAvgBudget(ctx, repo, contract.IDDept3, wantAvg); err != nil {
 		t.Fatal(err)
 	}
@@ -103,8 +102,8 @@ func TestSetTreeDoesNotOverwriteOrgNodeBudget(t *testing.T) {
 	ctx := testutil.Ctx()
 	repo := st.Budget().OrgNodeBudget()
 
-	wantBudget := budgetfix.QuotaFromDisplay(20500)
-	reserved := budgetfix.QuotaFromDisplay(1500)
+	wantBudget := 20500.0
+	reserved := 1500.0
 	if err := repo.Upsert(ctx, contract.IDDept3, store.OrgNodeBudgetRow{
 		NodeID: contract.IDDept3, Budget: wantBudget, ReservedPool: &reserved,
 		Period: pkgbudget.PeriodMonthly,

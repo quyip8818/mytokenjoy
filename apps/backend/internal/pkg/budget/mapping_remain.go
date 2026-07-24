@@ -2,6 +2,7 @@ package budget
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -10,6 +11,9 @@ import (
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
+
+// ErrUncappedRemain means no management budget constraints apply; combined_key_remain must stay NULL.
+var ErrUncappedRemain = errors.New("budget remain uncapped")
 
 // MappingStores groups repositories needed to compute remain budget for a platform key mapping.
 type MappingStores struct {
@@ -30,7 +34,7 @@ func ComputeRemainForMapping(
 	budgetRepo store.BudgetRepository,
 	mapping store.PlatformKeyMapping,
 	periodKey string,
-) (int64, error) {
+) (float64, error) {
 	if mapping.DepartmentID == uuid.Nil {
 		return 0, fmt.Errorf("department not found")
 	}
@@ -45,7 +49,10 @@ func ComputeRemainForMapping(
 	if err != nil {
 		return 0, err
 	}
-	remain, _ := GatewayChainRemain(key.Scope, inputs)
+	remain, _, uncapped := GatewayChainRemain(key.Scope, inputs)
+	if uncapped {
+		return 0, ErrUncappedRemain
+	}
 	return remain, nil
 }
 
@@ -125,9 +132,9 @@ func BuildChainInputs(
 
 // PreloadedConsumed holds batch-loaded consumed data for all three axes, keyed by periodKey then axisID.
 type PreloadedConsumed struct {
-	Key     map[string]map[uuid.UUID]int64 // periodKey → keyID → consumed
-	Member  map[string]map[uuid.UUID]int64 // periodKey → memberID → consumed
-	Project map[string]map[uuid.UUID]int64 // periodKey → projectID → consumed
+	Key     map[string]map[uuid.UUID]float64 // periodKey → keyID → consumed
+	Member  map[string]map[uuid.UUID]float64 // periodKey → memberID → consumed
+	Project map[string]map[uuid.UUID]float64 // periodKey → projectID → consumed
 }
 
 // PreloadConsumed batch-loads consumed for all three axes across the given period keys in 3 SQL calls.
@@ -148,8 +155,8 @@ func PreloadConsumed(ctx context.Context, consumed store.BudgetConsumedRepositor
 	return PreloadedConsumed{Key: keyConsumed, Member: memberConsumed, Project: projectConsumed}, nil
 }
 
-func (p PreloadedConsumed) getConsumed(axisKind string, axisID uuid.UUID, periodKey string) int64 {
-	var m map[string]map[uuid.UUID]int64
+func (p PreloadedConsumed) getConsumed(axisKind string, axisID uuid.UUID, periodKey string) float64 {
+	var m map[string]map[uuid.UUID]float64
 	switch axisKind {
 	case store.AxisKindPlatformKey:
 		m = p.Key
@@ -226,7 +233,7 @@ func ComputeRemainForMappingPreloaded(
 	preloaded PreloadedConsumed,
 	mapping store.PlatformKeyMapping,
 	periodKey string,
-) (int64, error) {
+) (float64, error) {
 	if mapping.DepartmentID == uuid.Nil {
 		return 0, fmt.Errorf("department not found")
 	}
@@ -241,6 +248,9 @@ func ComputeRemainForMappingPreloaded(
 	if err != nil {
 		return 0, err
 	}
-	remain, _ := GatewayChainRemain(key.Scope, inputs)
+	remain, _, uncapped := GatewayChainRemain(key.Scope, inputs)
+	if uncapped {
+		return 0, ErrUncappedRemain
+	}
 	return remain, nil
 }

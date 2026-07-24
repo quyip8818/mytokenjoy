@@ -173,7 +173,7 @@ var anchorPersonalBudgets = map[uuid.UUID]float64{
 func applyMemberPersonalBudgets(members []types.Member) {
 	for i := range members {
 		if amount, ok := anchorPersonalBudgets[members[i].ID]; ok {
-			members[i].PersonalBudget = common.QuotaFromAmount(amount, common.DefaultQuotaPerUnit)
+			members[i].PersonalBudget = amount
 			continue
 		}
 		members[i].PersonalBudget = common.DefaultPersonalBudget

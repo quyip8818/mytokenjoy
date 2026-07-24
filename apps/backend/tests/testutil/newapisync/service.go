@@ -81,7 +81,7 @@ type PendingPlatformKeyOpts struct {
 	Name           string
 	MemberID       uuid.UUID
 	DepartmentID   uuid.UUID
-	Budget         int64
+	Budget         float64
 	ModelWhitelist []uuid.UUID
 }
 

@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { displayToQuota, formatDisplayCurrency, quotaToDisplay } from '@/lib/quota-display'
+import { formatMoney } from '@/lib/quota-display'
 import { cn } from '@/lib/utils'
 import { Pencil, Check, X, Loader2 } from 'lucide-react'
 
@@ -90,7 +90,7 @@ function BudgetMemberBudgetDialogBody({
 
   const startEdit = useCallback((member: MemberBudget) => {
     setEditingId(member.memberId)
-    setDraft(String(quotaToDisplay(member.personalBudget)))
+    setDraft(String(member.personalBudget))
   }, [])
 
   const cancelEdit = useCallback(() => {
@@ -109,7 +109,7 @@ function BudgetMemberBudgetDialogBody({
       setSaving(true)
       try {
         const updated = await updateMemberBudget(memberId, {
-          personalBudget: displayToQuota(value),
+          personalBudget: value,
         })
         setMemberBudgets((prev) =>
           prev.map((item) => (item.memberId === memberId ? updated : item)),
@@ -210,12 +210,12 @@ function MemberRow({
           />
         ) : (
           <span className="text-muted-foreground">
-            {formatDisplayCurrency(member.personalBudget)}
+            {formatMoney(member.personalBudget)}
           </span>
         )}
       </td>
       <td className="py-2 tabular-nums text-muted-foreground">
-        {formatDisplayCurrency(member.consumed)}
+        {formatMoney(member.consumed)}
       </td>
       <td className="py-2 text-right">
         {editing ? (

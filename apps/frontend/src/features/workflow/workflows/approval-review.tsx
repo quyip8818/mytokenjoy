@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { useWorkflow } from '../hooks/use-workflow'
 import { workflowErrorMessage } from '../lib/error-message'
 import { useModelLabels } from '@/features/models'
-import { formatDisplayCurrency } from '@/lib/quota-display'
+import { formatMoney } from '@/lib/quota-display'
 
 const TYPE_LABELS: Record<string, string> = {
   key: 'Key 申请',
@@ -134,7 +134,7 @@ export function ApprovalReviewWorkflow({
           {requestedBudget > 0 && (
             <div>
               <h4 className="text-sm font-medium text-muted-foreground mb-1">申请额度</h4>
-              <p className="text-lg font-semibold">{formatDisplayCurrency(requestedBudget)}</p>
+              <p className="text-lg font-semibold">{formatMoney(requestedBudget)}</p>
             </div>
           )}
           {requestedModels.length > 0 && (

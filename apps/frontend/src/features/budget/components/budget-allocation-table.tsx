@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { displayToQuota, formatDisplayCurrency, quotaToDisplay } from '@/lib/quota-display'
+import { formatMoney } from '@/lib/quota-display'
 
 type BudgetAllocationTableProps = {
   node: BudgetNode
@@ -52,10 +52,10 @@ export function BudgetAllocationTable({
           {children.map((child) => {
             const childPct =
               child.budget > 0 ? Math.round((child.consumed / child.budget) * 100) : 0
-            const draftBudget = drafts[child.id]?.budget ?? String(quotaToDisplay(child.budget))
+            const draftBudget = drafts[child.id]?.budget ?? String(child.budget)
             const draftValue = parseFloat(draftBudget)
             const budgetOver =
-              editing && !Number.isNaN(draftValue) && displayToQuota(draftValue) > node.budget
+              editing && !Number.isNaN(draftValue) && draftValue > node.budget
 
             return (
               <TableRow key={child.id} className="even:bg-muted/40 hover:bg-muted/50">
@@ -74,11 +74,11 @@ export function BudgetAllocationTable({
                       )}
                     />
                   ) : (
-                    <span className="tabular-nums">{formatDisplayCurrency(child.budget)}</span>
+                    <span className="tabular-nums">{formatMoney(child.budget)}</span>
                   )}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {formatDisplayCurrency(child.consumed)}
+                  {formatMoney(child.consumed)}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -101,10 +101,10 @@ export function BudgetAllocationTable({
                   <span className="ml-1.5 text-xs text-muted-foreground/60">(项目)</span>
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {formatDisplayCurrency(project.budget)}
+                  {formatMoney(project.budget)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {formatDisplayCurrency(project.consumed)}
+                  {formatMoney(project.consumed)}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">

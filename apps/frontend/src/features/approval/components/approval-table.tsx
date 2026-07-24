@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { formatDisplayCurrency } from '@/lib/quota-display'
+import { formatMoney } from '@/lib/quota-display'
 
 const TYPE_LABELS: Record<string, string> = {
   key: 'Key 申请',
@@ -106,7 +106,7 @@ export function ApprovalTable({ approvals, onApprove, onReject, onRetry }: Appro
             <TableCell className="max-w-48 truncate text-sm">{getReason(approval)}</TableCell>
             <TableCell className="text-right tabular-nums">
               {getDisplayAmount(approval) != null
-                ? formatDisplayCurrency(getDisplayAmount(approval)!)
+                ? formatMoney(getDisplayAmount(approval)!)
                 : '—'}
             </TableCell>
             <TableCell>

@@ -14,12 +14,12 @@ func ctx() context.Context {
 	return company.DefaultContext(contract.DefaultCompanyID)
 }
 
-func SnapshotConsumed(t *testing.T, st store.Store, axisKind string, axisID uuid.UUID) int64 {
+func SnapshotConsumed(t *testing.T, st store.Store, axisKind string, axisID uuid.UUID) float64 {
 	t.Helper()
 	return SnapshotConsumedAtPeriod(t, st, axisKind, axisID, contract.DemoBudgetPeriod)
 }
 
-func SnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind string, axisID uuid.UUID, periodKey string) int64 {
+func SnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind string, axisID uuid.UUID, periodKey string) float64 {
 	t.Helper()
 	ctx := ctx()
 	consumed, found, err := st.BudgetConsumed().GetConsumed(ctx, axisKind, axisID, periodKey)
@@ -32,17 +32,17 @@ func SnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind string, axi
 	return consumed
 }
 
-func PlatformKeySnapshotConsumed(t *testing.T, st store.Store, keyID uuid.UUID) int64 {
+func PlatformKeySnapshotConsumed(t *testing.T, st store.Store, keyID uuid.UUID) float64 {
 	t.Helper()
 	return SnapshotConsumed(t, st, store.AxisKindPlatformKey, keyID)
 }
 
-func SetPlatformKeySnapshotConsumed(t *testing.T, st store.Store, keyID uuid.UUID, consumed int64) {
+func SetPlatformKeySnapshotConsumed(t *testing.T, st store.Store, keyID uuid.UUID, consumed float64) {
 	t.Helper()
 	SetSnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, keyID, contract.DemoBudgetPeriod, consumed)
 }
 
-func SetSnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind string, axisID uuid.UUID, periodKey string, consumed int64) {
+func SetSnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind string, axisID uuid.UUID, periodKey string, consumed float64) {
 	t.Helper()
 	ctx := ctx()
 	if err := st.BudgetConsumed().SetConsumed(ctx, axisKind, axisID, periodKey, consumed); err != nil {
@@ -50,7 +50,7 @@ func SetSnapshotConsumedAtPeriod(t *testing.T, st store.Store, axisKind string, 
 	}
 }
 
-func SetProjectSnapshotConsumed(t *testing.T, st store.Store, projectID uuid.UUID, consumed int64) {
+func SetProjectSnapshotConsumed(t *testing.T, st store.Store, projectID uuid.UUID, consumed float64) {
 	t.Helper()
 	ctx := ctx()
 	if err := st.BudgetConsumed().SetConsumed(ctx, store.AxisKindProject, projectID, contract.DemoBudgetPeriod, consumed); err != nil {
@@ -58,7 +58,7 @@ func SetProjectSnapshotConsumed(t *testing.T, st store.Store, projectID uuid.UUI
 	}
 }
 
-func SetMemberSnapshotConsumed(t *testing.T, st store.Store, memberID uuid.UUID, consumed int64) {
+func SetMemberSnapshotConsumed(t *testing.T, st store.Store, memberID uuid.UUID, consumed float64) {
 	t.Helper()
 	ctx := ctx()
 	if err := st.BudgetConsumed().SetConsumed(ctx, store.AxisKindMember, memberID, contract.DemoBudgetPeriod, consumed); err != nil {
@@ -66,7 +66,7 @@ func SetMemberSnapshotConsumed(t *testing.T, st store.Store, memberID uuid.UUID,
 	}
 }
 
-func SetCombinedKeyRemain(t *testing.T, st store.Store, keyID uuid.UUID, remain int64) {
+func SetCombinedKeyRemain(t *testing.T, st store.Store, keyID uuid.UUID, remain float64) {
 	t.Helper()
 	ctx := ctx()
 	if _, err := st.CombinedKeySummaries().UpdateBatch(ctx, []store.CombinedKeySummaryUpdate{
@@ -76,7 +76,7 @@ func SetCombinedKeyRemain(t *testing.T, st store.Store, keyID uuid.UUID, remain 
 	}
 }
 
-func CombinedKeyRemain(t *testing.T, st store.Store, keyID uuid.UUID) (remain *int64, version int64) {
+func CombinedKeyRemain(t *testing.T, st store.Store, keyID uuid.UUID) (remain *float64, version int64) {
 	t.Helper()
 	ctx := ctx()
 	items, err := st.CombinedKeySummaries().ListByPlatformKeyIDs(ctx, []uuid.UUID{keyID})

@@ -25,7 +25,7 @@ func TestLoadPlatformKeysWithUsedResolvesDepartmentPeriod(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var used int64
+	var used float64
 	for _, key := range keys {
 		if key.ID == contract.IDPlatformKey1 {
 			used = key.Consumed
@@ -50,7 +50,7 @@ func TestLoadProjectsWithConsumedUsesOpenPeriod(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var consumed int64
+	var consumed float64
 	for _, project := range projects {
 		if project.ID == contract.IDProject1 {
 			consumed = project.Consumed

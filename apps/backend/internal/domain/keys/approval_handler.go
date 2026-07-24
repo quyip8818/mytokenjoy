@@ -21,7 +21,7 @@ import (
 // keyApproveResult carries data produced in OnApprovedTx to PostApprove/Compensate.
 type keyApproveResult struct {
 	createdKeyID        uuid.UUID
-	personalBudgetAdded int64
+	personalBudgetAdded float64
 	departmentID        uuid.UUID
 }
 
@@ -81,7 +81,7 @@ func (h *KeyApprovalHandler) PreApprove(ctx context.Context, req types.ApprovalR
 		return err
 	}
 	reservedPool := budget.GetReservedPoolForMember(budgetCtx.Tree, budgetCtx.Members, req.ApplicantID)
-	if int64(meta.RequestedBudget) > reservedPool {
+	if float64(meta.RequestedBudget) > reservedPool {
 		return domain.Validation("Reserved pool insufficient")
 	}
 	return nil
@@ -105,9 +105,9 @@ func (h *KeyApprovalHandler) OnApprovedTx(ctx context.Context, req types.Approva
 		return nil, err
 	}
 
-	keyBudget := int64(meta.RequestedBudget)
+	keyBudget := meta.RequestedBudget
 	remaining := budget.GetBudgetRemaining(members, platformKeys, req.ApplicantID)
-	var personalBudgetAdded int64
+	var personalBudgetAdded float64
 	if keyBudget > remaining {
 		personalBudgetAdded = keyBudget - remaining
 		members = budget.AddMemberPersonalBudget(members, req.ApplicantID, personalBudgetAdded)
@@ -149,7 +149,7 @@ func (h *KeyApprovalHandler) OnApprovedTx(ctx context.Context, req types.Approva
 			return nil, err
 		}
 		if found {
-			reserved := int64(0)
+			reserved := float64(0)
 			if row.ReservedPool != nil {
 				reserved = *row.ReservedPool
 			}
@@ -220,7 +220,7 @@ func (h *KeyApprovalHandler) Compensate(ctx context.Context, req types.ApprovalR
 					return err
 				}
 				if found {
-					reserved := int64(0)
+					reserved := float64(0)
 					if row.ReservedPool != nil {
 						reserved = *row.ReservedPool
 					}
@@ -254,9 +254,9 @@ func (h *KeyApprovalHandler) PreCheck(ctx context.Context, req types.ApprovalReq
 	}
 	reservedPool := budget.GetReservedPoolForMember(budgetCtx.Tree, budgetCtx.Members, req.ApplicantID)
 	return json.Marshal(map[string]any{
-		"sufficient":   reservedPool >= int64(meta.RequestedBudget),
+		"sufficient":   reservedPool >= float64(meta.RequestedBudget),
 		"reservedPool": reservedPool,
-		"requested":    int64(meta.RequestedBudget),
+		"requested":    float64(meta.RequestedBudget),
 	})
 }
 

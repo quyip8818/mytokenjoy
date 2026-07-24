@@ -13,10 +13,10 @@ import (
 
 type Service interface {
 	GetTree(ctx context.Context) ([]types.BudgetNode, error)
-	UpdateNode(ctx context.Context, id uuid.UUID, budget int64, reservedPool *int64) (types.BudgetNode, error)
+	UpdateNode(ctx context.Context, id uuid.UUID, budget float64, reservedPool *float64) (types.BudgetNode, error)
 	ListMemberBudgets(ctx context.Context, deptID uuid.UUID) ([]types.MemberBudget, error)
-	UpdateMemberBudget(ctx context.Context, memberID uuid.UUID, personalBudget int64) (types.MemberBudget, error)
-	ApplyAverageBudget(ctx context.Context, deptID uuid.UUID, personalBudget int64, recursive bool) error
+	UpdateMemberBudget(ctx context.Context, memberID uuid.UUID, personalBudget float64) (types.MemberBudget, error)
+	ApplyAverageBudget(ctx context.Context, deptID uuid.UUID, personalBudget float64, recursive bool) error
 	ListProjects(ctx context.Context) ([]types.Project, error)
 	CreateProject(ctx context.Context, project types.Project) (types.Project, error)
 	UpdateProject(ctx context.Context, id uuid.UUID, patch types.UpdateProjectInput) (types.Project, error)
@@ -27,7 +27,7 @@ type Service interface {
 	CreateAlert(ctx context.Context, rule types.AlertRule) (types.AlertRule, error)
 	UpdateAlert(ctx context.Context, id uuid.UUID, patch types.AlertRule) (types.AlertRule, error)
 	DeleteAlert(ctx context.Context, id uuid.UUID) error
-	GetProjectMemberConsumed(ctx context.Context, projectID uuid.UUID) (map[uuid.UUID]int64, error)
+	GetProjectMemberConsumed(ctx context.Context, projectID uuid.UUID) (map[uuid.UUID]float64, error)
 	MemberSummary(ctx context.Context, memberID uuid.UUID) (types.MemberBudgetSummary, error)
 }
 

@@ -17,7 +17,8 @@ import (
 	"github.com/tokenjoy/backend/seed/runtime"
 )
 
-func SeedDeptOverrun(t *testing.T, st store.Store, deptID uuid.UUID, ledgerSpent int64) {
+// SeedDeptOverrun inserts a ledger row whose DisplayAmount equals displaySpent (billing currency).
+func SeedDeptOverrun(t *testing.T, st store.Store, deptID uuid.UUID, displaySpent float64) {
 	t.Helper()
 	seedDefaultMapping(t, st)
 	ctx := company.DefaultContext(contract.DefaultCompanyID)
@@ -30,14 +31,15 @@ func SeedDeptOverrun(t *testing.T, st store.Store, deptID uuid.UUID, ledgerSpent
 	}
 	memberID := contract.IDMember1
 	now := time.Now().UTC()
+	quota := common.QuotaFromAmount(displaySpent, common.DefaultQuotaPerUnit)
 	entry := types.UsageLedgerEntry{
 		ID:               uuid.Must(uuid.NewV7()),
 		CompanyID:        contract.DefaultCompanyID,
 		EventType:        types.EventTypeCallSettled,
-		IdempotencyKey:   fmt.Sprintf("test:dept-overrun:%s:%d", deptID, ledgerSpent),
+		IdempotencyKey:   fmt.Sprintf("test:dept-overrun:%s:%g", deptID, displaySpent),
 		LotID:            lots[0].ID,
-		Amount:           ledgerSpent,
-		DisplayAmount:    float64(ledgerSpent) / float64(common.DefaultQuotaPerUnit),
+		Amount:           quota,
+		DisplayAmount:    displaySpent,
 		BillingCurrency:  common.DefaultBillingCurrency,
 		DepartmentID:     deptID,
 		MemberID:         &memberID,

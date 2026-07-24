@@ -2,7 +2,7 @@ package budget
 
 import (
 	"context"
-	"math"
+	"errors"
 
 	"github.com/google/uuid"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
@@ -85,10 +85,10 @@ func ComputeGatewaySummaryUpdates(
 	for _, mp := range resolved {
 		remain, err := pkgbudget.ComputeRemainForMappingPreloaded(budgetCtx, preloaded, mp.mapping, mp.periodKey)
 		if err != nil {
+			if errors.Is(err, pkgbudget.ErrUncappedRemain) {
+				continue // No budget constraints — leave combined_key_remain as NULL (allow).
+			}
 			continue
-		}
-		if remain >= math.MaxInt64 {
-			continue // No budget constraints — leave combined_key_remain as NULL (allow).
 		}
 		updates = append(updates, store.CombinedKeySummaryUpdate{
 			PlatformKeyID: mp.mapping.PlatformKeyID,

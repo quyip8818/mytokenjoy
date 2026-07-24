@@ -22,7 +22,7 @@ import { BUDGET_INSUFFICIENT_MESSAGE } from '@/features/keys'
 import { useModelLabels } from '@/features/models'
 import { formatBudgetContext, useKeyFormBudget, useKeyFormState } from './use-key-form-budget'
 import { useBillingExchange } from '@/features/session'
-import { currencySymbol, formatDisplayCurrency } from '@/lib/quota-display'
+import { currencySymbol, formatMoney } from '@/lib/quota-display'
 
 type KeyFormWorkflowProps = WorkflowComponentProps<'key-create' | 'key-edit'> & {
   injectedApis?: AppApis
@@ -38,7 +38,7 @@ export function KeyFormWorkflow({
   const apis = useInjectedApis(injectedApis)
   const { closeAll } = useWorkflow()
   const { memberId, companyType } = useSession()
-  const { displayToQuota, billingCurrency } = useBillingExchange()
+  const { billingCurrency } = useBillingExchange()
   const currencyLabel = currencySymbol(billingCurrency)
   const { resolveAllowedModelIds: resolveAllModels } = useMemberWhitelist()
   const isTrialOrDemo = companyType === 'trial' || companyType === 'demo'
@@ -136,15 +136,15 @@ export function KeyFormWorkflow({
       return
     }
     if (budgetSummary && budgetQuota > budgetSummary.remaining) {
-      toast.error(`额度不能超过剩余 ${formatDisplayCurrency(budgetSummary.remaining)}`)
+      toast.error(`额度不能超过剩余 ${formatMoney(budgetSummary.remaining)}`)
       return
     }
     if (projectBudgetExceeds) {
-      toast.error(`额度不能超过项目剩余 ${formatDisplayCurrency(projectBudgetRemaining!)}`)
+      toast.error(`额度不能超过项目剩余 ${formatMoney(projectBudgetRemaining!)}`)
       return
     }
     if (subBudgetExceeds) {
-      toast.error(`额度不能超过成员子额度剩余 ${formatDisplayCurrency(subBudgetRemaining!)}`)
+      toast.error(`额度不能超过成员子额度剩余 ${formatMoney(subBudgetRemaining!)}`)
       return
     }
     setSubmitting(true)
@@ -185,7 +185,7 @@ export function KeyFormWorkflow({
     try {
       await apis.platformKeyApi.update(key.id, {
         name,
-        budget: displayToQuota(Number(budget) || 0),
+        budget: Number(budget) || 0,
         modelWhitelist: models,
       })
       toast.success('Key 已更新')
@@ -201,10 +201,10 @@ export function KeyFormWorkflow({
   const contextBar = (() => {
     if (!isCreate) return undefined
     if (scope === 'project_member') {
-      return `项目：${projectName ?? ''} · 成员：${targetMemberName || '—'} · 子额度剩余 ${formatDisplayCurrency(subBudgetRemaining ?? 0)}`
+      return `项目：${projectName ?? ''} · 成员：${targetMemberName || '—'} · 子额度剩余 ${formatMoney(subBudgetRemaining ?? 0)}`
     }
     if (scope === 'project') {
-      return `项目：${projectName ?? ''} · 剩余可分配 ${formatDisplayCurrency(projectBudgetRemaining ?? 0)}`
+      return `项目：${projectName ?? ''} · 剩余可分配 ${formatMoney(projectBudgetRemaining ?? 0)}`
     }
     return formatBudgetContext(
       budgetSummary,
@@ -240,15 +240,15 @@ export function KeyFormWorkflow({
           <p className="text-sm text-amber-800">{BUDGET_INSUFFICIENT_MESSAGE}</p>
         ) : budgetExceedsRemaining ? (
           <p className="text-sm text-amber-800">
-            申请额度超过剩余 {formatDisplayCurrency(budgetSummary!.remaining)}
+            申请额度超过剩余 {formatMoney(budgetSummary!.remaining)}
           </p>
         ) : projectBudgetExceeds ? (
           <p className="text-sm text-amber-800">
-            申请额度超过项目剩余 {formatDisplayCurrency(projectBudgetRemaining!)}
+            申请额度超过项目剩余 {formatMoney(projectBudgetRemaining!)}
           </p>
         ) : subBudgetExceeds ? (
           <p className="text-sm text-amber-800">
-            申请额度超过成员子额度剩余 {formatDisplayCurrency(subBudgetRemaining!)}
+            申请额度超过成员子额度剩余 {formatMoney(subBudgetRemaining!)}
           </p>
         ) : undefined
       }
@@ -371,7 +371,7 @@ export function KeyFormWorkflow({
           {isCreate ? (
             <div className="space-y-2 text-muted-foreground">
               <p>名称：{name || '—'}</p>
-              <p>额度：{formatDisplayCurrency(budgetQuota)}</p>
+              <p>额度：{formatMoney(budgetQuota)}</p>
               <p>模型：{models.length} 个</p>
             </div>
           ) : (
@@ -379,7 +379,7 @@ export function KeyFormWorkflow({
               <>
                 <p className="text-muted-foreground font-mono">{key.keyPrefix}</p>
                 <p className="text-muted-foreground">
-                  已消耗：{formatDisplayCurrency(key.consumed)}
+                  已消耗：{formatMoney(key.consumed)}
                 </p>
               </>
             )

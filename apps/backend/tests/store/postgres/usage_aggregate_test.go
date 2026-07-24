@@ -11,14 +11,14 @@ import (
 
 var loc = time.UTC
 
-func makeRow(bucket time.Time, dept, member uuid.UUID, model string, cost int64, calls int) types.UsageBucketRow {
+func makeRow(bucket time.Time, dept, member uuid.UUID, model string, cost float64, calls int) types.UsageBucketRow {
 	return types.UsageBucketRow{
 		BucketStart:   bucket,
 		DepartmentID:  dept,
 		MemberID:      member,
 		Model:         model,
-		QuotaConsumed: cost,
-		DisplayCost:   float64(cost),
+		QuotaConsumed: int64(cost),
+		DisplayCost:   cost,
 		CallCount:     calls,
 		InputTokens:   int64(calls * 100),
 		OutputTokens:  int64(calls * 50),

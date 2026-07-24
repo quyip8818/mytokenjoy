@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { displayToQuota, formatDisplayCurrency } from '@/lib/quota-display'
+import { formatMoney } from '@/lib/quota-display'
 import { Wallet } from 'lucide-react'
 
 interface BudgetInitPromptProps {
@@ -36,11 +36,9 @@ export function BudgetInitPrompt({
     }
     setSaving(true)
     try {
-      await onUpdateDepartment(departmentId, { budget: displayToQuota(value) })
+      await onUpdateDepartment(departmentId, { budget: value })
       setDialogOpen(false)
-      toast.success(
-        `已设置${departmentName}总额度为 ${formatDisplayCurrency(displayToQuota(value))}`,
-      )
+      toast.success(`已设置${departmentName}总额度为 ${formatMoney(value)}`)
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : '设置失败，请重试')
     } finally {

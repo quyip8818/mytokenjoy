@@ -2,7 +2,7 @@ import type { ProjectView } from '@/api/types'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { POLICY_LABELS } from '@/features/budget'
-import { formatDisplayCurrency } from '@/lib/quota-display'
+import { formatMoney } from '@/lib/quota-display'
 
 type ProjectHeaderProps = {
   project: ProjectView
@@ -48,7 +48,7 @@ function SummaryCard({
           highlight ? 'text-red-600' : muted ? 'text-muted-foreground' : 'text-foreground',
         )}
       >
-        {formatDisplayCurrency(value)}
+        {formatMoney(value)}
       </p>
     </div>
   )

@@ -2,7 +2,6 @@ package budget
 
 import (
 	"context"
-	"math"
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -18,19 +17,22 @@ const (
 )
 
 type ChainInputs struct {
-	KeyBudget        int64
-	KeyConsumed      int64
-	PersonalCap      int64
-	PersonalConsumed int64
-	ProjectCap       int64
-	ProjectConsumed  int64
-	MemberBudget     int64
-	SubConsumed      int64
+	KeyBudget        float64
+	KeyConsumed      float64
+	PersonalCap      float64
+	PersonalConsumed float64
+	ProjectCap       float64
+	ProjectConsumed  float64
+	MemberBudget     float64
+	SubConsumed      float64
 }
 
-func GatewayChainRemain(scope string, in ChainInputs) (remain int64, limiting string) {
+// GatewayChainRemain returns the tightest budget remain for the key scope.
+// When uncapped is true, no management budget constraints apply — callers must
+// leave combined_key_remain as NULL (allow) rather than persisting a sentinel.
+func GatewayChainRemain(scope string, in ChainInputs) (remain float64, limiting string, uncapped bool) {
 	type candidate struct {
-		val  int64
+		val  float64
 		name string
 	}
 	// wallet_remain_quota is checked independently in the precheck path (real-time from PG).
@@ -69,8 +71,7 @@ func GatewayChainRemain(scope string, in ChainInputs) (remain int64, limiting st
 	}
 
 	if len(candidates) == 0 {
-		// No budget constraints configured — uncapped by management rules.
-		return math.MaxInt64, ""
+		return 0, "", true
 	}
 	best := candidates[0]
 	for _, c := range candidates[1:] {
@@ -78,18 +79,18 @@ func GatewayChainRemain(scope string, in ChainInputs) (remain int64, limiting st
 			best = c
 		}
 	}
-	return best.val, best.name
+	return best.val, best.name, false
 }
 
-func clampNonNegative(v int64) int64 {
+func clampNonNegative(v float64) float64 {
 	if v < 0 {
 		return 0
 	}
 	return v
 }
 
-func SumProjectMemberKeyConsumed(keys []types.PlatformKey, projectID, memberID uuid.UUID) int64 {
-	var sum int64
+func SumProjectMemberKeyConsumed(keys []types.PlatformKey, projectID, memberID uuid.UUID) float64 {
+	var sum float64
 	for _, key := range keys {
 		if key.Scope != types.PlatformKeyScopeProjectMember {
 			continue
@@ -110,8 +111,8 @@ func SumProjectMemberKeyConsumedFromRepo(
 	consumed store.BudgetConsumedRepository,
 	keys []types.PlatformKey,
 	projectID, memberID uuid.UUID, periodKey string,
-) (int64, error) {
-	var sum int64
+) (float64, error) {
+	var sum float64
 	for _, key := range keys {
 		if key.Scope != types.PlatformKeyScopeProjectMember {
 			continue

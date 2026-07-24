@@ -50,12 +50,12 @@ export function displayToQuota(display: number): number {
   return active.displayToQuota(display)
 }
 
-/** Format quota amounts (budget / key limits) using active company exchange. */
+/** Format legacy quota amounts using active company exchange (wallet / NewAPI quota). */
 export function formatDisplayCurrency(quota: number): string {
   return active.formatDisplayCurrency(quota)
 }
 
-/** Format amounts already in display currency using active company currency. */
+/** Format budget/spend amounts already in company billing currency. */
 export function formatMoney(amount: number, currency?: string): string {
   return formatCurrencyAmount(amount, currency ?? active.billingCurrency)
 }

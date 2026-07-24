@@ -58,12 +58,12 @@ func (h *MemberBudgetApprovalHandler) PreApprove(ctx context.Context, req types.
 	if !found {
 		return domain.NotFound("department budget not found")
 	}
-	reserved := int64(0)
+	reserved := float64(0)
 	if row.ReservedPool != nil {
 		reserved = *row.ReservedPool
 	}
 	if reserved < meta.Amount {
-		return domain.Validation(fmt.Sprintf("预留池余额不足，当前剩余 %d quota", reserved))
+		return domain.Validation(fmt.Sprintf("预留池余额不足，当前剩余 %.2f", reserved))
 	}
 	return nil
 }
@@ -96,12 +96,12 @@ func (h *MemberBudgetApprovalHandler) OnApprovedTx(ctx context.Context, req type
 	if !found {
 		return nil, domain.NotFound("部门不存在")
 	}
-	reserved := int64(0)
+	reserved := float64(0)
 	if row.ReservedPool != nil {
 		reserved = *row.ReservedPool
 	}
 	if reserved < meta.Amount {
-		return nil, domain.Validation(fmt.Sprintf("预留池余额不足，当前剩余 %d quota", reserved))
+		return nil, domain.Validation(fmt.Sprintf("预留池余额不足，当前剩余 %g quota", reserved))
 	}
 
 	// Deduct reserved pool
@@ -150,7 +150,7 @@ func (h *MemberBudgetApprovalHandler) PreCheck(ctx context.Context, req types.Ap
 	if err != nil {
 		return nil, err
 	}
-	reserved := int64(0)
+	reserved := float64(0)
 	if found && row.ReservedPool != nil {
 		reserved = *row.ReservedPool
 	}

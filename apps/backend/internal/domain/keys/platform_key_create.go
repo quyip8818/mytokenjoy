@@ -59,7 +59,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		if msg := common.ValidateModelIDsForMember(*input.MemberID, input.ModelWhitelist, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
-		if msg := budget.ValidateMemberScopeKeyBudget(members, platformKeys, *input.MemberID, int64(input.Budget), uuid.Nil); msg != nil {
+		if msg := budget.ValidateMemberScopeKeyBudget(members, platformKeys, *input.MemberID, input.Budget, uuid.Nil); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
 	case types.PlatformKeyScopeProject:
@@ -67,7 +67,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		if !ok {
 			return types.PlatformKey{}, domain.NotFound("Project not found")
 		}
-		if msg := budget.ValidateProjectScopeKeyBudget(input.Scope, project, platformKeys, input.MemberID, int64(input.Budget), uuid.Nil); msg != nil {
+		if msg := budget.ValidateProjectScopeKeyBudget(input.Scope, project, platformKeys, input.MemberID, input.Budget, uuid.Nil); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
 		if input.MemberID != nil {
@@ -86,7 +86,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		if msg := common.ValidateModelIDsForMember(*input.MemberID, input.ModelWhitelist, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
-		if msg := budget.ValidateProjectScopeKeyBudget(input.Scope, project, platformKeys, input.MemberID, int64(input.Budget), uuid.Nil); msg != nil {
+		if msg := budget.ValidateProjectScopeKeyBudget(input.Scope, project, platformKeys, input.MemberID, input.Budget, uuid.Nil); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
 	}
@@ -99,7 +99,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		ID:   uuid.Must(uuid.NewV7()),
 		Name: input.Name, KeyPrefix: "pending...", Scope: input.Scope,
 		MemberID: input.MemberID, ProjectID: input.ProjectID,
-		Status: "active", Budget: int64(input.Budget), Consumed: 0,
+		Status: "active", Budget: input.Budget, Consumed: 0,
 		ModelWhitelist: append([]uuid.UUID{}, input.ModelWhitelist...),
 		CreatedAt:      time.Now().Format("2006-01-02"),
 	}
@@ -153,7 +153,7 @@ func (s *service) appendKeyCreateLog(ctx context.Context, input types.CreatePlat
 		OperatorID: input.OperatorID,
 		ActorType:  store.ActorTypeMember,
 		Target:     fmt.Sprintf("Platform Key: %s", key.Name),
-		Detail:     fmt.Sprintf("创建平台凭证，额度 %d 元", key.Budget),
+		Detail:     fmt.Sprintf("创建平台凭证，额度 %.2f 元", key.Budget),
 		IP:         input.IP,
 		CreatedAt:  time.Now().Format("2006-01-02 15:04"),
 	})

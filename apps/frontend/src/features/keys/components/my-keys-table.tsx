@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { KeyStatusBadge } from './status-badges'
 import { Progress } from '@/components/ui/progress'
-import { formatDisplayCurrency } from '@/lib/quota-display'
+import { formatMoney } from '@/lib/quota-display'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -99,7 +99,7 @@ export function MyKeysTable({
             <TableCell>
               <div className="min-w-28 space-y-1">
                 <div className="text-xs text-muted-foreground">
-                  {formatDisplayCurrency(key.consumed)} / {formatDisplayCurrency(key.budget)}
+                  {formatMoney(key.consumed)} / {formatMoney(key.budget)}
                 </div>
                 <Progress value={keyBudgetPercent(key)} className="h-1.5" />
               </div>

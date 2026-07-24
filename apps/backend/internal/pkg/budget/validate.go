@@ -31,8 +31,8 @@ func FindParentNode(nodes []types.BudgetNode, childID uuid.UUID) *types.BudgetNo
 func ValidateBudgetNodeUpdate(
 	tree []types.BudgetNode,
 	nodeID uuid.UUID,
-	newBudget int64,
-	newReservedPool int64,
+	newBudget float64,
+	newReservedPool float64,
 	projects []types.Project,
 	members []types.Member,
 ) *string {
@@ -46,19 +46,19 @@ func ValidateBudgetNodeUpdate(
 	memberSum := MemberBudgetSumForDept(members, nodeID)
 	totalAllocated := childrenSum + newReservedPool + projectSum + memberSum
 	if newBudget < totalAllocated {
-		msg := fmt.Sprintf("部门预算不能低于已分配总额（子部门%d + 项目%d + 成员%d + 预留池%d = %d quota）",
+		msg := fmt.Sprintf("部门预算不能低于已分配总额（子部门%.2f + 项目%.2f + 成员%.2f + 预留池%.2f = %.2f）",
 			childrenSum, projectSum, memberSum, newReservedPool, totalAllocated)
 		return &msg
 	}
 	parent := FindParentNode(tree, nodeID)
 	if parent != nil {
-		var siblingsSum int64
+		var siblingsSum float64
 		for _, child := range parent.Children {
 			if child.ID != nodeID {
 				siblingsSum += child.Budget
 			}
 		}
-		var parentReserved int64
+		var parentReserved float64
 		if parent.ReservedPool != nil {
 			parentReserved = *parent.ReservedPool
 		}
@@ -67,7 +67,7 @@ func ValidateBudgetNodeUpdate(
 			if remaining < 0 {
 				remaining = 0
 			}
-			msg := fmt.Sprintf("超出上级可分配预算，当前剩余约 %d quota", remaining)
+			msg := fmt.Sprintf("超出上级可分配预算，当前剩余约 %g quota", remaining)
 			return &msg
 		}
 	}
@@ -75,8 +75,8 @@ func ValidateBudgetNodeUpdate(
 }
 
 // ProjectsBudgetForDept returns the sum of project budgets owned by a department.
-func ProjectsBudgetForDept(projects []types.Project, deptID uuid.UUID) int64 {
-	var sum int64
+func ProjectsBudgetForDept(projects []types.Project, deptID uuid.UUID) float64 {
+	var sum float64
 	for _, p := range projects {
 		if p.OwnerDepartmentID == deptID {
 			sum += p.Budget
@@ -86,8 +86,8 @@ func ProjectsBudgetForDept(projects []types.Project, deptID uuid.UUID) int64 {
 }
 
 // MemberBudgetSumForDept returns the sum of all members' personal budgets in a department.
-func MemberBudgetSumForDept(members []types.Member, deptID uuid.UUID) int64 {
-	var sum int64
+func MemberBudgetSumForDept(members []types.Member, deptID uuid.UUID) float64 {
+	var sum float64
 	for _, m := range members {
 		if m.DepartmentID == deptID {
 			sum += m.PersonalBudget

@@ -144,7 +144,7 @@ func TestOverrunDepartmentAxis(t *testing.T) {
 	t.Run("sends_notification_on_exhaustion", func(t *testing.T) {
 		t.Parallel()
 		fix := setupOverrun(t)
-		budgetfix.SeedDeptOverrun(t, fix.st, contract.IDDept3, budgetfix.QuotaFromDisplay(25000))
+		budgetfix.SeedDeptOverrun(t, fix.st, contract.IDDept3, 25000)
 
 		fix.process(t, deptPayload)
 		fix.assertNotificationSent(t)
@@ -155,7 +155,7 @@ func TestOverrunDepartmentAxis(t *testing.T) {
 		stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 		cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 		svc := budgetfix.NewOverrunService(t, cfg, st, stub, &testutil.FailingNotifier{})
-		budgetfix.SeedDeptOverrun(t, st, contract.IDDept3, budgetfix.QuotaFromDisplay(25000))
+		budgetfix.SeedDeptOverrun(t, st, contract.IDDept3, 25000)
 
 		data, _ := json.Marshal(deptPayload)
 		if err := svc.ProcessOverrunPayload(testutil.Ctx(), data); err != nil {
@@ -226,7 +226,7 @@ func TestOverrunPlatformKeyAxis(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var keyBudget int64
+	var keyBudget float64
 	for _, key := range keys {
 		if key.ID == contract.IDPlatformKey1 {
 			keyBudget = key.Budget
@@ -254,11 +254,11 @@ func TestOverrunProjectMemberAxis(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	memberBudget := int64(100)
+	memberBudget := float64(100)
 	for i := range projects {
 		if projects[i].ID == contract.IDProject1 {
 			if projects[i].MemberBudgets == nil {
-				projects[i].MemberBudgets = make(map[uuid.UUID]int64)
+				projects[i].MemberBudgets = make(map[uuid.UUID]float64)
 			}
 			projects[i].MemberBudgets[contract.IDMember1] = memberBudget
 			break
