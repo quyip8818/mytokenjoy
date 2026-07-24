@@ -8,10 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 )
 
-// PriceFromRatio delegates to modelcatalog.PriceFromRatio for backward compatibility.
 var PriceFromRatio = modelcatalog.PriceFromRatio
-
-// RatioFromPrice delegates to modelcatalog.RatioFromPrice for backward compatibility.
 var RatioFromPrice = modelcatalog.RatioFromPrice
 
 func NewAPIGroupForDepartment(departmentID uuid.UUID) string {

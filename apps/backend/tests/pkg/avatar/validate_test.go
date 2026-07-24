@@ -20,10 +20,7 @@ func TestValidateAvatar_DiceBearValid(t *testing.T) {
 	cases := []string{
 		"dicebear:adventurer:seed123",
 		"dicebear:notionists:abc",
-		"dicebear:bottts:x",
-		"dicebear:shapes:hello-world",
 		"dicebear:lorelei:test",
-		"dicebear:fun-emoji:foo",
 	}
 	for _, c := range cases {
 		if err := mehandler.ValidateAvatar(c); err != nil {

@@ -94,8 +94,6 @@ var dicebearStyles = map[string]bool{
 	"avataaars": true, "lorelei": true, "micah": true,
 	"adventurer": true, "notionists": true, "big-smile": true,
 	"open-peeps": true, "pixel-art": true,
-	// legacy styles: no longer shown in picker but still valid
-	"bottts": true, "shapes": true, "fun-emoji": true,
 }
 
 type updateProfileRequest struct {

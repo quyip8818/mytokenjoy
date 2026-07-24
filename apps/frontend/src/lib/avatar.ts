@@ -7,12 +7,7 @@ import notionists from '@dicebear/styles/notionists.json' with { type: 'json' }
 import bigSmile from '@dicebear/styles/big-smile.json' with { type: 'json' }
 import openPeeps from '@dicebear/styles/open-peeps.json' with { type: 'json' }
 import pixelArt from '@dicebear/styles/pixel-art.json' with { type: 'json' }
-// Legacy styles: not shown in picker but still renderable for existing data
-import bottts from '@dicebear/styles/bottts.json' with { type: 'json' }
-import shapes from '@dicebear/styles/shapes.json' with { type: 'json' }
-import funEmoji from '@dicebear/styles/fun-emoji.json' with { type: 'json' }
 
-/** All renderable styles (includes legacy ones for backward compat). */
 const allStyles: Record<string, object> = {
   avataaars,
   lorelei,
@@ -22,10 +17,6 @@ const allStyles: Record<string, object> = {
   'big-smile': bigSmile,
   'open-peeps': openPeeps,
   'pixel-art': pixelArt,
-  // legacy
-  bottts,
-  shapes,
-  'fun-emoji': funEmoji,
 }
 
 /** Styles shown in the picker UI. */
