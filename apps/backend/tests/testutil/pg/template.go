@@ -31,6 +31,10 @@ func EnsureTemplateDB(ctx context.Context, baseURL string, templateCfg config.Co
 	return templateErr
 }
 
+// templateLockID is a fixed advisory lock key used to serialize template DB
+// creation across parallel test processes (go test -p N).
+const templateLockID = 987654321
+
 func buildOrVerifyTemplateDB(ctx context.Context, baseURL string, templateCfg config.Config) error {
 	adminConn, err := pgx.Connect(ctx, baseURL)
 	if err != nil {
@@ -38,10 +42,17 @@ func buildOrVerifyTemplateDB(ctx context.Context, baseURL string, templateCfg co
 	}
 	defer adminConn.Close(ctx)
 
+	// Acquire a Postgres-level advisory lock so that parallel test processes
+	// (separate OS processes from go test -p 8) serialize template DB creation.
+	// The lock is automatically released when the connection closes.
+	if _, err := adminConn.Exec(ctx, "SELECT pg_advisory_lock($1)", templateLockID); err != nil {
+		return fmt.Errorf("acquire advisory lock: %w", err)
+	}
+
 	// Clean up orphan test databases left by previous abnormal exits.
 	cleanupOrphanTestDatabases(ctx, adminConn)
 
-	// Check if template DB already exists at current version.
+	// Re-check version under lock — another process may have finished first.
 	if version, ok := readDBVersion(ctx, adminConn, templateDBName); ok && version == testTemplateVersion {
 		return nil
 	}

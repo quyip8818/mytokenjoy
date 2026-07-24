@@ -29,7 +29,7 @@ func SharedTestStore(t *testing.T, opts ...ConfigOption) (config.Config, store.S
 	t.Helper()
 	sharedOnce.Do(func() {
 		cfg := TestConfig(opts...)
-		schemaURL := openClonedTestSchema(t).URL
+		schemaURL := openSharedClonedSchema(t).URL
 		cfg.DatabaseURL = schemaURL
 		if cfg.IngestEnabled() {
 			cfg.LogDatabaseURL = schemaURL

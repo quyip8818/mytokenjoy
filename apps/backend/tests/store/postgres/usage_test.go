@@ -14,7 +14,7 @@ func TestUsageBucketUpsertAccumulates(t *testing.T) {
 	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
-	bucket := time.Date(2024, 6, 1, 8, 0, 0, 0, time.UTC)
+	bucket := time.Date(2026, 9, 1, 8, 0, 0, 0, time.UTC)
 	row := types.UsageBucketRow{
 		BucketStart:   bucket,
 		DepartmentID:  uuid.MustParse("00000000-0000-7000-8000-00000000dd01"),
@@ -60,7 +60,7 @@ func TestUsageBucketQuerySeriesDay(t *testing.T) {
 	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
-	bucket := time.Date(2024, 6, 1, 10, 0, 0, 0, time.UTC)
+	bucket := time.Date(2026, 9, 15, 10, 0, 0, 0, time.UTC)
 	if err := st.Usage().UpsertBucket(ctx, types.UsageBucketRow{
 		BucketStart: bucket, DepartmentID: uuid.MustParse("00000000-0000-7000-8000-00000000dd02"), MemberID: uuid.MustParse("00000000-0000-7000-8000-00000000ee02"),
 		Model: "gpt-4o", QuotaConsumed: 5000, Cost: 5, CallCount: 2,
@@ -69,8 +69,8 @@ func TestUsageBucketQuerySeriesDay(t *testing.T) {
 	}
 	points, err := st.Usage().QuerySeries(ctx, types.UsageSeriesQuery{
 		Granularity: types.UsageGranularityDay,
-		Start:       time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC),
-		End:         time.Date(2024, 6, 2, 0, 0, 0, 0, time.UTC),
+		Start:       time.Date(2026, 9, 15, 0, 0, 0, 0, time.UTC),
+		End:         time.Date(2026, 9, 16, 0, 0, 0, 0, time.UTC),
 		GroupBy:     types.UsageGroupByNone,
 		Timezone:    types.UsageDefaultTimezone,
 	})

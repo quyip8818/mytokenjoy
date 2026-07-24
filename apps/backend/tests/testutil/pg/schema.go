@@ -55,11 +55,6 @@ func OpenCloned(t *testing.T, baseURL string, templateCfg config.Config) Handle 
 		t.Fatalf("admin connect: %v", err)
 	}
 
-	// Defensive: terminate any lingering connections to the template DB.
-	// EnsureTemplateDB closes its bootstrap connection, but this guards against
-	// edge cases like idle pool keepalive from a previous failed run.
-	terminateDBConnections(ctx, adminConn, templateDBName)
-
 	_, err = adminConn.Exec(ctx, fmt.Sprintf(
 		"CREATE DATABASE %s TEMPLATE %s",
 		pgx.Identifier{dbName}.Sanitize(),
@@ -90,6 +85,40 @@ func OpenCloned(t *testing.T, baseURL string, templateCfg config.Config) Handle 
 		handleByTest.Delete(t)
 	})
 	return h
+}
+
+// OpenClonedShared is like OpenCloned but does NOT register a per-test cleanup.
+// Use for shared stores whose lifetime spans all tests in the package.
+// The cloned DB will be cleaned up by cleanupOrphanTestDatabases on the next run.
+func OpenClonedShared(t *testing.T, baseURL string, templateCfg config.Config) Handle {
+	t.Helper()
+
+	ctx := context.Background()
+	if err := EnsureTemplateDB(ctx, baseURL, templateCfg); err != nil {
+		t.Fatalf("ensure template db: %v", err)
+	}
+
+	dbName := newTestDBName()
+
+	adminConn, err := pgx.Connect(ctx, baseURL)
+	if err != nil {
+		t.Fatalf("admin connect: %v", err)
+	}
+
+	_, err = adminConn.Exec(ctx, fmt.Sprintf(
+		"CREATE DATABASE %s TEMPLATE %s",
+		pgx.Identifier{dbName}.Sanitize(),
+		pgx.Identifier{templateDBName}.Sanitize(),
+	))
+	adminConn.Close(ctx)
+	if err != nil {
+		t.Fatalf("clone database: %v", err)
+	}
+
+	return Handle{
+		DBName: dbName,
+		URL:    replaceDBName(baseURL, dbName),
+	}
 }
 
 // OpenSlow creates an empty schema in the base database for minimal-bootstrap tests.

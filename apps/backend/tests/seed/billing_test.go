@@ -19,8 +19,9 @@ func TestApplyRechargeOrdersSeedsPostgres(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(orders) != 5 {
-		t.Fatalf("expected 5 orders, got %d", len(orders))
+	// Template DB contains 5 recharge orders + 1 seed-lot order from ApplyUsageLedger.
+	if len(orders) != 6 {
+		t.Fatalf("expected 6 orders, got %d", len(orders))
 	}
 	if err := runtime.ApplyRechargeOrders(ctx, st); err != nil {
 		t.Fatal(err)
@@ -29,7 +30,7 @@ func TestApplyRechargeOrdersSeedsPostgres(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(orders) != 5 {
+	if len(orders) != 6 {
 		t.Fatalf("expected idempotent seed, got %d orders", len(orders))
 	}
 }

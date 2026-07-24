@@ -44,8 +44,8 @@ func TestLoadSnapshot(t *testing.T) {
 	if len(snapshot.OrgNodes) == 0 {
 		t.Fatal("expected departments in snapshot")
 	}
-	if len(snapshot.Roles) != 6 {
-		t.Fatalf("expected 6 roles, got %d", len(snapshot.Roles))
+	if len(snapshot.Roles) != 1 {
+		t.Fatalf("expected 1 custom role, got %d", len(snapshot.Roles))
 	}
 	if len(types.OrgNodesToBudgetTree(snapshot.OrgNodes)) == 0 || types.OrgNodesToBudgetTree(snapshot.OrgNodes)[0].ID != contract.IDDept1 {
 		t.Fatal("expected budget tree root")

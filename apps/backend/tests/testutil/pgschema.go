@@ -32,6 +32,15 @@ func openClonedTestSchema(t *testing.T) pg.Handle {
 	return pg.OpenCloned(t, baseURL, templateStoreConfig())
 }
 
+func openSharedClonedSchema(t *testing.T) pg.Handle {
+	t.Helper()
+	baseURL := defaultTestDatabaseURL()
+	if baseURL == "" {
+		t.Fatal("DATABASE_URL required; run: pnpm start:postgres")
+	}
+	return pg.OpenClonedShared(t, baseURL, templateStoreConfig())
+}
+
 func templateStoreConfig() config.Config {
 	cfg := TestConfig(WithIngestEnabled(true), WithBootstrapMode(config.BootstrapDemo))
 	cfg.StoreBootstrap.TestPartitionMonths = 12

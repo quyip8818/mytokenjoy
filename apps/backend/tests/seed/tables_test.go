@@ -2,11 +2,13 @@ package seed_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/seed"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -37,7 +39,20 @@ func truncateDomainTables(ctx context.Context, pool *pgxpool.Pool) error {
 			companies
 		RESTART IDENTITY CASCADE
 	`)
-	return err
+	if err != nil {
+		return err
+	}
+	// Re-insert global preset roles (company_id=NULL) required by member_roles FK.
+	for name, id := range grants.PresetRoles {
+		if _, err := pool.Exec(ctx, `
+			INSERT INTO roles (id, company_id, name, type, permissions)
+			VALUES ($1, NULL, $2, 'preset', '{}')
+			ON CONFLICT (id) DO NOTHING
+		`, id, name); err != nil {
+			return fmt.Errorf("restore preset role %s: %w", name, err)
+		}
+	}
+	return nil
 }
 
 func TestApplyTablesMatchesSnapshot(t *testing.T) {
@@ -79,7 +94,7 @@ func TestApplyTablesMatchesSnapshot(t *testing.T) {
 	assertCount(t, ctx, pool, "companies", 2)
 	assertCount(t, ctx, pool, "tenant_background_state", 2)
 	assertCount(t, ctx, pool, "members", len(snap.Members))
-	assertCount(t, ctx, pool, "roles", len(snap.Roles))
+	assertCount(t, ctx, pool, "roles", len(snap.Roles)+len(grants.PresetRoles))
 	assertCount(t, ctx, pool, "models", len(snap.Models))
 	assertCount(t, ctx, pool, "provider_keys", len(snap.ProviderKeys))
 	assertCount(t, ctx, pool, "platform_keys", len(snap.PlatformKeys))
