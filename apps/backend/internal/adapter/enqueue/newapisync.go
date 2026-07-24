@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/integration/newapisync/ports"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
+	"github.com/tokenjoy/backend/internal/integration/newapisync/ports"
 )
 
 type newAPISyncJobEnqueuer struct {

@@ -14,7 +14,6 @@ import (
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	domainmemberanalytics "github.com/tokenjoy/backend/internal/domain/memberanalytics"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
-	"github.com/tokenjoy/backend/internal/integration/newapisync/devapi"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/identity/authz"
@@ -24,6 +23,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
+	"github.com/tokenjoy/backend/internal/integration/newapisync/devapi"
 	pkgrl "github.com/tokenjoy/backend/internal/pkg/ratelimit"
 	"github.com/tokenjoy/backend/internal/store"
 )

@@ -6,13 +6,13 @@ import (
 
 	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/integration/newapisync"
-	"github.com/tokenjoy/backend/internal/integration/newapisync/devapi"
 	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/permission"
+	"github.com/tokenjoy/backend/internal/integration/newapisync"
+	"github.com/tokenjoy/backend/internal/integration/newapisync/devapi"
 )
 
 func ingestMetricsRecorder(cfg config.Config) ingestmetrics.Recorder {

@@ -8,11 +8,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/identity/secrets"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/platformkey"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/syncdeps"
-	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/identity/secrets"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

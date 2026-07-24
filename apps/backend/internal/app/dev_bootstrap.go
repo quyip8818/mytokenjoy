@@ -8,8 +8,8 @@ import (
 	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/integration/newapisync"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
+	"github.com/tokenjoy/backend/internal/integration/newapisync"
 )
 
 // RunDevBootstrap seeds an empty database and synchronously syncs demo platform keys to NewAPI.

@@ -10,7 +10,7 @@ import (
 )
 
 // KeySyncPort is consumed by the keys domain to synchronize platform/provider keys
-// with external systems. Implemented by integration/newapisync.
+// with external systems. Implemented by newapisync.
 type KeySyncPort interface {
 	Enabled() bool
 	SyncPlatformKeyCreate(ctx context.Context, key types.PlatformKey, departmentID uuid.UUID) (string, error)
@@ -26,7 +26,7 @@ type KeySyncPort interface {
 }
 
 // OverrunKeyControl is consumed by the budget domain's overrun processor
-// to disable keys that exceed their budget. Implemented by integration/newapisync.
+// to disable keys that exceed their budget. Implemented by newapisync.
 type OverrunKeyControl interface {
 	Enabled() bool
 	DisablePlatformKey(ctx context.Context, platformKeyID uuid.UUID) error

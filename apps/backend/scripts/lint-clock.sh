@@ -31,7 +31,7 @@ while IFS= read -r hit; do
   fail "use Open*/Occurrence* factories, not SnapshotKey: $hit"
 done < <(rg -n --glob '*.go' '\bSnapshotKey\(' \
   internal/domain/budget \
-  internal/domain/gateway internal/domain/newapisync \
+  internal/domain/gateway internal/integration/newapisync \
   internal/domain/usage || true)
 
 # Domain/seed must not call the old exported DepartmentPeriodKey name if reintroduced.

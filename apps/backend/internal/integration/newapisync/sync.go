@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/port"
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/devapi"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/platformkey"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/policy"
@@ -15,7 +16,6 @@ import (
 	"github.com/tokenjoy/backend/internal/integration/newapisync/provider"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/provision"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/syncdeps"
-	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -113,6 +113,6 @@ var (
 
 	// Compile-time check: NewAPISync satisfies the domain port interfaces
 	// that keys and budget consume.
-	_ port.KeySyncPort      = (*NewAPISync)(nil)
+	_ port.KeySyncPort       = (*NewAPISync)(nil)
 	_ port.OverrunKeyControl = (*NewAPISync)(nil)
 )

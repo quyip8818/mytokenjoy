@@ -10,11 +10,11 @@ import (
 	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/budget"
-	"github.com/tokenjoy/backend/internal/integration/newapisync"
-	"github.com/tokenjoy/backend/internal/integration/newapisync/policy"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
+	"github.com/tokenjoy/backend/internal/integration/newapisync"
+	"github.com/tokenjoy/backend/internal/integration/newapisync/policy"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )

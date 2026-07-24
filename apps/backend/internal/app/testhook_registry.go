@@ -8,9 +8,9 @@ import (
 
 	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	"github.com/tokenjoy/backend/internal/config"
-	newapisync "github.com/tokenjoy/backend/internal/integration/newapisync"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
+	newapisync "github.com/tokenjoy/backend/internal/integration/newapisync"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

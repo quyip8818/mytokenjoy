@@ -90,7 +90,6 @@ func TestFormatDateOnly(t *testing.T) {
 	}
 }
 
-
 func TestTruncateInTZDayBoundary(t *testing.T) {
 	t.Parallel()
 	loc, err := clock.LoadLocation("Asia/Shanghai")

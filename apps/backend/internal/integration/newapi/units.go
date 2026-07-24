@@ -5,32 +5,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 )
 
-// PriceFromRatio converts NewAPI model_ratio and completion_ratio into display
-// prices (元/1M tokens) used by the backend model catalog.
-//
-// NewAPI pricing model:
-//   - model_ratio represents input cost per 1K tokens in currency units
-//   - completion_ratio is the output/input multiplier
-//
-// Conversion: display_price (元/1M tokens) = ratio * 2
-func PriceFromRatio(modelRatio, completionRatio float64) (inputPrice, outputPrice float64) {
-	inputPrice = modelRatio * 2
-	outputPrice = modelRatio * completionRatio * 2
-	return inputPrice, outputPrice
-}
+// PriceFromRatio delegates to modelcatalog.PriceFromRatio for backward compatibility.
+var PriceFromRatio = modelcatalog.PriceFromRatio
 
-// RatioFromPrice converts display prices (元/1M tokens) back to NewAPI ratios.
-// Inverse of PriceFromRatio.
-func RatioFromPrice(inputPrice, outputPrice float64) (modelRatio, completionRatio float64) {
-	if inputPrice == 0 {
-		return 0, 0
-	}
-	modelRatio = inputPrice / 2
-	completionRatio = outputPrice / inputPrice
-	return modelRatio, completionRatio
-}
+// RatioFromPrice delegates to modelcatalog.RatioFromPrice for backward compatibility.
+var RatioFromPrice = modelcatalog.RatioFromPrice
 
 func NewAPIGroupForDepartment(departmentID uuid.UUID) string {
 	return fmt.Sprintf("%s%s", common.NewAPIGroupPrefix, departmentID)
