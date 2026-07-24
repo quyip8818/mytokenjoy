@@ -23,7 +23,7 @@ test.describe('成员工作台', () => {
       test.skip(true, '成员账户无法登录（demo 环境无成员凭据）')
       return
     }
-    await page.goto('/keys/mine')
+    await page.goto('/me/keys')
     await expect(page.getByRole('banner').getByRole('heading', { name: '我的 Key' })).toBeVisible()
   })
 })

@@ -4,7 +4,7 @@ test.describe.configure({ mode: 'serial' })
 
 test.describe('我的 Key - 自管理', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/keys/mine')
+    await page.goto('/me/keys')
     await expect(page.getByRole('banner').getByRole('heading', { name: '我的 Key' })).toBeVisible()
   })
 

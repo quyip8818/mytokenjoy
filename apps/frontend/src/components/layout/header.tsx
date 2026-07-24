@@ -32,7 +32,7 @@ function HeaderUserChip() {
       type="button"
       className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 transition-colors hover:bg-muted"
       aria-label="账户设置"
-      onClick={() => navigate('/me/account')}
+      onClick={() => navigate('/me/settings')}
     >
       <UserAvatar avatar={member?.avatar} fallback={displayName} size={24} />
       <span className="text-sm text-foreground">{displayName}</span>

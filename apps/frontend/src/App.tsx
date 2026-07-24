@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
+import { BrowserRouter, Routes, Route } from 'react-router'
 import { LOGIN_PATH } from '@/config/auth'
 import { APP_ROUTES, toRouterPath } from '@/config/routes'
 import { AppErrorBoundary } from '@/components/layout/app-error-boundary'
@@ -26,14 +26,6 @@ function AuthenticatedRoutes() {
           {lazyPages.map(({ path, Page }) => (
             <Route key={path} path={path} element={<Page />} />
           ))}
-          {/* Legacy redirects */}
-          <Route path="wallet" element={<Navigate to="/billing" replace />} />
-          <Route path="me" element={<Navigate to="/dashboard/cost" replace />} />
-          <Route path="keys/mine" element={<Navigate to="/me/keys" replace />} />
-          <Route path="me/call-logs" element={<Navigate to="/me/usage" replace />} />
-          <Route path="me/account" element={<Navigate to="/me/settings" replace />} />
-          <Route path="me/notifications" element={<Navigate to="/me/settings" replace />} />
-          <Route path="me/login-activity" element={<Navigate to="/me/settings" replace />} />
         </Route>
       </Routes>
     </SessionGate>
