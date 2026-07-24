@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/seed"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -45,13 +44,8 @@ func TestLoadSnapshot(t *testing.T) {
 	if len(snapshot.OrgNodes) == 0 {
 		t.Fatal("expected departments in snapshot")
 	}
-	// Preset roles are inserted by bootstrap (company_id = NULL, global).
-	// Only custom roles belong in the seed snapshot.
-	if len(snapshot.Roles) != 1 {
-		t.Fatalf("expected 1 custom role, got %d", len(snapshot.Roles))
-	}
-	if snapshot.Roles[0].Name != permission.RoleBudgetApprover {
-		t.Fatalf("expected budget approver role, got %s", snapshot.Roles[0].Name)
+	if len(snapshot.Roles) != 6 {
+		t.Fatalf("expected 6 roles, got %d", len(snapshot.Roles))
 	}
 	if len(types.OrgNodesToBudgetTree(snapshot.OrgNodes)) == 0 || types.OrgNodesToBudgetTree(snapshot.OrgNodes)[0].ID != contract.IDDept1 {
 		t.Fatal("expected budget tree root")

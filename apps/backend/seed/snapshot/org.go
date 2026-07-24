@@ -62,16 +62,48 @@ func buildSyncLogs(refDate string) []types.SyncLog {
 }
 
 func buildRoles(members []types.Member) []types.Role {
-	// Preset roles are inserted by bootstrap (company_id = NULL, global).
-	// Only custom roles belong in the seed snapshot.
-	return []types.Role{
-		{
-			ID: contract.IDRoleBudgetApprover, CompanyID: contract.DefaultCompanyID,
-			Name: permission.RoleBudgetApprover, Type: "custom",
-			Permissions: mustRoleGrantIDs(types.Role{Type: "custom", Name: permission.RoleBudgetApprover, Permissions: []string{"p-6"}}),
-			MemberCount: org.CountMembersByRole(members, permission.RoleBudgetApprover),
-		},
+	// For seed snapshot, we create company-specific copies of preset roles
+	// These are needed for the demo company to have a complete role setup
+	// Note: RolePlatformAdmin is a platform-level role, not included in company seed
+	presetRoleNames := []string{
+		permission.RoleSuperAdmin,
+		permission.RoleOrgAdmin,
+		permission.RoleMember,
+		permission.RoleAuditor,
+		permission.RoleAPICaller,
 	}
+	
+	presetRoleIDs := []uuid.UUID{
+		contract.IDRole1, // RoleSuperAdmin
+		contract.IDRole2, // RoleOrgAdmin
+		contract.IDRole3, // RoleMember
+		contract.IDRole4, // RoleAuditor
+		contract.IDRole5, // RoleAPICaller
+	}
+	
+	var roles []types.Role
+	for i, name := range presetRoleNames {
+		roles = append(roles, types.Role{
+			ID:          presetRoleIDs[i],
+			CompanyID:   contract.DefaultCompanyID,
+			Name:        name,
+			Type:        "preset",
+			Permissions: mustRoleGrantIDs(types.Role{Type: "preset", Name: name, Permissions: nil}),
+			MemberCount: org.CountMembersByRole(members, name),
+		})
+	}
+	
+	// Add custom roles
+	roles = append(roles, types.Role{
+		ID:          contract.IDRoleBudgetApprover,
+		CompanyID:   contract.DefaultCompanyID,
+		Name:        permission.RoleBudgetApprover,
+		Type:        "custom",
+		Permissions: mustRoleGrantIDs(types.Role{Type: "custom", Name: permission.RoleBudgetApprover, Permissions: []string{"p-6"}}),
+		MemberCount: org.CountMembersByRole(members, permission.RoleBudgetApprover),
+	})
+	
+	return roles
 }
 
 func mustRoleGrantIDs(role types.Role) []string {
