@@ -16,6 +16,10 @@ async function postLogin(
   if (!response.ok()) {
     throw new Error(`login failed: ${response.status()} ${await response.text()}`)
   }
+  const body = await response.json()
+  if (body.action) {
+    throw new Error(`login incomplete: action=${body.action}`)
+  }
 }
 
 export async function loginAsAdmin(page: Page): Promise<void> {

@@ -3,13 +3,22 @@ import { expect, test } from '@playwright/test'
 test.describe('成员删除 - 请求不累积', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/org/structure')
-    await expect(page.getByRole('heading', { name: '组织架构' })).toBeVisible()
+    await expect(page.getByRole('banner').getByRole('heading', { name: '组织架构' })).toBeVisible()
     // Select a department with multiple members
     await page.getByRole('treeitem', { name: /总公司/ }).click()
     await expect(page.getByRole('heading', { level: 3, name: '总公司' })).toBeVisible()
   })
 
   test('deleting members sequentially does not accumulate extra API requests', async ({ page }) => {
+    // Pre-check: need at least 3 deletable (non-admin) members
+    const checkboxCount = await page
+      .locator('tbody tr button[role="checkbox"]:not([disabled])')
+      .count()
+    if (checkboxCount < 3) {
+      test.skip(true, `需要至少 3 个可删除成员，当前只有 ${checkboxCount}`)
+      return
+    }
+
     // Helper to delete the first active member and count resulting API calls
     async function deleteFirstMemberAndCountRequests(): Promise<{
       sessionCalls: number
@@ -38,8 +47,15 @@ test.describe('成员删除 - 请求不累积', () => {
       }
       page.on('request', requestHandler)
 
-      // Select first active member
-      await activeRows.first().getByRole('checkbox').click()
+      // Select first active member with an enabled checkbox
+      const enabledCheckbox = page
+        .locator('tbody tr button[role="checkbox"]:not([disabled])')
+        .first()
+      const hasCheckbox = await enabledCheckbox.isVisible({ timeout: 3_000 }).catch(() => false)
+      if (!hasCheckbox) {
+        throw new Error('No deletable members available — test data exhausted')
+      }
+      await enabledCheckbox.click()
 
       // Click delete button
       await page.getByRole('button', { name: /删除/ }).click()

@@ -20,7 +20,16 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'chromium',
+      name: 'read-only',
+      testMatch:
+        /^(?!.*(org-structure|member-delete-no-accumulate|budget-org-member-picker|org-roles)).*\.spec\.ts$/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'mutations',
+      testMatch:
+        /(org-structure|member-delete-no-accumulate|budget-org-member-picker|org-roles)\.spec\.ts$/,
+      fullyParallel: false,
       use: { ...devices['Desktop Chrome'] },
     },
   ],

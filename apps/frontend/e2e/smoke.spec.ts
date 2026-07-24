@@ -7,7 +7,7 @@ const routes = [
   { path: '/budget', heading: '预算管理' },
   { path: '/budget/alerts', heading: '预警规则' },
   { path: '/models/list', heading: '模型列表' },
-  { path: '/models/routing', heading: '模型白名单' },
+  { path: '/models/routing', heading: '模型配置' },
   { path: '/keys/mine', heading: '我的 Key' },
   { path: '/approvals', heading: '审批中心' },
   { path: '/keys/platform', heading: 'Key 管理' },
