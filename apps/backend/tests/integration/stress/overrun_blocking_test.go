@@ -38,8 +38,7 @@ func testKeyBudgetExhaustion(t *testing.T) {
 	})
 
 	// Set consumed just under budget, then ingest to exceed
-	budgetfix.SetPlatformKeySnapshotConsumed(t, env.Store, contract.IDPlatformKey1, 95)
-	budgetfix.SetCombinedKeyRemain(t, env.Store, contract.IDPlatformKey1, 5) // budget - consumed
+	budgetfix.SetPlatformKeyBudgetState(t, env.Store, contract.IDPlatformKey1, 100, 95)
 	seedAndIngest(t, env, 5_000_000) // spend=10, will push consumed over 100
 	drainOverrunJobs(t, env)
 
@@ -82,8 +81,7 @@ func testConcurrentIngestRace(t *testing.T) {
 	})
 
 	// Set consumed to 90 so concurrent ingests will push over budget
-	budgetfix.SetPlatformKeySnapshotConsumed(t, env.Store, contract.IDPlatformKey1, 90)
-	budgetfix.SetCombinedKeyRemain(t, env.Store, contract.IDPlatformKey1, 10) // budget - consumed
+	budgetfix.SetPlatformKeyBudgetState(t, env.Store, contract.IDPlatformKey1, 100, 90)
 
 	const goroutines = 10
 	const quotaPerReq = 1_000_000 // spend=2 per goroutine, total=20 > gap(10)
@@ -141,8 +139,7 @@ func testIdempotentReplay(t *testing.T) {
 	})
 
 	// Set consumed close to budget
-	budgetfix.SetPlatformKeySnapshotConsumed(t, env.Store, contract.IDPlatformKey1, 95)
-	budgetfix.SetCombinedKeyRemain(t, env.Store, contract.IDPlatformKey1, 5) // budget - consumed
+	budgetfix.SetPlatformKeyBudgetState(t, env.Store, contract.IDPlatformKey1, 100, 95)
 
 	// First ingest — should trigger overrun
 	logID := seedAndIngest(t, env, 5_000_000) // spend=10 > gap(5)
@@ -181,8 +178,7 @@ func testGatewayBlocksAfterOverrun(t *testing.T) {
 	assertGatewayAllowed(t, env, keyHash)
 
 	// Trigger overrun
-	budgetfix.SetPlatformKeySnapshotConsumed(t, env.Store, contract.IDPlatformKey1, 95)
-	budgetfix.SetCombinedKeyRemain(t, env.Store, contract.IDPlatformKey1, 5) // budget - consumed
+	budgetfix.SetPlatformKeyBudgetState(t, env.Store, contract.IDPlatformKey1, 100, 95)
 	seedAndIngest(t, env, 5_000_000) // spend=10 > gap(5)
 	drainOverrunJobs(t, env)
 

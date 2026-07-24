@@ -66,6 +66,18 @@ func SetMemberSnapshotConsumed(t *testing.T, st store.Store, memberID uuid.UUID,
 	}
 }
 
+// SetPlatformKeyBudgetState sets consumed snapshot AND combined_key_remain in one call.
+// remain is computed as budget - consumed, so callers never need to repeat that arithmetic.
+func SetPlatformKeyBudgetState(t *testing.T, st store.Store, keyID uuid.UUID, budget, consumed float64) {
+	t.Helper()
+	SetPlatformKeySnapshotConsumed(t, st, keyID, consumed)
+	remain := budget - consumed
+	if remain < 0 {
+		remain = 0
+	}
+	SetCombinedKeyRemain(t, st, keyID, remain)
+}
+
 func SetCombinedKeyRemain(t *testing.T, st store.Store, keyID uuid.UUID, remain float64) {
 	t.Helper()
 	ctx := ctx()
