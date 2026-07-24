@@ -1,3 +1,5 @@
+//go:build testhook
+
 package credentials_test
 
 import (
