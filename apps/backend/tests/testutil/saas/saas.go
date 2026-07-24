@@ -16,6 +16,7 @@ import (
 	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -146,6 +147,13 @@ func (m *NewAPIMock) ApplyToConfig(cfg *config.Config) {
 	cfg.NewAPIBaseURL = m.Server.URL
 }
 
+// AdminPort returns an adminport.Port backed by a real newapi.Client pointed
+// at this mock's HTTP server. This exercises the full HTTP serialization path
+// without requiring a live NewAPI database.
+func (m *NewAPIMock) AdminPort() *newapi.Client {
+	return newapi.NewClient(m.Server.URL, "mock-admin-token", 1)
+}
+
 type CreateCompanyHTTPResult struct {
 	Company    store.Company
 	InviteCode string
@@ -156,6 +164,8 @@ func NewRouter(t *testing.T, mock *NewAPIMock) http.Handler {
 	appOpts := []app.Option{app.WithoutWorker()}
 	if mock == nil {
 		appOpts = append(appOpts, app.WithAdminPort(testutil.DefaultStubAdminClient()))
+	} else {
+		appOpts = append(appOpts, app.WithAdminPort(mock.AdminPort()))
 	}
 	application := testutil.NewTestAppWithOptions(t, func(cfg *config.Config) {
 		ApplyConfig(cfg)
