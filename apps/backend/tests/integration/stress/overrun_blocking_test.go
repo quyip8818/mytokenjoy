@@ -61,7 +61,7 @@ func testMemberBudgetIsolation(t *testing.T) {
 	// Set member consumed just under budget
 	budgetfix.SetMemberSnapshotConsumed(t, env.Store, contract.IDMember1, 48)
 	budgetfix.SetCombinedKeyRemain(t, env.Store, contract.IDPlatformKey1, 2) // member gap = 50 - 48
-	seedAndIngest(t, env, 5_000_000) // spend=10, will push member consumed over 50
+	seedAndIngest(t, env, 5_000_000)                                         // spend=10, will push member consumed over 50
 	drainOverrunJobs(t, env)
 
 	// Member's key should be disabled
