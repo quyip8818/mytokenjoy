@@ -37,7 +37,7 @@ function TreeNode({
         aria-selected={isSelected}
         aria-expanded={hasChildren ? isExpanded : undefined}
         className={cn(
-          'group flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors',
+          'group relative flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors',
           isSelected
             ? 'bg-primary/8 font-medium text-primary'
             : 'text-foreground hover:bg-muted/70',
@@ -51,6 +51,10 @@ function TreeNode({
           }
         }}
       >
+        {/* Left accent bar for selected state */}
+        {isSelected && (
+          <span className="absolute top-1.5 bottom-1.5 left-0 w-[3px] rounded-full bg-primary" />
+        )}
         {hasChildren ? (
           <button
             type="button"
@@ -63,7 +67,7 @@ function TreeNode({
           >
             <ChevronRight
               className={cn(
-                'size-3 text-muted-foreground transition-transform',
+                'size-3 text-muted-foreground transition-transform duration-150',
                 isExpanded && 'rotate-90',
               )}
             />
@@ -72,9 +76,9 @@ function TreeNode({
           <span className="size-4 shrink-0" />
         )}
         {hasChildren ? (
-          <Building2 className="size-3.5 shrink-0 text-muted-foreground" />
+          <Building2 className={cn('size-3.5 shrink-0', isSelected ? 'text-primary/70' : 'text-muted-foreground')} />
         ) : (
-          <Users className="size-3.5 shrink-0 text-muted-foreground" />
+          <Users className={cn('size-3.5 shrink-0', isSelected ? 'text-primary/70' : 'text-muted-foreground')} />
         )}
         <span className="truncate">{department.name}</span>
       </div>
@@ -99,7 +103,6 @@ function TreeNode({
 
 export function RoutingTreePanel({ departments, selectedId, onSelect }: RoutingTreePanelProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
-    // Expand root nodes by default
     return new Set(departments.map((d) => d.id))
   })
   const [search, setSearch] = useState('')
@@ -131,8 +134,8 @@ export function RoutingTreePanel({ departments, selectedId, onSelect }: RoutingT
   }
 
   return (
-    <div className="flex w-56 shrink-0 flex-col overflow-hidden border-r-0">
-      <div className="border-b border-border p-3">
+    <div className="flex w-56 shrink-0 flex-col overflow-hidden">
+      <div className="border-b border-border/60 p-3">
         <div className="relative">
           <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input

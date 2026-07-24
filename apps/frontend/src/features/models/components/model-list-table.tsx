@@ -13,6 +13,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { PROVIDER_LABELS } from '@/lib/provider-labels'
+import { cn } from '@/lib/utils'
+import { Pencil, Trash2 } from 'lucide-react'
 
 interface ModelListTableProps {
   models: ModelInfo[]
@@ -52,37 +54,32 @@ export function ModelListTable({
     },
     [onToggle],
   )
+
   return (
     <Table>
       <TableHeader>
-        <TableRow className="hover:bg-transparent">
-          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
-            模型名称
-          </TableHead>
-          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
-            模型类型
+        <TableRow className="hover:bg-transparent border-border/60">
+          <TableHead className="text-xs font-medium text-muted-foreground">
+            模型
           </TableHead>
           {showProviderColumn && (
-            <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            <TableHead className="text-xs font-medium text-muted-foreground">
               来源
             </TableHead>
           )}
-          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+          <TableHead className="text-right text-xs font-medium text-muted-foreground">
             输入价格
           </TableHead>
-          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+          <TableHead className="text-right text-xs font-medium text-muted-foreground">
             输出价格
           </TableHead>
-          <TableHead className="text-xs font-medium uppercase text-muted-foreground">
-            描述
-          </TableHead>
           {showProviderColumn && (
-            <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            <TableHead className="text-xs font-medium text-muted-foreground">
               部署地址
             </TableHead>
           )}
           {canManage && (
-            <TableHead className="text-xs font-medium uppercase text-muted-foreground">
+            <TableHead className="w-[140px] text-right text-xs font-medium text-muted-foreground">
               操作
             </TableHead>
           )}
@@ -92,34 +89,64 @@ export function ModelListTable({
         {models.map((model) => (
           <TableRow
             key={model.modelId}
-            className={`even:bg-muted/40 ${rowClass(model.modelId)} ${!model.enabled ? 'opacity-50' : ''}`}
+            className={cn(
+              'group transition-colors',
+              !model.enabled && 'opacity-45',
+              rowClass(model.modelId),
+            )}
           >
-            <TableCell className="font-medium">{model.name}</TableCell>
-            <TableCell className="font-mono text-xs text-muted-foreground">{model.type}</TableCell>
+            {/* Model name + type combined cell */}
+            <TableCell>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium leading-tight text-foreground">
+                  {model.name}
+                </span>
+                <span className="font-mono text-xs text-muted-foreground/80">
+                  {model.type}
+                </span>
+              </div>
+            </TableCell>
             {showProviderColumn && (
               <TableCell>
-                <Badge variant="outline" className="border-0 bg-muted text-xs">
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    'text-[11px] font-medium',
+                    isCustomModel(model)
+                      ? 'border-violet-200 bg-violet-50 text-violet-700'
+                      : 'border-indigo-200 bg-indigo-50 text-indigo-700',
+                  )}
+                >
                   {isCustomModel(model) ? (PROVIDER_LABELS[model.provider] ?? '自定义') : '内置'}
                 </Badge>
               </TableCell>
             )}
-            <TableCell className="text-right font-mono text-xs text-muted-foreground">
-              {model.inputPrice > 0 ? `¥${model.inputPrice}/M` : '—'}
+            <TableCell className="text-right">
+              <span className="font-mono text-xs tabular-nums text-foreground/80">
+                {model.inputPrice > 0 ? `¥${model.inputPrice}` : '—'}
+              </span>
+              {model.inputPrice > 0 && (
+                <span className="ml-0.5 text-[10px] text-muted-foreground">/M</span>
+              )}
             </TableCell>
-            <TableCell className="text-right font-mono text-xs text-muted-foreground">
-              {model.outputPrice > 0 ? `¥${model.outputPrice}/M` : '—'}
-            </TableCell>
-            <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
-              {model.description || '—'}
+            <TableCell className="text-right">
+              <span className="font-mono text-xs tabular-nums text-foreground/80">
+                {model.outputPrice > 0 ? `¥${model.outputPrice}` : '—'}
+              </span>
+              {model.outputPrice > 0 && (
+                <span className="ml-0.5 text-[10px] text-muted-foreground">/M</span>
+              )}
             </TableCell>
             {showProviderColumn && (
-              <TableCell className="max-w-xs truncate font-mono text-xs text-muted-foreground">
-                {isCustomModel(model) ? (model.endpoint ?? '—') : '—'}
+              <TableCell className="max-w-[200px]">
+                <span className="block truncate font-mono text-xs text-muted-foreground">
+                  {isCustomModel(model) ? (model.endpoint ?? '—') : '—'}
+                </span>
               </TableCell>
             )}
             {canManage && (
-              <TableCell>
-                <div className="flex items-center gap-2">
+              <TableCell className="text-right">
+                <div className="flex items-center justify-end gap-1.5 opacity-70 transition-opacity group-hover:opacity-100">
                   <Switch
                     checked={model.enabled}
                     disabled={togglingIds.has(model.modelId)}
@@ -130,19 +157,21 @@ export function ModelListTable({
                     <>
                       <Button
                         variant="ghost"
-                        size="sm"
-                        className="h-8"
+                        size="icon"
+                        className="size-7"
                         onClick={() => onEdit(model)}
+                        aria-label="编辑"
                       >
-                        编辑
+                        <Pencil className="size-3.5" />
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
-                        className="h-8 text-red-600 hover:text-red-700"
+                        size="icon"
+                        className="size-7 text-red-600 hover:bg-red-50 hover:text-red-700"
                         onClick={() => onDelete(model)}
+                        aria-label="删除"
                       >
-                        删除
+                        <Trash2 className="size-3.5" />
                       </Button>
                     </>
                   )}

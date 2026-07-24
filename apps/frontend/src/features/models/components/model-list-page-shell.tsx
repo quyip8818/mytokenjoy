@@ -1,4 +1,4 @@
-import { Box } from 'lucide-react'
+import { Box, Cpu, Layers } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { DataSection } from '@/components/layout/data-section'
@@ -11,6 +11,16 @@ import type { useModelListPage } from '@/features/models'
 import { ModelListTable } from './model-list-table'
 
 type ModelListPageShellProps = ReturnType<typeof useModelListPage>
+
+function StatChip({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: number }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-1.5">
+      <Icon className="size-3.5 text-muted-foreground" />
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-xs font-semibold tabular-nums text-foreground">{value}</span>
+    </div>
+  )
+}
 
 export function ModelListPageShell({
   models,
@@ -69,7 +79,7 @@ export function ModelListPageShell({
     )
   }
 
-  // Self-hosted version: full tabs + add button
+  // Self-hosted version: stats + tabs + add button
   return (
     <PageShell
       actions={
@@ -86,13 +96,22 @@ export function ModelListPageShell({
         </PermissionGate>
       }
     >
+      {/* Stats bar */}
+      {!loading && models.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <StatChip icon={Layers} label="总计" value={counts.all} />
+          <StatChip icon={Cpu} label="自定义" value={counts.custom} />
+          <StatChip icon={Box} label="内置" value={counts.builtin} />
+        </div>
+      )}
+
       <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)}>
         <Card className="min-h-[360px] border-border shadow-xs">
           <CardContent className="px-5 pt-4 pb-4">
             <TabsList variant="line" className="mb-4">
-              <TabsTrigger value="all">全部模型 ({counts.all})</TabsTrigger>
-              <TabsTrigger value="custom">自定义模型 ({counts.custom})</TabsTrigger>
-              <TabsTrigger value="builtin">内置模型 ({counts.builtin})</TabsTrigger>
+              <TabsTrigger value="all">全部</TabsTrigger>
+              <TabsTrigger value="custom">自定义</TabsTrigger>
+              <TabsTrigger value="builtin">内置</TabsTrigger>
             </TabsList>
 
             <TabsContent value={tab} className="mt-0">

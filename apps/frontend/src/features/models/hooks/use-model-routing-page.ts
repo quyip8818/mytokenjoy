@@ -87,7 +87,6 @@ export function useModelRoutingPage(injectedApis?: AppApis) {
   return {
     departments,
     models,
-    rules,
     selectedNodeId: resolvedSelectedId,
     setSelectedNodeId,
     selectedRule,
