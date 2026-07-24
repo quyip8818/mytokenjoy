@@ -1,6 +1,3 @@
-export { useAccountPage } from './hooks/use-account-page'
-export { useLoginActivityPage } from './hooks/use-login-activity-page'
+// === 页面入口（route page 消费）===
 export { useSettingsPage } from './hooks/use-settings-page'
-export { AccountPageShell } from './components/account-page-shell'
-export { LoginActivityPageShell } from './components/login-activity-page-shell'
 export { SettingsPageShell } from './components/settings-page-shell'

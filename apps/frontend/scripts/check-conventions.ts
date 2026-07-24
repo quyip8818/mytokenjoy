@@ -280,4 +280,85 @@ walkFiles(srcRoot, (filePath) => {
   }
 })
 
+// === Barrel export must have at least one consumer ===
+// A consumer is legit if it's:
+//   a) outside the feature (other feature, routes/, components/layout/, etc.)
+//   b) inside the feature's own components/ or lib/ (self-barrel pattern enforced by other rules)
+const featuresDir = join(srcRoot, 'features')
+const barrelUnconsumedWarnings: string[] = []
+
+// Collect all file contents once for efficient searching
+const allSrcImports = new Map<string, string[]>()
+walkFiles(srcRoot, (filePath) => {
+  const source = readFileSync(filePath, 'utf8')
+  const blocks = source.match(/import\s[\s\S]*?from\s+['"][^'"]+['"]/g)
+  if (blocks) allSrcImports.set(filePath, blocks)
+})
+const allTestImports = new Map<string, string[]>()
+if (existsSync(testsRoot)) {
+  walkFiles(testsRoot, (filePath) => {
+    const source = readFileSync(filePath, 'utf8')
+    const blocks = source.match(/import\s[\s\S]*?from\s+['"][^'"]+['"]/g)
+    if (blocks) allTestImports.set(filePath, blocks)
+  })
+}
+
+for (const featureEntry of readdirSync(featuresDir, { withFileTypes: true })) {
+  if (!featureEntry.isDirectory()) continue
+  const featureName = featureEntry.name
+  const barrelPath = join(featuresDir, featureName, 'index.ts')
+  if (!existsSync(barrelPath)) continue
+
+  const barrelSource = readFileSync(barrelPath, 'utf8')
+  const exportedNames: string[] = []
+
+  // Parse export names from barrel (handles `export { A, type B } from '...'`)
+  for (const line of barrelSource.split('\n')) {
+    const m = line.match(/export\s+(?:type\s+)?{([^}]+)}\s+from/)
+    if (!m) continue
+    for (const token of m[1].split(',')) {
+      const name = token.trim().replace(/^type\s+/, '').replace(/\s+as\s+\w+/, '').trim()
+      if (name) exportedNames.push(name)
+    }
+  }
+
+  for (const exportName of exportedNames) {
+    let hasConsumer = false
+    const pattern = new RegExp(`\\b${exportName}\\b`)
+
+    for (const [filePath, blocks] of allSrcImports) {
+      if (hasConsumer) break
+      if (filePath === barrelPath) continue
+      const rel = relativeToSrc(filePath)
+      if (rel.startsWith(`features/${featureName}/hooks/`)) continue
+      for (const block of blocks) {
+        if (pattern.test(block)) { hasConsumer = true; break }
+      }
+    }
+
+    if (!hasConsumer) {
+      for (const [, blocks] of allTestImports) {
+        if (hasConsumer) break
+        for (const block of blocks) {
+          if (pattern.test(block)) { hasConsumer = true; break }
+        }
+      }
+    }
+
+    if (!hasConsumer) {
+      barrelUnconsumedWarnings.push(
+        `features/${featureName}/index.ts: export "${exportName}" has no consumer`,
+      )
+    }
+  }
+}
+
+if (barrelUnconsumedWarnings.length > 0) {
+  console.warn('check-conventions: barrel export warnings:')
+  for (const w of barrelUnconsumedWarnings) {
+    console.warn(`  ⚠ ${w}`)
+  }
+  fail(`${barrelUnconsumedWarnings.length} barrel export(s) have no consumer`)
+}
+
 console.log('check-conventions: all checks passed')

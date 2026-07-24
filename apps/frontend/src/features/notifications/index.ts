@@ -1,7 +1,9 @@
-export { useNotify } from './hooks/use-notify'
-export { useNotificationConnection } from './hooks/use-notification-connection'
-export { useNotifications, useUnreadCount } from './hooks/use-notifications'
-export { useNotificationCapabilities } from './hooks/use-notification-capabilities'
+// === 页面入口（route page 消费）===
 export { useNotificationsPage } from './hooks/use-notifications-page'
-export { NotificationProvider } from './notification-provider'
 export { NotificationsPageShell } from './components/notifications-page-shell'
+
+// === 跨 feature/layout 共享 ===
+// consumed by: components/layout/notification-inbox
+export { useNotifications, useUnreadCount } from './hooks/use-notifications'
+// consumed by: components/layout/app-providers
+export { NotificationProvider } from './notification-provider'

@@ -1,11 +1,13 @@
+// === 跨 feature/layout 共享 ===
+// consumed by: components/layout/admin-layout
 export { WorkflowProvider } from './workflow-context'
-export { useWorkflow, useWorkflowStore } from './hooks/use-workflow'
-export { useWorkflowSubmit } from './hooks/use-workflow-submit'
-export { getWorkflowDefinition, getWorkflowDefinitionSync } from './definitions'
-export { WORKFLOW_META, getWorkflowMeta } from './definitions/workflow-meta'
+// consumed by: components/layout/admin-layout
 export { WorkflowPanelStack } from './components/workflow-panel-stack'
+// consumed by: budget/components (project-detail, project-members-section)
+export { useWorkflow } from './hooks/use-workflow'
+// consumed by: models/keys/budget hooks
+export { useWorkflowRefresh } from './hooks/use-workflow-refresh'
+
+// === 自身 workflows 通过 self-barrel 消费 ===
 export { WorkflowPanelChrome, WorkflowPanelFooter } from './components/workflow-panel-chrome'
 export { WorkflowFormLayout } from './components/workflow-form-layout'
-export { useWorkflowRefresh } from './hooks/use-workflow-refresh'
-export type { WorkflowRefreshOptions } from './hooks/use-workflow-refresh'
-export type { WorkflowId, WorkflowDefinition, WorkflowPayloadMap } from './types'
