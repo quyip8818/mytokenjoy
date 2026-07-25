@@ -164,12 +164,13 @@ test.describe('角色管理 - 搜索过滤', () => {
 
   test('清空搜索恢复完整角色列表', async ({ page }) => {
     const searchInput = page.locator('input[placeholder*="搜索角色"]')
+    const roleList = page.locator('[class*="cursor-pointer"]')
     await searchInput.fill('管理')
-    await expect(page.getByText('普通成员').first()).toBeHidden()
+    await expect(roleList.filter({ hasText: '普通成员' })).toBeHidden()
 
     await searchInput.clear()
-    await expect(page.getByText('普通成员').first()).toBeVisible()
-    await expect(page.getByText('超级管理员').first()).toBeVisible()
+    await expect(roleList.filter({ hasText: '普通成员' })).toBeVisible()
+    await expect(roleList.filter({ hasText: '超级管理员' })).toBeVisible()
   })
 
   test('成员表搜索可过滤角色下的成员', async ({ page }) => {
@@ -270,7 +271,7 @@ test.describe('角色管理 - 角色 CRUD', () => {
       return res.json()
     }, roleName)
     await page.reload()
-    await expect(page.getByText(roleName)).toBeVisible()
+    await expect(page.locator('[class*="cursor-pointer"]').filter({ hasText: roleName })).toBeVisible()
 
     // hover 角色项显示编辑按钮并点击
     const roleItem = page.locator('[class*="cursor-pointer"]').filter({ hasText: roleName })
@@ -317,7 +318,7 @@ test.describe('角色管理 - 角色 CRUD', () => {
 
     await page.reload()
     await expect(page.getByRole('heading', { name: '角色管理' })).toBeVisible()
-    await expect(page.getByText(roleName, { exact: true })).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('[class*="cursor-pointer"]').filter({ hasText: roleName })).toBeVisible({ timeout: 10_000 })
 
     // hover 角色项显示删除按钮
     const roleItem = page.locator('[class*="cursor-pointer"]').filter({ hasText: roleName })
@@ -1031,7 +1032,7 @@ test.describe('角色管理 - 权限表单与交互细节', () => {
       return res.json()
     }, roleName)
     await page.reload()
-    await expect(page.getByText(roleName, { exact: true })).toBeVisible()
+    await expect(page.locator('[class*="cursor-pointer"]').filter({ hasText: roleName })).toBeVisible()
 
     // hover 自定义角色
     const roleItem = page.locator('[class*="cursor-pointer"]').filter({ hasText: roleName })
