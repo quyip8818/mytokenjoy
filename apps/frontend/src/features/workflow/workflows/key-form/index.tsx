@@ -78,6 +78,20 @@ export function KeyFormWorkflow({
   const requiresMemberPick = adminCreate || scope === 'project_member'
   const [createdFullKey, setCreatedFullKey] = useState<string | null>(null)
 
+  // Fetch existing key names to prevent duplicates
+  const [existingNames, setExistingNames] = useState<Set<string>>(new Set())
+  useEffect(() => {
+    let cancelled = false
+    void apis.platformKeyApi.list({ memberId: effectiveMemberId || memberId }).then((res) => {
+      if (!cancelled) {
+        setExistingNames(new Set(res.items.map((k) => k.name)))
+      }
+    })
+    return () => { cancelled = true }
+  }, [apis, effectiveMemberId, memberId])
+
+  const nameDuplicate = isCreate && !!name.trim() && existingNames.has(name.trim())
+
   // Fetch available models for the picker
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([])
   useEffect(() => {
@@ -149,7 +163,7 @@ export function KeyFormWorkflow({
 
   const budgetInvalid = budget === '' || budgetAmount <= 0
   const formInvalid =
-    !name.trim() || models.length === 0 || budgetInvalid || (requiresMemberPick && !targetMemberId)
+    !name.trim() || nameDuplicate || models.length === 0 || budgetInvalid || (requiresMemberPick && !targetMemberId)
 
   const handleCreate = async () => {
     if (budgetInsufficient) {
@@ -337,6 +351,9 @@ export function KeyFormWorkflow({
             placeholder="如：开发调试"
             maxLength={64}
           />
+          {nameDuplicate && (
+            <p className="text-xs text-destructive">已存在同名 Key</p>
+          )}
         </div>
         <div className="space-y-1.5">
           <Label>额度 ({currencyLabel})</Label>
