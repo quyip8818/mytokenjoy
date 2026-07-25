@@ -2,6 +2,7 @@ packages:
   - 'apps/*'
   - 'sms/*'
   - 'packages/*'
+  - 'web'
 allowBuilds:
   esbuild: true
   msw: true

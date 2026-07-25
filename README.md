@@ -19,10 +19,11 @@ mytokenjoy/
 ├── apps/                    ← 客户侧产品（TokenJoy Local + SaaS）
 │   ├── frontend/            ← React SPA（@tokenjoy/frontend）
 │   ├── backend/             ← Go 后端（github.com/tokenjoy/backend）
-│   ├── web/                 ← 官网 Landing Page（@tokenjoy/web）
 │   ├── newapi/              ← NewAPI Docker 构建 + 脚本
 │   ├── dev-mock-llm/        ← 本地模拟 LLM 上游
 │   └── docs/                ← TokenJoy 产品文档
+│
+├── web/                     ← 产品官网（@tokenjoy/web）
 │
 ├── sms/                     ← 内部运营产品
 │   ├── frontend/            ← React SPA（@sms/frontend）
@@ -171,7 +172,7 @@ pnpm start:web           # 启动官网 dev server (port 5175)
 | tokenjoy/frontend | apps/frontend/ | 客户 |
 | tokenjoy/backend | apps/backend/ | 客户 |
 | tokenjoy/newapi | apps/newapi/ | 客户 |
-| tokenjoy/web | apps/web/ | 公开（www.tokenjoy.com） |
+| tokenjoy/web | web/ | 公开（www.tokenjoy.com） |
 | sms-ui | sms/frontend/ | 仅内部 |
 | sms-backend | sms/backend/ | 仅内部 |
 | sms-newapi | sms/newapi/ | 仅内部 |
