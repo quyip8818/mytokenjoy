@@ -70,7 +70,7 @@ func WithProductionContract() ConfigOption {
 		WithSecureCookie(true)(cfg)
 		WithNewAPIEnabled(true)(cfg)
 		cfg.GatewayEnabled = true
-		WithNewAPIBaseURL("http://127.0.0.1:3000")(cfg)
+		WithNewAPIBaseURL("http://127.0.0.1:3010")(cfg)
 		if cfg.DatabaseURL == "" {
 			cfg.DatabaseURL = config.DefaultDatabaseURL
 		}

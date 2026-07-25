@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Post docker:reset: start infra, ensure NewAPI root account, optional dev-mock channel.
+# Post reset: start infra, ensure NewAPI root account, optional dev-mock channel.
 # Admin token is no longer written to .env — Backend reads it directly from NewAPI's database.
 
 # shellcheck source=_verify-lib.sh
@@ -20,7 +20,7 @@ for arg in "$@"; do
       cat <<EOF
 Usage: bootstrap-local-after-reset.sh [--skip-channel]
 
-Run after pnpm docker:reset (or whenever NewAPI Postgres volume was wiped):
+Run after pnpm reset (or whenever NewAPI Postgres databases were recreated):
   default          start-infra + ensure root account + dev-mock channel (best-effort)
   --skip-channel   Skip local-test-model channel setup
 

@@ -37,12 +37,12 @@ export default defineConfig({
     {
       command: 'make run',
       cwd: '../backend',
-      url: 'http://127.0.0.1:8080/healthz',
+      url: 'http://127.0.0.1:8010/healthz',
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 },
       env: {
-        DATABASE_URL: 'postgres://tokenjoy:tokenjoy@127.0.0.1:5432/tokenjoy?sslmode=disable',
+        DATABASE_URL: 'postgres://tokenjoy:tokenjoy@127.0.0.1:5510/tokenjoy?sslmode=disable',
         COMPANY_NAME: 'Demo Company',
         SESSION_SECRET: 'e2e-test-session-secret',
         DATA_SOURCE_CREDENTIAL_KEY: 'dGV2LWNyZWRlbnRpYWwta2V5LWZvci1sb2NhbC1kZXY=',

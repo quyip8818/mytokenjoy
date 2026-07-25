@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NEWAPI_URL="${NEWAPI_URL:-http://localhost:3000}"
+NEWAPI_URL="${NEWAPI_URL:-http://localhost:3010}"
 API_KEY="${API_KEY:-}"
 
 if [[ -z "${API_KEY}" ]]; then

@@ -1,20 +1,17 @@
 #!/bin/bash
 # 清空预算管理模块数据（保留总公司和 admin 账号）
 # 用法: ./scripts/reset-budget-data.sh
-# 前提: Docker 容器 newapi-postgres-1 正在运行
-
+# 前提: postgres 容器已运行 (pnpm infra)
 set -e
 
-CONTAINER="newapi-postgres-1"
-DB_USER="tokenjoy"
-DB_NAME="tokenjoy"
+DB_URL="postgres://tokenjoy:tokenjoy@127.0.0.1:5510/tokenjoy"
 COMPANY_ID=2
 ADMIN_ID="m-admin"
 ROOT_DEPT="dept-1"
 
 echo "🧹 清空预算管理数据（保留总公司 + admin）..."
 
-docker exec "$CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "
+psql "$DB_URL" -c "
 BEGIN;
 
 -- 解除 platform_keys 对 project 和 member 的外键引用
@@ -54,7 +51,7 @@ COMMIT;
 "
 
 echo "✅ 清空完成。当前仅保留："
-docker exec "$CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "
+psql "$DB_URL" -c "
   SELECT '部门' as type, count(*) as count FROM org_nodes WHERE company_id = $COMPANY_ID
   UNION ALL
   SELECT '成员', count(*) FROM members WHERE company_id = $COMPANY_ID

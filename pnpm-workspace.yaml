@@ -1,5 +1,6 @@
 packages:
   - 'apps/*'
+  - 'sms/*'
   - 'packages/*'
 allowBuilds:
   esbuild: true

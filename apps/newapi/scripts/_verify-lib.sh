@@ -9,10 +9,10 @@ if [[ -z "${_VERIFY_LIB_SRC}" && -n "${ZSH_VERSION:-}" ]]; then
 fi
 VERIFY_SCRIPTS_DIR="$(cd "$(dirname "${_VERIFY_LIB_SRC}")" && pwd)"
 VERIFY_ROOT="$(cd "${VERIFY_SCRIPTS_DIR}/../../.." && pwd)"
-VERIFY_COMPOSE_FILE="${VERIFY_ROOT}/apps/newapi/docker-compose.yml"
+VERIFY_COMPOSE_FILE="${VERIFY_ROOT}/docker-compose.yml"
 
-API_URL="${API_URL:-http://localhost:8080}"
-NEWAPI_URL="${NEWAPI_URL:-http://localhost:3000}"
+API_URL="${API_URL:-http://localhost:8010}"
+NEWAPI_URL="${NEWAPI_URL:-http://localhost:3010}"
 WEBHOOK_SECRET="${NEW_API_WEBHOOK_SECRET:-tokenjoy-webhook-secret}"
 NEW_API_ADMIN_TOKEN="${NEW_API_ADMIN_TOKEN:-}"
 BACKEND_ENV_FILE="${BACKEND_ENV_FILE:-${VERIFY_ROOT}/apps/backend/.env}"
@@ -20,8 +20,8 @@ NEW_API_ROOT_USERNAME="${NEW_API_ROOT_USERNAME:-root}"
 NEW_API_ROOT_PASSWORD="${NEW_API_ROOT_PASSWORD:-tokenjoy123}"
 NEW_API_ADMIN_USER_ID="${NEW_API_ADMIN_USER_ID:-1}"
 export NEW_API_ROOT_USERNAME NEW_API_ROOT_PASSWORD
-DATABASE_URL="${DATABASE_URL:-postgres://tokenjoy:tokenjoy@127.0.0.1:5432/tokenjoy?sslmode=disable}"
-LOG_DATABASE_URL="${LOG_DATABASE_URL:-postgres://tokenjoy:tokenjoy@127.0.0.1:5432/logs?sslmode=disable}"
+DATABASE_URL="${DATABASE_URL:-postgres://tokenjoy:tokenjoy@127.0.0.1:5510/tokenjoy?sslmode=disable}"
+LOG_DATABASE_URL="${LOG_DATABASE_URL:-postgres://tokenjoy:tokenjoy@127.0.0.1:5510/logs?sslmode=disable}"
 WORKER_WAIT_SEC="${WORKER_WAIT_SEC:-8}"
 VERIFY_DEFAULT_COMPANY_ID="${VERIFY_DEFAULT_COMPANY_ID:-2}"
 
@@ -74,9 +74,9 @@ verify_start_stack() {
   local no_build="${1:-false}"
   verify_info "Starting postgres + newapi..."
   if [[ "${no_build}" == "true" ]]; then
-    docker compose -f "${VERIFY_COMPOSE_FILE}" up -d postgres redis new-api
+    docker compose -f "${VERIFY_COMPOSE_FILE}" up -d postgres redis newapi-apps
   else
-    docker compose -f "${VERIFY_COMPOSE_FILE}" up -d --build postgres redis new-api
+    docker compose -f "${VERIFY_COMPOSE_FILE}" up -d --build postgres redis newapi-apps
   fi
 }
 

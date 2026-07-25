@@ -20,5 +20,5 @@ SUPPORT_SAAS="$(grep '^SUPPORT_SAAS=' "${ENV_FILE}" 2>/dev/null | cut -d= -f2 ||
 "${NEWAPI_SCRIPTS}/ensure-infra.sh"
 concurrently --kill-others-on-fail --kill-signal SIGTERM -n backend,frontend,mock -c blue,green,magenta \
   "pnpm -F @tokenjoy/backend start" \
-  "VITE_SUPPORT_SAAS=${SUPPORT_SAAS} bash \"${ROOT}/scripts/dev/frontend-wait.sh\" full" \
+  "VITE_SUPPORT_SAAS=${SUPPORT_SAAS} bash \"${ROOT}/scripts/dev/frontend-wait.sh\"" \
   "pnpm -F @tokenjoy/dev-mock-llm start"

@@ -1,6 +1,6 @@
 .PHONY: install-air start build run test test-unit test-unit-nocache test-fast test-changed test-integration lint lint-clock format scaffold-domain clean dev-bootstrap
 
-export DATABASE_URL ?= postgres://tokenjoy:tokenjoy@127.0.0.1:5432/tokenjoy?sslmode=disable
+export DATABASE_URL ?= postgres://tokenjoy:tokenjoy@127.0.0.1:5510/tokenjoy?sslmode=disable
 export COMPANY_NAME ?= Demo Company
 export SESSION_SECRET ?= tokenjoy-dev-session-secret
 NCPU := $(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 8)

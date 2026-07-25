@@ -30,7 +30,7 @@ def http_origin(raw: str) -> str:
 
 
 def _client():
-    base = os.environ.get("NEWAPI_URL", "http://localhost:3000").rstrip("/")
+    base = os.environ.get("NEWAPI_URL", "http://localhost:3010").rstrip("/")
     token = os.environ["NEW_API_ADMIN_TOKEN"]
     user_id = os.environ.get("NEW_API_ADMIN_USER_ID", "1")
 

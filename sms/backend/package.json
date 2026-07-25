@@ -1,0 +1,14 @@
+{
+  "name": "@sms/backend",
+  "private": true,
+  "scripts": {
+    "start": "go run ./cmd/server",
+    "build": "go build -o bin/server ./cmd/server",
+    "seed": "go run ./cmd/seed",
+    "reset": "go run ./cmd/seed",
+    "test": "go test ./tests/...",
+    "test:integration": "go test ./tests/integration/...",
+    "lint": "make lint",
+    "format": "make format"
+  }
+}

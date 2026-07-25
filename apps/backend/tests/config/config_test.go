@@ -51,7 +51,7 @@ func TestLocalLoadsWithDatabaseURL(t *testing.T) {
 
 func TestIngestRequiresWebhookSecret(t *testing.T) {
 	testutil.ApplyLocalEnv(t)
-	t.Setenv("LOG_DATABASE_URL", "postgres://tokenjoy:tokenjoy@127.0.0.1:5432/logs?sslmode=disable")
+	t.Setenv("LOG_DATABASE_URL", "postgres://tokenjoy:tokenjoy@127.0.0.1:5510/logs?sslmode=disable")
 	t.Setenv("NEW_API_WEBHOOK_SECRET", "")
 
 	_, err := config.Load()

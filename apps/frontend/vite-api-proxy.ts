@@ -1,7 +1,7 @@
 import type { ProxyOptions } from 'vite'
 
 const BACKEND_API_PREFIX = '/api'
-const DEFAULT_PROXY_TARGET = 'http://127.0.0.1:8080'
+const DEFAULT_PROXY_TARGET = 'http://127.0.0.1:8010'
 
 export function resolveApiPublicPrefix(base: string): string {
   const normalizedBase = base.replace(/\/$/, '')

@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# Reset: wipe volumes, rebuild infra, seed data.
+# Reset apps databases and re-seed data.
 # Usage: pnpm reset [local|saas] [--empty|--minimal|--full]
 set -euo pipefail
 
 # shellcheck source=../lib/common.sh
 source "$(cd "$(dirname "$0")" && pwd)/../lib/common.sh"
+# shellcheck source=../lib/db-reset.sh
+source "${ROOT}/scripts/lib/db-reset.sh"
 
 MODE=local
 SEED=full
@@ -43,11 +45,13 @@ set_env() {
 
 set_env SUPPORT_SAAS "${SUPPORT_SAAS}"
 
-# --- Wipe & rebuild ---
-"${COMPOSE[@]}" down -v
-"${COMPOSE[@]}" up postgres -d --wait
+# --- Wipe & rebuild (SQL drop/create, preserves sms databases) ---
+"${COMPOSE[@]}" up postgres redis -d --wait
+reset_apps_databases
+
 "${NEWAPI_SCRIPTS}/bootstrap-local-after-reset.sh"
-"${COMPOSE[@]}" exec -T redis redis-cli FLUSHALL
+"${COMPOSE[@]}" exec -T redis redis-cli -n 0 FLUSHDB
+"${COMPOSE[@]}" exec -T redis redis-cli -n 2 FLUSHDB
 
 # Seed data (SEED env is read by Go config, not persisted)
 if [[ "${MODE}" == "saas" ]]; then

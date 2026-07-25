@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-WEBHOOK_URL="${MANAGEMENT_WEBHOOK_URL:-http://127.0.0.1:8080/api/internal/webhooks/newapi-log}"
+WEBHOOK_URL="${MANAGEMENT_WEBHOOK_URL:-http://127.0.0.1:8010/api/internal/webhooks/newapi-log}"
 WEBHOOK_SECRET="${MANAGEMENT_WEBHOOK_SECRET:-tokenjoy-webhook-secret}"
 
 export MANAGEMENT_WEBHOOK_URL="${WEBHOOK_URL}"
