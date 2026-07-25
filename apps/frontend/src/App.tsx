@@ -37,38 +37,48 @@ export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <AppErrorBoundary>
-        <AppProviders>
-          <Suspense fallback={<RouteFallback />}>
-            <Routes>
-              <Route
-                path={LOGIN_PATH.slice(1)}
-                element={
-                  <Suspense fallback={<RouteFallback />}>
-                    <LoginPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="invite/accept"
-                element={
-                  <Suspense fallback={<RouteFallback />}>
-                    <InviteAcceptPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="auth/embed"
-                element={
-                  <Suspense fallback={<RouteFallback />}>
-                    <AuthEmbedPage />
-                  </Suspense>
-                }
-              />
-              <Route path="*" element={<AuthenticatedRoutes />} />
-            </Routes>
-          </Suspense>
-        </AppProviders>
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
+            <Route
+              path="auth/embed"
+              element={
+                <Suspense fallback={<RouteFallback />}>
+                  <AuthEmbedPage />
+                </Suspense>
+              }
+            />
+            <Route path="*" element={<AppShell />} />
+          </Routes>
+        </Suspense>
       </AppErrorBoundary>
     </BrowserRouter>
+  )
+}
+
+function AppShell() {
+  return (
+    <AppProviders>
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route
+            path={LOGIN_PATH.slice(1)}
+            element={
+              <Suspense fallback={<RouteFallback />}>
+                <LoginPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="invite/accept"
+            element={
+              <Suspense fallback={<RouteFallback />}>
+                <InviteAcceptPage />
+              </Suspense>
+            }
+          />
+          <Route path="*" element={<AuthenticatedRoutes />} />
+        </Routes>
+      </Suspense>
+    </AppProviders>
   )
 }

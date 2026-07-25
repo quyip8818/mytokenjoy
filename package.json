@@ -8,25 +8,22 @@
     "reset": "bash scripts/dev.sh reset",
     "infra": "docker compose up -d --wait",
     "infra:down": "docker compose down",
-
     "build": "pnpm -F @tokenjoy/frontend build",
     "lint": "pnpm -F @tokenjoy/frontend lint && pnpm -F @tokenjoy/backend lint",
     "format": "prettier --write apps && pnpm -F @tokenjoy/backend format",
     "test": "bash scripts/dev.sh test",
     "test:integration": "pnpm -F @tokenjoy/backend test:integration",
     "test:e2e": "pnpm -F @tokenjoy/frontend test:e2e",
-
     "start:web": "pnpm -F @tokenjoy/web start",
     "build:web": "pnpm -F @tokenjoy/web build",
     "lint:web": "pnpm -F @tokenjoy/web lint",
     "format:web": "prettier --write apps/web/src",
     "test:web": "pnpm -F @tokenjoy/web test",
-
     "build:sms": "pnpm -F @sms/frontend build",
     "lint:sms": "pnpm -F @sms/frontend lint && pnpm -F @sms/backend lint",
     "test:sms": "pnpm -F @sms/frontend test && pnpm -F @sms/backend test",
     "test:sms:integration": "pnpm -F @sms/backend test:integration",
-    "test:sms:e2e": "pnpm -F @sms/frontend test:e2e",
+    "test:sms:e2e": "pnpm -F @sms/frontend test:e2e"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

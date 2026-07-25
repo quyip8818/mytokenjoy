@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ArrowRight, Menu, X } from 'lucide-react'
 import type { NavContent } from '@/content/types'
 import { Logo } from '@/shared/Logo'
@@ -23,41 +23,22 @@ export function Navbar({ content, scrollThreshold = 20 }: NavbarProps) {
   // --- Auth iframe dialog state ---
   const [authOpen, setAuthOpen] = useState(false)
   const [authMode, setAuthMode] = useState<AuthMode>('login')
-  const [iframeReady, setIframeReady] = useState(false)
-  const [iframeError, setIframeError] = useState(false)
-  const [iframeKey, setIframeKey] = useState(0)
-  const dialogRef = useRef<HTMLDialogElement>(null)
-  const readyRef = useRef(false)
 
   const openAuth = useCallback((mode: AuthMode) => {
     setAuthMode(mode)
     setAuthOpen(true)
-    setIframeReady(false)
-    setIframeError(false)
     setMobileOpen(false)
-    readyRef.current = false
   }, [])
 
   const closeAuth = useCallback(() => {
-    dialogRef.current?.close()
     setAuthOpen(false)
   }, [])
 
   useEffect(() => {
     if (!authOpen) return
-    dialogRef.current?.showModal()
-
-    const timeout = setTimeout(() => {
-      if (!readyRef.current) setIframeError(true)
-    }, 5000)
 
     const handler = (e: MessageEvent) => {
       if (e.origin !== APP_ORIGIN) return
-      if (e.data?.type === 'auth:ready') {
-        readyRef.current = true
-        setIframeReady(true)
-        setIframeError(false)
-      }
       if (e.data?.type === 'auth:success') {
         closeAuth()
         window.location.href = APP_URL
@@ -66,7 +47,6 @@ export function Navbar({ content, scrollThreshold = 20 }: NavbarProps) {
 
     window.addEventListener('message', handler)
     return () => {
-      clearTimeout(timeout)
       window.removeEventListener('message', handler)
     }
   }, [authOpen, closeAuth])
@@ -166,12 +146,15 @@ export function Navbar({ content, scrollThreshold = 20 }: NavbarProps) {
         </div>
       </nav>
 
-      <dialog
-        ref={dialogRef}
-        className="backdrop:bg-black/50 bg-transparent p-0 m-auto rounded-2xl outline-none"
-        onClose={() => setAuthOpen(false)}
+      {/* 预加载 iframe（隐藏），点击时切换为可见 */}
+      <div
+        className={cn(
+          'fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-150',
+          authOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
+        )}
       >
-        <div className="relative w-[480px] max-w-[95vw] h-[640px] max-h-[90vh] rounded-2xl overflow-hidden">
+        <div className="absolute inset-0 bg-black/50" onClick={closeAuth} />
+        <div className="relative w-[480px] max-w-[95vw] h-[640px] max-h-[90vh] rounded-2xl overflow-hidden shadow-2xl">
           <button
             type="button"
             onClick={closeAuth}
@@ -181,29 +164,13 @@ export function Navbar({ content, scrollThreshold = 20 }: NavbarProps) {
             <X className="w-4 h-4" />
           </button>
 
-          {iframeError && !iframeReady ? (
-            <div className="flex h-full items-center justify-center text-center p-6 bg-white rounded-2xl shadow-2xl">
-              <div>
-                <p className="text-ink-600 mb-4">加载失败，请重试</p>
-                <button
-                  type="button"
-                  onClick={() => { setIframeError(false); setIframeReady(false); setIframeKey((k) => k + 1) }}
-                  className="text-brand-600 underline text-sm"
-                >
-                  重新加载
-                </button>
-              </div>
-            </div>
-          ) : (
-            <iframe
-              key={iframeKey}
-              src={`${AUTH_EMBED_URL}?mode=${authMode}`}
-              className="w-full h-full border-0"
-              title="TokenJoy 认证"
-            />
-          )}
+          <iframe
+            src={`${AUTH_EMBED_URL}?mode=${authMode}`}
+            className="w-full h-full border-0"
+            title="TokenJoy 认证"
+          />
         </div>
-      </dialog>
+      </div>
     </>
   )
 }
