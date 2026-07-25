@@ -14,3 +14,5 @@ export { modelRefLabel } from './lib/model-catalog'
 export { isBuiltinModel } from './lib/model-kind'
 // consumed by: workflow/model-edit
 export { isCustomModel } from './lib/model-kind'
+// consumed by: workflow/key-form, workflow/approval-submit — shared inline model multi-select
+export { InlineModelPicker } from './components/inline-model-picker'

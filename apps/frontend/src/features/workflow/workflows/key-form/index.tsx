@@ -13,11 +13,10 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { useWorkflow } from '@/features/workflow/hooks/use-workflow'
 import { workflowErrorMessage } from '@/features/workflow/lib/error-message'
 import { BUDGET_INSUFFICIENT_MESSAGE } from '@/features/keys'
-import { useModelLabels } from '@/features/models'
+import { InlineModelPicker } from '@/features/models'
 import { formatBudgetContext, useKeyFormBudget, useKeyFormState } from './use-key-form-budget'
 import { useBillingExchange } from '@/features/session'
 import { currencySymbol, formatMoney } from '@/lib/quota-display'
@@ -74,11 +73,10 @@ export function KeyFormWorkflow({
     initialBudget: createPayload?.initialBudget,
   })
 
-  const { index: modelIndex, labelFor } = useModelLabels(apis)
   const effectiveMemberId = adminCreate || scope === 'project_member' ? targetMemberId : memberId
   const requiresMemberPick = adminCreate || scope === 'project_member'
 
-  // Resolve allowed model IDs for inline picker
+  // Resolve allowed model IDs for the picker
   const [allowedModelIds, setAllowedModelIds] = useState<string[]>([])
   useEffect(() => {
     let cancelled = false
@@ -135,10 +133,8 @@ export function KeyFormWorkflow({
     })
   }
 
-  const toggleModel = (modelId: string) => {
-    setModels((prev) =>
-      prev.includes(modelId) ? prev.filter((id) => id !== modelId) : [...prev, modelId],
-    )
+  const handleModelsChange = (ids: string[]) => {
+    setModels(ids)
     onSetDirty(true)
   }
 
@@ -224,27 +220,6 @@ export function KeyFormWorkflow({
     )
   })()
 
-  const modelSection = (
-    <div className="space-y-2">
-      <Label>模型白名单 <span className="text-muted-foreground font-normal text-xs">（不选 = 全部可用）</span></Label>
-      {allowedModelIds.length === 0 ? (
-        <p className="text-sm text-muted-foreground">加载中...</p>
-      ) : (
-        <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto rounded border p-2">
-          {allowedModelIds.map((modelId) => (
-            <label key={modelId} className="flex items-center gap-2 cursor-pointer text-sm">
-              <Checkbox
-                checked={models.includes(modelId)}
-                onCheckedChange={() => toggleModel(modelId)}
-              />
-              <span className="truncate">{labelFor(modelId)}</span>
-            </label>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-
   return (
     <WorkflowPanelChrome
       title={isCreate ? '创建 Key' : '编辑 Key'}
@@ -328,7 +303,14 @@ export function KeyFormWorkflow({
             }}
           />
         </div>
-        {modelSection}
+
+        <InlineModelPicker
+          value={models}
+          onChange={handleModelsChange}
+          allowedModelIds={allowedModelIds.length > 0 ? allowedModelIds : undefined}
+          injectedApis={apis}
+          hint="不选 = 全部可用"
+        />
       </div>
     </WorkflowPanelChrome>
   )

@@ -13,6 +13,7 @@ export function MemberKeysPageShell({
   applyBudgetCta,
   createKeyCta,
   openCreateKey,
+  openEditKey,
   openWithRefresh,
 }: MemberKeysPageShellProps) {
   return (
@@ -44,7 +45,7 @@ export function MemberKeysPageShell({
       }
     >
       <div className="rounded-lg border border-border bg-card shadow-xs">
-        <MyKeysCardList keys={keys} />
+        <MyKeysCardList keys={keys} onEdit={openEditKey} />
       </div>
     </PageShell>
   )

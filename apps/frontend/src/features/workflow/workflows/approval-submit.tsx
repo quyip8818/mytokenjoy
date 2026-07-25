@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { ApiError } from '@/api/client'
 import { useInjectedApis } from '@/api/use-apis'
@@ -17,18 +17,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { useWorkflow } from '../hooks/use-workflow'
-import { pushModelPicker, useMemberWhitelist } from '../hooks/use-member-whitelist'
+import { useMemberWhitelist } from '../hooks/use-member-whitelist'
 import type { ApprovalType } from '@/api/types'
 import { MODEL_NOT_IN_DEPT_MESSAGE } from '@/features/dashboard'
-import { useModelLabels } from '@/features/models'
+import { InlineModelPicker } from '@/features/models'
 
 export function ApprovalSubmitWorkflow({
   entry,
   onClose,
-  onPush,
   onSetDirty,
 }: WorkflowComponentProps<'approval-submit'>) {
   const apis = useInjectedApis()
@@ -36,7 +33,6 @@ export function ApprovalSubmitWorkflow({
   const { billingCurrency } = useBillingExchange()
   const currencyLabel = currencySymbol(billingCurrency)
   const { resolveAllowedModelIds } = useMemberWhitelist()
-  const { labelFor } = useModelLabels(apis)
   const defaultType = entry.payload.defaultType ?? 'member_budget'
   const projectId = entry.payload.projectId
   const projectName = entry.payload.projectName
@@ -47,13 +43,15 @@ export function ApprovalSubmitWorkflow({
   const [models, setModels] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
 
-  const handlePickModels = () => {
-    void pushModelPicker(onPush, resolveAllowedModelIds, {
-      selectedModelIds: models,
-      onConfirm: setModels,
-      onSetDirty,
+  // Resolve allowed model IDs for inline picker
+  const [allowedModelIds, setAllowedModelIds] = useState<string[]>([])
+  useEffect(() => {
+    let cancelled = false
+    void resolveAllowedModelIds().then((ids) => {
+      if (!cancelled && ids) setAllowedModelIds(ids)
     })
-  }
+    return () => { cancelled = true }
+  }, [resolveAllowedModelIds])
 
   const validateModels = async (): Promise<boolean> => {
     if (type !== 'key' || models.length === 0) return true
@@ -160,19 +158,16 @@ export function ApprovalSubmitWorkflow({
           />
         </div>
         {type === 'key' && (
-          <div className="space-y-3">
-            <Label>申请模型</Label>
-            <Button variant="outline" onClick={handlePickModels}>
-              选择模型 ({models.length})
-            </Button>
-            <div className="flex flex-wrap gap-1">
-              {models.map((modelId) => (
-                <Badge key={modelId} variant="outline" className="text-xs">
-                  {labelFor(modelId)}
-                </Badge>
-              ))}
-            </div>
-          </div>
+          <InlineModelPicker
+            value={models}
+            onChange={(ids) => {
+              setModels(ids)
+              onSetDirty(true)
+            }}
+            allowedModelIds={allowedModelIds.length > 0 ? allowedModelIds : undefined}
+            injectedApis={apis}
+            label="申请模型"
+          />
         )}
       </WorkflowFormLayout>
     </WorkflowPanelChrome>
