@@ -16,7 +16,13 @@ const (
 )
 
 func HashPlatformKey(raw string) string {
-	sum := sha256.Sum256([]byte(raw))
+	// Normalize: strip "sk-" prefix so hash is consistent regardless of whether
+	// the key value comes with or without the prefix.
+	key := raw
+	if len(key) > 3 && key[:3] == "sk-" {
+		key = key[3:]
+	}
+	sum := sha256.Sum256([]byte(key))
 	return hex.EncodeToString(sum[:])
 }
 

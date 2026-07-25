@@ -55,7 +55,7 @@ func TestTogglePlatformKeyRemoteFailureKeepsStatus(t *testing.T) {
 	}
 }
 
-func TestRevokePlatformKeyRemoteFailureKeepsStatus(t *testing.T) {
+func TestDeletePlatformKeyRemoteFailureKeepsStatus(t *testing.T) {
 	t.Parallel()
 	svc, st, stub := newKeysServiceWithNewAPI(t)
 	ctx := testutil.Ctx()
@@ -70,7 +70,7 @@ func TestRevokePlatformKeyRemoteFailureKeepsStatus(t *testing.T) {
 	if err := st.PlatformKeyMappings().UpsertMapping(ctx, mapping); err != nil {
 		t.Fatal(err)
 	}
-	err := svc.RevokePlatformKey(ctx, contract.IDPlatformKey1)
+	err := svc.DeletePlatformKey(ctx, contract.IDPlatformKey1)
 	if err == nil {
 		t.Fatal("expected error when newapi delete fails")
 	}
@@ -79,8 +79,8 @@ func TestRevokePlatformKeyRemoteFailureKeepsStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, key := range keys {
-		if key.ID == contract.IDPlatformKey1 && key.Status == "revoked" {
-			t.Fatal("expected status not revoked after remote failure")
+		if key.ID == contract.IDPlatformKey1 && key.Status == "deleted" {
+			t.Fatal("expected status not deleted after remote failure")
 		}
 	}
 }
@@ -108,7 +108,7 @@ func TestRotatePlatformKeySuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rotated.FullKey == nil || *rotated.FullKey != "sk-rotated-key" {
+	if rotated.FullKey == nil || *rotated.FullKey != "rotated-key" {
 		t.Fatalf("expected rotated key, got %+v", rotated.FullKey)
 	}
 	if stub.RegenerateTokenCalls != 1 {
@@ -217,9 +217,13 @@ func TestDeletePlatformKeyRevokesRemoteToken(t *testing.T) {
 	}
 	for _, key := range keys {
 		if key.ID == contract.IDPlatformKey1 {
-			t.Fatal("expected key removed from store")
+			if key.Status != "deleted" {
+				t.Fatalf("expected deleted status, got %s", key.Status)
+			}
+			return
 		}
 	}
+	t.Fatal("expected key to still exist with deleted status")
 }
 
 func TestUpdatePlatformKeyRequiresNewAPI(t *testing.T) {

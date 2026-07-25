@@ -54,15 +54,15 @@ func defaultStubAdminClient() *mock.StubAdminClient {
 			nextTokenID++
 			return adminport.TokenResult{
 				ID:          nextTokenID,
-				Key:         fmt.Sprintf("sk-test-%d", nextTokenID),
+				Key:         fmt.Sprintf("test-%d", nextTokenID),
 				RemainQuota: 1000,
 			}, nil
 		},
 		GetTokenFn: func(_ context.Context, tokenID int64) (adminport.TokenResult, error) {
-			return adminport.TokenResult{ID: tokenID, Key: fmt.Sprintf("sk-test-%d", tokenID), RemainQuota: 1000}, nil
+			return adminport.TokenResult{ID: tokenID, Key: fmt.Sprintf("test-%d", tokenID), RemainQuota: 1000}, nil
 		},
 		GetTokenKeyFn: func(_ context.Context, tokenID int64) (string, error) {
-			return fmt.Sprintf("sk-test-%d", tokenID), nil
+			return fmt.Sprintf("test-%d", tokenID), nil
 		},
 	}
 }

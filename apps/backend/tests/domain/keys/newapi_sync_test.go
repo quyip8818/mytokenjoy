@@ -16,7 +16,7 @@ import (
 
 func TestSyncCreateEnqueuesOutbox(t *testing.T) {
 	t.Parallel()
-	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 881, Key: "sk-test", RemainQuota: 1000}}
+	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 881, Key: "test", RemainQuota: 1000}}
 	newAPISync, st := newNewAPISync(t, stub)
 	ctx := testutil.Ctx()
 	memberID := contract.IDMember1
@@ -46,7 +46,7 @@ func TestSyncCreateEnqueuesOutbox(t *testing.T) {
 
 func TestTrySyncCreateCallsAdminAPI(t *testing.T) {
 	t.Parallel()
-	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 882, Key: "sk-test-key", RemainQuota: 1000}}
+	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 882, Key: "test-key", RemainQuota: 1000}}
 	newAPISync, st := newNewAPISync(t, stub)
 	ctx := testutil.Ctx()
 	memberID := contract.IDMember1
@@ -73,8 +73,8 @@ func TestTrySyncCreateCallsAdminAPI(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if fullKey != "sk-test-key" {
-		t.Fatalf("expected sk-test-key, got %q", fullKey)
+	if fullKey != "test-key" {
+		t.Fatalf("expected test-key, got %q", fullKey)
 	}
 	if stub.CreateTokenCalls != 1 {
 		t.Fatalf("expected one CreateToken call, got %d", stub.CreateTokenCalls)
@@ -94,7 +94,7 @@ func TestTrySyncCreateCallsAdminAPI(t *testing.T) {
 	}
 	for _, k := range keys {
 		if k.ID == plkSync {
-			byHash, err := st.Keys().PlatformKeyByHash(ctx, store.HashPlatformKey("sk-test-key"))
+			byHash, err := st.Keys().PlatformKeyByHash(ctx, store.HashPlatformKey("test-key"))
 			if err != nil || byHash == nil || byHash.ID != plkSync {
 				t.Fatalf("expected key hash lookup, err=%v key=%v", err, byHash)
 			}

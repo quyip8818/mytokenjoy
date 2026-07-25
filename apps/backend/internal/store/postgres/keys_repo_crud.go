@@ -190,6 +190,15 @@ func (r *pgKeysRepo) DisablePlatformKey(ctx context.Context, keyID uuid.UUID) er
 	return err
 }
 
+func (r *pgKeysRepo) SoftDeletePlatformKey(ctx context.Context, keyID uuid.UUID) error {
+	companyID := store.CompanyID(ctx)
+	_, err := r.db.Exec(ctx, `
+		UPDATE platform_keys SET status = 'deleted', updated_at = NOW()
+		WHERE company_id = $1 AND id = $2 AND status != 'deleted'
+	`, companyID, keyID)
+	return err
+}
+
 func (r *pgKeysRepo) PlatformKeyHashByID(ctx context.Context, keyID uuid.UUID) (string, bool, error) {
 	companyID := store.CompanyID(ctx)
 	var keyHash string

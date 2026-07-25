@@ -56,7 +56,7 @@ func newTestService(t *testing.T, opts TestServiceOpts, cfgOpts []testutil.Confi
 	t.Helper()
 	stub := opts.Stub
 	if stub == nil {
-		stub = &mock.StubAdminClient{Token: newapi.Token{ID: 1, Key: "sk-test", RemainQuota: 1000}}
+		stub = &mock.StubAdminClient{Token: newapi.Token{ID: 1, Key: "test", RemainQuota: 1000}}
 	}
 	base := []testutil.ConfigOption{
 		testutil.WithNewAPIEnabled(true),

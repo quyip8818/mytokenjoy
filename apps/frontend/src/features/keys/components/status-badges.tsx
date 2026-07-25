@@ -27,6 +27,8 @@ export function KeyStatusBadge({ status }: { status: string }) {
       return <StatusBadge variant="success">正常</StatusBadge>
     case 'disabled':
       return <StatusBadge variant="neutral">已禁用</StatusBadge>
+    case 'deleted':
+      return <StatusBadge variant="danger">已删除</StatusBadge>
     case 'error':
       return <StatusBadge variant="danger">异常</StatusBadge>
     case 'expired':

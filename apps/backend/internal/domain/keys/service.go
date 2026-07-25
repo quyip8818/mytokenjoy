@@ -23,7 +23,6 @@ type Service interface {
 	UpdatePlatformKey(ctx context.Context, id uuid.UUID, input types.UpdatePlatformKeyInput) (types.PlatformKey, error)
 	TogglePlatformKey(ctx context.Context, id uuid.UUID, enabled bool) (types.PlatformKey, error)
 	RotatePlatformKey(ctx context.Context, id uuid.UUID) (types.PlatformKey, error)
-	RevokePlatformKey(ctx context.Context, id uuid.UUID) error
 	DeletePlatformKey(ctx context.Context, id uuid.UUID) error
 }
 

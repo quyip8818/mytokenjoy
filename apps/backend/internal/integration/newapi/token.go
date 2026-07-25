@@ -119,7 +119,7 @@ func (c *Client) GetTokenKey(ctx context.Context, tokenID int64) (string, error)
 	if err := c.do(ctx, "POST", path, nil, &out); err != nil {
 		return "", err
 	}
-	return out.Key, nil
+	return strings.TrimPrefix(out.Key, "sk-"), nil
 }
 
 func (c *Client) DeleteToken(ctx context.Context, tokenID int64) error {
@@ -140,7 +140,7 @@ func tokenToResult(t Token) adminport.TokenResult {
 	return adminport.TokenResult{
 		ID:          t.ID,
 		UserID:      t.UserID,
-		Key:         t.Key,
+		Key:         strings.TrimPrefix(t.Key, "sk-"),
 		RemainQuota: t.RemainQuota,
 		Group:       t.Group,
 	}

@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageShell } from '@/components/layout/page-shell'
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog'
 import { cn } from '@/lib/utils'
 import type { useMyKeysPage } from '@/features/keys'
 import { MyKeysCardList } from './my-keys-card-list'
@@ -12,6 +13,9 @@ export function MemberKeysPageShell({
   budgetSummary,
   applyBudgetCta,
   createKeyCta,
+  deleteTarget,
+  setDeleteTarget,
+  handleDelete,
   openCreateKey,
   openEditKey,
   openWithRefresh,
@@ -45,8 +49,27 @@ export function MemberKeysPageShell({
       }
     >
       <div className="rounded-lg border border-border bg-card shadow-xs">
-        <MyKeysCardList keys={keys} onEdit={openEditKey} />
+        <MyKeysCardList keys={keys} onEdit={openEditKey} onDelete={setDeleteTarget} />
       </div>
+
+      <ConfirmActionDialog
+        state={
+          deleteTarget
+            ? {
+                open: true,
+                title: '删除 Key？',
+                desc: '删除后 Key 立即失效，不可恢复。已分配额度将释放回可用池。',
+                variant: 'danger',
+                confirmLabel: '删除',
+                onConfirm: handleDelete,
+              }
+            : null
+        }
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null)
+        }}
+        onClose={() => setDeleteTarget(null)}
+      />
     </PageShell>
   )
 }

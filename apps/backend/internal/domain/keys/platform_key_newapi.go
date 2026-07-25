@@ -26,24 +26,6 @@ func platformKeyIndex(keys []types.PlatformKey, id uuid.UUID) (int, bool) {
 	return -1, false
 }
 
-func (s *service) newAPIRevokeKey(ctx context.Context, id uuid.UUID) ([]types.PlatformKey, int, error) {
-	if err := s.requireNewAPI(); err != nil {
-		return nil, -1, err
-	}
-	platformKeys, err := s.store.Keys().PlatformKeys(ctx)
-	if err != nil {
-		return nil, -1, err
-	}
-	idx, ok := platformKeyIndex(platformKeys, id)
-	if !ok {
-		return nil, -1, domain.NotFound("Not found")
-	}
-	if err := s.newAPISync.SyncRevokePlatformKey(ctx, id); err != nil {
-		return nil, -1, err
-	}
-	return platformKeys, idx, nil
-}
-
 func (s *service) persistPlatformKeyWithNewAPISync(
 	ctx context.Context,
 	platformKeys []types.PlatformKey,
@@ -84,9 +66,8 @@ func (s *service) syncPlatformKeyCreate(ctx context.Context, created types.Platf
 	if err != nil {
 		return types.PlatformKey{}, domain.ServiceUnavailable("NewAPI sync failed")
 	}
-	displayKey := "sk-" + fullKey
-	created.FullKey = &displayKey
-	created.KeyPrefix = platformKeyPrefix(displayKey)
+	created.FullKey = &fullKey
+	created.KeyPrefix = platformKeyPrefix(fullKey)
 	return s.enrichPlatformKeyResponse(ctx, created)
 }
 

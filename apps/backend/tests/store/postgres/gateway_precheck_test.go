@@ -36,7 +36,7 @@ func TestLoadPrecheckContextReturnsNilForUnknownKey(t *testing.T) {
 	_, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	ctx := testutil.Ctx()
 
-	row, err := st.GatewayPrecheck().LoadPrecheckContext(ctx, store.HashPlatformKey("sk-unknown"))
+	row, err := st.GatewayPrecheck().LoadPrecheckContext(ctx, store.HashPlatformKey("unknown"))
 	if err != nil {
 		t.Fatal(err)
 	}

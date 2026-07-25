@@ -46,6 +46,8 @@ set_env() {
 set_env SUPPORT_SAAS "${SUPPORT_SAAS}"
 
 # --- Wipe & rebuild (SQL drop/create, preserves sms databases) ---
+# Stop newapi-apps first — its active connections would block DROP DATABASE.
+"${COMPOSE[@]}" stop newapi-apps 2>/dev/null || true
 "${COMPOSE[@]}" up postgres redis -d --wait
 reset_apps_databases
 

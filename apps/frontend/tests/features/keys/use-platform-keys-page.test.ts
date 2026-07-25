@@ -86,4 +86,28 @@ describe('usePlatformKeysPage', () => {
     // WorkflowProvider captures open; verify via refresh hook side effect is enough for scope wiring.
     expect(result.current.activeTab).toBe('project')
   })
+
+  it('filters out deleted keys from list', async () => {
+    const items = [
+      { id: 'pk-1', name: 'Active Key', status: 'active', scope: 'member' },
+      { id: 'pk-2', name: 'Deleted Key', status: 'deleted', scope: 'member' },
+    ]
+    const apis = createMockApis({
+      departmentApi: {
+        getTree: vi.fn().mockResolvedValue([]),
+      },
+      platformKeyApi: {
+        list: vi.fn().mockResolvedValue({ items, total: 2 }),
+      },
+    })
+
+    const { result } = renderHookWithProviders(() => usePlatformKeysPage(apis), { apis })
+    await waitForLoaded(result, 'loading')
+
+    await waitFor(() => {
+      const ids = result.current.keys.map((k) => k.id)
+      expect(ids).toContain('pk-1')
+      expect(ids).not.toContain('pk-2')
+    })
+  })
 })

@@ -30,6 +30,63 @@ describe('useMyKeysPage', () => {
     expect(result.current.budgetSummary).toEqual(mockBudgetSummary)
   })
 
+  it('filters out deleted keys from list', async () => {
+    const keysWithDeleted = [
+      ...mockPlatformKeys,
+      {
+        ...mockPlatformKeys[0],
+        id: 'pk-deleted',
+        name: 'Deleted Key',
+        status: 'deleted' as const,
+      },
+    ]
+    const apis = createMockApis({
+      platformKeyApi: {
+        list: vi.fn().mockResolvedValue({ items: keysWithDeleted, total: keysWithDeleted.length }),
+      },
+      budgetApi: {
+        getMemberSummary: vi.fn().mockResolvedValue(mockBudgetSummary),
+      },
+    })
+
+    const { result } = renderHookWithProviders(() => useMyKeysPage(apis), { apis })
+    await waitForLoaded(result, 'loading')
+
+    await waitFor(() => {
+      const ids = result.current.keys.map((k) => k.id)
+      expect(ids).not.toContain('pk-deleted')
+    })
+  })
+
+  it('calls delete API and refreshes list', async () => {
+    const deleteFn = vi.fn().mockResolvedValue(undefined)
+    const apis = createMockApis({
+      platformKeyApi: {
+        list: vi
+          .fn()
+          .mockResolvedValue({ items: mockPlatformKeys, total: mockPlatformKeys.length }),
+        delete: deleteFn,
+      },
+      budgetApi: {
+        getMemberSummary: vi.fn().mockResolvedValue(mockBudgetSummary),
+      },
+    })
+
+    const { result } = renderHookWithProviders(() => useMyKeysPage(apis), { apis })
+    await waitForLoaded(result, 'loading')
+
+    await act(async () => {
+      result.current.setDeleteTarget(mockPlatformKeys[0])
+    })
+    expect(result.current.deleteTarget).toEqual(mockPlatformKeys[0])
+
+    await act(async () => {
+      await result.current.handleDelete()
+    })
+    expect(deleteFn).toHaveBeenCalledWith('pk-1')
+    expect(result.current.deleteTarget).toBeNull()
+  })
+
   it('opens create workflow with member scope', async () => {
     const apis = createMockApis({
       platformKeyApi: {

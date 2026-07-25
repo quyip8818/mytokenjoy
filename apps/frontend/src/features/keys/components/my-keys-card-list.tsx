@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Copy, Pencil } from 'lucide-react'
+import { Check, Copy, Pencil, Trash2 } from 'lucide-react'
 import type { PlatformKey } from '@/api/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -31,9 +31,10 @@ function CopyButton({ text }: { text: string }) {
 interface MyKeysCardListProps {
   keys: PlatformKey[]
   onEdit?: (key: PlatformKey) => void
+  onDelete?: (key: PlatformKey) => void
 }
 
-export function MyKeysCardList({ keys, onEdit }: MyKeysCardListProps) {
+export function MyKeysCardList({ keys, onEdit, onDelete }: MyKeysCardListProps) {
   if (keys.length === 0) {
     return (
       <p className="px-5 py-8 text-center text-sm text-muted-foreground">
@@ -91,6 +92,17 @@ export function MyKeysCardList({ keys, onEdit }: MyKeysCardListProps) {
                 onClick={() => onEdit(key)}
               >
                 <Pencil className="size-3.5" />
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 shrink-0 text-destructive/70 hover:text-destructive"
+                aria-label="删除"
+                onClick={() => onDelete(key)}
+              >
+                <Trash2 className="size-3.5" />
               </Button>
             )}
           </div>

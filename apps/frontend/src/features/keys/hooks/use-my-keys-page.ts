@@ -30,7 +30,11 @@ export function useMyKeysPage(injectedApis?: AppApis) {
       apis.platformKeyApi
         .list({ memberId })
         .then((res) =>
-          res.items.filter((key) => key.scope === 'member' || key.scope === 'project_member'),
+          res.items.filter(
+            (key) =>
+              key.status !== 'deleted' &&
+              (key.scope === 'member' || key.scope === 'project_member'),
+          ),
         ),
     enabled: Boolean(memberId),
   })

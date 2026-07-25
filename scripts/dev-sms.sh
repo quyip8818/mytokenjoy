@@ -19,6 +19,8 @@ cmd_start() {
 }
 
 cmd_reset() {
+  # Stop newapi-sms first — its active connections would block DROP DATABASE.
+  "${COMPOSE[@]}" stop newapi-sms 2>/dev/null || true
   "${COMPOSE[@]}" up postgres -d --wait
   reset_sms_databases
   pnpm -F @sms/backend seed

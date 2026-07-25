@@ -17,7 +17,7 @@ interface PlatformKeyTableProps {
   keys: PlatformKey[]
   type: PlatformKeyTab
   rowClass: (id: string) => string
-  onRevoke: (id: string) => void
+  onDelete: (id: string) => void
   modelLabel?: (modelId: string) => string
 }
 
@@ -25,7 +25,7 @@ export function PlatformKeyTable({
   keys,
   type,
   rowClass,
-  onRevoke,
+  onDelete,
   modelLabel = (id) => `#${id}`,
 }: PlatformKeyTableProps) {
   const ownerLabel = type === 'member' ? '成员' : type === 'project_member' ? '成员 / 项目' : '项目'
@@ -96,14 +96,14 @@ export function PlatformKeyTable({
                 {key.expiresAt ?? '永不'}
               </TableCell>
               <TableCell>
-                {key.status === 'active' && (
+                {key.status !== 'deleted' && (
                   <Button
                     variant="ghost"
                     size="sm"
                     className="h-8 text-red-600 hover:text-red-700"
-                    onClick={() => onRevoke(key.id)}
+                    onClick={() => onDelete(key.id)}
                   >
-                    吊销
+                    删除
                   </Button>
                 )}
               </TableCell>

@@ -50,7 +50,6 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	platformWrite.Put("/platform/{id}", h.PlatformUpdate)
 	platformWrite.Put("/platform/{id}/toggle", h.PlatformToggle)
 	platformWrite.Post("/platform/{id}/rotate", h.PlatformRotate)
-	platformWrite.Put("/platform/{id}/revoke", h.PlatformRevoke)
 	platformWrite.Delete("/platform/{id}", h.PlatformDelete)
 
 	// simulate-bearer: available for demo/trial/testing accounts only.
@@ -193,16 +192,6 @@ func (h *Handler) PlatformRotate(w http.ResponseWriter, r *http.Request) {
 	}
 	key, err := h.service.RotatePlatformKey(r.Context(), id)
 	httputil.WriteJSON(w, http.StatusOK, key, err)
-}
-
-func (h *Handler) PlatformRevoke(w http.ResponseWriter, r *http.Request) {
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
-		return
-	}
-	err = h.service.RevokePlatformKey(r.Context(), id)
-	httputil.WriteVoid(w, err)
 }
 
 func (h *Handler) PlatformDelete(w http.ResponseWriter, r *http.Request) {

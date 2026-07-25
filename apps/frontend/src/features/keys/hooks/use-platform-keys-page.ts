@@ -53,7 +53,7 @@ export function usePlatformKeysPage(injectedApis?: AppApis) {
           departmentId: selectedDeptId,
           scope: activeTab,
         })
-        .then((res) => res.items),
+        .then((res) => res.items.filter((k) => k.status !== 'deleted')),
   })
 
   const { openWithRefresh } = useWorkflowRefresh({
@@ -112,10 +112,10 @@ export function usePlatformKeysPage(injectedApis?: AppApis) {
     })
   }, [])
 
-  const handleRevoke = useCallback(
+  const handleDelete = useCallback(
     async (id: string) => {
-      await apis.platformKeyApi.revoke(id)
-      toast.success('Key 已吊销')
+      await apis.platformKeyApi.delete(id)
+      toast.success('Key 已删除')
       flashRow(id)
       void refreshKeys()
     },
@@ -144,7 +144,7 @@ export function usePlatformKeysPage(injectedApis?: AppApis) {
     error: treeError || keysError,
     refresh,
     rowClass,
-    handleRevoke,
+    handleDelete,
     openCreateKey,
   }
 }

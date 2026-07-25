@@ -61,37 +61,31 @@ func (s *service) RotatePlatformKey(ctx context.Context, id uuid.UUID) (types.Pl
 	for i := range platformKeys {
 		if platformKeys[i].ID == id {
 			key := platformKeys[i]
-			displayKey := "sk-" + fullKey
-			key.FullKey = &displayKey
+			key.FullKey = &fullKey
 			return s.enrichPlatformKeyResponse(ctx, key)
 		}
 	}
 	return types.PlatformKey{}, domain.NotFound("Not found")
 }
 
-func (s *service) RevokePlatformKey(ctx context.Context, id uuid.UUID) error {
-	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
-		return err
-	}
-	platformKeys, idx, err := s.newAPIRevokeKey(ctx, id)
-	if err != nil {
-		return err
-	}
-	platformKeys[idx].Status = "revoked"
-	if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
-		return err
-	}
-	s.cacheInvalidator.InvalidateByKeyID(id)
-	return nil
-}
-
 func (s *service) DeletePlatformKey(ctx context.Context, id uuid.UUID) error {
-	platformKeys, idx, err := s.newAPIRevokeKey(ctx, id)
+	if err := s.requireNewAPI(); err != nil {
+		return err
+	}
+	key, err := s.store.Keys().PlatformKeyByID(ctx, id)
 	if err != nil {
 		return err
 	}
-	platformKeys = append(platformKeys[:idx], platformKeys[idx+1:]...)
-	if err := s.store.Keys().SetPlatformKeys(ctx, platformKeys); err != nil {
+	if key == nil {
+		return domain.NotFound("Not found")
+	}
+	if key.Status == "deleted" {
+		return nil // 幂等
+	}
+	if err := s.newAPISync.SyncRevokePlatformKey(ctx, id); err != nil {
+		return err
+	}
+	if err := s.store.Keys().SoftDeletePlatformKey(ctx, id); err != nil {
 		return err
 	}
 	s.cacheInvalidator.InvalidateByKeyID(id)

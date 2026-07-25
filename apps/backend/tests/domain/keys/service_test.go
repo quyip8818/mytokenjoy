@@ -38,7 +38,7 @@ func TestCreatePlatformKeySuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created.FullKey == nil || *created.FullKey != "sk-test-key" {
+	if created.FullKey == nil || *created.FullKey != "test-key" {
 		t.Fatalf("expected platform key full key, got %+v", created.FullKey)
 	}
 	remain, _ := budgetfix.CombinedKeyRemain(t, st, created.ID)
@@ -191,7 +191,7 @@ func TestBudgetSummaryIncludesSnapshotConsumed(t *testing.T) {
 	}
 }
 
-func TestRevokePlatformKey(t *testing.T) {
+func TestDeletePlatformKeySoftDeletes(t *testing.T) {
 	t.Parallel()
 	svc, st, _ := newKeysServiceWithNewAPI(t)
 	ctx := testutil.Ctx()
@@ -203,7 +203,7 @@ func TestRevokePlatformKey(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.RevokePlatformKey(ctx, contract.IDPlatformKey1); err != nil {
+	if err := svc.DeletePlatformKey(ctx, contract.IDPlatformKey1); err != nil {
 		t.Fatal(err)
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)
@@ -211,10 +211,38 @@ func TestRevokePlatformKey(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, key := range keys {
-		if key.ID == contract.IDPlatformKey1 && key.Status != "revoked" {
-			t.Fatalf("expected revoked status, got %s", key.Status)
+		if key.ID == contract.IDPlatformKey1 && key.Status != "deleted" {
+			t.Fatalf("expected deleted status, got %s", key.Status)
 		}
 	}
+}
+
+func TestDeletePlatformKeyIdempotent(t *testing.T) {
+	t.Parallel()
+	svc, st, _ := newKeysServiceWithNewAPI(t)
+	ctx := testutil.Ctx()
+	tokenID := int64(99)
+	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
+		PlatformKeyID: contract.IDPlatformKey1,
+		NewAPIKeyID:   &tokenID,
+		SyncStatus:    store.MappingSyncStatusSynced,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.DeletePlatformKey(ctx, contract.IDPlatformKey1); err != nil {
+		t.Fatal(err)
+	}
+	// Second call should be idempotent — no error
+	if err := svc.DeletePlatformKey(ctx, contract.IDPlatformKey1); err != nil {
+		t.Fatalf("expected idempotent delete, got %v", err)
+	}
+}
+
+func TestDeletePlatformKeyNotFound(t *testing.T) {
+	t.Parallel()
+	svc, _, _ := newKeysServiceWithNewAPI(t)
+	err := svc.DeletePlatformKey(testutil.Ctx(), uuid.MustParse("00000000-0000-7000-0000-ffffffffffff"))
+	testutil.AssertDomainStatus(t, err, domain.StatusNotFound)
 }
 
 func TestRotateProviderKeyRespectsRotateEnabled(t *testing.T) {

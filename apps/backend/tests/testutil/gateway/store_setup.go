@@ -16,7 +16,7 @@ import (
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 )
 
-const defaultGatewayFullKey = "sk-test-gateway-key"
+const defaultGatewayFullKey = "test-gateway-key"
 
 func normalizeGatewayOpts(opts GatewayScenarioOpts) GatewayScenarioOpts {
 	if opts.CompanyID == uuid.Nil {
@@ -110,7 +110,7 @@ func applyGatewayKeyMapping(t *testing.T, st store.Store, opts GatewayScenarioOp
 		keys = []types.PlatformKey{{
 			ID:        uuid.MustParse("00000000-0000-7000-0000-00000000f099"),
 			Name:      "Gateway Test Key",
-			KeyPrefix: "sk-test",
+			KeyPrefix: "test",
 			Scope:     types.PlatformKeyScopeMember,
 			FullKey:   &setup.fullKey,
 			MemberID:  &m,

@@ -48,7 +48,7 @@ func TestCreateTokenUsesResponseDataAndAssertsOwner(t *testing.T) {
 	if gotBody["user_id"] != float64(2) {
 		t.Fatalf("expected request user_id 2, got %#v", gotBody["user_id"])
 	}
-	if token.ID != 99 || token.UserID != 2 || token.Key != "sk-created" {
+	if token.ID != 99 || token.UserID != 2 || token.Key != "created" {
 		t.Fatalf("unexpected token %#v", token)
 	}
 }
@@ -138,7 +138,7 @@ func TestCreateTokenRegeneratesWhenKeyMasked(t *testing.T) {
 	if !regenerateCalled {
 		t.Fatal("expected regenerate when key is masked")
 	}
-	if token.Key != "sk-full" {
-		t.Fatalf("expected sk-full, got %q", token.Key)
+	if token.Key != "full" {
+		t.Fatalf("expected full, got %q", token.Key)
 	}
 }

@@ -25,7 +25,7 @@ export function PlatformKeysPageShell({
   error,
   refresh,
   rowClass,
-  handleRevoke,
+  handleDelete,
   openCreateKey,
 }: PlatformKeysPageShellProps) {
   const { labelFor } = useModelLabels()
@@ -63,7 +63,7 @@ export function PlatformKeysPageShell({
                 keys={keys}
                 type={activeTab}
                 rowClass={rowClass}
-                onRevoke={handleRevoke}
+                onDelete={handleDelete}
                 modelLabel={labelFor}
               />
             </div>

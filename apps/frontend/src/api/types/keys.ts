@@ -1,5 +1,5 @@
 export type ProviderType = 'openai' | 'anthropic' | 'deepseek' | 'qwen' | 'custom'
-export type KeyStatus = 'active' | 'disabled' | 'expired' | 'error'
+export type KeyStatus = 'active' | 'disabled' | 'deleted' | 'expired' | 'error'
 
 export interface ProviderKey {
   id: string
