@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Check, Copy } from 'lucide-react'
 import type { Member, ModelInfo, PlatformKeyScope } from '@/api/types'
@@ -133,14 +133,14 @@ export function KeyFormWorkflow({
   })
 
   // Default budget to user's remaining quota — only on first load, not after user edits
-  const [budgetInitialized, setBudgetInitialized] = useState(!isCreate || !!budget)
+  const budgetInitialized = useRef(!isCreate || !!budget)
   useEffect(() => {
-    if (budgetInitialized) return
+    if (budgetInitialized.current) return
     if (budgetSummary && budgetSummary.remaining > 0) {
       setBudget(String(budgetSummary.remaining))
-      setBudgetInitialized(true)
+      budgetInitialized.current = true
     }
-  }, [budgetInitialized, budgetSummary, setBudget])
+  }, [budgetSummary, setBudget])
 
   const openPickMember = () => {
     onPush('member-search', {
