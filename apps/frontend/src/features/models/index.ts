@@ -10,7 +10,7 @@ export { ModelRoutingPageShell } from './components/model-routing-page-shell'
 export { useModelLabels } from './hooks/use-model-labels'
 // consumed by: workflow/whitelist-config, self components
 export { modelRefLabel } from './lib/model-catalog'
-// consumed by: workflow/model-picker
+// consumed by: workflow/model-picker, workflow/whitelist-config
 export { isBuiltinModel } from './lib/model-kind'
 // consumed by: workflow/model-edit
 export { isCustomModel } from './lib/model-kind'

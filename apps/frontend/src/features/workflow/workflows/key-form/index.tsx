@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { Check, Copy } from 'lucide-react'
 import type { Member, PlatformKeyScope } from '@/api/types'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
@@ -75,6 +76,7 @@ export function KeyFormWorkflow({
 
   const effectiveMemberId = adminCreate || scope === 'project_member' ? targetMemberId : memberId
   const requiresMemberPick = adminCreate || scope === 'project_member'
+  const [createdFullKey, setCreatedFullKey] = useState<string | null>(null)
 
   // Resolve allowed model IDs for the picker
   const [allowedModelIds, setAllowedModelIds] = useState<string[]>([])
@@ -176,10 +178,8 @@ export function KeyFormWorkflow({
         toast.error('创建失败：未返回 Key')
         return
       }
-      onPush('key-reveal', {
-        fullKey: created.fullKey,
-        onDone: onSuccess,
-      })
+      setCreatedFullKey(created.fullKey)
+      onSetDirty(false)
     } catch (err) {
       toast.error(workflowErrorMessage(err, '创建失败'))
     } finally {
@@ -220,6 +220,42 @@ export function KeyFormWorkflow({
     )
   })()
 
+  // --- Created key result view ---
+  if (createdFullKey) {
+    return (
+      <WorkflowPanelChrome
+        title="创建成功"
+        onClose={onClose}
+        footer={
+          <WorkflowPanelFooter
+            onCancel={onClose}
+            primaryLabel="完成"
+            onPrimary={onClose}
+          />
+        }
+      >
+        <div className="space-y-6 py-4">
+          <div className="flex items-center gap-2 text-emerald-600">
+            <Check className="size-5" />
+            <span className="text-sm font-medium">Key 已创建，请立即复制保存</span>
+          </div>
+          <div className="space-y-2">
+            <Label>API Key</Label>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded-md border bg-muted px-3 py-2 font-mono text-sm break-all select-all">
+                {createdFullKey}
+              </code>
+              <CopyKeyButton text={createdFullKey} />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              关闭后将无法再次查看完整 Key，请妥善保管。
+            </p>
+          </div>
+        </div>
+      </WorkflowPanelChrome>
+    )
+  }
+
   return (
     <WorkflowPanelChrome
       title={isCreate ? '创建 Key' : '编辑 Key'}
@@ -251,6 +287,7 @@ export function KeyFormWorkflow({
             primaryDisabled={
               submitting ||
               !name.trim() ||
+              models.length === 0 ||
               (requiresMemberPick && !targetMemberId) ||
               budgetInsufficient ||
               budgetExceedsRemaining ||
@@ -309,9 +346,30 @@ export function KeyFormWorkflow({
           onChange={handleModelsChange}
           allowedModelIds={allowedModelIds.length > 0 ? allowedModelIds : undefined}
           injectedApis={apis}
-          hint="不选 = 全部可用"
+          hint="至少选择一个模型"
         />
       </div>
     </WorkflowPanelChrome>
+  )
+}
+
+
+function CopyKeyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <Button
+      variant="outline"
+      size="icon"
+      className="shrink-0"
+      aria-label="复制"
+      onClick={() => {
+        void navigator.clipboard.writeText(text).then(() => {
+          setCopied(true)
+          setTimeout(() => setCopied(false), 2000)
+        })
+      }}
+    >
+      {copied ? <Check className="size-4 text-emerald-600" /> : <Copy className="size-4" />}
+    </Button>
   )
 }

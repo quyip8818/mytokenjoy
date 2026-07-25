@@ -43,6 +43,9 @@ export function InlineModelPicker({
   const [models, setModels] = useState<ModelInfo[]>([])
   const [search, setSearch] = useState('')
 
+  // Stable reference for allowedModelIds to avoid unnecessary refetches
+  const allowedIdsKey = externalAllowedIds?.join(',') ?? ''
+
   useEffect(() => {
     let cancelled = false
     void apis.modelApi.list().then((list) => {
@@ -55,7 +58,8 @@ export function InlineModelPicker({
       setModels(enabled)
     })
     return () => { cancelled = true }
-  }, [apis, externalAllowedIds])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apis, allowedIdsKey])
 
   const allIds = useMemo(() => models.map((m) => m.modelId), [models])
 

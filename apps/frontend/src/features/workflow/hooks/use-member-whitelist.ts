@@ -1,7 +1,6 @@
 import { useCallback } from 'react'
 import { useInjectedApis } from '@/api/use-apis'
 import { useSession } from '@/features/session'
-import type { WorkflowComponentProps } from '../types'
 
 export function useMemberWhitelist() {
   const apis = useInjectedApis()
@@ -16,28 +15,4 @@ export function useMemberWhitelist() {
   }, [apis, memberId])
 
   return { resolveAllowedModelIds }
-}
-
-export async function pushModelPicker(
-  onPush: WorkflowComponentProps['onPush'],
-  resolveAllowedModelIds: () => Promise<string[] | undefined>,
-  {
-    selectedModelIds,
-    onConfirm,
-    onSetDirty,
-  }: {
-    selectedModelIds: string[]
-    onConfirm: (picked: string[]) => void
-    onSetDirty?: (dirty: boolean) => void
-  },
-) {
-  const parentAllowedModelIds = await resolveAllowedModelIds()
-  onPush('model-picker', {
-    selectedModelIds,
-    parentAllowedModelIds,
-    onConfirm: (picked: string[]) => {
-      onConfirm(picked)
-      onSetDirty?.(true)
-    },
-  })
 }
