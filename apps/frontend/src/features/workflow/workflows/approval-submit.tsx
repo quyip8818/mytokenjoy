@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/select'
 import { useWorkflow } from '../hooks/use-workflow'
 import { useMemberWhitelist } from '../hooks/use-member-whitelist'
-import type { ApprovalType } from '@/api/types'
+import type { ApprovalType, ModelInfo } from '@/api/types'
 import { MODEL_NOT_IN_DEPT_MESSAGE } from '@/features/dashboard'
 import { InlineModelPicker } from '@/features/models'
 
@@ -43,15 +43,24 @@ export function ApprovalSubmitWorkflow({
   const [models, setModels] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
 
-  // Resolve allowed model IDs for inline picker
-  const [allowedModelIds, setAllowedModelIds] = useState<string[]>([])
+  // Fetch available models for inline picker
+  const [availableModels, setAvailableModels] = useState<ModelInfo[]>([])
   useEffect(() => {
     let cancelled = false
-    void resolveAllowedModelIds().then((ids) => {
-      if (!cancelled && ids) setAllowedModelIds(ids)
-    })
+    void (async () => {
+      const allModels = await apis.modelApi.list()
+      const enabled = allModels.filter((m) => m.enabled)
+      const allowedIds = await resolveAllowedModelIds()
+      if (cancelled) return
+      if (!allowedIds) {
+        setAvailableModels(enabled)
+        return
+      }
+      const allowed = new Set(allowedIds)
+      setAvailableModels(enabled.filter((m) => allowed.has(m.modelId)))
+    })()
     return () => { cancelled = true }
-  }, [resolveAllowedModelIds])
+  }, [apis, resolveAllowedModelIds])
 
   const validateModels = async (): Promise<boolean> => {
     if (type !== 'key' || models.length === 0) return true
@@ -164,8 +173,7 @@ export function ApprovalSubmitWorkflow({
               setModels(ids)
               onSetDirty(true)
             }}
-            allowedModelIds={allowedModelIds.length > 0 ? allowedModelIds : undefined}
-            injectedApis={apis}
+            models={availableModels}
             label="申请模型"
           />
         )}

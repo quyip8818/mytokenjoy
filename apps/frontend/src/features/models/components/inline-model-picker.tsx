@@ -1,12 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Search, X } from 'lucide-react'
 import type { ModelInfo } from '@/api/types'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import { useInjectedApis } from '@/api/use-apis'
-import type { AppApis } from '@/api/app-apis'
 
 const PROVIDER_LABELS: Record<string, string> = {
   openai: 'OpenAI',
@@ -21,10 +19,8 @@ export interface InlineModelPickerProps {
   value: string[]
   /** Called when selection changes */
   onChange: (ids: string[]) => void
-  /** Optional: restrict to these model IDs only. If omitted, shows all enabled models. */
-  allowedModelIds?: string[]
-  /** Optional: inject apis for testing */
-  injectedApis?: AppApis
+  /** Available models to display (caller fetches these) */
+  models: ModelInfo[]
   /** Label shown above the picker */
   label?: string
   /** Hint text shown next to the label */
@@ -34,32 +30,11 @@ export interface InlineModelPickerProps {
 export function InlineModelPicker({
   value,
   onChange,
-  allowedModelIds: externalAllowedIds,
-  injectedApis,
+  models,
   label = '模型白名单',
   hint,
 }: InlineModelPickerProps) {
-  const apis = useInjectedApis(injectedApis)
-  const [models, setModels] = useState<ModelInfo[]>([])
   const [search, setSearch] = useState('')
-
-  // Stable reference for allowedModelIds to avoid unnecessary refetches
-  const allowedIdsKey = externalAllowedIds?.join(',') ?? ''
-
-  useEffect(() => {
-    let cancelled = false
-    void apis.modelApi.list().then((list) => {
-      if (cancelled) return
-      let enabled = list.filter((m) => m.enabled)
-      if (externalAllowedIds?.length) {
-        const allowed = new Set(externalAllowedIds)
-        enabled = enabled.filter((m) => allowed.has(m.modelId))
-      }
-      setModels(enabled)
-    })
-    return () => { cancelled = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apis, allowedIdsKey])
 
   const allIds = useMemo(() => models.map((m) => m.modelId), [models])
 

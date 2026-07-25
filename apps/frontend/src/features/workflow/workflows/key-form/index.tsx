@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Check, Copy } from 'lucide-react'
-import type { Member, PlatformKeyScope } from '@/api/types'
+import type { Member, ModelInfo, PlatformKeyScope } from '@/api/types'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import { useSession } from '@/features/session'
@@ -78,19 +78,23 @@ export function KeyFormWorkflow({
   const requiresMemberPick = adminCreate || scope === 'project_member'
   const [createdFullKey, setCreatedFullKey] = useState<string | null>(null)
 
-  // Resolve allowed model IDs for the picker
-  const [allowedModelIds, setAllowedModelIds] = useState<string[]>([])
+  // Fetch available models for the picker
+  const [availableModels, setAvailableModels] = useState<ModelInfo[]>([])
   useEffect(() => {
     let cancelled = false
     const resolve = async () => {
+      const allModels = await apis.modelApi.list()
+      const enabled = allModels.filter((m) => m.enabled)
       if (isTrialOrDemo) {
-        const allModels = await apis.modelApi.list()
-        return allModels.filter((m) => m.type.startsWith('test-')).map((m) => m.modelId)
+        return enabled.filter((m) => m.type.startsWith('test-'))
       }
-      return resolveAllModels()
+      const allowedIds = await resolveAllModels()
+      if (!allowedIds) return enabled
+      const allowed = new Set(allowedIds)
+      return enabled.filter((m) => allowed.has(m.modelId))
     }
-    void resolve().then((ids) => {
-      if (!cancelled && ids) setAllowedModelIds(ids)
+    void resolve().then((models) => {
+      if (!cancelled) setAvailableModels(models)
     })
     return () => { cancelled = true }
   }, [isTrialOrDemo, resolveAllModels, apis.modelApi])
@@ -114,12 +118,15 @@ export function KeyFormWorkflow({
     injectedApis: apis,
   })
 
-  // Default budget to user's remaining quota once loaded
+  // Default budget to user's remaining quota — only on first load, not after user edits
+  const [budgetInitialized, setBudgetInitialized] = useState(!isCreate || !!budget)
   useEffect(() => {
-    if (isCreate && !budget && budgetSummary && budgetSummary.remaining > 0) {
+    if (budgetInitialized) return
+    if (budgetSummary && budgetSummary.remaining > 0) {
       setBudget(String(budgetSummary.remaining))
+      setBudgetInitialized(true)
     }
-  }, [isCreate, budget, budgetSummary, setBudget])
+  }, [budgetInitialized, budgetSummary, setBudget])
 
   const openPickMember = () => {
     onPush('member-search', {
@@ -139,6 +146,10 @@ export function KeyFormWorkflow({
     setModels(ids)
     onSetDirty(true)
   }
+
+  const budgetInvalid = budget === '' || budgetAmount <= 0
+  const formInvalid =
+    !name.trim() || models.length === 0 || budgetInvalid || (requiresMemberPick && !targetMemberId)
 
   const handleCreate = async () => {
     if (budgetInsufficient) {
@@ -193,7 +204,7 @@ export function KeyFormWorkflow({
     try {
       await apis.platformKeyApi.update(key.id, {
         name,
-        budget: Number(budget) || 0,
+        budget: budgetAmount,
         modelWhitelist: models,
       })
       toast.success('Key 已更新')
@@ -228,7 +239,6 @@ export function KeyFormWorkflow({
         onClose={onClose}
         footer={
           <WorkflowPanelFooter
-            onCancel={onClose}
             primaryLabel="完成"
             onPrimary={onClose}
           />
@@ -286,9 +296,7 @@ export function KeyFormWorkflow({
             onPrimary={handleCreate}
             primaryDisabled={
               submitting ||
-              !name.trim() ||
-              models.length === 0 ||
-              (requiresMemberPick && !targetMemberId) ||
+              formInvalid ||
               budgetInsufficient ||
               budgetExceedsRemaining ||
               projectBudgetExceeds ||
@@ -300,7 +308,7 @@ export function KeyFormWorkflow({
             onCancel={onClose}
             primaryLabel={submitting ? '保存中...' : '保存'}
             onPrimary={handleSave}
-            primaryDisabled={submitting || !name.trim()}
+            primaryDisabled={submitting || formInvalid}
           />
         )
       }
@@ -327,25 +335,29 @@ export function KeyFormWorkflow({
               onSetDirty(true)
             }}
             placeholder="如：开发调试"
+            maxLength={64}
           />
         </div>
         <div className="space-y-1.5">
           <Label>额度 ({currencyLabel})</Label>
           <Input
             type="number"
+            min="1"
             value={budget}
             onChange={(e) => {
               setBudget(e.target.value)
               onSetDirty(true)
             }}
           />
+          {budget !== '' && budgetAmount <= 0 && (
+            <p className="text-xs text-destructive">额度必须大于 0</p>
+          )}
         </div>
 
         <InlineModelPicker
           value={models}
           onChange={handleModelsChange}
-          allowedModelIds={allowedModelIds.length > 0 ? allowedModelIds : undefined}
-          injectedApis={apis}
+          models={availableModels}
           hint="至少选择一个模型"
         />
       </div>

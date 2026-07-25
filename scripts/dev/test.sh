@@ -13,7 +13,7 @@ done
 
 "${COMPOSE[@]}" up postgres -d --wait
 if [[ "${nocache}" == "true" ]]; then
-  pnpm -r --parallel test:nocache
+  pnpm -F @tokenjoy/frontend -F @tokenjoy/backend --parallel test:nocache
 else
-  pnpm -r --parallel test
+  pnpm -F @tokenjoy/frontend -F @tokenjoy/backend --parallel test
 fi

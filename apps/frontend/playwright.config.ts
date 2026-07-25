@@ -49,6 +49,7 @@ export default defineConfig({
         BOOTSTRAP_MODE: 'demo',
         CLOCK_ANCHOR: '2026-06-19',
         DEPLOY_ENV: 'local',
+        NEW_API_BASE_URL: 'http://127.0.0.1:3010',
       },
     },
     {
