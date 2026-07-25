@@ -1,21 +1,19 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { Member, PlatformKeyScope } from '@/api/types'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import { useSession } from '@/features/session'
-import { pushModelPicker, useMemberWhitelist } from '@/features/workflow/hooks/use-member-whitelist'
+import { useMemberWhitelist } from '@/features/workflow/hooks/use-member-whitelist'
 import type { WorkflowComponentProps, WorkflowStackEntry } from '@/features/workflow/types'
 import {
   WorkflowPanelChrome,
   WorkflowPanelFooter,
 } from '@/features/workflow/components/workflow-panel-chrome'
-import { WorkflowInfoBox } from '@/features/workflow/components/workflow-info-box'
-import { WorkflowStepper } from '@/features/workflow/components/workflow-stepper'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useWorkflow } from '@/features/workflow/hooks/use-workflow'
 import { workflowErrorMessage } from '@/features/workflow/lib/error-message'
 import { BUDGET_INSUFFICIENT_MESSAGE } from '@/features/keys'
@@ -43,13 +41,6 @@ export function KeyFormWorkflow({
   const { resolveAllowedModelIds: resolveAllModels } = useMemberWhitelist()
   const isTrialOrDemo = companyType === 'trial' || companyType === 'demo'
 
-  // Trial/demo: filter model picker to only show test-model type models.
-  const resolveAllowedModelIds = useCallback(async () => {
-    if (!isTrialOrDemo) return resolveAllModels()
-    const allModels = await apis.modelApi.list()
-    return allModels.filter((m) => m.type.startsWith('test-')).map((m) => m.modelId)
-  }, [isTrialOrDemo, resolveAllModels, apis.modelApi])
-
   const isCreate = entry.id === 'key-create'
   const key =
     entry.id === 'key-edit' ? (entry as WorkflowStackEntry<'key-edit'>).payload.key : undefined
@@ -62,8 +53,6 @@ export function KeyFormWorkflow({
   const scope: PlatformKeyScope = createPayload?.scope ?? 'member'
 
   const {
-    step,
-    setStep,
     name,
     setName,
     budget,
@@ -85,9 +74,26 @@ export function KeyFormWorkflow({
     initialBudget: createPayload?.initialBudget,
   })
 
-  const { labelFor } = useModelLabels()
+  const { index: modelIndex, labelFor } = useModelLabels(apis)
   const effectiveMemberId = adminCreate || scope === 'project_member' ? targetMemberId : memberId
   const requiresMemberPick = adminCreate || scope === 'project_member'
+
+  // Resolve allowed model IDs for inline picker
+  const [allowedModelIds, setAllowedModelIds] = useState<string[]>([])
+  useEffect(() => {
+    let cancelled = false
+    const resolve = async () => {
+      if (isTrialOrDemo) {
+        const allModels = await apis.modelApi.list()
+        return allModels.filter((m) => m.type.startsWith('test-')).map((m) => m.modelId)
+      }
+      return resolveAllModels()
+    }
+    void resolve().then((ids) => {
+      if (!cancelled && ids) setAllowedModelIds(ids)
+    })
+    return () => { cancelled = true }
+  }, [isTrialOrDemo, resolveAllModels, apis.modelApi])
 
   const {
     budgetSummary,
@@ -108,6 +114,13 @@ export function KeyFormWorkflow({
     injectedApis: apis,
   })
 
+  // Default budget to user's remaining quota once loaded
+  useEffect(() => {
+    if (isCreate && !budget && budgetSummary && budgetSummary.remaining > 0) {
+      setBudget(String(budgetSummary.remaining))
+    }
+  }, [isCreate, budget, budgetSummary, setBudget])
+
   const openPickMember = () => {
     onPush('member-search', {
       multi: false,
@@ -122,12 +135,11 @@ export function KeyFormWorkflow({
     })
   }
 
-  const handlePickModels = () => {
-    void pushModelPicker(onPush, resolveAllowedModelIds, {
-      selectedModelIds: models,
-      onConfirm: setModels,
-      onSetDirty,
-    })
+  const toggleModel = (modelId: string) => {
+    setModels((prev) =>
+      prev.includes(modelId) ? prev.filter((id) => id !== modelId) : [...prev, modelId],
+    )
+    onSetDirty(true)
   }
 
   const handleCreate = async () => {
@@ -213,17 +225,20 @@ export function KeyFormWorkflow({
   })()
 
   const modelSection = (
-    <div className="space-y-3">
-      <Label>模型白名单</Label>
-      <Button variant="outline" onClick={handlePickModels}>
-        选择模型 {models.length > 0 && `(${models.length})`}
-      </Button>
-      {models.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {models.map((modelId) => (
-            <Badge key={modelId} variant="outline" className="text-xs">
-              {labelFor(modelId)}
-            </Badge>
+    <div className="space-y-2">
+      <Label>模型白名单 <span className="text-muted-foreground font-normal text-xs">（不选 = 全部可用）</span></Label>
+      {allowedModelIds.length === 0 ? (
+        <p className="text-sm text-muted-foreground">加载中...</p>
+      ) : (
+        <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto rounded border p-2">
+          {allowedModelIds.map((modelId) => (
+            <label key={modelId} className="flex items-center gap-2 cursor-pointer text-sm">
+              <Checkbox
+                checked={models.includes(modelId)}
+                onCheckedChange={() => toggleModel(modelId)}
+              />
+              <span className="truncate">{labelFor(modelId)}</span>
+            </label>
           ))}
         </div>
       )}
@@ -254,135 +269,66 @@ export function KeyFormWorkflow({
       }
       footer={
         isCreate ? (
-          step === 1 ? (
-            <WorkflowPanelFooter
-              onCancel={onClose}
-              primaryLabel="下一步"
-              onPrimary={() => setStep(2)}
-              primaryDisabled={
-                budgetInsufficient ||
-                !name.trim() ||
-                (requiresMemberPick && !targetMemberId) ||
-                budgetExceedsRemaining ||
-                projectBudgetExceeds ||
-                subBudgetExceeds
-              }
-            />
-          ) : (
-            <WorkflowPanelFooter
-              onCancel={onClose}
-              secondaryLabel="上一步"
-              onSecondary={() => setStep(1)}
-              primaryLabel={submitting ? '创建中...' : '创建 Key'}
-              onPrimary={handleCreate}
-              primaryDisabled={
-                models.length === 0 ||
-                submitting ||
-                budgetInsufficient ||
-                budgetExceedsRemaining ||
-                projectBudgetExceeds ||
-                subBudgetExceeds
-              }
-            />
-          )
+          <WorkflowPanelFooter
+            onCancel={onClose}
+            primaryLabel={submitting ? '创建中...' : '创建 Key'}
+            onPrimary={handleCreate}
+            primaryDisabled={
+              submitting ||
+              !name.trim() ||
+              (requiresMemberPick && !targetMemberId) ||
+              budgetInsufficient ||
+              budgetExceedsRemaining ||
+              projectBudgetExceeds ||
+              subBudgetExceeds
+            }
+          />
         ) : (
           <WorkflowPanelFooter
             onCancel={onClose}
             primaryLabel={submitting ? '保存中...' : '保存'}
             onPrimary={handleSave}
-            primaryDisabled={submitting || !name.trim() || models.length === 0}
+            primaryDisabled={submitting || !name.trim()}
           />
         )
       }
     >
-      <div className="grid grid-cols-5 gap-8">
-        <div className="col-span-3 space-y-5">
-          {isCreate && <WorkflowStepper steps={['基本信息', '模型白名单']} current={step} />}
-          {isCreate && step === 1 ? (
-            <>
-              {requiresMemberPick && (
-                <div className="space-y-1.5">
-                  <Label>绑定成员</Label>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={openPickMember}
-                  >
-                    {targetMemberName || '选择成员'}
-                  </Button>
-                </div>
-              )}
-              <div className="space-y-1.5">
-                <Label>Key 名称</Label>
-                <Input
-                  value={name}
-                  onChange={(e) => {
-                    setName(e.target.value)
-                    onSetDirty(true)
-                  }}
-                  placeholder="如：开发调试"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>额度 ({currencyLabel})</Label>
-                <Input
-                  type="number"
-                  value={budget}
-                  onChange={(e) => {
-                    setBudget(e.target.value)
-                    onSetDirty(true)
-                  }}
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              {!isCreate && (
-                <>
-                  <div className="space-y-1.5">
-                    <Label>Key 名称</Label>
-                    <Input
-                      value={name}
-                      onChange={(e) => {
-                        setName(e.target.value)
-                        onSetDirty(true)
-                      }}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>额度 ({currencyLabel})</Label>
-                    <Input
-                      type="number"
-                      value={budget}
-                      onChange={(e) => {
-                        setBudget(e.target.value)
-                        onSetDirty(true)
-                      }}
-                    />
-                  </div>
-                </>
-              )}
-              {modelSection}
-            </>
-          )}
+      <div className="space-y-5">
+        {requiresMemberPick && (
+          <div className="space-y-1.5">
+            <Label>绑定成员</Label>
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={openPickMember}
+            >
+              {targetMemberName || '选择成员'}
+            </Button>
+          </div>
+        )}
+        <div className="space-y-1.5">
+          <Label>Key 名称</Label>
+          <Input
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value)
+              onSetDirty(true)
+            }}
+            placeholder="如：开发调试"
+          />
         </div>
-        <WorkflowInfoBox fullWidth className="space-y-3">
-          <h4 className="font-semibold text-foreground/80">{isCreate ? '摘要' : '当前 Key'}</h4>
-          {isCreate ? (
-            <div className="space-y-2 text-muted-foreground">
-              <p>名称：{name || '—'}</p>
-              <p>额度：{formatMoney(budgetAmount)}</p>
-              <p>模型：{models.length} 个</p>
-            </div>
-          ) : (
-            key && (
-              <>
-                <p className="text-muted-foreground font-mono">{key.keyPrefix}</p>
-                <p className="text-muted-foreground">已消耗：{formatMoney(key.consumed)}</p>
-              </>
-            )
-          )}
-        </WorkflowInfoBox>
+        <div className="space-y-1.5">
+          <Label>额度 ({currencyLabel})</Label>
+          <Input
+            type="number"
+            value={budget}
+            onChange={(e) => {
+              setBudget(e.target.value)
+              onSetDirty(true)
+            }}
+          />
+        </div>
+        {modelSection}
       </div>
     </WorkflowPanelChrome>
   )

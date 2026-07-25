@@ -151,12 +151,11 @@ export function useKeyFormState({
   initialName,
   initialBudget,
 }: UseKeyFormStateOptions) {
-  const [step, setStep] = useState(1)
   const [name, setName] = useState(key?.name ?? initialName ?? '')
   const [budget, setBudget] = useState(() => {
     if (key != null) return String(key.budget)
     if (initialBudget != null) return initialBudget
-    return '5000'
+    return '' // will be filled by remaining budget once loaded
   })
   const [models, setModels] = useState<string[]>(key?.modelWhitelist ?? [])
   const [targetMemberId, setTargetMemberId] = useState(
@@ -166,8 +165,6 @@ export function useKeyFormState({
   const [submitting, setSubmitting] = useState(false)
 
   return {
-    step,
-    setStep,
     name,
     setName,
     budget,
