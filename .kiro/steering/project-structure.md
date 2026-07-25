@@ -6,8 +6,11 @@
 - 禁止在 src/、internal/、组件旁边放测试文件
 
 ## 文档
-- 所有文档放 `docs/`（子目录：adr/、plan/、reviews/、todos/）
-- 禁止在 apps/ 或项目根新建 .md（各 app README.md、CLAUDE.md、DESIGN.md 除外）
+- 根 `docs/`：仓库级/跨产品文档（策略 ADR、整体 Roadmap）
+- `apps/docs/`：TokenJoy（apps）产品专属文档（plan/、adr/、todos/ 等）
+- `sms/docs/`：SMS 产品专属文档
+- 禁止在 apps/frontend/、apps/backend/、sms/frontend/、sms/backend/ 下新建 .md（README.md、DESIGN.md 除外）
+- 禁止在项目根新建 .md（CLAUDE.md、DESIGN.md 除外）
 
 ## 后端
 - 禁止在 cmd/ 放业务逻辑（仅 main 入口 + 启动编排）
@@ -40,3 +43,27 @@
 - 禁止直接 import API 函数——通过 useApis()/useInjectedApis()
 - 共享合约/类型放 packages/contracts/
 - 全局脚本放 scripts/（根目录）；app 专属构建脚本允许在 apps/{app}/scripts/
+
+## SMS (sms/) 文件放置
+
+### 后端 (sms/backend/)
+- 结构同 apps/backend：cmd/ 只放入口，internal/ 放业务
+- Go module: sms/backend（独立，不引用 apps/backend）
+
+### 前端 (sms/frontend/)
+- 结构同 apps/frontend：features/、components/ui/、routes/ 等
+- 包名 @sms/frontend
+- 禁止与 apps/frontend 互相 import
+
+### 跨产品约束
+- apps/ 和 sms/ 之间禁止 Go import
+- apps/ 和 sms/ 之间禁止 TypeScript import
+- 共享类型/契约只能放 packages/contracts/
+- 跨产品通信只能通过 HTTP API
+
+## 文档隔离
+
+- 根 `docs/`：仓库级/跨产品文档（策略 ADR、整体 Roadmap）
+- `apps/docs/`：TokenJoy（apps）产品专属文档（plan/、adr/、todos/ 等）
+- `sms/docs/`：SMS 产品专属文档
+- 禁止在 apps/frontend/、apps/backend/、sms/frontend/、sms/backend/ 下新建 .md（README.md、DESIGN.md 除外）
