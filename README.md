@@ -7,6 +7,8 @@
 | **TokenJoy** | Local（私有化）/ SaaS（公有云） | 客户管理员 | Key 管理、预算、组织、审计、Gateway |
 | **SMS** | 中心部署 | TJ 运营团队 | 供应商管理、模型目录、合同、定价发布 |
 
+TokenJoy Local 和 SaaS 共用同一套前后端代码，运行时通过 `SUPPORT_SAAS` flag 分流。
+
 ---
 
 ## 目录结构
@@ -60,31 +62,32 @@ mytokenjoy/
 
 一个 Postgres 容器，两个用户，六个 database：
 
-| Database | Owner | 产品 |
-|----------|-------|------|
-| tokenjoy | tokenjoy | apps 主库 |
-| newapi | tokenjoy | apps NewAPI |
-| logs | tokenjoy | apps 日志 |
-| sms | sms | sms 主库 |
-| sms_newapi | sms | sms NewAPI |
-| sms_logs | sms | sms 日志 |
+| Database | Owner | 产品 | 用途 |
+|----------|-------|------|------|
+| tokenjoy | tokenjoy | apps | 主库 |
+| newapi | tokenjoy | apps | NewAPI 数据 |
+| logs | tokenjoy | apps | NewAPI 日志 |
+| sms | sms | sms | 主库 |
+| sms_newapi | sms | sms | NewAPI 数据 |
+| sms_logs | sms | sms | NewAPI 日志 |
 
-Redis: apps NewAPI=db0, sms NewAPI=db1, apps backend=db2, sms backend=db3
+Redis db number: apps NewAPI=0, sms NewAPI=1, apps backend=2, sms backend=3
 
 ### 命令
 
 ```bash
 # 基础设施
-pnpm infra               # 启动 docker compose（postgres + redis + 两个 NewAPI）
+pnpm infra               # docker compose up（postgres + redis + 两个 NewAPI）
 pnpm infra:down          # 停止
 
 # Apps (TokenJoy)
-pnpm start               # 启动 apps（backend + frontend + mock）
+pnpm start               # backend + frontend + mock
 pnpm reset               # 重置 apps 库（默认 local 模式）
 pnpm reset saas          # 重置 apps 库（SaaS 多租户模式）
+pnpm reset [local|saas] [--empty|--minimal|--full]
 
 # SMS
-pnpm start sms           # 启动 sms（backend + frontend）
+pnpm start sms           # backend + frontend
 pnpm reset sms           # 重置 sms 库
 
 # 全部
@@ -94,13 +97,26 @@ pnpm reset all           # 重置全部
 # 测试
 pnpm test                # apps 全量测试
 pnpm test:sms            # sms 全量测试
+pnpm test:integration    # apps 后端集成测试
+pnpm test:sms:integration
+pnpm test:e2e            # apps 前端 E2E
+pnpm test:sms:e2e
+
+# 质量
 pnpm lint                # apps lint
 pnpm lint:sms            # sms lint
+pnpm verify              # CI: lint + test + build
 
 # 构建
 pnpm build               # apps frontend
 pnpm build:sms           # sms frontend
 ```
+
+### Reset 机制
+
+- SQL `DROP/CREATE DATABASE`，不用 `docker compose down -v`
+- 每个 reset 只动自己的 database，不影响对方
+- 共享逻辑：`scripts/lib/db-reset.sh`（`reset_apps_databases` / `reset_sms_databases`）
 
 ---
 
@@ -112,7 +128,6 @@ pnpm build:sms           # sms frontend
 4. **共享层放 packages/** — 跨产品共享的契约、类型放这里
 5. **制品交付** — 客户只拿 `apps/` 的 image，`sms/` 永不出门
 6. **独立演进** — sms 不阻塞客户侧发版，反之亦然
-7. **基础设施共用** — 开发环境一份 docker-compose，端口段隔离，database 名隔离
 
 ### 跨产品约束
 
@@ -123,9 +138,12 @@ pnpm build:sms           # sms frontend
 
 ### 文档放置
 
-- 根 `docs/`：仓库级/跨产品文档
-- `apps/docs/`：TokenJoy 产品文档
-- `sms/docs/`：SMS 产品文档
+| 位置 | 内容 |
+|------|------|
+| `apps/docs/` | TokenJoy 产品文档（架构、PRD、ADR、plan） |
+| `sms/docs/` | SMS 产品文档 |
+
+禁止在 apps/frontend/、apps/backend/、sms/frontend/、sms/backend/ 下新建 .md（README.md 除外）。
 
 ---
 
@@ -139,3 +157,14 @@ pnpm build:sms           # sms frontend
 | sms-ui | sms/frontend/ | 仅内部 |
 | sms-backend | sms/backend/ | 仅内部 |
 | sms-newapi | sms/newapi/ | 仅内部 |
+
+---
+
+## 跨产品通信
+
+```
+Apps Backend (8010)  ──GET  /api/v1/pricing/latest──→  SMS Backend (8020)
+                     ←── { version, model_ratio, completion_ratio } ──┘
+```
+
+接口极少，耦合极低。两边独立开发、独立部署。
