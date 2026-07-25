@@ -11,7 +11,6 @@ import { SessionGate } from '@/features/session'
 
 const LoginPage = lazy(() => import('@/routes/auth/login'))
 const InviteAcceptPage = lazy(() => import('@/routes/auth/invite-accept'))
-const AuthEmbedPage = lazy(() => import('@/routes/auth/embed'))
 
 const lazyPages = APP_ROUTES.map((entry) => ({
   path: toRouterPath(entry.path),
@@ -37,48 +36,30 @@ export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <AppErrorBoundary>
-        <Suspense fallback={<RouteFallback />}>
-          <Routes>
-            <Route
-              path="auth/embed"
-              element={
-                <Suspense fallback={<RouteFallback />}>
-                  <AuthEmbedPage />
-                </Suspense>
-              }
-            />
-            <Route path="*" element={<AppShell />} />
-          </Routes>
-        </Suspense>
+        <AppProviders>
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+              <Route
+                path={LOGIN_PATH.slice(1)}
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <LoginPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="invite/accept"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <InviteAcceptPage />
+                  </Suspense>
+                }
+              />
+              <Route path="*" element={<AuthenticatedRoutes />} />
+            </Routes>
+          </Suspense>
+        </AppProviders>
       </AppErrorBoundary>
     </BrowserRouter>
-  )
-}
-
-function AppShell() {
-  return (
-    <AppProviders>
-      <Suspense fallback={<RouteFallback />}>
-        <Routes>
-          <Route
-            path={LOGIN_PATH.slice(1)}
-            element={
-              <Suspense fallback={<RouteFallback />}>
-                <LoginPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="invite/accept"
-            element={
-              <Suspense fallback={<RouteFallback />}>
-                <InviteAcceptPage />
-              </Suspense>
-            }
-          />
-          <Route path="*" element={<AuthenticatedRoutes />} />
-        </Routes>
-      </Suspense>
-    </AppProviders>
   )
 }
