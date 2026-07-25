@@ -1,5 +1,5 @@
 import { API_BASE_PATH } from '@/config/app'
-import { AUTHZ_REVISION_HEADER } from '@/features/session/authz-sync'
+import { AUTHZ_REVISION_HEADER } from '@/features/session'
 import { apiEvents } from './api-events'
 
 export class ApiError extends Error {
