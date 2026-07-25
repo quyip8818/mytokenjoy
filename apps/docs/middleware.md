@@ -37,43 +37,44 @@ RealIP
 
 ### 全局层
 
-| Middleware | 文件 | 说明 |
-|-----------|------|------|
-| RealIP | chi 内置 | 从 X-Forwarded-For / X-Real-IP 取真实客户端 IP |
-| RequestID | `middleware/requestid.go` | 生成 16 字符 hex ID，透传 `X-Request-Id` header |
-| LoggerContext | `middleware/logger_context.go` | 把 `request_id` 注入 slog，下游用 `LoggerFromContext(ctx)` 取 |
-| AccessLog | `middleware/access_log.go` | 响应完成后记录 method/path/status/latency_ms/request_id/company_id/ip，慢请求(>5s)标 `slow=true` |
-| Recover | `middleware/recover.go` | defer recover + `runtime/debug.Stack()` + request_id |
-| SecurityHeaders | `middleware/security_headers.go` | `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, HSTS(仅 SECURE_COOKIE=true) |
-| CORS | `middleware/cors.go` | 白名单 origin，`Access-Control-Max-Age: 86400`，Expose `X-RateLimit-*` / `X-Authz-Revision` / `Retry-After` |
+| Middleware      | 文件                             | 说明                                                                                                        |
+| --------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| RealIP          | chi 内置                         | 从 X-Forwarded-For / X-Real-IP 取真实客户端 IP                                                              |
+| RequestID       | `middleware/requestid.go`        | 生成 16 字符 hex ID，透传 `X-Request-Id` header                                                             |
+| LoggerContext   | `middleware/logger_context.go`   | 把 `request_id` 注入 slog，下游用 `LoggerFromContext(ctx)` 取                                               |
+| AccessLog       | `middleware/access_log.go`       | 响应完成后记录 method/path/status/latency_ms/request_id/company_id/ip，慢请求(>5s)标 `slow=true`            |
+| Recover         | `middleware/recover.go`          | defer recover + `runtime/debug.Stack()` + request_id                                                        |
+| SecurityHeaders | `middleware/security_headers.go` | `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, HSTS(仅 SECURE_COOKIE=true)  |
+| CORS            | `middleware/cors.go`             | 白名单 origin，`Access-Control-Max-Age: 86400`，Expose `X-RateLimit-*` / `X-Authz-Revision` / `Retry-After` |
 
 ### /v1 Gateway
 
-| 能力 | 实现位置 |
-|------|----------|
-| Bearer auth | `gateway/auth.go` parseBearerSecret |
+| 能力               | 实现位置                                                                          |
+| ------------------ | --------------------------------------------------------------------------------- |
+| Bearer auth        | `gateway/auth.go` parseBearerSecret                                               |
 | Per-key rate limit | `gateway/gateway_service.go` checkRateLimit — Token Bucket (Redis Lua), fail-open |
-| Precheck | `gateway/precheck.go` — PG CTE + Redis budget check |
-| Reverse proxy | `net/http/httputil.ReverseProxy` + Transport 调优 |
-| Streaming | `FlushInterval = -1`, 无 WriteTimeout, 无 context timeout |
+| Precheck           | `gateway/precheck.go` — PG CTE + Redis budget check                               |
+| Reverse proxy      | `net/http/httputil.ReverseProxy` + Transport 调优                                 |
+| Streaming          | `FlushInterval = -1`, 无 WriteTimeout, 无 context timeout                         |
 
 **Transport 配置：**
+
 - `MaxIdleConnsPerHost: 100`, `ForceAttemptHTTP2: true`
 - `ResponseHeaderTimeout: 120s` (防 upstream 挂死)
 - `TLS 1.2+`, `DialContext` 超时 10s
 
 ### /api 层
 
-| Middleware | 文件 | 说明 |
-|-----------|------|------|
-| RequestTimeout | `middleware/timeout.go` | `context.WithTimeout(30s)`, 不用 `http.TimeoutHandler` |
-| CompanyResolve | `middleware/company_resolve.go` | JWT → companyID → company context；skip `/api/platform/` 和 `/api/internal/` |
-| RateLimitTenant | `middleware/rate_limit.go` | Token Bucket per companyID, fail-open；companyID=0 时 skip |
-| RateLimitLoginPaths | `middleware/rate_limit.go` | Sliding Window per IP, 仅 POST + 指定路径, fail-closed (本地内存 fallback) |
-| AuthzRevisionHeader | `middleware/authz_revision.go` | 返回 `X-Authz-Revision` 供前端缓存失效 |
-| CompanyGate | `middleware/company_gate.go` | 租户挂起时拒绝写操作 |
-| RequireSession | `middleware/session.go` | JWT 校验 + 会话状态检查，按路由组 `.With()` 挂载 |
-| RequireAnyPermission | `middleware/authz.go` | RBAC 权限检查 |
+| Middleware           | 文件                            | 说明                                                                         |
+| -------------------- | ------------------------------- | ---------------------------------------------------------------------------- |
+| RequestTimeout       | `middleware/timeout.go`         | `context.WithTimeout(30s)`, 不用 `http.TimeoutHandler`                       |
+| CompanyResolve       | `middleware/company_resolve.go` | JWT → companyID → company context；skip `/api/platform/` 和 `/api/internal/` |
+| RateLimitTenant      | `middleware/rate_limit.go`      | Token Bucket per companyID, fail-open；companyID=0 时 skip                   |
+| RateLimitLoginPaths  | `middleware/rate_limit.go`      | Sliding Window per IP, 仅 POST + 指定路径, fail-closed (本地内存 fallback)   |
+| AuthzRevisionHeader  | `middleware/authz_revision.go`  | 返回 `X-Authz-Revision` 供前端缓存失效                                       |
+| CompanyGate          | `middleware/company_gate.go`    | 租户挂起时拒绝写操作                                                         |
+| RequireSession       | `middleware/session.go`         | JWT 校验 + 会话状态检查，按路由组 `.With()` 挂载                             |
+| RequireAnyPermission | `middleware/authz.go`           | RBAC 权限检查                                                                |
 
 ---
 
@@ -90,11 +91,11 @@ RealIP
 
 ### 策略
 
-| 层级 | Key 格式 | 算法 | 默认阈值 | Fail 策略 |
-|------|----------|------|----------|-----------|
-| /v1 Per-Key | `rl:v1:{keyHash}` | Token Bucket | 30 req/s burst 60 | fail-open |
-| /api Per-Tenant | `rl:api:{companyID}` | Token Bucket | 100 req/s burst 200 | fail-open |
-| Login Per-IP | `rl:login:{ip}` | Sliding Window | 5 req/min | fail-closed (内存 fallback) |
+| 层级            | Key 格式             | 算法           | 默认阈值            | Fail 策略                   |
+| --------------- | -------------------- | -------------- | ------------------- | --------------------------- |
+| /v1 Per-Key     | `rl:v1:{keyHash}`    | Token Bucket   | 30 req/s burst 60   | fail-open                   |
+| /api Per-Tenant | `rl:api:{companyID}` | Token Bucket   | 100 req/s burst 200 | fail-open                   |
+| Login Per-IP    | `rl:login:{ip}`      | Sliding Window | 5 req/min           | fail-closed (内存 fallback) |
 
 ### 控制
 
@@ -107,13 +108,13 @@ RATE_LIMIT_DRY_RUN=false   # 观察模式: 只记录不拦截
 
 ## Timeout 策略
 
-| 路径 | 手段 | 值 |
-|------|------|-----|
-| `/api/*` | `context.WithTimeout` | 30s |
-| `/v1/*` | `Transport.ResponseHeaderTimeout` | 120s (仅等首字节) |
-| Server | `ReadHeaderTimeout` | 5s |
-| Server | `IdleTimeout` | 120s |
-| Server | `WriteTimeout` | 不设 (streaming 需要) |
+| 路径     | 手段                              | 值                    |
+| -------- | --------------------------------- | --------------------- |
+| `/api/*` | `context.WithTimeout`             | 30s                   |
+| `/v1/*`  | `Transport.ResponseHeaderTimeout` | 120s (仅等首字节)     |
+| Server   | `ReadHeaderTimeout`               | 5s                    |
+| Server   | `IdleTimeout`                     | 120s                  |
+| Server   | `WriteTimeout`                    | 不设 (streaming 需要) |
 
 ---
 

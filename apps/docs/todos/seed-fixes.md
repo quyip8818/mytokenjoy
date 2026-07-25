@@ -6,13 +6,13 @@
 
 ## 边界（避免误归因）
 
-| 数据                                                | Seed 是否写入 | 实际负责方                                                                                                                                      |
-| --------------------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| 公司 / 组织 / 模型 catalog / platform_keys 行       | ✅ `apply/`   | —                                                                                                                                               |
-| `platform_key_mappings` + `key_hash` 落地           | ❌            | 本地：`dev-bootstrap`（`provision.Bootstrap`）；生产：用户 Create → `SyncPlatformKeyCreate`                                                     |
-| NewAPI Token `group` / secret                       | ❌            | `TrySyncCreate` / `SyncUpdatePlatformKey`；River 仅重试 outbox（`create_key`、`upsert_channel` 等）                                        |
-| `companies.newapi_wallet_company_id`                | ❌            | SaaS `CreateCompany`；demo 见 [FIX-SEED-004](#fix-seed-004)                                                                                    |
-| NewAPI `UserUsableGroups`                           | ❌            | `EnsureGroup`（Create 路径）+ 本地脚本保险                                                                                                      |
+| 数据                                          | Seed 是否写入 | 实际负责方                                                                                          |
+| --------------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------- |
+| 公司 / 组织 / 模型 catalog / platform_keys 行 | ✅ `apply/`   | —                                                                                                   |
+| `platform_key_mappings` + `key_hash` 落地     | ❌            | 本地：`dev-bootstrap`（`provision.Bootstrap`）；生产：用户 Create → `SyncPlatformKeyCreate`         |
+| NewAPI Token `group` / secret                 | ❌            | `TrySyncCreate` / `SyncUpdatePlatformKey`；River 仅重试 outbox（`create_key`、`upsert_channel` 等） |
+| `companies.newapi_wallet_company_id`          | ❌            | SaaS `CreateCompany`；demo 见 [FIX-SEED-004](#fix-seed-004)                                         |
+| NewAPI `UserUsableGroups`                     | ❌            | `EnsureGroup`（Create 路径）+ 本地脚本保险                                                          |
 
 **Reseed 规则：** 修改 seed 数据后须 **`pnpm reset`**（清卷）；非空库不会自动覆盖 seed。仅 `make dev-bootstrap` 只补 NewAPI sync，不 reseed。
 
@@ -24,10 +24,10 @@
 
 **SSOT**：`contract.ModelTypeToID`（`map[string]uuid.UUID`）。
 
-| 变量名 | type | 说明 |
-| --- | --- | --- |
-| `IDModelLocalTest` | `dev-local-test` | 仅 dev / demo catalog |
-| `IDModel1` ~ `IDModel10` | `deepseek-v4` … `gpt-4o` | demo 生产模型 |
+| 变量名                   | type                     | 说明                  |
+| ------------------------ | ------------------------ | --------------------- |
+| `IDModelLocalTest`       | `dev-local-test`         | 仅 dev / demo catalog |
+| `IDModel1` ~ `IDModel10` | `deepseek-v4` … `gpt-4o` | demo 生产模型         |
 
 客户新建模型由 DB `DEFAULT gen_random_uuid()` 生成 ID，不走 seed。
 

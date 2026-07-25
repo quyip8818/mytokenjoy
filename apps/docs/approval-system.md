@@ -6,12 +6,12 @@
 
 当前注册了 4 个审批类型：
 
-| type | Handler | 所属 domain | 作用 |
-|------|---------|------------|------|
-| `key` | `KeyApprovalHandler` | `domain/keys` | 申请创建平台 Key + 个人额度 |
-| `member_budget` | `MemberBudgetApprovalHandler` | `domain/budget` | 部门预留池拨付至个人额度 |
-| `project_budget` | `ProjectBudgetApprovalHandler` | `domain/budget` | 项目 Owner 申请追加项目额度（部门预留池 → 项目 budget） |
-| `project_member_budget` | `ProjectMemberBudgetApprovalHandler` | `domain/budget` | 项目成员申请子额度（项目未分配余额 → member_budget） |
+| type                    | Handler                              | 所属 domain     | 作用                                                    |
+| ----------------------- | ------------------------------------ | --------------- | ------------------------------------------------------- |
+| `key`                   | `KeyApprovalHandler`                 | `domain/keys`   | 申请创建平台 Key + 个人额度                             |
+| `member_budget`         | `MemberBudgetApprovalHandler`        | `domain/budget` | 部门预留池拨付至个人额度                                |
+| `project_budget`        | `ProjectBudgetApprovalHandler`       | `domain/budget` | 项目 Owner 申请追加项目额度（部门预留池 → 项目 budget） |
+| `project_member_budget` | `ProjectMemberBudgetApprovalHandler` | `domain/budget` | 项目成员申请子额度（项目未分配余额 → member_budget）    |
 
 ---
 
@@ -42,11 +42,11 @@
 
 ## 审批权限模型
 
-| 审批类型 | 谁可以审批 | 权限/校验逻辑 |
-|---------|-----------|--------------|
-| `key` | 管理员 | `budget:approve` |
-| `member_budget` | 管理员 | `budget:approve` |
-| `project_budget` | 管理员 | `budget:approve` |
+| 审批类型                | 谁可以审批 | 权限/校验逻辑                                          |
+| ----------------------- | ---------- | ------------------------------------------------------ |
+| `key`                   | 管理员     | `budget:approve`                                       |
+| `member_budget`         | 管理员     | `budget:approve`                                       |
+| `project_budget`        | 管理员     | `budget:approve`                                       |
 | `project_member_budget` | 项目 Owner | `caller == project.OwnerID`（不需要 `budget:approve`） |
 
 HTTP 层通过 `authorizeResolve` 方法在 approve/reject 前做细粒度鉴权。`decorateCanResolve` 在 list 返回时逐条标记 `canResolve: boolean`。
@@ -88,15 +88,15 @@ type Handler interface {
 
 ### 方法职责
 
-| 方法 | 调用时机 | 事务 | 职责 |
-|------|---------|------|------|
-| `Validate` | 创建申请时 | 无 | 校验 metadata 合法性（字段、权限、模型白名单等） |
-| `PreApprove` | 审批通过前 | 无 | 快速失败检查（如预留池余额）。无锁，可能有 stale read |
-| `OnApprovedTx` | 审批通过 | **事务内** | 核心业务副作用：扣余额、创建 Key。**必须加 `AcquireBudgetLock`** |
-| `PostApprove` | 事务提交后 | 无 | 外部 IO（同步 NewAPI Token 等）。失败触发 Compensate |
-| `Compensate` | PostApprove 失败 / Retry 前 | 无 | 幂等回滚 OnApprovedTx 的数据。`result=nil` 时从 DB 推断 |
-| `OnRejected` | 拒绝时 | 事务内 | 拒绝的副作用（当前所有 Handler 均为 no-op） |
-| `PreCheck` | 前端审批前预检 | 无 | 返回 JSON 供前端展示条件（如余额是否充足） |
+| 方法           | 调用时机                    | 事务       | 职责                                                             |
+| -------------- | --------------------------- | ---------- | ---------------------------------------------------------------- |
+| `Validate`     | 创建申请时                  | 无         | 校验 metadata 合法性（字段、权限、模型白名单等）                 |
+| `PreApprove`   | 审批通过前                  | 无         | 快速失败检查（如预留池余额）。无锁，可能有 stale read            |
+| `OnApprovedTx` | 审批通过                    | **事务内** | 核心业务副作用：扣余额、创建 Key。**必须加 `AcquireBudgetLock`** |
+| `PostApprove`  | 事务提交后                  | 无         | 外部 IO（同步 NewAPI Token 等）。失败触发 Compensate             |
+| `Compensate`   | PostApprove 失败 / Retry 前 | 无         | 幂等回滚 OnApprovedTx 的数据。`result=nil` 时从 DB 推断          |
+| `OnRejected`   | 拒绝时                      | 事务内     | 拒绝的副作用（当前所有 Handler 均为 no-op）                      |
+| `PreCheck`     | 前端审批前预检              | 无         | 返回 JSON 供前端展示条件（如余额是否充足）                       |
 
 ---
 
@@ -210,12 +210,12 @@ features/workflow/
 
 ### 权限
 
-| 操作 | 所需权限 |
-|------|---------|
-| 提交申请 / 撤回 | `self:approval` |
-| 查看列表 | `self:approval` 或 `budget:approve` |
-| 通过 / 拒绝 / 重试（key / member_budget / project_budget） | `budget:approve` |
-| 通过 / 拒绝（project_member_budget） | 项目 Owner（后端校验 `caller == project.OwnerID`） |
+| 操作                                                       | 所需权限                                           |
+| ---------------------------------------------------------- | -------------------------------------------------- |
+| 提交申请 / 撤回                                            | `self:approval`                                    |
+| 查看列表                                                   | `self:approval` 或 `budget:approve`                |
+| 通过 / 拒绝 / 重试（key / member_budget / project_budget） | `budget:approve`                                   |
+| 通过 / 拒绝（project_member_budget）                       | 项目 Owner（后端校验 `caller == project.OwnerID`） |
 
 ---
 

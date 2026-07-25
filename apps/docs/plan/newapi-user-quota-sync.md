@@ -19,10 +19,10 @@
 
 ### 1.2 NewAPI 额度模型
 
-| 层级 | 对象 | 当前代码策略 |
-|------|------|-------------|
-| Token（密钥） | `remain_quota` | 创建时 `UnlimitedQuota: true`，不限额 |
-| User（钱包用户） | `remain_quota` | 仅在公司创建/bootstrap 时设置一次 |
+| 层级             | 对象           | 当前代码策略                          |
+| ---------------- | -------------- | ------------------------------------- |
+| Token（密钥）    | `remain_quota` | 创建时 `UnlimitedQuota: true`，不限额 |
+| User（钱包用户） | `remain_quota` | 仅在公司创建/bootstrap 时设置一次     |
 
 关键点：NewAPI 的额度检查作用在 **User** 级别。所有挂载在该 user 下的 token 共享同一个 `user.remain_quota`。
 
@@ -45,18 +45,19 @@
 ### 3.1 Ceiling 模式
 
 不做双向精确同步，把 NewAPI user quota 当作"信用额度天花板"：
+
 - NewAPI 实时扣（每个请求即扣），本地入账异步（consume_log → ingest）
 - 同步方向：**只加不减**——本地充值 → 追加 NewAPI quota
 - 消费时不反向通知（NewAPI 已自动扣了）
 
 ### 3.2 环境分支规则
 
-| 环境 | Lot 类型 | NewAPI User Quota 策略 |
-|------|----------|----------------------|
+| 环境        | Lot 类型                | NewAPI User Quota 策略                     |
+| ----------- | ----------------------- | ------------------------------------------ |
 | **非 Prod** | **所有类型（含 Mock）** | `CreditFromLot` 后 `add_quota(deltaQuota)` |
-| **Prod** | Paid / Gift / Adjust | `CreditFromLot` 后 `add_quota(deltaQuota)` |
-| **Prod** | Mock | **不同步**（创建时已一次性给大额） |
-| 任何 | Overdraft | 不同步 |
+| **Prod**    | Paid / Gift / Adjust    | `CreditFromLot` 后 `add_quota(deltaQuota)` |
+| **Prod**    | Mock                    | **不同步**（创建时已一次性给大额）         |
+| 任何        | Overdraft               | 不同步                                     |
 
 ### 3.3 非 Prod 同步 Mock 的原因
 
@@ -79,6 +80,7 @@
 PreCreditFunc 在本地事务 **之前** 执行——NewAPI quota 先加，本地再提交。
 
 设计理由（"先加后提交"）：
+
 - PreCreditFunc 成功 + 本地 tx 失败 → NewAPI 多了额度，宽松闸门不影响正确性
 - PreCreditFunc 失败 → 本地 tx 不执行，用户看到"充值失败"重试即可
 - 反过来（先提交后同步）→ 本地有余额但 NewAPI 拒绝请求，用户体验极差
@@ -142,14 +144,14 @@ ManageUser(ctx, walletUserID, "add_quota", -currentNewAPIRemain)
 
 ## 5. 边界情况
 
-| 场景 | 处理 |
-|------|------|
-| 公司无 `newapi_wallet_company_id` | 跳过 |
-| gift lot（amount=0 但 quota>0） | 同步 `lot.QuotaGranted` |
-| NewAPI 暂时不可用 | warn log + 跳过 |
-| 并发充值 | `add_quota` 是增量操作，天然安全 |
-| NewAPI remain > 本地 remain | 正常（宽松闸门） |
-| bootstrap 非 prod 重复跑 | bootstrap 中删掉独立 add_quota，由通用路径处理 |
+| 场景                              | 处理                                           |
+| --------------------------------- | ---------------------------------------------- |
+| 公司无 `newapi_wallet_company_id` | 跳过                                           |
+| gift lot（amount=0 但 quota>0）   | 同步 `lot.QuotaGranted`                        |
+| NewAPI 暂时不可用                 | warn log + 跳过                                |
+| 并发充值                          | `add_quota` 是增量操作，天然安全               |
+| NewAPI remain > 本地 remain       | 正常（宽松闸门）                               |
+| bootstrap 非 prod 重复跑          | bootstrap 中删掉独立 add_quota，由通用路径处理 |
 
 ---
 
@@ -184,9 +186,9 @@ ManageUser(ctx, walletUserID, "add_quota", -currentNewAPIRemain)
 
 ## 8. 实施清单（已完成）
 
-| 优先级 | 任务 | 状态 |
-|--------|------|------|
-| **P0** | `CreditFromLot` 增加 PreCreditFunc variadic 参数（事务前执行） | ✅ 已实现 |
-| **P0** | billing service 注入 `QuotaSyncer`，实现 `syncQuotaToNewAPI` | ✅ 已实现 |
+| 优先级 | 任务                                                                         | 状态      |
+| ------ | ---------------------------------------------------------------------------- | --------- |
+| **P0** | `CreditFromLot` 增加 PreCreditFunc variadic 参数（事务前执行）               | ✅ 已实现 |
+| **P0** | billing service 注入 `QuotaSyncer`，实现 `syncQuotaToNewAPI`                 | ✅ 已实现 |
 | **P0** | 删除 `provision/bootstrap.go` 中的独立 `add_quota`（非 prod 由通用路径覆盖） | ✅ 已实现 |
-| **P1** | 升级流程中 `ExpireMockLots` 后清零 NewAPI quota | 待实现 |
+| **P1** | 升级流程中 `ExpireMockLots` 后清零 NewAPI quota                              | 待实现    |

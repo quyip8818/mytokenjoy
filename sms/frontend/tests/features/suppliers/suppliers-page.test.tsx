@@ -33,7 +33,9 @@ const mockSuppliersResponse = {
 
 describe('SuppliersPage', () => {
   beforeEach(() => {
-    useSession.setState({ user: { id: 'u1', username: 'admin', realName: '管理员', role: 'admin' } })
+    useSession.setState({
+      user: { id: 'u1', username: 'admin', realName: '管理员', role: 'admin' },
+    })
   })
 
   it('renders supplier list from API', async () => {
@@ -52,7 +54,9 @@ describe('SuppliersPage', () => {
 
   it('shows 新建供应商 button for admin', async () => {
     const apis = createMockApis({
-      suppliersApi: { list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }) },
+      suppliersApi: {
+        list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }),
+      },
     })
 
     renderWithProviders(<SuppliersPage />, { apis })
@@ -63,9 +67,13 @@ describe('SuppliersPage', () => {
   })
 
   it('hides 新建供应商 button for viewer', async () => {
-    useSession.setState({ user: { id: 'u2', username: 'viewer', realName: '查看者', role: 'viewer' } })
+    useSession.setState({
+      user: { id: 'u2', username: 'viewer', realName: '查看者', role: 'viewer' },
+    })
     const apis = createMockApis({
-      suppliersApi: { list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }) },
+      suppliersApi: {
+        list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }),
+      },
     })
 
     renderWithProviders(<SuppliersPage />, { apis })
@@ -89,15 +97,15 @@ describe('SuppliersPage', () => {
     fireEvent.change(input, { target: { value: 'Open' } })
 
     await waitFor(() => {
-      expect(listFn).toHaveBeenCalledWith(
-        expect.objectContaining({ keyword: 'Open', page: 1 }),
-      )
+      expect(listFn).toHaveBeenCalledWith(expect.objectContaining({ keyword: 'Open', page: 1 }))
     })
   })
 
   it('shows empty state when no suppliers', async () => {
     const apis = createMockApis({
-      suppliersApi: { list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }) },
+      suppliersApi: {
+        list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }),
+      },
     })
 
     renderWithProviders(<SuppliersPage />, { apis })

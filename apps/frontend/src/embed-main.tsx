@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import { AuthCard } from '@/features/auth'
+import { AuthCard } from '@/features/auth/components/auth-card'
 
 const params = new URLSearchParams(window.location.search)
 const mode = params.get('mode') === 'register' ? 'register' : 'login'

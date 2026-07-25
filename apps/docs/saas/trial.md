@@ -53,11 +53,11 @@
 
 ### 2.1 设计思路
 
-| 约束 | 实现方式 |
-| --- | --- |
-| 模拟资金只能用于 mock 模型 | Gateway allowlist 仅含 mock model → 非 mock 请求 403，根本不进 ingest |
-| 升级后模拟资金不可用 | 升级时 expire 所有 `lot_kind='mock'` 的 lot，`wallet_remain_quota` 按实际 active lot 重算 |
-| Trial 期间看板可见消费 | Mock lot 正常走 FIFO 消费 → ledger 有条目 → 看板展示 |
+| 约束                       | 实现方式                                                                                  |
+| -------------------------- | ----------------------------------------------------------------------------------------- |
+| 模拟资金只能用于 mock 模型 | Gateway allowlist 仅含 mock model → 非 mock 请求 403，根本不进 ingest                     |
+| 升级后模拟资金不可用       | 升级时 expire 所有 `lot_kind='mock'` 的 lot，`wallet_remain_quota` 按实际 active lot 重算 |
+| Trial 期间看板可见消费     | Mock lot 正常走 FIFO 消费 → ledger 有条目 → 看板展示                                      |
 
 核心逻辑：**Gateway allowlist 做模型隔离（消费侧守卫），lot_kind='mock' 做资金标记（升级清零依据）**，不给 ingest/lot-consume 加任何 if-else。
 
@@ -109,10 +109,10 @@ UPDATE companies
 
 ### 2.4 为什么不用双账本
 
-| 方案 | 优点 | 缺点 |
-| --- | --- | --- |
-| Sandbox 双账本 | 语义最隔离 | 双路径查询，改动大，Trial 数据升级后要迁移或丢弃 |
-| **标记型 Mock Lot**（采用） | 零侵入计费核心、升级只需 expire + 重算 | 无 |
+| 方案                        | 优点                                   | 缺点                                             |
+| --------------------------- | -------------------------------------- | ------------------------------------------------ |
+| Sandbox 双账本              | 语义最隔离                             | 双路径查询，改动大，Trial 数据升级后要迁移或丢弃 |
+| **标记型 Mock Lot**（采用） | 零侵入计费核心、升级只需 expire + 重算 | 无                                               |
 
 ---
 
@@ -133,16 +133,16 @@ UPDATE companies
 
 ## 4. 功能限制
 
-| 功能 | Trial 行为 |
-| --- | --- |
-| Gateway | 仅 mock 模型（allowlist 控制），真实模型被 "model not allowed" 拦截 |
-| 模型管理 | 可查看全部模型，但 Key allowlist 只含 `trial-mock-model` |
-| 预算 / Key / 组织 / 审计 / 看板 | 全功能 |
-| 充值 / 钱包 | 禁用真实充值，提示"试用环境使用模拟资金" |
-| 邀请成员 | 正常投递 |
-| 数据源（飞书/钉钉/企微） | 全功能 |
-| 通知 | 全 channel |
-| 成员上限 | 50 人（`TRIAL_MEMBER_LIMIT`） |
+| 功能                            | Trial 行为                                                          |
+| ------------------------------- | ------------------------------------------------------------------- |
+| Gateway                         | 仅 mock 模型（allowlist 控制），真实模型被 "model not allowed" 拦截 |
+| 模型管理                        | 可查看全部模型，但 Key allowlist 只含 `trial-mock-model`            |
+| 预算 / Key / 组织 / 审计 / 看板 | 全功能                                                              |
+| 充值 / 钱包                     | 禁用真实充值，提示"试用环境使用模拟资金"                            |
+| 邀请成员                        | 正常投递                                                            |
+| 数据源（飞书/钉钉/企微）        | 全功能                                                              |
+| 通知                            | 全 channel                                                          |
+| 成员上限                        | 50 人（`TRIAL_MEMBER_LIMIT`）                                       |
 
 **前端提示**：Trial 用户尝试调用非 mock 模型时，Gateway 返回 "model not allowed"，前端展示"试用模式仅支持模拟模型，升级后可接入真实模型"。
 
@@ -177,6 +177,7 @@ Trial 公司的充值流程变为**升级确认**：
 ```
 
 确认后：
+
 1. 创建充值订单（paid lot）
 2. 执行 mock lot expire + wallet_remain_quota 重算
 3. `companies.type` 改为 `standard`
@@ -192,12 +193,12 @@ Trial 租户：全 channel 通知正常（Trial 注册时已绑定手机号，�
 
 ## 7. 配置
 
-| 环境变量 | 默认值 | 说明 |
-| --- | --- | --- |
-| `REGISTRATION_ENABLED` | `true` | 允许公开注册 |
-| `TRIAL_MEMBER_LIMIT` | `50` | 成员上限 |
-| `TRIAL_CREDIT_AMOUNT` | `10000` | 模拟资金（quota） |
-| `VITE_REGISTRATION_ENABLED` | — | 前端控制试用按钮显示 |
+| 环境变量                    | 默认值  | 说明                 |
+| --------------------------- | ------- | -------------------- |
+| `REGISTRATION_ENABLED`      | `true`  | 允许公开注册         |
+| `TRIAL_MEMBER_LIMIT`        | `50`    | 成员上限             |
+| `TRIAL_CREDIT_AMOUNT`       | `10000` | 模拟资金（quota）    |
+| `VITE_REGISTRATION_ENABLED` | —       | 前端控制试用按钮显示 |
 
 ---
 

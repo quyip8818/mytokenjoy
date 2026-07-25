@@ -12,10 +12,10 @@
 
 NewAPI 的限额分两层：
 
-| 层级 | 检查时机 | 我们的策略 |
-|------|---------|-----------|
-| User quota | 每次 API 调用 | 需要保持 ≥ tokenjoy wallet_remain_quota |
-| Token quota | 每次 API 调用 | `unlimited_quota=true`，不检查 |
+| 层级        | 检查时机      | 我们的策略                              |
+| ----------- | ------------- | --------------------------------------- |
+| User quota  | 每次 API 调用 | 需要保持 ≥ tokenjoy wallet_remain_quota |
+| Token quota | 每次 API 调用 | `unlimited_quota=true`，不检查          |
 
 tokenjoy Gateway precheck 是业务限额控制面（combined_key_remain + wallet_remain_quota），NewAPI user quota 是**物理止损层**——防止绕过 Gateway 直连 NewAPI 时的无限消费。
 
@@ -72,13 +72,14 @@ func (s *service) syncQuotaToNewAPI(ctx context.Context, lot store.RechargeLot) 
 
 ### 失败容错
 
-| 场景 | 影响 | 恢复 |
-|------|------|------|
-| ManageUser HTTP 超时/错误 | **充值失败**——PreCreditFunc 返回 error，本地事务不执行 | 用户重试即可 |
-| NewAPI 宕机 | 同上——所有充值被阻断 | NewAPI 恢复后用户重试 |
-| PreCreditFunc 成功但本地 tx 失败 | NewAPI 多了额度（宽松闸门），本地无余额 | 安全——多余 quota 在正常消费中自然扣减或由 bootstrap 修正 |
+| 场景                             | 影响                                                   | 恢复                                                     |
+| -------------------------------- | ------------------------------------------------------ | -------------------------------------------------------- |
+| ManageUser HTTP 超时/错误        | **充值失败**——PreCreditFunc 返回 error，本地事务不执行 | 用户重试即可                                             |
+| NewAPI 宕机                      | 同上——所有充值被阻断                                   | NewAPI 恢复后用户重试                                    |
+| PreCreditFunc 成功但本地 tx 失败 | NewAPI 多了额度（宽松闸门），本地无余额                | 安全——多余 quota 在正常消费中自然扣减或由 bootstrap 修正 |
 
 **设计理由（"先加后提交"）：**
+
 - PreCreditFunc 成功 + 本地 tx 失败 → NewAPI 多了额度，宽松闸门不影响正确性
 - PreCreditFunc 失败 → 本地 tx 不执行，用户看到"充值失败"重试即可
 - 反过来（先提交后同步）→ 本地有余额但 NewAPI 拒绝请求，用户体验极差（"付了钱但不能用"）
@@ -98,25 +99,25 @@ if currentQuota < co.WalletRemainQuota {
 
 ### 不需要做的事
 
-| 原 wallet_sync 功能 | 新方案 | 原因 |
-|---------------------|--------|------|
-| 定时 ReconcileWalletDrift | 删除 | bootstrap 启动补齐已覆盖 |
-| 反向读 NewAPI quota → 修正 tokenjoy | 删除 | tokenjoy 是 SSOT |
-| River debounce job | 删除 | 直接 HTTP 调用，无需异步 |
-| 精确同步 model_price → quota 换算 | 删除 | wallet 和 token 解耦；token unlimited |
+| 原 wallet_sync 功能                 | 新方案 | 原因                                  |
+| ----------------------------------- | ------ | ------------------------------------- |
+| 定时 ReconcileWalletDrift           | 删除   | bootstrap 启动补齐已覆盖              |
+| 反向读 NewAPI quota → 修正 tokenjoy | 删除   | tokenjoy 是 SSOT                      |
+| River debounce job                  | 删除   | 直接 HTTP 调用，无需异步              |
+| 精确同步 model_price → quota 换算   | 删除   | wallet 和 token 解耦；token unlimited |
 
 ---
 
 ## 改动清单（已实现）
 
-| 文件 | 变更 |
-|------|------|
-| `domain/billing/service.go` | `service` struct 加 `quotaSyncer QuotaSyncer`；`syncQuotaToNewAPI` 作为 PreCreditFunc |
-| `domain/billing/lot/consume.go` | `CreditFromLot` 接收 `beforeCommit ...PreCreditFunc`，事务前执行 |
-| `domain/billing/lot_confirm.go` | 4 个充值路径传入 `s.syncQuotaToNewAPI` |
-| `domain/billing/trial.go` | `SeedTrialCredit` 接收 `beforeCommit ...PreCreditFunc` |
-| `integration/newapi/user.go` | `ManageUser` 实现 `add_quota` + `mode: "add"` |
-| 测试 | mock QuotaSyncer 验证调用 |
+| 文件                            | 变更                                                                                  |
+| ------------------------------- | ------------------------------------------------------------------------------------- |
+| `domain/billing/service.go`     | `service` struct 加 `quotaSyncer QuotaSyncer`；`syncQuotaToNewAPI` 作为 PreCreditFunc |
+| `domain/billing/lot/consume.go` | `CreditFromLot` 接收 `beforeCommit ...PreCreditFunc`，事务前执行                      |
+| `domain/billing/lot_confirm.go` | 4 个充值路径传入 `s.syncQuotaToNewAPI`                                                |
+| `domain/billing/trial.go`       | `SeedTrialCredit` 接收 `beforeCommit ...PreCreditFunc`                                |
+| `integration/newapi/user.go`    | `ManageUser` 实现 `add_quota` + `mode: "add"`                                         |
+| 测试                            | mock QuotaSyncer 验证调用                                                             |
 
 ---
 
@@ -125,6 +126,7 @@ if currentQuota < co.WalletRemainQuota {
 ### 1. 重复 TopUp
 
 NewAPI TopUp 是 **additive**（`user.quota += delta`）。如果同一笔充值因为 retry 导致 TopUp 两次：
+
 - tokenjoy 侧不受影响（CreditFromLot 有 idempotency 保护）
 - NewAPI 侧 user quota 多加了 delta
 
@@ -151,6 +153,7 @@ Overdraft lot 扩展时（`ExpandOverdraftLot`），tokenjoy wallet_remain_quota
 ### 6. AdminPort 依赖
 
 billing service 增加了对 `adminport.Port` 的依赖。在 NewAPI 未配置（self-hosted/testing 环境）时 port 为 nil：
+
 - `topUpNewAPIQuota` 内部 nil check → skip
 - 不影响纯 tokenjoy 记账功能
 
@@ -158,22 +161,23 @@ billing service 增加了对 `adminport.Port` 的依赖。在 NewAPI 未配置�
 
 ## 验证场景
 
-| 场景 | 预期 |
-|------|------|
-| 充值 ¥50 (QPU=500000) | TopUp delta=25,000,000 |
-| Gift 1,000,000 quota | TopUp delta=1,000,000 |
-| 充值失败（CreditFromLot 回滚） | TopUp 不执行 |
-| TopUp HTTP 失败 | 充值正常，log warning |
-| Bootstrap 启动 user quota=0, wallet_remain_quota=50M | TopUp delta=50,000,000 |
-| Bootstrap 启动 user quota=100M, wallet_remain_quota=50M | 不 TopUp（quota 已 ≥ remain） |
-| Overdraft 扩展 | 不 TopUp（wallet_remain_quota 不变） |
-| 并发 3 笔充值 | 3 次独立 TopUp，互不干扰 |
+| 场景                                                    | 预期                                 |
+| ------------------------------------------------------- | ------------------------------------ |
+| 充值 ¥50 (QPU=500000)                                   | TopUp delta=25,000,000               |
+| Gift 1,000,000 quota                                    | TopUp delta=1,000,000                |
+| 充值失败（CreditFromLot 回滚）                          | TopUp 不执行                         |
+| TopUp HTTP 失败                                         | 充值正常，log warning                |
+| Bootstrap 启动 user quota=0, wallet_remain_quota=50M    | TopUp delta=50,000,000               |
+| Bootstrap 启动 user quota=100M, wallet_remain_quota=50M | 不 TopUp（quota 已 ≥ remain）        |
+| Overdraft 扩展                                          | 不 TopUp（wallet_remain_quota 不变） |
+| 并发 3 笔充值                                           | 3 次独立 TopUp，互不干扰             |
 
 ---
 
 ## 决策
 
 采用**单向增量 PreCreditFunc**方案。相比旧 wallet_sync：
+
 - 删除了双向 reconcile 的全部复杂性
 - 删除了 River job + debounce + drift 检测
 - 保留了 NewAPI user quota 作为物理止损的安全属性

@@ -69,8 +69,8 @@ http.SetCookie(w, &http.Cookie{
 
 环境变量：
 
-| 变量 | 开发环境 | 生产环境 |
-|------|---------|---------|
+| 变量            | 开发环境               | 生产环境        |
+| --------------- | ---------------------- | --------------- |
 | `COOKIE_DOMAIN` | （空，默认 localhost） | `.tokenjoy.com` |
 
 ### 3.2 CORS 配置
@@ -94,7 +94,7 @@ cors.Options{
 ```typescript
 // 官网和 App 的 API client 都需要
 fetch(url, {
-  credentials: 'include',  // ← 关键：跨域带 Cookie
+  credentials: 'include', // ← 关键：跨域带 Cookie
   headers: { 'Content-Type': 'application/json' },
 })
 ```
@@ -109,10 +109,10 @@ fetch(url, {
 interface AuthPopupProps {
   open: boolean
   defaultMode?: 'login' | 'register'
-  apiBase?: string                  // 默认 '/api'，官网传 'https://api.tokenjoy.com'
-  closable?: boolean                // false = 不可关闭（App 内未登录时）
-  onSuccess?: () => void            // 认证成功回调
-  onClose?: () => void              // 关闭回调
+  apiBase?: string // 默认 '/api'，官网传 'https://api.tokenjoy.com'
+  closable?: boolean // false = 不可关闭（App 内未登录时）
+  onSuccess?: () => void // 认证成功回调
+  onClose?: () => void // 关闭回调
 }
 ```
 
@@ -231,7 +231,7 @@ packages/auth-popup/
   TokenJoyAuth.open({
     mode: 'register',
     apiBase: 'https://api.tokenjoy.com',
-    onSuccess: () => location.href = 'https://app.tokenjoy.com'
+    onSuccess: () => (location.href = 'https://app.tokenjoy.com'),
   })
 </script>
 ```
@@ -263,7 +263,7 @@ function SessionGate({ children }) {
   if (loading) return <RouteFallback />
   if (!session) {
     if (!isOpen) open('login')
-    return <FakeDashboardBackground />  // 静态背景，不是 children
+    return <FakeDashboardBackground /> // 静态背景，不是 children
   }
   return children
 }
@@ -279,7 +279,7 @@ if (response.status === 401 && refreshFailed) {
 
 // 登录成功后
 onSuccess: () => {
-  queryClient.invalidateQueries()  // 全量重新 fetch
+  queryClient.invalidateQueries() // 全量重新 fetch
 }
 ```
 
@@ -332,52 +332,52 @@ export default function LoginPage() {
 
 ## 8. 安全
 
-| 项 | 措施 |
-|---|---|
-| Cookie Domain | `.tokenjoy.com` — 仅自己的子域可读 |
-| SameSite | `Lax` — 顶级导航带 Cookie，第三方 POST 不带 |
-| Secure | `true` — 仅 HTTPS |
-| CORS 白名单 | 仅允许 `www.tokenjoy.com` + `app.tokenjoy.com` |
-| credentials | `include` — 跨域请求带 Cookie |
-| Open Redirect 防护 | `onSuccess` 由调用方硬编码，不从 URL 读取 |
-| Protected 树隔离 | 未认证时 protected 组件不 mount、chunk 不加载 |
+| 项                 | 措施                                           |
+| ------------------ | ---------------------------------------------- |
+| Cookie Domain      | `.tokenjoy.com` — 仅自己的子域可读             |
+| SameSite           | `Lax` — 顶级导航带 Cookie，第三方 POST 不带    |
+| Secure             | `true` — 仅 HTTPS                              |
+| CORS 白名单        | 仅允许 `www.tokenjoy.com` + `app.tokenjoy.com` |
+| credentials        | `include` — 跨域请求带 Cookie                  |
+| Open Redirect 防护 | `onSuccess` 由调用方硬编码，不从 URL 读取      |
+| Protected 树隔离   | 未认证时 protected 组件不 mount、chunk 不加载  |
 
 ---
 
 ## 9. 本地开发
 
-| 场景 | 配置 |
-|------|------|
-| App 单独开发 | `COOKIE_DOMAIN` 留空（默认 localhost）; AuthPopup 内嵌在 App |
+| 场景            | 配置                                                                                                       |
+| --------------- | ---------------------------------------------------------------------------------------------------------- |
+| App 单独开发    | `COOKIE_DOMAIN` 留空（默认 localhost）; AuthPopup 内嵌在 App                                               |
 | 官网 + App 联调 | 本地 hosts: `127.0.0.1 www.local.tokenjoy.com app.local.tokenjoy.com`; `COOKIE_DOMAIN=.local.tokenjoy.com` |
-| API base | App: `/api`（proxy）; 官网: `http://localhost:8010` 或上述子域 |
+| API base        | App: `/api`（proxy）; 官网: `http://localhost:8010` 或上述子域                                             |
 
 ---
 
 ## 10. 实施步骤
 
-| 阶段 | 内容 | 影响范围 |
-|------|------|---------|
-| P0 | 后端：`COOKIE_DOMAIN` 环境变量 + Set-Cookie domain | backend config |
-| P0 | 后端：CORS 配置（允许官网 origin + credentials） | backend middleware |
-| P0 | `packages/auth-popup` 包骨架 + AuthPopup 组件 | 新 package |
-| P0 | App `login.tsx` 改为 Fake UI 背景 + AuthPopup | routes/auth/login.tsx |
-| P1 | AuthPopup 内部：login tab + register 两步 | auth-popup 包 |
-| P1 | App SessionGate 改造（popup + fake background） | features/session |
-| P1 | App 401 拦截器集成 | api/client.ts |
-| P2 | 官网集成：CTA → AuthPopup → 跳转 App | tokenjoy-web |
-| P2 | 独立 JS bundle 构建（UMD，备选） | vite library mode |
-| P3 | 删除旧 `/register`、`/onboard` 独立路由 | cleanup |
+| 阶段 | 内容                                               | 影响范围              |
+| ---- | -------------------------------------------------- | --------------------- |
+| P0   | 后端：`COOKIE_DOMAIN` 环境变量 + Set-Cookie domain | backend config        |
+| P0   | 后端：CORS 配置（允许官网 origin + credentials）   | backend middleware    |
+| P0   | `packages/auth-popup` 包骨架 + AuthPopup 组件      | 新 package            |
+| P0   | App `login.tsx` 改为 Fake UI 背景 + AuthPopup      | routes/auth/login.tsx |
+| P1   | AuthPopup 内部：login tab + register 两步          | auth-popup 包         |
+| P1   | App SessionGate 改造（popup + fake background）    | features/session      |
+| P1   | App 401 拦截器集成                                 | api/client.ts         |
+| P2   | 官网集成：CTA → AuthPopup → 跳转 App               | tokenjoy-web          |
+| P2   | 独立 JS bundle 构建（UMD，备选）                   | vite library mode     |
+| P3   | 删除旧 `/register`、`/onboard` 独立路由            | cleanup               |
 
 ---
 
 ## 11. 设计约束
 
-| 约束 | 说明 |
-|------|------|
-| AuthPopup 零路由依赖 | 不调 navigate、不读 location，纯受控组件 |
-| AuthPopup 自带 API client | 不依赖 App 的 axios/React Query，纯 fetch |
-| 官网不需要完整 App 依赖 | 只引 `@tokenjoy/auth-popup` 一个包 |
-| Cookie 只设父域 | 生产 `.tokenjoy.com`，开发留空 |
-| Fake UI 纯静态 | 零 API、零 session、纯 CSS/HTML |
-| onSuccess 硬编码目标 | 官网写死 `app.tokenjoy.com`，不从 URL 参数读（防 open redirect） |
+| 约束                      | 说明                                                             |
+| ------------------------- | ---------------------------------------------------------------- |
+| AuthPopup 零路由依赖      | 不调 navigate、不读 location，纯受控组件                         |
+| AuthPopup 自带 API client | 不依赖 App 的 axios/React Query，纯 fetch                        |
+| 官网不需要完整 App 依赖   | 只引 `@tokenjoy/auth-popup` 一个包                               |
+| Cookie 只设父域           | 生产 `.tokenjoy.com`，开发留空                                   |
+| Fake UI 纯静态            | 零 API、零 session、纯 CSS/HTML                                  |
+| onSuccess 硬编码目标      | 官网写死 `app.tokenjoy.com`，不从 URL 参数读（防 open redirect） |

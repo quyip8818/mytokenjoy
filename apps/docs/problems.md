@@ -8,16 +8,16 @@
 
 ## 一、已修复项（本轮验证已关闭）
 
-| 原编号 | 问题 | 修复方式 |
-|--------|------|----------|
-| REVIEW#7 | LRU Cache `touch()` O(n) 线性扫描 | `container/list` + map，O(1) |
-| REVIEW#12 | 无 HTTP 层 rate limiting | `RateLimitTenant` + `RateLimitLoginPaths` 中间件 |
-| REVIEW#15 | 缺乏结构化 access log | `access_log.go`（method/path/status/latency/company_id） |
-| REVIEW#6 | CORS 缺少 `Access-Control-Max-Age` | 已设置 86400 |
-| SEC-04 | Per-tenant API rate limiting | 同 REVIEW#12 |
-| PERF-02 | LRU O(n) touch | 同 REVIEW#7 |
-| PERF-01 | Authz 每请求查 revision | revisionCache TTL 5s |
-| PERF-04 | pgxpool 默认连接池 | `DB_MAX_CONNS`/`DB_MIN_CONNS` 可配 |
+| 原编号    | 问题                               | 修复方式                                                 |
+| --------- | ---------------------------------- | -------------------------------------------------------- |
+| REVIEW#7  | LRU Cache `touch()` O(n) 线性扫描  | `container/list` + map，O(1)                             |
+| REVIEW#12 | 无 HTTP 层 rate limiting           | `RateLimitTenant` + `RateLimitLoginPaths` 中间件         |
+| REVIEW#15 | 缺乏结构化 access log              | `access_log.go`（method/path/status/latency/company_id） |
+| REVIEW#6  | CORS 缺少 `Access-Control-Max-Age` | 已设置 86400                                             |
+| SEC-04    | Per-tenant API rate limiting       | 同 REVIEW#12                                             |
+| PERF-02   | LRU O(n) touch                     | 同 REVIEW#7                                              |
+| PERF-01   | Authz 每请求查 revision            | revisionCache TTL 5s                                     |
+| PERF-04   | pgxpool 默认连接池                 | `DB_MAX_CONNS`/`DB_MIN_CONNS` 可配                       |
 
 ---
 
@@ -196,15 +196,15 @@ return err
 
 ## 四、🟡 低优先级
 
-| 编号 | 文件 | 问题 |
-|------|------|------|
-| LOW-01 | `keys/handler.go` | 写路由使用 `ReadRoutes` 命名（语义不明） |
-| LOW-02 | `keys/handler.go` | `ProviderCreate` 返回 200 而非 201 Created |
-| LOW-03 | `rebalance.go` | `active := mappings[:0]` 原地过滤修改输入 slice |
-| LOW-04 | `config.go` | `SessionTTLSec=0` 无 validate 保护 |
-| LOW-05 | `middleware/cors.go` | 无 origin 匹配时仍设置 `Allow-Methods/Headers`（应条件设置） |
-| LOW-06 | `authz/cache.go` | revision 变更时旧条目仅靠 LRU 淘汰，无主动 invalidate |
-| LOW-07 | `defaultCompanyRoles` | 生成角色时用 `panic(err)` 而非返回 error |
+| 编号   | 文件                  | 问题                                                         |
+| ------ | --------------------- | ------------------------------------------------------------ |
+| LOW-01 | `keys/handler.go`     | 写路由使用 `ReadRoutes` 命名（语义不明）                     |
+| LOW-02 | `keys/handler.go`     | `ProviderCreate` 返回 200 而非 201 Created                   |
+| LOW-03 | `rebalance.go`        | `active := mappings[:0]` 原地过滤修改输入 slice              |
+| LOW-04 | `config.go`           | `SessionTTLSec=0` 无 validate 保护                           |
+| LOW-05 | `middleware/cors.go`  | 无 origin 匹配时仍设置 `Allow-Methods/Headers`（应条件设置） |
+| LOW-06 | `authz/cache.go`      | revision 变更时旧条目仅靠 LRU 淘汰，无主动 invalidate        |
+| LOW-07 | `defaultCompanyRoles` | 生成角色时用 `panic(err)` 而非返回 error                     |
 
 ---
 
@@ -212,13 +212,13 @@ return err
 
 以下来自 `docs/工程收口.md`，与本文重点互补：
 
-| 编号 | 优先级 | 项 | 说明 |
-|------|--------|-----|------|
-| ENG-01 | P0 | NewAPI/Gateway 联调验收 | `pnpm verify:gate` + 真实 full-stack |
-| ENG-02 | P0 | 通知失败不可观测 | `Send()` 失败仅 log，调用方不感知 |
-| ENG-03 | P0 | Update Remote-first | `platform_key_update.go` 先写 DB 再 Remote（同 BUG-05） |
-| ENG-04 | P2 | `use-budget-allocation-edit.ts` 残留 `reservedDraft` | 前端应删 |
-| ENG-05 | P2 | 移出 project roster 未禁用 Key | `UpdateProject` 仅 prune budgets |
+| 编号   | 优先级 | 项                                                   | 说明                                                    |
+| ------ | ------ | ---------------------------------------------------- | ------------------------------------------------------- |
+| ENG-01 | P0     | NewAPI/Gateway 联调验收                              | `pnpm verify:gate` + 真实 full-stack                    |
+| ENG-02 | P0     | 通知失败不可观测                                     | `Send()` 失败仅 log，调用方不感知                       |
+| ENG-03 | P0     | Update Remote-first                                  | `platform_key_update.go` 先写 DB 再 Remote（同 BUG-05） |
+| ENG-04 | P2     | `use-budget-allocation-edit.ts` 残留 `reservedDraft` | 前端应删                                                |
+| ENG-05 | P2     | 移出 project roster 未禁用 Key                       | `UpdateProject` 仅 prune budgets                        |
 
 ---
 
@@ -226,20 +226,20 @@ return err
 
 来自 `docs/PRD-差距分析.md` P0 项：
 
-| 编号 | 差距 | 关联 |
-|------|------|------|
+| 编号     | 差距                                     | 关联  |
+| -------- | ---------------------------------------- | ----- |
 | PRD-P0-1 | Gateway 自定义 `blockMessage` 文案未消费 | US-08 |
-| PRD-P0-2 | Anthropic `/v1/messages` 路径未支持 | US-12 |
-| PRD-P0-3 | Gateway 超限应返回 HTTP 429（非 403） | US-12 |
+| PRD-P0-2 | Anthropic `/v1/messages` 路径未支持      | US-12 |
+| PRD-P0-3 | Gateway 超限应返回 HTTP 429（非 403）    | US-12 |
 
 ---
 
 ## 七、待定设计决策
 
-| 编号 | 问题 | 来源 |
-|------|------|------|
-| DECISION-01 | 预算总额度是否与钱包余额挂钩 | `docs/todos/budget-wallet-limit.md` |
-| DECISION-02 | JWT 是否添加 `iss`/`aud` 声明 | 多租户审计 SEC-07 |
+| 编号        | 问题                          | 来源                                |
+| ----------- | ----------------------------- | ----------------------------------- |
+| DECISION-01 | 预算总额度是否与钱包余额挂钩  | `docs/todos/budget-wallet-limit.md` |
+| DECISION-02 | JWT 是否添加 `iss`/`aud` 声明 | 多租户审计 SEC-07                   |
 
 ---
 

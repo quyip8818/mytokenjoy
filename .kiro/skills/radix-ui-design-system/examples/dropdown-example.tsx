@@ -1,15 +1,15 @@
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import {
   HamburgerMenuIcon,
   DotFilledIcon,
   CheckIcon,
   ChevronRightIcon,
-} from '@radix-ui/react-icons';
-import './dropdown.css';
+} from '@radix-ui/react-icons'
+import './dropdown.css'
 
 /**
  * Example: Complete Dropdown Menu
- * 
+ *
  * Features:
  * - Items, separators, labels
  * - Checkbox items
@@ -18,9 +18,9 @@ import './dropdown.css';
  * - Keyboard navigation
  */
 export function CompleteDropdown() {
-  const [bookmarksChecked, setBookmarksChecked] = React.useState(true);
-  const [urlsChecked, setUrlsChecked] = React.useState(false);
-  const [person, setPerson] = React.useState('pedro');
+  const [bookmarksChecked, setBookmarksChecked] = React.useState(true)
+  const [urlsChecked, setUrlsChecked] = React.useState(false)
+  const [person, setPerson] = React.useState('pedro')
 
   return (
     <DropdownMenu.Root>
@@ -60,16 +60,10 @@ export function CompleteDropdown() {
                 <DropdownMenu.Item className="dropdown-item">
                   Save Page As… <div className="right-slot">⌘+S</div>
                 </DropdownMenu.Item>
-                <DropdownMenu.Item className="dropdown-item">
-                  Create Shortcut…
-                </DropdownMenu.Item>
-                <DropdownMenu.Item className="dropdown-item">
-                  Name Window…
-                </DropdownMenu.Item>
+                <DropdownMenu.Item className="dropdown-item">Create Shortcut…</DropdownMenu.Item>
+                <DropdownMenu.Item className="dropdown-item">Name Window…</DropdownMenu.Item>
                 <DropdownMenu.Separator className="dropdown-separator" />
-                <DropdownMenu.Item className="dropdown-item">
-                  Developer Tools
-                </DropdownMenu.Item>
+                <DropdownMenu.Item className="dropdown-item">Developer Tools</DropdownMenu.Item>
               </DropdownMenu.SubContent>
             </DropdownMenu.Portal>
           </DropdownMenu.Sub>
@@ -101,9 +95,7 @@ export function CompleteDropdown() {
           <DropdownMenu.Separator className="dropdown-separator" />
 
           {/* Radio group */}
-          <DropdownMenu.Label className="dropdown-label">
-            People
-          </DropdownMenu.Label>
+          <DropdownMenu.Label className="dropdown-label">People</DropdownMenu.Label>
           <DropdownMenu.RadioGroup value={person} onValueChange={setPerson}>
             <DropdownMenu.RadioItem className="dropdown-radio-item" value="pedro">
               <DropdownMenu.ItemIndicator className="dropdown-item-indicator">
@@ -123,12 +115,12 @@ export function CompleteDropdown() {
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
-  );
+  )
 }
 
 /**
  * Example: Simple Actions Menu
- * 
+ *
  * Common use case for data tables, cards, etc.
  */
 export function ActionsMenu({ onEdit, onDuplicate, onDelete }) {
@@ -149,14 +141,11 @@ export function ActionsMenu({ onEdit, onDuplicate, onDelete }) {
             Duplicate
           </DropdownMenu.Item>
           <DropdownMenu.Separator className="dropdown-separator" />
-          <DropdownMenu.Item
-            className="dropdown-item dropdown-item-danger"
-            onSelect={onDelete}
-          >
+          <DropdownMenu.Item className="dropdown-item dropdown-item-danger" onSelect={onDelete}>
             Delete
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
-  );
+  )
 }

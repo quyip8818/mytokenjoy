@@ -6,11 +6,11 @@
 
 ## 1. 三层身份
 
-| 身份 | 认证方式 | 载体 | 用途 |
-|------|----------|------|------|
-| **Member Session** | 邮箱+密码 → JWT access token + refresh token | Cookie | Web 管理面板所有操作 |
-| **Platform Admin** | 同上（super company 下的 member） | 同上 | SaaS 平台管理（公司创建/充值等） |
-| **Platform Key** | API 密钥 `sk-xxx` | `Authorization: Bearer sk-xxx` | AI 网关 API 调用 |
+| 身份               | 认证方式                                     | 载体                           | 用途                             |
+| ------------------ | -------------------------------------------- | ------------------------------ | -------------------------------- |
+| **Member Session** | 邮箱+密码 → JWT access token + refresh token | Cookie                         | Web 管理面板所有操作             |
+| **Platform Admin** | 同上（super company 下的 member）            | 同上                           | SaaS 平台管理（公司创建/充值等） |
+| **Platform Key**   | API 密钥 `sk-xxx`                            | `Authorization: Bearer sk-xxx` | AI 网关 API 调用                 |
 
 ---
 
@@ -18,9 +18,9 @@
 
 ### 2.1 Token 对
 
-| Token | 载体 | 有效期 | 存储 |
-|-------|------|--------|------|
-| Access Token | Cookie `tokenjoy_session_member`，Path `/`，SameSite=Lax | 15 min (`SESSION_TTL_SEC`) | 无状态 JWT |
+| Token         | 载体                                                                 | 有效期                         | 存储                                |
+| ------------- | -------------------------------------------------------------------- | ------------------------------ | ----------------------------------- |
+| Access Token  | Cookie `tokenjoy_session_member`，Path `/`，SameSite=Lax             | 15 min (`SESSION_TTL_SEC`)     | 无状态 JWT                          |
 | Refresh Token | Cookie `tokenjoy_refresh`，Path `/api/auth/refresh`，SameSite=Strict | 7 天 (`REFRESH_TOKEN_TTL_SEC`) | DB `sessions` 表（存 SHA-256 hash） |
 
 ### 2.2 JWT Claims
@@ -57,6 +57,7 @@ CREATE TABLE sessions (
 ### 2.5 关键流程
 
 **登录**（Login / AcceptInvite / Register）：
+
 1. 验证凭证 → 拿到 member
 2. `sessiontoken.NewSessionID()` 生成 sid
 3. `sessiontoken.IssueAccessToken(secret, ttl, companyID, memberID, userID, sid)` 签发 JWT
@@ -65,6 +66,7 @@ CREATE TABLE sessions (
 6. 设置两个 cookie
 
 **Refresh**（`POST /auth/refresh`）：
+
 1. 从 cookie 取 refresh token
 2. 解析出 sid
 3. `sessions` 表查 `WHERE id = sid AND revoked_at IS NULL AND expires_at > NOW()`
@@ -73,10 +75,12 @@ CREATE TABLE sessions (
 6. **无 DB 写操作**，天然幂等
 
 **登出**（`POST /auth/logout`）：
+
 1. 从 JWT 取 sid → `UPDATE sessions SET revoked_at = NOW() WHERE id = sid`
 2. 清除两个 cookie
 
 **前端 401 处理**：
+
 1. 任意请求返回 401 → 调 `POST /api/auth/refresh`
 2. refresh 成功 → 重试原请求
 3. refresh 失败 → emit `'unauthorized'` → 跳转 login 页
@@ -104,11 +108,11 @@ CREATE TABLE sessions (
                                  └─ Billing.GetCurrency (1 DB)
 ```
 
-| 场景 | DB 查询数 | 说明 |
-|------|----------|------|
-| 完全命中 | 2 | billing 无缓存（Company + Currency） |
-| revision 命中 + authz miss | 3 | 新 member 或 revision 变更 |
-| 全 miss | 4 | 冷启动、新进程首次请求 |
+| 场景                       | DB 查询数 | 说明                                 |
+| -------------------------- | --------- | ------------------------------------ |
+| 完全命中                   | 2         | billing 无缓存（Company + Currency） |
+| revision 命中 + authz miss | 3         | 新 member 或 revision 变更           |
+| 全 miss                    | 4         | 冷启动、新进程首次请求               |
 
 ### 2.7 Authz Revision 机制
 
@@ -131,6 +135,7 @@ Platform admin **不是独立身份系统**，而是 `TokenJoyCompanyID`（super
 - 使用与租户 member 完全相同的 cookie、refresh 机制
 
 Bootstrap 配置：
+
 - `PLATFORM_BOOTSTRAP_EMAIL` — 首个 platform admin 邮箱
 - `PLATFORM_BOOTSTRAP_PASSWORD` — 首个 platform admin 密码
 
@@ -174,35 +179,35 @@ platform_keys (
 
 ## 5. 配置项
 
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `SESSION_SECRET` | —（必填） | JWT 签名密钥（HS256） |
-| `SESSION_TTL_SEC` | `900` | Access token 有效期（秒） |
-| `REFRESH_TOKEN_TTL_SEC` | `604800` | Refresh token 有效期 + cookie MaxAge（秒） |
-| `AUTHZ_CACHE_SIZE` | `4096` | AuthzSvc LRU 缓存条目数（进程内） |
-| `TOKENJOY_COMPANY_ID` | `00000000-0000-7000-8000-000000000001` | Super company（platform admin 归属） |
-| `PLATFORM_BOOTSTRAP_EMAIL` | — | 首个 platform admin 邮箱 |
-| `PLATFORM_BOOTSTRAP_PASSWORD` | — | 首个 platform admin 密码 |
-| `SECURE_COOKIE` | `false` | 生产环境设为 `true`（HTTPS only） |
+| 变量                          | 默认值                                 | 说明                                       |
+| ----------------------------- | -------------------------------------- | ------------------------------------------ |
+| `SESSION_SECRET`              | —（必填）                              | JWT 签名密钥（HS256）                      |
+| `SESSION_TTL_SEC`             | `900`                                  | Access token 有效期（秒）                  |
+| `REFRESH_TOKEN_TTL_SEC`       | `604800`                               | Refresh token 有效期 + cookie MaxAge（秒） |
+| `AUTHZ_CACHE_SIZE`            | `4096`                                 | AuthzSvc LRU 缓存条目数（进程内）          |
+| `TOKENJOY_COMPANY_ID`         | `00000000-0000-7000-8000-000000000001` | Super company（platform admin 归属）       |
+| `PLATFORM_BOOTSTRAP_EMAIL`    | —                                      | 首个 platform admin 邮箱                   |
+| `PLATFORM_BOOTSTRAP_PASSWORD` | —                                      | 首个 platform admin 密码                   |
+| `SECURE_COOKIE`               | `false`                                | 生产环境设为 `true`（HTTPS only）          |
 
 ---
 
 ## 6. 代码位置
 
-| 功能 | 路径 |
-|------|------|
-| JWT 签发/解析 | `internal/identity/sessiontoken/issuer.go` |
-| Cookie 操作 | `internal/identity/httpx/token.go` |
-| Token Pair 签发 | `internal/identity/httpx/issue.go` |
-| Session 存储 | `internal/store/session_repo.go` + `postgres/session_repo.go` |
-| Auth handler（Login/Logout/Refresh） | `internal/http/handler/auth/` |
-| RequireSession middleware | `internal/http/middleware/session.go` |
-| RequirePlatformAdmin middleware | `internal/http/middleware/require_platform.go` |
-| AuthzSvc（权限缓存） | `internal/identity/authz/service.go` |
-| AuthzSvc LRU 缓存 | `internal/identity/authz/cache.go` |
-| Authz Revision header | `internal/http/middleware/authz_revision.go` |
-| Gateway（Platform Key 认证） | `internal/domain/gateway/gateway_service.go` |
-| Platform Key hash | `internal/store/platform_key_mapping_repo.go` |
+| 功能                                 | 路径                                                          |
+| ------------------------------------ | ------------------------------------------------------------- |
+| JWT 签发/解析                        | `internal/identity/sessiontoken/issuer.go`                    |
+| Cookie 操作                          | `internal/identity/httpx/token.go`                            |
+| Token Pair 签发                      | `internal/identity/httpx/issue.go`                            |
+| Session 存储                         | `internal/store/session_repo.go` + `postgres/session_repo.go` |
+| Auth handler（Login/Logout/Refresh） | `internal/http/handler/auth/`                                 |
+| RequireSession middleware            | `internal/http/middleware/session.go`                         |
+| RequirePlatformAdmin middleware      | `internal/http/middleware/require_platform.go`                |
+| AuthzSvc（权限缓存）                 | `internal/identity/authz/service.go`                          |
+| AuthzSvc LRU 缓存                    | `internal/identity/authz/cache.go`                            |
+| Authz Revision header                | `internal/http/middleware/authz_revision.go`                  |
+| Gateway（Platform Key 认证）         | `internal/domain/gateway/gateway_service.go`                  |
+| Platform Key hash                    | `internal/store/platform_key_mapping_repo.go`                 |
 
 ---
 
@@ -264,11 +269,11 @@ type cacheValue struct {
 
 ### 8.3 改进后目标性能
 
-| 场景 | DB 查询 | 备注 |
-|------|---------|------|
-| 完全命中（同一 member 连续请求） | 0 | revision 5s TTL 内 + LRU 命中 |
-| revision miss（首次或 >5s） | 1 | 仅 SELECT authz_revision |
-| authz miss（新 member / revision 变更） | 3 | revision + memberAuthz + billing |
-| 冷启动 | 3 | 同上 |
+| 场景                                    | DB 查询 | 备注                             |
+| --------------------------------------- | ------- | -------------------------------- |
+| 完全命中（同一 member 连续请求）        | 0       | revision 5s TTL 内 + LRU 命中    |
+| revision miss（首次或 >5s）             | 1       | 仅 SELECT authz_revision         |
+| authz miss（新 member / revision 变更） | 3       | revision + memberAuthz + billing |
+| 冷启动                                  | 3       | 同上                             |
 
 对比当前：热路径从 **2 DB/req** 降至 **0 DB/req**，仅 revision TTL 边界有 1 次查询。

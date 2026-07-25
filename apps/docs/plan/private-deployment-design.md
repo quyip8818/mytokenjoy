@@ -26,20 +26,20 @@
 
 ## 核心决策摘要
 
-| 决策项 | 结论 |
-|--------|------|
-| 部署拓扑 | 集中托管：Model Config Service + 云端 NewAPI 在你的云端 |
-| 客户侧 LLM 路由 | 本地 NewAPI 统一入口，channel 区分平台/自有 |
-| 模型判定粒度 | Per-model，models 表 `source` 字段（platform/custom） |
-| 计费规则 | 平台模型：扣预算 + 扣钱包；自有模型：只扣预算 |
-| 价格存储 | 两边都写（models 表 + 本地 NewAPI ModelRatio） |
-| 同步方式 | 客户侧 pull，10 分钟间隔 |
-| 用量记录 | 本地 NewAPI webhook，不依赖远端日志 |
-| Gateway | 单一 NEW_API_BASE_URL，precheck 按 source 跳过钱包检查 |
-| Ingest | 查 models 表 source，custom 跳过 ConsumeLotsLocked |
-| 下架策略 | 软删除（enabled=false）+ 现有 org_node fallback 兜底 |
-| 认证 | 客户专属 key，一个 key 用于 LLM 代理 + catalog pull |
-| Model Config Service | 独立服务，Go + React + PostgreSQL |
+| 决策项               | 结论                                                    |
+| -------------------- | ------------------------------------------------------- |
+| 部署拓扑             | 集中托管：Model Config Service + 云端 NewAPI 在你的云端 |
+| 客户侧 LLM 路由      | 本地 NewAPI 统一入口，channel 区分平台/自有             |
+| 模型判定粒度         | Per-model，models 表 `source` 字段（platform/custom）   |
+| 计费规则             | 平台模型：扣预算 + 扣钱包；自有模型：只扣预算           |
+| 价格存储             | 两边都写（models 表 + 本地 NewAPI ModelRatio）          |
+| 同步方式             | 客户侧 pull，10 分钟间隔                                |
+| 用量记录             | 本地 NewAPI webhook，不依赖远端日志                     |
+| Gateway              | 单一 NEW_API_BASE_URL，precheck 按 source 跳过钱包检查  |
+| Ingest               | 查 models 表 source，custom 跳过 ConsumeLotsLocked      |
+| 下架策略             | 软删除（enabled=false）+ 现有 org_node fallback 兜底    |
+| 认证                 | 客户专属 key，一个 key 用于 LLM 代理 + catalog pull     |
+| Model Config Service | 独立服务，Go + React + PostgreSQL                       |
 
 ---
 
@@ -48,6 +48,7 @@
 ### 1.1 产品定位
 
 Model Config Service 是模型目录的**唯一管理入口**，对 NewAPI 做一层抽象封装：
+
 - 从 NewAPI 导入原始模型数据
 - 人工编辑（选择性发布、价格加成、元信息覆写、分组排序）
 - 统一定价后通过 API 下发给所有私有化客户
@@ -75,47 +76,47 @@ model-config-service/
 
 #### models（模型目录）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| model_id | UUID | 主键 |
-| type | TEXT | 模型标识，如 `gpt-4o`（唯一） |
-| name | TEXT | 显示名称（可覆写） |
-| provider | TEXT | openai / anthropic / deepseek / qwen |
-| input_price | NUMERIC | 输入价格（元/1M tokens） |
-| output_price | NUMERIC | 输出价格（元/1M tokens） |
-| max_context | INT | 最大上下文窗口 |
-| max_tokens | INT | 最大输出 tokens |
-| capabilities | TEXT[] | vision, function_calling, reasoning 等 |
-| group_name | TEXT | 分组标签（推荐/经济型/高性能） |
-| sort_order | INT | 展示排序 |
-| description | TEXT | 模型描述 |
-| status | TEXT | active / deprecated / removed |
-| source_ratio | NUMERIC | NewAPI 原始 model_ratio（成本参考） |
-| source_completion_ratio | NUMERIC | NewAPI 原始 completion_ratio |
-| created_at | TIMESTAMPTZ | |
-| updated_at | TIMESTAMPTZ | |
+| 字段                    | 类型        | 说明                                   |
+| ----------------------- | ----------- | -------------------------------------- |
+| model_id                | UUID        | 主键                                   |
+| type                    | TEXT        | 模型标识，如 `gpt-4o`（唯一）          |
+| name                    | TEXT        | 显示名称（可覆写）                     |
+| provider                | TEXT        | openai / anthropic / deepseek / qwen   |
+| input_price             | NUMERIC     | 输入价格（元/1M tokens）               |
+| output_price            | NUMERIC     | 输出价格（元/1M tokens）               |
+| max_context             | INT         | 最大上下文窗口                         |
+| max_tokens              | INT         | 最大输出 tokens                        |
+| capabilities            | TEXT[]      | vision, function_calling, reasoning 等 |
+| group_name              | TEXT        | 分组标签（推荐/经济型/高性能）         |
+| sort_order              | INT         | 展示排序                               |
+| description             | TEXT        | 模型描述                               |
+| status                  | TEXT        | active / deprecated / removed          |
+| source_ratio            | NUMERIC     | NewAPI 原始 model_ratio（成本参考）    |
+| source_completion_ratio | NUMERIC     | NewAPI 原始 completion_ratio           |
+| created_at              | TIMESTAMPTZ |                                        |
+| updated_at              | TIMESTAMPTZ |                                        |
 
 #### customers（客户）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| customer_id | UUID | 主键 |
-| name | TEXT | 客户名称 |
-| api_key | TEXT | 客户专属 key（用于 catalog pull + LLM 代理认证） |
-| status | TEXT | active / suspended |
-| last_pull_at | TIMESTAMPTZ | 上次拉取 catalog 的时间 |
-| created_at | TIMESTAMPTZ | |
+| 字段         | 类型        | 说明                                             |
+| ------------ | ----------- | ------------------------------------------------ |
+| customer_id  | UUID        | 主键                                             |
+| name         | TEXT        | 客户名称                                         |
+| api_key      | TEXT        | 客户专属 key（用于 catalog pull + LLM 代理认证） |
+| status       | TEXT        | active / suspended                               |
+| last_pull_at | TIMESTAMPTZ | 上次拉取 catalog 的时间                          |
+| created_at   | TIMESTAMPTZ |                                                  |
 
 #### sync_logs（同步日志）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| log_id | UUID | 主键 |
-| direction | TEXT | from_newapi / to_customer |
-| status | TEXT | success / failed |
-| model_count | INT | 涉及模型数量 |
-| error_message | TEXT | 失败原因 |
-| created_at | TIMESTAMPTZ | |
+| 字段          | 类型        | 说明                      |
+| ------------- | ----------- | ------------------------- |
+| log_id        | UUID        | 主键                      |
+| direction     | TEXT        | from_newapi / to_customer |
+| status        | TEXT        | success / failed          |
+| model_count   | INT         | 涉及模型数量              |
+| error_message | TEXT        | 失败原因                  |
+| created_at    | TIMESTAMPTZ |                           |
 
 ### 1.4 API 设计
 
@@ -278,6 +279,7 @@ ALTER TABLE models ADD COLUMN source TEXT NOT NULL DEFAULT 'custom';
 ```
 
 **PrecheckContextRow 变更：**
+
 - JOIN models 表获取 source 字段
 - 缓存 key 扩展：包含 model source 信息
 
@@ -330,7 +332,7 @@ services:
   tokenjoy:
     image: tokenjoy/backend:latest
     ports:
-      - "8080:8080"        # 对外暴露
+      - '8080:8080' # 对外暴露
     env_file: .env
     depends_on:
       - postgres
@@ -341,7 +343,7 @@ services:
     image: tokenjoy/newapi:latest
     # 不暴露端口，仅内部网络可达
     expose:
-      - "3000"
+      - '3000'
     env_file: .env.newapi
 
   postgres:
@@ -355,7 +357,7 @@ services:
   frontend:
     image: tokenjoy/frontend:latest
     ports:
-      - "3000:80"          # 对外暴露
+      - '3000:80' # 对外暴露
 ```
 
 关键点：`newapi-local` 不对外暴露端口（无 `ports` 映射），只在 Docker 内部网络可访问。
@@ -382,11 +384,13 @@ func EnsurePlatformChannel(cfg config.Config, port adminport.Port) error {
 ### 3.3 部署清单
 
 客户拿到的交付物：
+
 1. `docker-compose.yml` — 编排文件
 2. `.env.example` — 环境变量模板（需客户填入 key）
 3. 部署文档 — 一页纸：填 key → docker compose up → 访问
 
 客户需要你提供的信息：
+
 - `MODEL_CONFIG_API_KEY` / `NEW_API_PLATFORM_TOKEN`（同一个 key）
 - `MODEL_CONFIG_SERVICE_URL`（你的云端地址）
 - `NEW_API_PLATFORM_URL`（你的云端 NewAPI 地址）
@@ -397,17 +401,18 @@ func EnsurePlatformChannel(cfg config.Config, port adminport.Port) error {
 # docker-compose.yml
 newapi-local:
   healthcheck:
-    test: ["CMD", "curl", "-f", "http://localhost:3000/api/status"]
+    test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/status']
     interval: 30s
     retries: 3
 
 tokenjoy:
   healthcheck:
-    test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+    test: ['CMD', 'curl', '-f', 'http://localhost:8080/health']
     interval: 30s
 ```
 
 Catalog sync worker 失败处理：
+
 - 网络不通 → 用本地缓存继续服务，下次重试
 - 连续 3 次失败 → 日志告警（不影响已有模型使用）
 - Key 失效（401）→ 明确错误日志，管理员需更换 key

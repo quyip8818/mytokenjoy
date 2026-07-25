@@ -9,7 +9,7 @@
 
 1. 新待办只写入本文；禁止再开 `*-计划.md` / `*-下一步.md`
 2. 产品级 ❌ 能力（钉钉、OIDC、真实支付等）只维护在 [Roadmap.md](./Roadmap.md)
-3. 架构现状见 Backend* 文档；收口待办见 [工程收口.md](./工程收口.md)。
+3. 架构现状见 Backend\* 文档；收口待办见 [工程收口.md](./工程收口.md)。
 
 ---
 
@@ -34,14 +34,14 @@ pnpm verify:integration    # 完整栈（ledger + Toggle/Revoke/Rotate + metrics
 pnpm verify                # lint + test + build（含 Go 单测；E2E 用 test:e2e）
 ```
 
-脚本：[apps/newapi/scripts/_verify-lib.sh](../apps/newapi/scripts/_verify-lib.sh) · [gate-verify.sh](../apps/newapi/scripts/gate-verify.sh) · [integration-verify.sh](../apps/newapi/scripts/integration-verify.sh)
+脚本：[apps/newapi/scripts/\_verify-lib.sh](../apps/newapi/scripts/_verify-lib.sh) · [gate-verify.sh](../apps/newapi/scripts/gate-verify.sh) · [integration-verify.sh](../apps/newapi/scripts/integration-verify.sh)
 
 ---
 
 ## §2 半真 API / 占位
 
-| API | 现状 | 上线前目标 |
-| --- | --- | --- |
+| API                             | 现状                                                       | 上线前目标                      |
+| ------------------------------- | ---------------------------------------------------------- | ------------------------------- |
 | `GET /billing/recharge-records` | 半真（`company_recharge_orders`；invoice/method 待真渠道） | 明确占位文案，或接支付/发票渠道 |
 
 **刻意保留占位（需产品决策）**
@@ -101,13 +101,13 @@ pnpm verify                # lint + test + build（含 Go 单测；E2E 用 test:
 
 **发布顺序：** 产品模型手工验收 → 前后端同发 → UI 像素验收 → E2E。
 
-| 门禁 | 级别 |
-| --- | --- |
-| 产品模型手工验收（6 项） | **阻断** |
-| Handler / Feature 单测复跑 | **阻断** |
-| 前后端同发 | **阻断** |
-| UI 像素验收 | 建议 |
-| E2E（keys / models / audit / wallet / member） | 建议 |
+| 门禁                                           | 级别     |
+| ---------------------------------------------- | -------- |
+| 产品模型手工验收（6 项）                       | **阻断** |
+| Handler / Feature 单测复跑                     | **阻断** |
+| 前后端同发                                     | **阻断** |
+| UI 像素验收                                    | 建议     |
+| E2E（keys / models / audit / wallet / member） | 建议     |
 
 **回滚：** 应用须前后端成对回滚。
 
@@ -162,15 +162,15 @@ pnpm -F @tokenjoy/frontend test:e2e -- keys models audit wallet member
 - `platform_keys` 行数 > **500**
 - `GET /keys/platform` P99 > **300ms**
 
-| # | 任务 | 技术方向 |
-| --- | --- | --- |
-| 1 | 删冗余列 | `DROP member_name, project_name`；repo 停读写 |
-| 2 | SQL 筛选 | `ListPlatformKeysFiltered`，JOIN members / projects |
-| 3 | 真分页 | `page` / `pageSize` / `total` + SQL `LIMIT/OFFSET` |
-| 4 | 列表 RBAC | 非管理员默认 `departmentId=会话部门` |
-| 5 | 后端搜索 `q` | 名称/前缀模糊 |
-| 6 | `visibility` 运行时 | 与 allowlist、部门路由合并校验 |
-| 7 | Models `type` query | 仅当模型数 > 500 |
+| #   | 任务                | 技术方向                                            |
+| --- | ------------------- | --------------------------------------------------- |
+| 1   | 删冗余列            | `DROP member_name, project_name`；repo 停读写       |
+| 2   | SQL 筛选            | `ListPlatformKeysFiltered`，JOIN members / projects |
+| 3   | 真分页              | `page` / `pageSize` / `total` + SQL `LIMIT/OFFSET`  |
+| 4   | 列表 RBAC           | 非管理员默认 `departmentId=会话部门`                |
+| 5   | 后端搜索 `q`        | 名称/前缀模糊                                       |
+| 6   | `visibility` 运行时 | 与 allowlist、部门路由合并校验                      |
+| 7   | Models `type` query | 仅当模型数 > 500                                    |
 
 **可提前立项（上线前建议）：**
 

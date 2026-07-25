@@ -65,11 +65,11 @@ apps/frontend/
 
 **组件归属：**
 
-| 场景           | 放置位置                                                                   |
-| -------------- | -------------------------------------------------------------------------- |
+| 场景           | 放置位置                        |
+| -------------- | ------------------------------- |
 | 多路由复用     | `features/{domain}/components/` |
-| 无业务语义 UI  | `components/ui`                                                            |
-| 工作流步骤表单 | `features/workflow/workflows/*`                                            |
+| 无业务语义 UI  | `components/ui`                 |
+| 工作流步骤表单 | `features/workflow/workflows/*` |
 
 **页面模板：** `PageShell` → `DataSection`（loading / error / empty）→ 领域内容；Error 用 `ErrorState` + hook 的 `refresh`。
 
@@ -220,16 +220,16 @@ HTTP 非 2xx 时，body 应包含：
 
 跨层术语见 [Backend-存储架构.md](./Backend-存储架构.md) §7。HTTP 契约要点：
 
-| 约定                                                  | 说明                                                                       |
-| ----------------------------------------------------- | -------------------------------------------------------------------------- |
-| `departmentId`（JSON）                                | 组织节点 ID（`org_nodes.id`）；与存储列 `department_id` 同语义             |
-| `departmentId`（budget path / JSON）                  | org_node ID；`/budget/departments/:departmentId` 与响应字段同名            |
-| `deptId`（path / query，非 budget）                   | dashboard `/cost/departments/{deptId}/...`、`?deptId=` 等                  |
-| 前端 API 客户端参数                                   | budget 域用 `departmentId`；dashboard/models query 映射为 `deptId`         |
-| `PUT /budget/departments/:departmentId`               | 更新部门节点预算                                                           |
+| 约定                                                   | 说明                                                                       |
+| ------------------------------------------------------ | -------------------------------------------------------------------------- |
+| `departmentId`（JSON）                                 | 组织节点 ID（`org_nodes.id`）；与存储列 `department_id` 同语义             |
+| `departmentId`（budget path / JSON）                   | org_node ID；`/budget/departments/:departmentId` 与响应字段同名            |
+| `deptId`（path / query，非 budget）                    | dashboard `/cost/departments/{deptId}/...`、`?deptId=` 等                  |
+| 前端 API 客户端参数                                    | budget 域用 `departmentId`；dashboard/models query 映射为 `deptId`         |
+| `PUT /budget/departments/:departmentId`                | 更新部门节点预算                                                           |
 | `GET /budget/departments/:departmentId/member-budgets` | 该部门下成员配额列表                                                       |
-| `GET /dashboard/usage/teams`                          | 产品「团队用量」；响应字段仍为 `departmentId` / `departmentName`           |
-| `RoutingRule.id` 与 `nodeId`                          | 同值；新代码优先读 `nodeId`；`PUT /models/routing/:id` 中 `:id` = `nodeId` |
+| `GET /dashboard/usage/teams`                           | 产品「团队用量」；响应字段仍为 `departmentId` / `departmentName`           |
+| `RoutingRule.id` 与 `nodeId`                           | 同值；新代码优先读 `nodeId`；`PUT /models/routing/:id` 中 `:id` = `nodeId` |
 
 ---
 
@@ -375,26 +375,26 @@ HTTP 非 2xx 时，body 应包含：
 
 客户端：[`budgetApi`](../apps/frontend/src/api/budget.ts)
 
-| 方法   | 路径                                              | Body / 查询                                      | 响应                  | 备注                              |
-| ------ | ------------------------------------------------- | ------------------------------------------------ | --------------------- | --------------------------------- |
-| GET    | `/budget/tree`                                    | query: `period?`                                 | `BudgetNode[]`        |                                   |
-| PUT    | `/budget/departments/:departmentId`               | `{ budget, reservedPool? }`                      | `BudgetNode`          |                                   |
-| GET    | `/budget/departments/:departmentId/member-budgets` | —                                                | `MemberBudget[]` |                                   |
-| PUT    | `/budget/members/:memberId`                       | `UpdateMemberBudgetInput`                         | `MemberBudget`   | 部门内超卖 / 低于已分配 Key → 422 |
-| GET    | `/budget/projects`                                  | —                                                | `Project[]`       |                                   |
-| POST   | `/budget/projects`                                  | `Omit<Project, 'id' \| 'consumed'>`          | `Project`         |                                   |
-| PUT    | `/budget/projects/:id`                              | `Partial<Omit<Project, 'id' \| 'consumed'>>` | `Project`         |                                   |
-| DELETE | `/budget/projects/:id`                              | —                                                | `void`                |                                   |
-| GET    | `/budget/overrun-policy`                          | —                                                | `OverrunPolicyConfig` |                                   |
-| PUT    | `/budget/overrun-policy`                          | `OverrunPolicyConfig`                            | `OverrunPolicyConfig` |                                   |
-| GET    | `/budget/alerts`                                  | —                                                | `AlertRule[]`         |                                   |
-| POST   | `/budget/alerts`                                  | `Omit<AlertRule, 'id'>`                          | `AlertRule`           |                                   |
-| PUT    | `/budget/alerts/:id`                              | `Partial<AlertRule>`                             | `AlertRule`           |                                   |
-| DELETE | `/budget/alerts/:id`                              | —                                                | `void`                |                                   |
-| GET    | `/budget/approvals`                               | —                                                | `BudgetApproval[]`    | 预算额度审批队列                  |
-| PUT    | `/budget/approvals/:id`                           | `{ status, rejectReason? }`                      | `void`                | `approved` \| `rejected`          |
-| GET    | `/budget/projects/:id/member-consumed`              | —                                                | `Record<string, number>`    | 项目内成员已消耗                    |
-| GET    | `/budget/members/:memberId/summary`                 | —                                                | `MemberBudgetSummary`       | 成员预算汇总（预算/已用/剩余/预留池） |
+| 方法   | 路径                                               | Body / 查询                                  | 响应                     | 备注                                  |
+| ------ | -------------------------------------------------- | -------------------------------------------- | ------------------------ | ------------------------------------- |
+| GET    | `/budget/tree`                                     | query: `period?`                             | `BudgetNode[]`           |                                       |
+| PUT    | `/budget/departments/:departmentId`                | `{ budget, reservedPool? }`                  | `BudgetNode`             |                                       |
+| GET    | `/budget/departments/:departmentId/member-budgets` | —                                            | `MemberBudget[]`         |                                       |
+| PUT    | `/budget/members/:memberId`                        | `UpdateMemberBudgetInput`                    | `MemberBudget`           | 部门内超卖 / 低于已分配 Key → 422     |
+| GET    | `/budget/projects`                                 | —                                            | `Project[]`              |                                       |
+| POST   | `/budget/projects`                                 | `Omit<Project, 'id' \| 'consumed'>`          | `Project`                |                                       |
+| PUT    | `/budget/projects/:id`                             | `Partial<Omit<Project, 'id' \| 'consumed'>>` | `Project`                |                                       |
+| DELETE | `/budget/projects/:id`                             | —                                            | `void`                   |                                       |
+| GET    | `/budget/overrun-policy`                           | —                                            | `OverrunPolicyConfig`    |                                       |
+| PUT    | `/budget/overrun-policy`                           | `OverrunPolicyConfig`                        | `OverrunPolicyConfig`    |                                       |
+| GET    | `/budget/alerts`                                   | —                                            | `AlertRule[]`            |                                       |
+| POST   | `/budget/alerts`                                   | `Omit<AlertRule, 'id'>`                      | `AlertRule`              |                                       |
+| PUT    | `/budget/alerts/:id`                               | `Partial<AlertRule>`                         | `AlertRule`              |                                       |
+| DELETE | `/budget/alerts/:id`                               | —                                            | `void`                   |                                       |
+| GET    | `/budget/approvals`                                | —                                            | `BudgetApproval[]`       | 预算额度审批队列                      |
+| PUT    | `/budget/approvals/:id`                            | `{ status, rejectReason? }`                  | `void`                   | `approved` \| `rejected`              |
+| GET    | `/budget/projects/:id/member-consumed`             | —                                            | `Record<string, number>` | 项目内成员已消耗                      |
+| GET    | `/budget/members/:memberId/summary`                | —                                            | `MemberBudgetSummary`    | 成员预算汇总（预算/已用/剩余/预留池） |
 
 ---
 
@@ -414,33 +414,33 @@ HTTP 非 2xx 时，body 应包含：
 
 #### 平台密钥 `platformKeyApi`
 
-| 方法   | 路径                           | Body / 查询                                                                          | 响应                     | 备注                                                                 |
-| ------ | ------------------------------ | ------------------------------------------------------------------------------------ | ------------------------ | -------------------------------------------------------------------- |
-| GET    | `/keys/platform`               | query: `page?`, `pageSize?`, `memberId?`, `projectId?`, `departmentId?`, `scope?` | `Paginated<PlatformKey>` | 服务端筛选 + enrich；`scope`: `member` \| `project` \| `project_member` |
-| POST   | `/keys/platform`               | `{ name, scope, memberId?, projectId?, budget, modelWhitelist: string[] }`               | `PlatformKey`            | `scope` **必填**；个人 Key 缺 `memberId` → 400；`project_member` 需 roster + `member_budget > 0`；白名单 → 422 |
-| PUT    | `/keys/platform/:id`           | `{ name?, budget?, modelWhitelist?: string[] }`                                                 | `PlatformKey`            | 额度 / 白名单校验 → 422                                              |
-| PUT    | `/keys/platform/:id/toggle`    | `{ enabled }`                                                                        | `PlatformKey`            |                                                                      |
-| POST   | `/keys/platform/:id/rotate`    | —                                                                                    | `PlatformKey`            | 响应含 `fullKey`                                                     |
-| PUT    | `/keys/platform/:id/revoke`    | —                                                                                    | `void`                   |                                                                      |
-| DELETE | `/keys/platform/:id`           | —                                                                                    | `void`                   |                                                                      |
+| 方法   | 路径                        | Body / 查询                                                                       | 响应                     | 备注                                                                                                           |
+| ------ | --------------------------- | --------------------------------------------------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| GET    | `/keys/platform`            | query: `page?`, `pageSize?`, `memberId?`, `projectId?`, `departmentId?`, `scope?` | `Paginated<PlatformKey>` | 服务端筛选 + enrich；`scope`: `member` \| `project` \| `project_member`                                        |
+| POST   | `/keys/platform`            | `{ name, scope, memberId?, projectId?, budget, modelWhitelist: string[] }`        | `PlatformKey`            | `scope` **必填**；个人 Key 缺 `memberId` → 400；`project_member` 需 roster + `member_budget > 0`；白名单 → 422 |
+| PUT    | `/keys/platform/:id`        | `{ name?, budget?, modelWhitelist?: string[] }`                                   | `PlatformKey`            | 额度 / 白名单校验 → 422                                                                                        |
+| PUT    | `/keys/platform/:id/toggle` | `{ enabled }`                                                                     | `PlatformKey`            |                                                                                                                |
+| POST   | `/keys/platform/:id/rotate` | —                                                                                 | `PlatformKey`            | 响应含 `fullKey`                                                                                               |
+| PUT    | `/keys/platform/:id/revoke` | —                                                                                 | `void`                   |                                                                                                                |
+| DELETE | `/keys/platform/:id`        | —                                                                                 | `void`                   |                                                                                                                |
 
 **UI：**
 
-| 页面 | 行为 |
-| --- | --- |
-| `/keys/platform` | 三 Tab：`member` / `project` / `project_member`；列表按 `scope` 筛选；创建 workflow 显式传 `scope` |
-| `/keys/mine` | 仅展示 `member` + `project_member`；个人创建入口固定 `scope: member` |
-| `/budget` 项目详情 | 成员子额度编辑、已消耗/剩余；Modal 编辑 roster、移除二次确认；签发 project / project_member Key |
+| 页面               | 行为                                                                                               |
+| ------------------ | -------------------------------------------------------------------------------------------------- |
+| `/keys/platform`   | 三 Tab：`member` / `project` / `project_member`；列表按 `scope` 筛选；创建 workflow 显式传 `scope` |
+| `/keys/mine`       | 仅展示 `member` + `project_member`；个人创建入口固定 `scope: member`                               |
+| `/budget` 项目详情 | 成员子额度编辑、已消耗/剩余；Modal 编辑 roster、移除二次确认；签发 project / project_member Key    |
 
 #### 审批 `approvalApi`
 
-| 方法 | 路径                              | Body / 查询                                                   | 响应                                      | 备注                                |
-| ---- | --------------------------------- | ------------------------------------------------------------- | ----------------------------------------- | ----------------------------------- |
-| GET  | `/keys/approvals`                 | query: `tab?`, `memberId?`                                    | `KeyApproval[]`                           | `tab`: `pending` \| `mine` \| `all` |
-| POST | `/keys/approvals`                 | `{ type, reason, requestedBudget, requestedModels: number[], memberId }` | `KeyApproval`                             | 白名单校验 → 422                    |
-| PUT  | `/keys/approvals/:id/approve`     | —                                                             | `void`                                    | 预留池不足 → 422                    |
-| PUT  | `/keys/approvals/:id/reject`      | `{ reason? }`                                                 | `void`                                    |                                     |
-| GET  | `/keys/approvals/:id/budget-check` | —                                                             | `{ sufficient, reservedPool, requested }` |                                     |
+| 方法 | 路径                               | Body / 查询                                                              | 响应                                      | 备注                                |
+| ---- | ---------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------- | ----------------------------------- |
+| GET  | `/keys/approvals`                  | query: `tab?`, `memberId?`                                               | `KeyApproval[]`                           | `tab`: `pending` \| `mine` \| `all` |
+| POST | `/keys/approvals`                  | `{ type, reason, requestedBudget, requestedModels: number[], memberId }` | `KeyApproval`                             | 白名单校验 → 422                    |
+| PUT  | `/keys/approvals/:id/approve`      | —                                                                        | `void`                                    | 预留池不足 → 422                    |
+| PUT  | `/keys/approvals/:id/reject`       | `{ reason? }`                                                            | `void`                                    |                                     |
+| GET  | `/keys/approvals/:id/budget-check` | —                                                                        | `{ sufficient, reservedPool, requested }` |                                     |
 
 ---
 
@@ -458,11 +458,11 @@ HTTP 非 2xx 时，body 应包含：
 
 #### 路由 `routingApi`
 
-| 方法 | 路径                      | Body / 查询                                                   | 响应                |
-| ---- | ------------------------- | ------------------------------------------------------------- | ------------------- |
-| GET  | `/models/routing`         | —                                                             | `RoutingRule[]`     |
+| 方法 | 路径                      | Body / 查询                                                                   | 响应                |
+| ---- | ------------------------- | ----------------------------------------------------------------------------- | ------------------- |
+| GET  | `/models/routing`         | —                                                                             | `RoutingRule[]`     |
 | PUT  | `/models/routing/:id`     | `{ allowedModelIds: string[], inherited, defaultModelId?, fallbackModelId? }` | `RoutingRule`       |
-| GET  | `/models/routing/resolve` | query: `deptId`                                               | `ResolvedWhitelist` |
+| GET  | `/models/routing/resolve` | query: `deptId`                                                               | `ResolvedWhitelist` |
 
 ---
 
@@ -474,11 +474,11 @@ HTTP 非 2xx 时，body 应包含：
 
 成本类接口共享查询参数 `CostQueryParams`（`period` 默认 `current_month`）：
 
-| 字段          | 含义                                                                         |
-| ------------- | ---------------------------------------------------------------------------- |
-| `period`      | `current_month` \| `last_month` \| `last_7_days` \| `custom`                 |
-| `startDate`   | `period=custom` 时必填，ISO 日期（按响应 `timezone` 解释）                   |
-| `endDate`     | `period=custom` 时必填，ISO 日期                                             |
+| 字段          | 含义                                                                            |
+| ------------- | ------------------------------------------------------------------------------- |
+| `period`      | `current_month` \| `last_month` \| `last_7_days` \| `custom`                    |
+| `startDate`   | `period=custom` 时必填，ISO 日期（按响应 `timezone` 解释）                      |
+| `endDate`     | `period=custom` 时必填，ISO 日期                                                |
 | `granularity` | 趋势粒度：`day` \| `hour` \| `week` \| `month`（`minute` 仅内部 domain 层使用） |
 
 **数据源约定**
@@ -509,7 +509,7 @@ HTTP 非 2xx 时，body 应包含：
 | GET  | `/dashboard/cost/daily`                       | `CostQueryParams`               | `DailyCost[]`            |
 | GET  | `/dashboard/cost/top`                         | `limit?` + `CostQueryParams`    | `TopConsumer[]`          |
 | GET  | `/dashboard/usage/models`                     | `CostQueryParams?`              | `ModelUsage[]`           |
-| GET  | `/dashboard/usage/teams`                      | `CostQueryParams?`              | `DepartmentUsage[]`            |
+| GET  | `/dashboard/usage/teams`                      | `CostQueryParams?`              | `DepartmentUsage[]`      |
 
 `parentId` 为空时返回顶层部门成本；指定时返回该部门的子部门成本列表，用于成本钻取。
 
@@ -540,16 +540,16 @@ HTTP 非 2xx 时，body 应包含：
 
 客户端：[`me.ts`](../apps/frontend/src/api/me.ts)（`meApi`）
 
-| 方法 | 路径               | 查询 / Body                                    | 响应                    |
-| ---- | ------------------ | ---------------------------------------------- | ----------------------- |
-| GET  | `/me/dashboard`    | —                                              | `MemberDashboardView`   |
-| GET  | `/me/profile`      | —                                              | `Profile`               |
-| PUT  | `/me/profile`      | `{ name?, avatar?, alias? }`                   | `void`                  |
-| POST | `/me/change-password` | `{ oldPassword?, newPassword }`             | `void`                  |
-| POST | `/me/change-phone` | `{ phone, code }`                              | `void`                  |
-| POST | `/me/change-email` | `{ email, code }`                              | `void`                  |
-| POST | `/me/revoke-sessions` | —                                            | `void`                  |
-| GET  | `/me/login-activity` | query: `limit?`, `offset?`                   | `LoginActivityResponse` |
+| 方法 | 路径                  | 查询 / Body                     | 响应                    |
+| ---- | --------------------- | ------------------------------- | ----------------------- |
+| GET  | `/me/dashboard`       | —                               | `MemberDashboardView`   |
+| GET  | `/me/profile`         | —                               | `Profile`               |
+| PUT  | `/me/profile`         | `{ name?, avatar?, alias? }`    | `void`                  |
+| POST | `/me/change-password` | `{ oldPassword?, newPassword }` | `void`                  |
+| POST | `/me/change-phone`    | `{ phone, code }`               | `void`                  |
+| POST | `/me/change-email`    | `{ email, code }`               | `void`                  |
+| POST | `/me/revoke-sessions` | —                               | `void`                  |
+| GET  | `/me/login-activity`  | query: `limit?`, `offset?`      | `LoginActivityResponse` |
 
 路由见 §3 `MEMBER_ROUTE_DEFINITIONS`；布局 `MemberLayout`。
 
@@ -781,23 +781,23 @@ HTTP 非 2xx 时，body 应包含：
 
 客户端：[`billing.ts`](../apps/frontend/src/api/billing.ts)。`getWallet` / `recharge` / `confirmRecharge` 已接入 `use-wallet-page`。
 
-| 方法 | 路径                             | Body / 查询                  | 响应            | 权限               | 说明                              |
-| ---- | -------------------------------- | ---------------------------- | --------------- | ------------------ | --------------------------------- |
-| GET  | `/billing/wallet`                | —                            | `WalletSummary` | `billing:read`     | 读 Postgres lot 钱包（展示币闭合） |
-| GET  | `/billing/recharge-records`      | —                            | `TopUpRecord[]` | `billing:read`     | 充值记录（半真；见 plan.md §2）    |
-| POST | `/billing/recharge`              | `{ amount, idempotencyKey }` | `RechargeOrder` | `billing:recharge` | 创建 `pending` 订单；HTTP **202** |
+| 方法 | 路径                             | Body / 查询                  | 响应            | 权限               | 说明                                |
+| ---- | -------------------------------- | ---------------------------- | --------------- | ------------------ | ----------------------------------- |
+| GET  | `/billing/wallet`                | —                            | `WalletSummary` | `billing:read`     | 读 Postgres lot 钱包（展示币闭合）  |
+| GET  | `/billing/recharge-records`      | —                            | `TopUpRecord[]` | `billing:read`     | 充值记录（半真；见 plan.md §2）     |
+| POST | `/billing/recharge`              | `{ amount, idempotencyKey }` | `RechargeOrder` | `billing:recharge` | 创建 `pending` 订单；HTTP **202**   |
 | POST | `/billing/recharge/{id}/confirm` | —                            | `void`          | `billing:recharge` | 确认支付并写 lot（demo / 回调模拟） |
 
 **`WalletSummary`**（详见 [Backend-计费模式.md](./Backend-计费模式.md)）
 
-| 字段              | 类型                 | 说明 |
-| ----------------- | -------------------- | ---- |
-| `companyId`       | `number`             | 企业 ID |
-| `billingCurrency` | `string`             | 当前租户默认展示币 |
-| `balances`        | `WalletCurrency[]`   | 按币种余额列表 |
-| `walletRemainQuota`    | `number`             | 全 lot 剩余 quota (int64) |
-| `giftQuota`       | `number`             | gift lot 剩余 quota |
-| `overdraftQuota`  | `number`             | overdraft lot 累计 quota |
+| 字段                | 类型               | 说明                      |
+| ------------------- | ------------------ | ------------------------- |
+| `companyId`         | `number`           | 企业 ID                   |
+| `billingCurrency`   | `string`           | 当前租户默认展示币        |
+| `balances`          | `WalletCurrency[]` | 按币种余额列表            |
+| `walletRemainQuota` | `number`           | 全 lot 剩余 quota (int64) |
+| `giftQuota`         | `number`           | gift lot 剩余 quota       |
+| `overdraftQuota`    | `number`           | overdraft lot 累计 quota  |
 
 **`WalletCurrency`**：`currency` / `balance` / `totalTopup` / `totalConsumed`；同币种满足 `totalTopup - totalConsumed = balance`。前端以 `balances[]` 为唯一展示数据源。
 
@@ -805,15 +805,15 @@ HTTP 非 2xx 时，body 应包含：
 
 **`RechargeOrder`**
 
-| 字段        | 类型                                    | 说明               |
-| ----------- | --------------------------------------- | ------------------ |
-| `id`        | `string`                                | 订单 ID            |
-| `companyId` | `number`                                | 企业               |
-| `amount`    | `number`                                | 支付金额           |
-| `currency`  | `string`                                | 支付币种           |
-| `status`    | `'pending' \| 'confirmed' \| 'failed'`  | 写 lot 后为 confirmed |
-| `source`    | `string`                                | `self` / 支付渠道  |
-| `createdAt` | `string`                                | ISO 8601           |
+| 字段        | 类型                                   | 说明                  |
+| ----------- | -------------------------------------- | --------------------- |
+| `id`        | `string`                               | 订单 ID               |
+| `companyId` | `number`                               | 企业                  |
+| `amount`    | `number`                               | 支付金额              |
+| `currency`  | `string`                               | 支付币种              |
+| `status`    | `'pending' \| 'confirmed' \| 'failed'` | 写 lot 后为 confirmed |
+| `source`    | `string`                               | `self` / 支付渠道     |
+| `createdAt` | `string`                               | ISO 8601              |
 
 充值**不**自动涨部门 `budget`；入账后前端应引导超管进入预算页分配（见后端 §4.1.1）。
 
@@ -848,15 +848,15 @@ HTTP 非 2xx 时，body 应包含：
 
 **`Company`**
 
-| 字段            | 类型                      | 说明                   |
-| --------------- | ------------------------- | ---------------------- |
-| `id`            | `number`                  | `companyId`            |
-| `slug`          | `string`                  | 子域名标识             |
-| `name`          | `string`                  | 公司名                 |
+| 字段            | 类型                      | 说明                    |
+| --------------- | ------------------------- | ----------------------- |
+| `id`            | `number`                  | `companyId`             |
+| `slug`          | `string`                  | 子域名标识              |
+| `name`          | `string`                  | 公司名                  |
 | `status`        | `'active' \| 'suspended'` | 停用后该企业 NewAPI 403 |
-| `packageId`     | `string \| null`          | MVP 仅展示             |
-| `walletBalance` | `number \| null`          | 列表可选展示           |
-| `createdAt`     | `string`                  | ISO 8601               |
+| `packageId`     | `string \| null`          | MVP 仅展示              |
+| `walletBalance` | `number \| null`          | 列表可选展示            |
+| `createdAt`     | `string`                  | ISO 8601                |
 
 **`CreateCompanyRequest`：** `name`, `slug`, `superAdminEmail`, `packageId?`
 
@@ -866,26 +866,26 @@ HTTP 非 2xx 时，body 应包含：
 
 #### 5.9.5 既有端点的 SaaS 行为差异
 
-| 端点 / 域                      | 私有化          | SaaS                                                            |
-| ------------------------------ | --------------- | --------------------------------------------------------------- |
-| `GET /session`                 | `companyId = 1` | `companyId` = 成员所属企业                                      |
-| `provider-keys` 写             | 允许            | **403**                                                         |
+| 端点 / 域                      | 私有化          | SaaS                                                               |
+| ------------------------------ | --------------- | ------------------------------------------------------------------ |
+| `GET /session`                 | `companyId = 1` | `companyId` = 成员所属企业                                         |
+| `provider-keys` 写             | 允许            | **403**                                                            |
 | `POST /keys/platform`          | 不变            | 不变；后端 Token 绑 `newapi_wallet_company_id` + `platform_shared` |
-| 组织 / 预算 / 密钥读写在企业面 | 单企业          | 按 Session `companyId` 隔离                                     |
-| 成员邀请（企业内）             | 支持            | `POST /org/members/invite`                                      |
+| 组织 / 预算 / 密钥读写在企业面 | 单企业          | 按 Session `companyId` 隔离                                        |
+| 成员邀请（企业内）             | 支持            | `POST /org/members/invite`                                         |
 
 #### 5.9.6 前端接入现状
 
-| 项                   | 后端                          | 前端 `AppApis`                            | 控制台页面                         |
-| -------------------- | ----------------------------- | ----------------------------------------- | ---------------------------------- |
-| 企业面 §5.4 域 API   | 已实现                        | 已接入（19 命名空间，缺 `platformApi`）   | 16 管理台业务页 + 3 成员工作台路由 |
-| `auth/login`         | 已实现                        | `authApi.login`                           | `/login`                           |
-| `auth/logout`        | 已实现                        | `authApi.logout`                          | —                                  |
-| `auth/accept-invite` | 已实现                        | 未接入                                    | 无 `/invite/accept`                |
-| `billing/wallet`     | 已实现                        | `billingApi.getWallet`                    | `/wallet`                          |
-| `billing/recharge`   | 已实现                        | `billingApi.recharge` + `confirmRecharge` | `/wallet`（充值 create → confirm） |
+| 项                   | 后端                                                       | 前端 `AppApis`                            | 控制台页面                         |
+| -------------------- | ---------------------------------------------------------- | ----------------------------------------- | ---------------------------------- |
+| 企业面 §5.4 域 API   | 已实现                                                     | 已接入（19 命名空间，缺 `platformApi`）   | 16 管理台业务页 + 3 成员工作台路由 |
+| `auth/login`         | 已实现                                                     | `authApi.login`                           | `/login`                           |
+| `auth/logout`        | 已实现                                                     | `authApi.logout`                          | —                                  |
+| `auth/accept-invite` | 已实现                                                     | 未接入                                    | 无 `/invite/accept`                |
+| `billing/wallet`     | 已实现                                                     | `billingApi.getWallet`                    | `/wallet`                          |
+| `billing/recharge`   | 已实现                                                     | `billingApi.recharge` + `confirmRecharge` | `/wallet`（充值 create → confirm） |
 | `platform/*`         | 已实现（`SUPPORT_SAAS=true`）；含 recharge / gift / adjust | 未接入                                    | 无 `/platform/login`               |
-| `billing:*` 权限     | 已挂 Authz                    | `permission-keys.ts` 已含                 | `PermissionGate` 已用于 `/wallet`  |
+| `billing:*` 权限     | 已挂 Authz                                                 | `permission-keys.ts` 已含                 | `PermissionGate` 已用于 `/wallet`  |
 
 > **钱包类型：** `WalletView` 含 `billingCurrency`、`balances[]`（按币种 `balance` / `totalTopup` / `totalConsumed`）、`walletRemainQuota`（int64 quota）、`giftQuota`、`overdraftQuota`、`totalRequests`。同币种满足 `totalTopup - totalConsumed = balance`。
 

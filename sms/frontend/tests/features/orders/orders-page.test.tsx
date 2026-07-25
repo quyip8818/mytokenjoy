@@ -38,7 +38,9 @@ const mockOrdersResponse = {
 
 describe('OrdersPage', () => {
   beforeEach(() => {
-    useSession.setState({ user: { id: 'u1', username: 'admin', realName: '管理员', role: 'admin' } })
+    useSession.setState({
+      user: { id: 'u1', username: 'admin', realName: '管理员', role: 'admin' },
+    })
   })
 
   it('renders order list from API', async () => {
@@ -62,7 +64,9 @@ describe('OrdersPage', () => {
 
   it('shows 新建订单 button for admin', async () => {
     const apis = createMockApis({
-      ordersApi: { list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }) },
+      ordersApi: {
+        list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }),
+      },
       suppliersApi: { options: vi.fn().mockResolvedValue([]) },
     })
 
@@ -74,9 +78,13 @@ describe('OrdersPage', () => {
   })
 
   it('hides 新建订单 button for viewer', async () => {
-    useSession.setState({ user: { id: 'u2', username: 'viewer', realName: '查看者', role: 'viewer' } })
+    useSession.setState({
+      user: { id: 'u2', username: 'viewer', realName: '查看者', role: 'viewer' },
+    })
     const apis = createMockApis({
-      ordersApi: { list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }) },
+      ordersApi: {
+        list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }),
+      },
       suppliersApi: { options: vi.fn().mockResolvedValue([]) },
     })
 
@@ -102,15 +110,15 @@ describe('OrdersPage', () => {
     fireEvent.change(input, { target: { value: 'PO-X' } })
 
     await waitFor(() => {
-      expect(listFn).toHaveBeenCalledWith(
-        expect.objectContaining({ keyword: 'PO-X', page: 1 }),
-      )
+      expect(listFn).toHaveBeenCalledWith(expect.objectContaining({ keyword: 'PO-X', page: 1 }))
     })
   })
 
   it('shows empty state when no orders', async () => {
     const apis = createMockApis({
-      ordersApi: { list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }) },
+      ordersApi: {
+        list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }),
+      },
       suppliersApi: { options: vi.fn().mockResolvedValue([]) },
     })
 

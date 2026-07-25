@@ -11,8 +11,8 @@
 
 这里的「本」**不是**多套预算配置，而是 **按月切开的消耗账本**。
 
-| 跨月保留（同一套） | 按月切开（多本） |
-| --- | --- |
+| 跨月保留（同一套）                                                 | 按月切开（多本）                                                       |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------- |
 | 部门 `budget`、成员 `personal_budget`、Key `quota` 等 **额度上限** | `budget_consumed` 里按 `period_key`（通常 `YYYY-MM`）累计的 **已消耗** |
 
 每月一张消耗账：6 月的已用记在 `period_key=2026-06`，7 月从 `2026-07` **重新累计**，不用手工清零。预检问的「还能不能花」= 看 **当前这本** 的已用是否触顶。
@@ -50,13 +50,13 @@ flowchart LR
 
 调用可能跨月才入库：6/30 发生，7/1 才 Ingest。此时：
 
-- **发生月**仍是 6 月 → 审计 / 财务要记在 6 月账本  
+- **发生月**仍是 6 月 → 审计 / 财务要记在 6 月账本
 - **开着的消耗账**已是 7 月 → 门禁必须扣 / 读 7 月快照，否则「本月还能不能用」会看错本
 
-| 若混用 | 后果 |
-| --- | --- |
+| 若混用                       | 后果                            |
+| ---------------------------- | ------------------------------- |
 | 用发生月去扣「现在」的消耗账 | 7 月门禁读到 6 月已用，额度错位 |
-| 用入库墙钟去写发生月 | 审计按发生月对不上 |
+| 用入库墙钟去写发生月         | 审计按发生月对不上              |
 
 ```mermaid
 sequenceDiagram
@@ -74,11 +74,11 @@ sequenceDiagram
 
 ## 3. 三种时间（现状）
 
-| 名称 | 来源 | 干什么 | 不干什么 |
-| --- | --- | --- | --- |
-| **墙钟** | 调度比较用 PG `NOW()`；ID 等可用 `time.Now()` | `river_job` 调度 / retry / Unique 窗口、session TTL、生成 ID | 不算开账 period、不写账本发生月；**不**读 `CLOCK_ANCHOR` |
-| **业务时钟** | `cfg.Clock()` | 开账键、预检、超支、预算树 / Key used、看板「今天」、worker 月切触发、seed 开账快照 | 不驱动 lease |
-| **事件时间** | `OccurredAt`（来自上游 `CreatedAt`） | ledger `period_key`、`usage_buckets`、审计归因 | 不写开账快照 |
+| 名称         | 来源                                          | 干什么                                                                              | 不干什么                                                 |
+| ------------ | --------------------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **墙钟**     | 调度比较用 PG `NOW()`；ID 等可用 `time.Now()` | `river_job` 调度 / retry / Unique 窗口、session TTL、生成 ID                        | 不算开账 period、不写账本发生月；**不**读 `CLOCK_ANCHOR` |
+| **业务时钟** | `cfg.Clock()`                                 | 开账键、预检、超支、预算树 / Key used、看板「今天」、worker 月切触发、seed 开账快照 | 不驱动 lease                                             |
+| **事件时间** | `OccurredAt`（来自上游 `CreatedAt`）          | ledger `period_key`、`usage_buckets`、审计归因                                      | 不写开账快照                                             |
 
 ```mermaid
 flowchart TB
@@ -110,10 +110,10 @@ flowchart TB
 
 两套类型，禁止互换：
 
-| 类型 | 时间源 | 写入 | 读取场景 |
-| --- | --- | --- | --- |
-| `OpenBudgetPeriod` | Clock | `budget_consumed.period_key` | 预检、超支、预算树、Key 配额 |
-| `OccurrencePeriod` | OccurredAt | `usage_ledger.period_key` | 审计、发生月统计 |
+| 类型               | 时间源     | 写入                         | 读取场景                     |
+| ------------------ | ---------- | ---------------------------- | ---------------------------- |
+| `OpenBudgetPeriod` | Clock      | `budget_consumed.period_key` | 预检、超支、预算树、Key 配额 |
+| `OccurrencePeriod` | OccurredAt | `usage_ledger.period_key`    | 审计、发生月统计             |
 
 DB 列仍是 `string`；域边界用 `.String()` 进出。
 
@@ -121,10 +121,10 @@ DB 列仍是 `string`；域边界用 `.String()` 进出。
 
 **两层概念不要混：**
 
-| 层 | 存什么 | 谁写 |
-| --- | --- | --- |
-| `org_nodes.period` | 账期**规格**，现行只允许 `monthly` | 建公司、部门 provision、seed、导入 |
-| `budget_consumed.period_key` / `usage_ledger.period_key` | 具体 **`YYYY-MM` 账本键** | 开账 / 发生工厂 + ingest |
+| 层                                                       | 存什么                             | 谁写                               |
+| -------------------------------------------------------- | ---------------------------------- | ---------------------------------- |
+| `org_nodes.period`                                       | 账期**规格**，现行只允许 `monthly` | 建公司、部门 provision、seed、导入 |
+| `budget_consumed.period_key` / `usage_ledger.period_key` | 具体 **`YYYY-MM` 账本键**          | 开账 / 发生工厂 + ingest           |
 
 `org_nodes.period` 有 `CHECK (period IN ('monthly'))`；业务路径（`BudgetPeriod()`、seed、开户）一律写 `monthly`。**不能把** `"2026-06"` 这类固定月串落库到 `org_nodes.period`。
 
@@ -206,15 +206,15 @@ flowchart TB
 
 ## 6. 配置与本地锚点
 
-| 项 | 现状 |
-| --- | --- |
-| `CLOCK_ANCHOR` | 可选 `YYYY-MM-DD`；空 = 系统时钟；**生产禁止** |
-| `cfg.Clock()` | 空锚点 → `System()`；有锚点 → `Fixed(UTC 零点)` |
-| 域代码 | 只调 `cfg.Clock()` / 注入的 `clock.Clock`，不读 env |
-| demo | 建议 `BOOTSTRAP_MODE=demo` + `CLOCK_ANCHOR`，让种子与门禁同月 |
-| `Snapshot.SeedAt` | `clock.NowUTC(cfg.Clock())`；缺则 seed 开账快照 fail-fast |
-| seed 开账快照 | `RootPeriodKey(nodes, SeedAt)` |
-| seed ledger | `OccurrenceSnapshotKey(PeriodMonthly, OccurredAt)`（可与开账月不同） |
+| 项                | 现状                                                                 |
+| ----------------- | -------------------------------------------------------------------- |
+| `CLOCK_ANCHOR`    | 可选 `YYYY-MM-DD`；空 = 系统时钟；**生产禁止**                       |
+| `cfg.Clock()`     | 空锚点 → `System()`；有锚点 → `Fixed(UTC 零点)`                      |
+| 域代码            | 只调 `cfg.Clock()` / 注入的 `clock.Clock`，不读 env                  |
+| demo              | 建议 `BOOTSTRAP_MODE=demo` + `CLOCK_ANCHOR`，让种子与门禁同月        |
+| `Snapshot.SeedAt` | `clock.NowUTC(cfg.Clock())`；缺则 seed 开账快照 fail-fast            |
+| seed 开账快照     | `RootPeriodKey(nodes, SeedAt)`                                       |
+| seed ledger       | `OccurrenceSnapshotKey(PeriodMonthly, OccurredAt)`（可与开账月不同） |
 
 ```mermaid
 flowchart TD
@@ -285,30 +285,30 @@ flowchart TB
 
 ## 8. 护栏（怎么防写漂）
 
-| 手段 | 作用 |
-| --- | --- |
-| `OpenBudgetPeriod` / `OccurrencePeriod` | 类型上区分开账 vs 发生 |
-| Ingest 写 ledger + 入队 | consumed 只经 `budget.Projector`（开账 `OpenBudgetPeriod`） |
-| `OccurredAtFromPayload` | 缺事件时间 fail |
-| `make lint-clock` | 禁 `SnapshotKey(...time.Now)`；`domain/{budget,gateway,newapisync,usage}` 禁直调 `SnapshotKey` |
+| 手段                                    | 作用                                                                                           |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `OpenBudgetPeriod` / `OccurrencePeriod` | 类型上区分开账 vs 发生                                                                         |
+| Ingest 写 ledger + 入队                 | consumed 只经 `budget.Projector`（开账 `OpenBudgetPeriod`）                                    |
+| `OccurredAtFromPayload`                 | 缺事件时间 fail                                                                                |
+| `make lint-clock`                       | 禁 `SnapshotKey(...time.Now)`；`domain/{budget,gateway,newapisync,usage}` 禁直调 `SnapshotKey` |
 
 钉行为的测试（改时钟语义时先跑这些）：
 
-| 场景 | 测试 |
-| --- | --- |
-| 账本跟 OccurredAt | `TestIngestStoresLedgerPeriodKey` |
-| 跨月：consumed 跟 Clock | `TestIngestSnapshotUsesNowPeriodForMonthlyOrg` |
-| 缺 OccurredAt | `TestOccurredAtFromPayloadRejectsMissing` |
-| 锚点预检 | `TestPrecheckUsesClockAnchorForPeriodKey` |
-| 树与工厂同月 | `TestOpenBudgetPeriodAlignsTreeAndDepartmentFactory` |
-| seed 快照跟 Clock、ledger 跟 OccurredAt | `TestSeedBudgetSnapshotsAlignWithClockAnchor` |
-| Load* 开账月跟 Clock | `TestLoadPlatformKeysWithUsedResolvesDepartmentPeriod`、`TestLoadProjectsWithConsumedUsesOpenPeriod`（用 `clock.Fixed`，勿改 `org_nodes.period`） |
-| 生产禁锚点 | `TestProductionRejectsClockAnchor` |
+| 场景                                    | 测试                                                                                                                                              |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 账本跟 OccurredAt                       | `TestIngestStoresLedgerPeriodKey`                                                                                                                 |
+| 跨月：consumed 跟 Clock                 | `TestIngestSnapshotUsesNowPeriodForMonthlyOrg`                                                                                                    |
+| 缺 OccurredAt                           | `TestOccurredAtFromPayloadRejectsMissing`                                                                                                         |
+| 锚点预检                                | `TestPrecheckUsesClockAnchorForPeriodKey`                                                                                                         |
+| 树与工厂同月                            | `TestOpenBudgetPeriodAlignsTreeAndDepartmentFactory`                                                                                              |
+| seed 快照跟 Clock、ledger 跟 OccurredAt | `TestSeedBudgetSnapshotsAlignWithClockAnchor`                                                                                                     |
+| Load\* 开账月跟 Clock                   | `TestLoadPlatformKeysWithUsedResolvesDepartmentPeriod`、`TestLoadProjectsWithConsumedUsesOpenPeriod`（用 `clock.Fixed`，勿改 `org_nodes.period`） |
+| 生产禁锚点                              | `TestProductionRejectsClockAnchor`                                                                                                                |
 
 ---
 
 ## 9. 改代码时三问
 
-1. 这段要的是墙钟、**当前开着哪本消耗账**，还是 **事件发生在哪月**？  
-2. 开账 `period_key` 是否只来自 `Open*` / `RootPeriodKey`（seed）？  
+1. 这段要的是墙钟、**当前开着哪本消耗账**，还是 **事件发生在哪月**？
+2. 开账 `period_key` 是否只来自 `Open*` / `RootPeriodKey`（seed）？
 3. 有 `CLOCK_ANCHOR` 时：开账路径（seed consumed / 看板 / 预检 / Projector）是否落在同一本？ledger 是否仍跟 `OccurredAt`？

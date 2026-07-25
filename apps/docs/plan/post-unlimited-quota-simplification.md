@@ -11,24 +11,24 @@
 
 ### 已完成的变更
 
-| 变更 | 说明 |
-|------|------|
+| 变更                         | 说明                                        |
+| ---------------------------- | ------------------------------------------- |
 | `adminport.CreateTokenInput` | 删除了 `RemainQuota`、`UnlimitedQuota` 字段 |
 | `adminport.UpdateTokenInput` | 删除了 `RemainQuota`、`UnlimitedQuota` 字段 |
-| `admin_port_adapter.go` | hardcode `UnlimitedQuota: true`（适配层） |
-| `platformkey/create.go` | 不再传 `RemainQuota`/`UnlimitedQuota` |
-| `platformkey/update.go` | 只同步 status/group（model_limits 已移除） |
+| `admin_port_adapter.go`      | hardcode `UnlimitedQuota: true`（适配层）   |
+| `platformkey/create.go`      | 不再传 `RemainQuota`/`UnlimitedQuota`       |
+| `platformkey/update.go`      | 只同步 status/group（model_limits 已移除）  |
 
 ### 还留着但需要处理的组件
 
-| 组件 | 当前行为 | 状态 |
-|------|---------|------|
-| **Rebalance job + worker** | 遍历 mappings → `RefreshPlatformKeyCombined`（更新 PG combined_key_remain） | ✅ 保留 — Gateway precheck 依赖 |
-| **combined_key_summaries 表** | 存每个 key 的 remain 值，gateway precheck 读取 | ✅ 保留 — 预算限额数据源 |
-| **SyncUpdatePlatformKey 中的 budget 计算** | `LoadBudgetContext` + `ComputeRemainForMapping` + `UpdateBatch` | ⚠️ 冗余 — 调用方已自行调 `RefreshPlatformKeyCombined` |
-| **SyncCreatePlatformKey 中的 budget 计算** | `LoadBudgetContext` + `ComputeRemainForMapping`（赋值给已删除的 RemainQuota） | ⚠️ 死代码 — 无任何 side effect |
-| **bootstrap.go ensureWalletCompanyQuota** | TopUp to wallet_remain_quota | ✅ 已改为正确逻辑 |
-| **NewAPI user quota** | 新 user = MaxInt32 / 旧 user = 0 | ⚠️ 需要正确的同步策略 |
+| 组件                                       | 当前行为                                                                      | 状态                                                  |
+| ------------------------------------------ | ----------------------------------------------------------------------------- | ----------------------------------------------------- |
+| **Rebalance job + worker**                 | 遍历 mappings → `RefreshPlatformKeyCombined`（更新 PG combined_key_remain）   | ✅ 保留 — Gateway precheck 依赖                       |
+| **combined_key_summaries 表**              | 存每个 key 的 remain 值，gateway precheck 读取                                | ✅ 保留 — 预算限额数据源                              |
+| **SyncUpdatePlatformKey 中的 budget 计算** | `LoadBudgetContext` + `ComputeRemainForMapping` + `UpdateBatch`               | ⚠️ 冗余 — 调用方已自行调 `RefreshPlatformKeyCombined` |
+| **SyncCreatePlatformKey 中的 budget 计算** | `LoadBudgetContext` + `ComputeRemainForMapping`（赋值给已删除的 RemainQuota） | ⚠️ 死代码 — 无任何 side effect                        |
+| **bootstrap.go ensureWalletCompanyQuota**  | TopUp to wallet_remain_quota                                                  | ✅ 已改为正确逻辑                                     |
+| **NewAPI user quota**                      | 新 user = MaxInt32 / 旧 user = 0                                              | ⚠️ 需要正确的同步策略                                 |
 
 ---
 
@@ -38,11 +38,11 @@ Token 是 unlimited 了，但 **NewAPI 仍然检查 user-level quota**。必须�
 
 ### 方案对比
 
-| 方案 | 描述 | 优点 | 缺点 |
-|------|------|------|------|
-| A: 充值时 TopUp | CreditFromLot 后 TopUp delta | 精确、语义清晰 | billing service 需要 adminport 依赖 |
-| B: bootstrap 一次性补齐 | 启动时 TopUp 到 wallet_remain_quota | 简单 | 两次启动之间的充值不会反映到 NewAPI |
-| C: A + B 组合 | 充值 TopUp + 启动补齐 | 覆盖全场景 | 稍微多一点代码 |
+| 方案                    | 描述                                | 优点           | 缺点                                |
+| ----------------------- | ----------------------------------- | -------------- | ----------------------------------- |
+| A: 充值时 TopUp         | CreditFromLot 后 TopUp delta        | 精确、语义清晰 | billing service 需要 adminport 依赖 |
+| B: bootstrap 一次性补齐 | 启动时 TopUp 到 wallet_remain_quota | 简单           | 两次启动之间的充值不会反映到 NewAPI |
+| C: A + B 组合           | 充值 TopUp + 启动补齐               | 覆盖全场景     | 稍微多一点代码                      |
 
 **结论：采用 C（ADR 已描述）**
 
@@ -52,32 +52,32 @@ Token 是 unlimited 了，但 **NewAPI 仍然检查 user-level quota**。必须�
 
 ### 3.1 ✅ 已确认可以删除
 
-| 组件 | 原因 |
-|------|------|
-| `SyncUpdatePlatformKey` 中的 budget 计算 | update.go 不再需要 `ComputeRemainForMapping` — 因为它不再同步 remain 到 NewAPI |
-| `update.go` 对 `CombinedKeySummaries().UpdateBatch` 的调用 | 之前是"顺便"更新 local remain，但 Rebalance job 独立负责这个 |
-| `create.go` 中的 budget 加载路径 | 创建 token 不需要计算 remain 了（之前用来设 RemainQuota） |
-| `pkgbudget` / `models` / `rules` 加载（在 create/update 的 quota 计算分支） | 已移除 — model_limits 不再需要 |
+| 组件                                                                        | 原因                                                                           |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `SyncUpdatePlatformKey` 中的 budget 计算                                    | update.go 不再需要 `ComputeRemainForMapping` — 因为它不再同步 remain 到 NewAPI |
+| `update.go` 对 `CombinedKeySummaries().UpdateBatch` 的调用                  | 之前是"顺便"更新 local remain，但 Rebalance job 独立负责这个                   |
+| `create.go` 中的 budget 加载路径                                            | 创建 token 不需要计算 remain 了（之前用来设 RemainQuota）                      |
+| `pkgbudget` / `models` / `rules` 加载（在 create/update 的 quota 计算分支） | 已移除 — model_limits 不再需要                                                 |
 
 ### 3.2 ✅ 可以简化
 
-| 组件 | 简化方向 |
-|------|---------|
-| `platformkey/update.go` | 删除 `pkgbudget.LoadBudgetContext`、`resolveModelLimits`、`CombinedKeySummaries().UpdateBatch`。只保留：读 key → 调 UpdateToken(status/group) |
-| `platformkey/create.go` | 删除 `pkgbudget.LoadBudgetContext`、`resolveModelLimits`。只保留：读 mapping → CreateToken → persist mapping |
-| `RebalanceService.rebalanceKey` | 这个**不能删** — 它负责更新 `combined_key_remain`，Gateway precheck 依赖它 |
-| `bootstrap.go` | 用 ADR 方案替换 MaxInt32 hacky 逻辑 |
+| 组件                            | 简化方向                                                                                                                                      |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `platformkey/update.go`         | 删除 `pkgbudget.LoadBudgetContext`、`resolveModelLimits`、`CombinedKeySummaries().UpdateBatch`。只保留：读 key → 调 UpdateToken(status/group) |
+| `platformkey/create.go`         | 删除 `pkgbudget.LoadBudgetContext`、`resolveModelLimits`。只保留：读 mapping → CreateToken → persist mapping                                  |
+| `RebalanceService.rebalanceKey` | 这个**不能删** — 它负责更新 `combined_key_remain`，Gateway precheck 依赖它                                                                    |
+| `bootstrap.go`                  | 用 ADR 方案替换 MaxInt32 hacky 逻辑                                                                                                           |
 
 ### 3.3 ❌ 不能删除（仍有用）
 
-| 组件 | 为什么保留 |
-|------|-----------|
-| **Rebalance job** | 更新 `combined_key_summaries`，Gateway precheck 读这个值决定是否拒绝 |
-| **combined_key_summaries 表** | Gateway 预算限额的数据源 |
-| **combined_key_remain 递减（ingest 路径）** | `DecrementBatch` 在 ingest 事务内实时扣减 remain |
-| **Redis budget cache** | Gateway 高频 precheck 的读缓存层 |
-| **SyncUpdatePlatformKey 本身** | 仍然需要同步 status/group 到 NewAPI |
-| **SyncCreatePlatformKey** | 仍然需要在 NewAPI 创建 token |
+| 组件                                        | 为什么保留                                                           |
+| ------------------------------------------- | -------------------------------------------------------------------- |
+| **Rebalance job**                           | 更新 `combined_key_summaries`，Gateway precheck 读这个值决定是否拒绝 |
+| **combined_key_summaries 表**               | Gateway 预算限额的数据源                                             |
+| **combined_key_remain 递减（ingest 路径）** | `DecrementBatch` 在 ingest 事务内实时扣减 remain                     |
+| **Redis budget cache**                      | Gateway 高频 precheck 的读缓存层                                     |
+| **SyncUpdatePlatformKey 本身**              | 仍然需要同步 status/group 到 NewAPI                                  |
+| **SyncCreatePlatformKey**                   | 仍然需要在 NewAPI 创建 token                                         |
 
 ---
 
@@ -87,19 +87,20 @@ Token 是 unlimited 了，但 **NewAPI 仍然检查 user-level quota**。必须�
 func SyncUpdatePlatformKey(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID, targetActive *bool) error {
     // 1. 读 mapping
     mapping := d.Mappings.GetMappingByPlatformKeyID(ctx, platformKeyID)
-    
+
     // 2. 读 key
     key := d.Store.Keys().PlatformKeyByID(ctx, platformKeyID)
-    
+
     // 3. 调 NewAPI UpdateToken（只传 status/group）
     d.Client.UpdateToken(ctx, req)
-    
+
     // 4. 更新 mapping sync status
     d.Mappings.UpdateMappingSync(...)
 }
 ```
 
 **已完成的变化**：
+
 - 删除了 `LoadBudgetContext`（5~6 次 PG 查询）
 - 删除了 `resolveModelLimits`（departments/rules/models 加载）
 - 删除了 `CombinedKeySummaries().UpdateBatch`
@@ -122,20 +123,20 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID
     // 1. 读 mapping（已存在的提前返回 bearer）
     existing := d.Mappings.GetMappingByPlatformKeyID(ctx, platformKeyID)
     ...
-    
+
     // 2. 读 key + 用 mapping.DepartmentID
     key := d.Store.Keys().PlatformKeyByID(ctx, platformKeyID)
     departmentID := existing.DepartmentID
-    
+
     // 3. 加载 departments（仅用于 EnsureGroup displayName）
     departments := common.LoadDepartments(...)
-    
+
     // 4. Ensure group
     d.Client.EnsureGroup(ctx, group, displayName)
-    
+
     // 5. 调 NewAPI CreateToken（无 quota/model_limits 字段）
     token := d.Client.CreateToken(ctx, ...)
-    
+
     // 6. Persist key secret + mapping
     persistPlatformKeySecret(...)
     d.Mappings.UpdateMappingSync(...)
@@ -143,6 +144,7 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID
 ```
 
 **已完成的变化**：
+
 - 删除了 `pkgbudget.LoadBudgetContext`
 - 删除了 `resolveModelLimits`（departments/rules/models 加载中仅保留 departments 用于 display name）
 - 删除了 `ComputeRemainForMapping`
@@ -151,6 +153,7 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID
 ### Phase 1 关键设计决策：`DepartmentIDForPlatformKey` 的替代
 
 当前 `DepartmentIDForPlatformKey` 依赖 `BudgetContext.Members` 和 `BudgetContext.Projects`：
+
 - member scope → 从 `members` 列表查 `member.DepartmentID`
 - project scope → 从 `projects` 列表查 `project.OwnerDepartmentID`
 
@@ -187,12 +190,14 @@ func resolveDepartmentID(ctx context.Context, d syncdeps.Deps, key types.Platfor
 所以 `TrySyncCreate` 里的 `existing` mapping 已经有 `DepartmentID`。结论：**直接用 `existing.DepartmentID`**，不需要 `DepartmentIDForPlatformKey` 也不需要 `LoadBudgetContext`。
 
 **保留的加载项：**
+
 - `common.LoadDepartments` — model limits 需要（解析部门允许的 model IDs）
 - `common.LoadRoutingRules` — model limits 需要
 - `d.Store.Models().Models` — model limits 需要
 - `d.Store.Keys().PlatformKeys` — 获取 key 的 ModelWhitelist
 
 **删除的加载项：**
+
 - `pkgbudget.LoadBudgetContext` — 不再需要（5~6 次 PG 查询）
 - `pkgbudget.OpenDepartmentPeriod` — 不再需要
 - `pkgbudget.ComputeRemainForMapping` — 不再需要
@@ -202,11 +207,11 @@ func resolveDepartmentID(ctx context.Context, d syncdeps.Deps, key types.Platfor
 
 ## 六、NewAPI User Quota 同步策略（已实现）
 
-| 时机 | 操作 | 实现位置 |
-|------|------|---------|
-| 充值成功前 | `PreCreditFunc: ManageUser("add_quota", quotaGranted)` | `billing/service.go` `syncQuotaToNewAPI` |
-| 应用启动 | `ManageUser("add_quota", max(0, walletRemainQuota - currentQuota))` | `provision/bootstrap.go` |
-| 消费 | **不需要操作** — NewAPI 消费时自动扣 user quota | — |
+| 时机       | 操作                                                                | 实现位置                                 |
+| ---------- | ------------------------------------------------------------------- | ---------------------------------------- |
+| 充值成功前 | `PreCreditFunc: ManageUser("add_quota", quotaGranted)`              | `billing/service.go` `syncQuotaToNewAPI` |
+| 应用启动   | `ManageUser("add_quota", max(0, walletRemainQuota - currentQuota))` | `provision/bootstrap.go`                 |
+| 消费       | **不需要操作** — NewAPI 消费时自动扣 user quota                     | —                                        |
 
 **注意**：同步在事务前执行（PreCreditFunc）。失败时充值不执行，保证不出现"本地有余额但 NewAPI 拒绝"的不一致。
 
@@ -214,31 +219,31 @@ func resolveDepartmentID(ctx context.Context, d syncdeps.Deps, key types.Platfor
 
 ## 七、副作用分析总结
 
-| 变更 | 风险 | 结论 |
-|------|------|------|
-| create.go 删 budget 计算 | 新 key 没有初始 combined_key_remain | 安全 — absoluteRecompute/rebalance/key创建后的 `RefreshPlatformKeyCombined` 覆盖 |
-| update.go 删 combined_key_remain 更新 | status/group 变更后 remain 不立即刷新 | 安全 — 调用方（keys domain）已自行调 `RefreshPlatformKeyCombined`；update.go 的是冗余 |
-| bootstrap TopUp to wallet_remain_quota | 启动前的消费可能让 NewAPI quota < tokenjoy wallet_remain_quota | 不可能 — NewAPI 消费和 tokenjoy ingest 扣同样的值 |
-| 充值后 PreCreditFunc 失败 | 充值不执行 | 用户重试即可，不产生不一致 |
-| PreCreditFunc 成功但本地 tx 失败 | NewAPI user quota > wallet_remain_quota | 安全 — Gateway precheck 在 NewAPI 之前拦截；多余 quota 在消费中自然扣减 |
-| 充值后重复执行 PreCreditFunc | NewAPI user quota > wallet_remain_quota | 安全 — 同上 |
+| 变更                                   | 风险                                                           | 结论                                                                                  |
+| -------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| create.go 删 budget 计算               | 新 key 没有初始 combined_key_remain                            | 安全 — absoluteRecompute/rebalance/key创建后的 `RefreshPlatformKeyCombined` 覆盖      |
+| update.go 删 combined_key_remain 更新  | status/group 变更后 remain 不立即刷新                          | 安全 — 调用方（keys domain）已自行调 `RefreshPlatformKeyCombined`；update.go 的是冗余 |
+| bootstrap TopUp to wallet_remain_quota | 启动前的消费可能让 NewAPI quota < tokenjoy wallet_remain_quota | 不可能 — NewAPI 消费和 tokenjoy ingest 扣同样的值                                     |
+| 充值后 PreCreditFunc 失败              | 充值不执行                                                     | 用户重试即可，不产生不一致                                                            |
+| PreCreditFunc 成功但本地 tx 失败       | NewAPI user quota > wallet_remain_quota                        | 安全 — Gateway precheck 在 NewAPI 之前拦截；多余 quota 在消费中自然扣减               |
+| 充值后重复执行 PreCreditFunc           | NewAPI user quota > wallet_remain_quota                        | 安全 — 同上                                                                           |
 
 ### 调用链验证（update.go 的 combined 更新是冗余的证据）
 
-| 调用 `SyncUpdatePlatformKey` 的地方 | 调用后是否自行刷新 combined_key_remain |
-|-------------------------------------|--------------------------------------|
-| `keys/platform_key_actions.go`（toggle enabled） | ✅ 直接调 `RefreshPlatformKeyCombined` |
+| 调用 `SyncUpdatePlatformKey` 的地方                   | 调用后是否自行刷新 combined_key_remain             |
+| ----------------------------------------------------- | -------------------------------------------------- |
+| `keys/platform_key_actions.go`（toggle enabled）      | ✅ 直接调 `RefreshPlatformKeyCombined`             |
 | `keys/platform_key_newapi.go`（update budget/models） | ✅ 当 budget 变更时调 `RefreshPlatformKeyCombined` |
-| `modellimits/modellimits.go`（路由规则变更） | 已移除 — 路由规则变更现在只 InvalidateCompany |
-| `provision/bootstrap.go`（启动 reconcile） | ✅ Rebalance job 在之后全量刷新 |
+| `modellimits/modellimits.go`（路由规则变更）          | 已移除 — 路由规则变更现在只 InvalidateCompany      |
+| `provision/bootstrap.go`（启动 reconcile）            | ✅ Rebalance job 在之后全量刷新                    |
 
 ### 性能影响
 
-| 变更 | 对性能的影响 |
-|------|------------|
-| create.go 删 budget 计算 | **微量提升** — 少做 5~6 次 PG 查询（仅创建 key 时，极低频） |
+| 变更                                     | 对性能的影响                                                                                          |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| create.go 删 budget 计算                 | **微量提升** — 少做 5~6 次 PG 查询（仅创建 key 时，极低频）                                           |
 | update.go 删 budget 计算 + combined 更新 | **提升** — 少做 `LoadBudgetContext`(5 PG 查询) + `UpdateBatch`(1 PG 写)，每次 key toggle/model 变更时 |
-| 充值后 TopUp HTTP 调用 | **+50~200ms**（仅在充值时，一天几次到几十次，非热路径） |
+| 充值后 TopUp HTTP 调用                   | **+50~200ms**（仅在充值时，一天几次到几十次，非热路径）                                               |
 
 ---
 
@@ -246,20 +251,20 @@ func resolveDepartmentID(ctx context.Context, d syncdeps.Deps, key types.Platfor
 
 ### Phase 1：清理 create.go / update.go（纯删除）
 
-| 文件 | 改动 |
-|------|------|
-| `platformkey/create.go` | 删除 `pkgbudget.LoadBudgetContext`、`OpenDepartmentPeriod`、`ComputeRemainForMapping`、`_ = remain` |
+| 文件                    | 改动                                                                                                                        |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `platformkey/create.go` | 删除 `pkgbudget.LoadBudgetContext`、`OpenDepartmentPeriod`、`ComputeRemainForMapping`、`_ = remain`                         |
 | `platformkey/update.go` | 删除 `pkgbudget.LoadBudgetContext`、`OpenDepartmentPeriod`、`ComputeRemainForMapping`、`CombinedKeySummaries().UpdateBatch` |
-| `platformkey/update.go` | 删除 `pkgbudget` import |
+| `platformkey/update.go` | 删除 `pkgbudget` import                                                                                                     |
 
 ### Phase 2：修复 bootstrap.go（替换 MaxInt32）
 
 **读 wallet_remain_quota 路径**：`d.Store.Company().GetByID(ctx, companyID)` → `co.WalletRemainQuota`
 
-| 文件 | 改动 |
-|------|------|
+| 文件                     | 改动                                                                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
 | `provision/bootstrap.go` | 新建 user 时 `Quota: co.WalletRemainQuota`；已有 user 时 `TopUp(walletCompanyID, max(0, co.WalletRemainQuota - currentQuota))` |
-| | 删除 `math` import 和 MaxInt32 常量 |
+|                          | 删除 `math` import 和 MaxInt32 常量                                                                                            |
 
 ### Phase 3：充值时 PreCreditFunc 同步（已实现）
 
@@ -267,19 +272,19 @@ func resolveDepartmentID(ctx context.Context, d syncdeps.Deps, key types.Platfor
 
 **实现方式**：`syncQuotaToNewAPI` 作为 `PreCreditFunc` 传入 `CreditFromLot`，在本地事务 commit 前执行。失败阻止充值。
 
-| 文件 | 改动 |
-|------|------|
-| `billing/service.go` | `service` struct 加 `quotaSyncer QuotaSyncer`；`syncQuotaToNewAPI` 实现 PreCreditFunc 接口 |
-| `billing/lot/consume.go` | `CreditFromLot` 签名加 `beforeCommit ...PreCreditFunc` |
-| `billing/lot_confirm.go` | 4 个路径传入 `s.syncQuotaToNewAPI` |
-| `integration/newapi/user.go` | `ManageUser` 实现 `add_quota` + `mode: "add"` |
+| 文件                         | 改动                                                                                       |
+| ---------------------------- | ------------------------------------------------------------------------------------------ |
+| `billing/service.go`         | `service` struct 加 `quotaSyncer QuotaSyncer`；`syncQuotaToNewAPI` 实现 PreCreditFunc 接口 |
+| `billing/lot/consume.go`     | `CreditFromLot` 签名加 `beforeCommit ...PreCreditFunc`                                     |
+| `billing/lot_confirm.go`     | 4 个路径传入 `s.syncQuotaToNewAPI`                                                         |
+| `integration/newapi/user.go` | `ManageUser` 实现 `add_quota` + `mode: "add"`                                              |
 
 ### Phase 4：测试
 
-| 文件 | 改动 |
-|------|------|
+| 文件                | 改动                                          |
+| ------------------- | --------------------------------------------- |
 | 现有 bootstrap test | 断言调用 TopUp with wallet_remain_quota delta |
-| 新增 billing test | 验证充值后 TopUp 被调用 |
+| 新增 billing test   | 验证充值后 TopUp 被调用                       |
 
 ---
 

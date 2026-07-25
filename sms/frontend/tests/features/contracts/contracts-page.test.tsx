@@ -37,7 +37,9 @@ const mockContractsResponse = {
 
 describe('ContractsPage', () => {
   beforeEach(() => {
-    useSession.setState({ user: { id: 'u1', username: 'admin', realName: '管理员', role: 'admin' } })
+    useSession.setState({
+      user: { id: 'u1', username: 'admin', realName: '管理员', role: 'admin' },
+    })
   })
 
   it('renders contract list from API', async () => {
@@ -58,7 +60,9 @@ describe('ContractsPage', () => {
 
   it('shows 新建合同 button for admin', async () => {
     const apis = createMockApis({
-      contractsApi: { list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }) },
+      contractsApi: {
+        list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }),
+      },
       suppliersApi: { options: vi.fn().mockResolvedValue([]) },
     })
 
@@ -70,9 +74,13 @@ describe('ContractsPage', () => {
   })
 
   it('hides 新建合同 button for viewer', async () => {
-    useSession.setState({ user: { id: 'u2', username: 'viewer', realName: '查看者', role: 'viewer' } })
+    useSession.setState({
+      user: { id: 'u2', username: 'viewer', realName: '查看者', role: 'viewer' },
+    })
     const apis = createMockApis({
-      contractsApi: { list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }) },
+      contractsApi: {
+        list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }),
+      },
       suppliersApi: { options: vi.fn().mockResolvedValue([]) },
     })
 
@@ -98,15 +106,15 @@ describe('ContractsPage', () => {
     fireEvent.change(input, { target: { value: 'HT-X' } })
 
     await waitFor(() => {
-      expect(listFn).toHaveBeenCalledWith(
-        expect.objectContaining({ keyword: 'HT-X', page: 1 }),
-      )
+      expect(listFn).toHaveBeenCalledWith(expect.objectContaining({ keyword: 'HT-X', page: 1 }))
     })
   })
 
   it('shows empty state when no contracts', async () => {
     const apis = createMockApis({
-      contractsApi: { list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }) },
+      contractsApi: {
+        list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }),
+      },
       suppliersApi: { options: vi.fn().mockResolvedValue([]) },
     })
 

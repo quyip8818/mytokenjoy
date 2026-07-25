@@ -172,10 +172,10 @@ func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, me
 
 ### billing 数据何时变？
 
-| 触发场景 | 影响字段 | 是否 bump authz_revision |
-|----------|----------|------------------------|
-| 管理员改公司 billing currency | `companies.billing_currency` | **需要确认** |
-| 管理员改币种 quota_per_unit | `currencies.quota_per_unit` | **需要确认** |
+| 触发场景                      | 影响字段                     | 是否 bump authz_revision |
+| ----------------------------- | ---------------------------- | ------------------------ |
+| 管理员改公司 billing currency | `companies.billing_currency` | **需要确认**             |
+| 管理员改币种 quota_per_unit   | `currencies.quota_per_unit`  | **需要确认**             |
 
 **关键前提**：`authz_revision` 只在权限相关变更时 bump（角色变更、成员增删）。如果 billing 配置变更不 bump revision，缓存会返回过期的 billing 数据。
 
@@ -205,12 +205,12 @@ func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, me
 
 ## 改进后性能对比
 
-| 场景 | 变更前 DB 查询 | 变更后 DB 查询 |
-|------|---------------|---------------|
-| 稳态（连续请求，revision 缓存内） | 2 | **0** |
-| revision TTL 边界（5s 一次） | 3 | **1** |
-| revision 变更（cache miss） | 4 | **3** |
-| 冷启动首次请求 | 4 | **3** |
+| 场景                              | 变更前 DB 查询 | 变更后 DB 查询 |
+| --------------------------------- | -------------- | -------------- |
+| 稳态（连续请求，revision 缓存内） | 2              | **0**          |
+| revision TTL 边界（5s 一次）      | 3              | **1**          |
+| revision 变更（cache miss）       | 4              | **3**          |
+| 冷启动首次请求                    | 4              | **3**          |
 
 **稳态 QPS 节省**：假设 1000 req/s → 每秒减少 2000 次 Postgres 查询。
 
@@ -236,9 +236,9 @@ func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, me
 
 ## 文件清单
 
-| 文件 | 变更类型 |
-|------|---------|
-| `internal/identity/authz/cache.go` | 扩展 cacheValue 结构 + Get/Put 签名 |
-| `internal/identity/authz/service.go` | 调整 GetSessionContext 逻辑 |
-| billing 变更 repo（待确认） | 加 bump authz_revision |
-| `tests/identity/authz/session_cache_test.go` | 可选：加 billing 缓存断言 |
+| 文件                                         | 变更类型                            |
+| -------------------------------------------- | ----------------------------------- |
+| `internal/identity/authz/cache.go`           | 扩展 cacheValue 结构 + Get/Put 签名 |
+| `internal/identity/authz/service.go`         | 调整 GetSessionContext 逻辑         |
+| billing 变更 repo（待确认）                  | 加 bump authz_revision              |
+| `tests/identity/authz/session_cache_test.go` | 可选：加 billing 缓存断言           |

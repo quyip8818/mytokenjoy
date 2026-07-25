@@ -7,28 +7,28 @@
 
 ## 1. 原则
 
-1. 一个开关只管一件事。  
-2. 开了就要配齐，缺了就不启动。  
-3. 密钥和 Cookie 显式配置，代码里无 dev fallback。  
+1. 一个开关只管一件事。
+2. 开了就要配齐，缺了就不启动。
+3. 密钥和 Cookie 显式配置，代码里无 dev fallback。
 4. 不使用 `APP_PROFILE` / `DEMO_TODAY` / `MinimalSeed` 等旧开关；以 `DEPLOY_ENV` + `BOOTSTRAP_MODE` 为准。
 
 ---
 
 ## 2. 核心环境变量
 
-| 变量 | 默认 | 职责 |
-| --- | --- | --- |
-| `DEPLOY_ENV` | `local` | `local` / `staging` / `production`；仅 `production` 触发生产契约 fail-fast |
-| `BOOTSTRAP_MODE` | `none` | `none` / `prod` / `minimal` / `demo`；空库引导策略（见 §5） |
-| `SECURE_COOKIE` | `false` | Set-Cookie Secure；`production` 下必须为 `true` |
-| `CLOCK_ANCHOR` | 空 | 可选 `YYYY-MM-DD`；空=系统时钟；固定看板「今天」与种子参考日期 |
-| `SIMULATE_DELAY` | `false` | 模拟延迟；`production` 下必须为 `false` |
-| `DATA_SOURCE_CREDENTIAL_KEY` | **必填** | 数据源凭证加密；非法或不存在则启动失败 |
+| 变量                         | 默认     | 职责                                                                       |
+| ---------------------------- | -------- | -------------------------------------------------------------------------- |
+| `DEPLOY_ENV`                 | `local`  | `local` / `staging` / `production`；仅 `production` 触发生产契约 fail-fast |
+| `BOOTSTRAP_MODE`             | `none`   | `none` / `prod` / `minimal` / `demo`；空库引导策略（见 §5）                |
+| `SECURE_COOKIE`              | `false`  | Set-Cookie Secure；`production` 下必须为 `true`                            |
+| `CLOCK_ANCHOR`               | 空       | 可选 `YYYY-MM-DD`；空=系统时钟；固定看板「今天」与种子参考日期             |
+| `SIMULATE_DELAY`             | `false`  | 模拟延迟；`production` 下必须为 `false`                                    |
+| `DATA_SOURCE_CREDENTIAL_KEY` | **必填** | 数据源凭证加密；非法或不存在则启动失败                                     |
 
-| `DEPLOY_ENV` | 行为 |
-| --- | --- |
+| `DEPLOY_ENV`        | 行为                                                             |
+| ------------------- | ---------------------------------------------------------------- |
 | `local` / `staging` | 启动日志标识；不强制生产契约（`staging` 可故意缺 NewAPI 做预发） |
-| `production` | `validate()` 强制 §7 生产契约；缺任一项即启动失败 |
+| `production`        | `validate()` 强制 §7 生产契约；缺任一项即启动失败                |
 
 典型本地：`DEPLOY_ENV=local` + `BOOTSTRAP_MODE=demo` + 可选 `CLOCK_ANCHOR`。  
 典型生产：`DEPLOY_ENV=production` + §7 全表。
@@ -67,11 +67,11 @@ env.Parse
 
 **能力组合**（任意 deploy env）：
 
-| 条件 | 要求 |
-| --- | --- |
-| `NEW_API_GATEWAY_ENABLED=true` | `NEW_API_ENABLED=true` |
-| `NEW_API_ENABLED=true` | `NEW_API_BASE_URL`、`NEW_API_ADMIN_TOKEN`；URL 无 path |
-| `LOG_DATABASE_URL` 非空 | `NEW_API_WEBHOOK_SECRET` 必填 |
+| 条件                           | 要求                                                   |
+| ------------------------------ | ------------------------------------------------------ |
+| `NEW_API_GATEWAY_ENABLED=true` | `NEW_API_ENABLED=true`                                 |
+| `NEW_API_ENABLED=true`         | `NEW_API_BASE_URL`、`NEW_API_ADMIN_TOKEN`；URL 无 path |
+| `LOG_DATABASE_URL` 非空        | `NEW_API_WEBHOOK_SECRET` 必填                          |
 
 **生产契约**：见 §7；实现为 `validateProductionContract()`，由 `IsProductionDeploy()` 触发。
 
@@ -106,15 +106,15 @@ func NowUTC(clk Clock) time.Time
 
 ### 4.1 调用约定
 
-| 组件 | 用法 |
-| --- | --- |
-| `config.Config` | `Clock()` 解析 `CLOCK_ANCHOR` |
-| `domain/dashboard`、`memberanalytics` | 构造器内 `clock: cfg.Clock()` |
-| `domain/budget`、`keys`、`newapisync` | `Load*(..., cfg.Clock())` |
-| `domain/gateway/precheck` | `GatewayPrecheck.LoadPrecheckContext`；SQL 内按 `org_nodes.period` + `Clock` 算 `period_key` |
-| `domain/usage/ingest` | `OccurrenceDepartmentPeriod(..., OccurredAt)` + `OpenDepartmentPeriod(..., cfg.Clock())` → `Apply` |
-| `pkg/budget` | 开账工厂见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)；`Load*` 收 `clock.Clock` |
-| `org/core` `BudgetPeriod()` | 返回 `pkgbudget.PeriodMonthly`；实时 period_key 由 Clock 解析 |
+| 组件                                  | 用法                                                                                               |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `config.Config`                       | `Clock()` 解析 `CLOCK_ANCHOR`                                                                      |
+| `domain/dashboard`、`memberanalytics` | 构造器内 `clock: cfg.Clock()`                                                                      |
+| `domain/budget`、`keys`、`newapisync` | `Load*(..., cfg.Clock())`                                                                          |
+| `domain/gateway/precheck`             | `GatewayPrecheck.LoadPrecheckContext`；SQL 内按 `org_nodes.period` + `Clock` 算 `period_key`       |
+| `domain/usage/ingest`                 | `OccurrenceDepartmentPeriod(..., OccurredAt)` + `OpenDepartmentPeriod(..., cfg.Clock())` → `Apply` |
+| `pkg/budget`                          | 开账工厂见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)；`Load*` 收 `clock.Clock`      |
+| `org/core` `BudgetPeriod()`           | 返回 `pkgbudget.PeriodMonthly`；实时 period_key 由 Clock 解析                                      |
 
 账期语义、双轨与护栏全文见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。  
 域代码不得直接读 `CLOCK_ANCHOR` env。
@@ -125,19 +125,19 @@ func NowUTC(clk Clock) time.Time
 
 入口：`seed.Init`（由 `store/postgres.New` 调用，schema DDL 之后）。
 
-| `BOOTSTRAP_MODE` | 行为 |
-| --- | --- |
-| `none` | 仅检查 DB 非空，否则启动失败 |
-| `prod` | `bootstrap.ApplyBootstrap`（currencies/companies/permissions/roles/org root/admin/models）+ `ReconcilePresetRoles`；不写 demo 数据 |
-| `minimal` | 同 prod bootstrap + reconcile；若 DB 空则追加精简 demo snapshot（少量部门/成员/key） |
-| `demo` | 同 prod bootstrap + reconcile；若 DB 空则追加完整 demo snapshot + `runtime.ApplyDemo`（buckets/recharge/ledger） |
+| `BOOTSTRAP_MODE` | 行为                                                                                                                               |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `none`           | 仅检查 DB 非空，否则启动失败                                                                                                       |
+| `prod`           | `bootstrap.ApplyBootstrap`（currencies/companies/permissions/roles/org root/admin/models）+ `ReconcilePresetRoles`；不写 demo 数据 |
+| `minimal`        | 同 prod bootstrap + reconcile；若 DB 空则追加精简 demo snapshot（少量部门/成员/key）                                               |
+| `demo`           | 同 prod bootstrap + reconcile；若 DB 空则追加完整 demo snapshot + `runtime.ApplyDemo`（buckets/recharge/ledger）                   |
 
 **每次启动执行**：`ApplyBootstrap`（幂等 ON CONFLICT DO NOTHING）+ `ReconcilePresetRoles`（只增不删 preset role grants）。
 
 **prod 模式下 admin 创建**：由 `BOOTSTRAP_CONFIG_PATH` YAML 配置（见 `seed/bootstrap/config.go`）。未配置时使用 `DefaultConfig()`。
 
-| 环境变量 | 默认 | 职责 |
-| --- | --- | --- |
+| 环境变量                | 默认             | 职责                             |
+| ----------------------- | ---------------- | -------------------------------- |
 | `BOOTSTRAP_CONFIG_PATH` | 空（用内嵌默认） | 指向 bootstrap YAML 配置文件路径 |
 
 非空库：bootstrap 全部 `ON CONFLICT DO NOTHING`，幂等无副作用。`ReconcilePresetRoles` 只补齐新增 permission grants。
@@ -150,7 +150,7 @@ func NowUTC(clk Clock) time.Time
 
 ## 6. HTTP 与安全
 
-- Cookie：`SecureCookie: d.Config.SecureCookie`（`http/deps/public.go`）。  
+- Cookie：`SecureCookie: d.Config.SecureCookie`（`http/deps/public.go`）。
 - 凭证：`CredentialKey()` 只解析 `DATA_SOURCE_CREDENTIAL_KEY`；`DevDefaultKey()` 仅供单元测试直用，生产路径不可调用。
 
 ---
@@ -159,27 +159,27 @@ func NowUTC(clk Clock) time.Time
 
 `validate()` fail-fast，运维 checklist 与代码同表：
 
-| 变量 | 要求 |
-| --- | --- |
-| `BOOTSTRAP_MODE` | `none` |
-| `SECURE_COOKIE` | `true` |
-| `NEW_API_ENABLED` | `true` |
-| `NEW_API_GATEWAY_ENABLED` | `true` |
-| `LOG_DATABASE_URL` | 已设置 |
-| `NEW_API_WEBHOOK_SECRET` | 已设置 |
+| 变量                         | 要求         |
+| ---------------------------- | ------------ |
+| `BOOTSTRAP_MODE`             | `none`       |
+| `SECURE_COOKIE`              | `true`       |
+| `NEW_API_ENABLED`            | `true`       |
+| `NEW_API_GATEWAY_ENABLED`    | `true`       |
+| `LOG_DATABASE_URL`           | 已设置       |
+| `NEW_API_WEBHOOK_SECRET`     | 已设置       |
 | `DATA_SOURCE_CREDENTIAL_KEY` | 已设置且合法 |
-| `SIMULATE_DELAY` | `false` |
-| `CLOCK_ANCHOR` | 未设置 |
+| `SIMULATE_DELAY`             | `false`      |
+| `CLOCK_ANCHOR`               | 未设置       |
 
 ---
 
 ## 8. 应用装配
 
-| 位置 | 约定 |
-| --- | --- |
-| `compose_domain_wire` / `compose_domain` | 构造器只收 `cfg`；账期路径内部 `cfg.Clock()` |
-| `compose_http` | `wireGateway` / `wireIdentity`：`GatewayPrecheck()` + `cfg.Clock()` → `PrecheckService`（无 `WalletService` / `river.Client`） |
-| `compose_infra` | `newapisync.New(cfg, ...)`；`SimulateDelay` 读 `cfg.SimulateDelay` |
+| 位置                                     | 约定                                                                                                                           |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `compose_domain_wire` / `compose_domain` | 构造器只收 `cfg`；账期路径内部 `cfg.Clock()`                                                                                   |
+| `compose_http`                           | `wireGateway` / `wireIdentity`：`GatewayPrecheck()` + `cfg.Clock()` → `PrecheckService`（无 `WalletService` / `river.Client`） |
+| `compose_infra`                          | `newapisync.New(cfg, ...)`；`SimulateDelay` 读 `cfg.SimulateDelay`                                                             |
 
 ---
 
@@ -189,19 +189,19 @@ func NowUTC(clk Clock) time.Time
 
 常用 option：`WithBootstrapMode`、`WithClockAnchor`、`WithDeployEnv`、`WithSecureCookie`、`WithProductionContract`。
 
-| Helper | 用途 |
-| --- | --- |
-| `NewSecureCookieRouter` | 仅 `SECURE_COOKIE=true` |
+| Helper                                             | 用途                        |
+| -------------------------------------------------- | --------------------------- |
+| `NewSecureCookieRouter`                            | 仅 `SECURE_COOKIE=true`     |
 | `NewTestStoreWithDemoRuntime` / `ApplyDemoRuntime` | 显式写入 usage/充值演示数据 |
-| `WithProductionContract` | 填满 §7 以测生产契约加载 |
+| `WithProductionContract`                           | 填满 §7 以测生产契约加载    |
 
 测试构造以 `WithProductionContract`、`NewSecureCookieRouter`、`ApplyDemoRuntime` 等为准；无 `WithProfile` / `WithMinimalSeed` 类 helper。
 
 **开发循环：**
 
-| 命令 | 用途 |
-| --- | --- |
-| `make test-fast` | 仅 `tests/pkg/...`，无 `DATABASE_URL` |
+| 命令             | 用途                                      |
+| ---------------- | ----------------------------------------- |
+| `make test-fast` | 仅 `tests/pkg/...`，无 `DATABASE_URL`     |
 | `make test-unit` | 全量 `go test -tags=testhook ./tests/...` |
 
 详见 [Backend-测试优化.md §5.2-A](./Backend-测试优化.md)。
@@ -210,19 +210,19 @@ func NowUTC(clk Clock) time.Time
 
 ## 10. 源码索引
 
-| 路径 | 职责 |
-| --- | --- |
-| `internal/config/*.go` | Load / validate / Clock / Bootstrap / SeedReferenceDate |
-| `internal/pkg/clock/clock.go` | Clock 接口 |
-| `seed/init.go` | `seed.Init` — 数据引导总入口 |
-| `seed/bootstrap/` | `ApplyBootstrap` / `ReconcilePresetRoles` / bootstrap config |
-| `seed/runtime/demo.go` | `ApplyDemo`（demo 运行时数据） |
-| `internal/http/deps/public.go` | SecureCookie |
-| `internal/domain/org/core/credentials.go` | CredentialKey |
-| `tests/testutil/config.go` | TestConfig + options |
-| `tests/testutil/pg/` | 测试 schema 模板与 clone |
-| `tests/config/config_test.go` | 生产 / local / staging 分层校验 |
-| `apps/backend/.env.example` | 本地与生产样例 |
+| 路径                                      | 职责                                                         |
+| ----------------------------------------- | ------------------------------------------------------------ |
+| `internal/config/*.go`                    | Load / validate / Clock / Bootstrap / SeedReferenceDate      |
+| `internal/pkg/clock/clock.go`             | Clock 接口                                                   |
+| `seed/init.go`                            | `seed.Init` — 数据引导总入口                                 |
+| `seed/bootstrap/`                         | `ApplyBootstrap` / `ReconcilePresetRoles` / bootstrap config |
+| `seed/runtime/demo.go`                    | `ApplyDemo`（demo 运行时数据）                               |
+| `internal/http/deps/public.go`            | SecureCookie                                                 |
+| `internal/domain/org/core/credentials.go` | CredentialKey                                                |
+| `tests/testutil/config.go`                | TestConfig + options                                         |
+| `tests/testutil/pg/`                      | 测试 schema 模板与 clone                                     |
+| `tests/config/config_test.go`             | 生产 / local / staging 分层校验                              |
+| `apps/backend/.env.example`               | 本地与生产样例                                               |
 
 ---
 

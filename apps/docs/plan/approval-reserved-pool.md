@@ -81,16 +81,17 @@ FOREIGN KEY (company_id, owner_id) REFERENCES members(company_id, id)
 ```
 
 **约束**：
+
 - OwnerID 必须在 MemberIDs 中（或为 NULL）
 - **Owner 不能从 MemberIDs 中移除**，除非同时更换/清空 OwnerID
 - 管理员通过 UpdateProject 设置/更换 Owner
 
 ### 2. 新增审批类型（✅ 类型已定义，handler 待实现）
 
-| 类型 | 申请人 | 审批人 | 资金流向 |
-|------|--------|--------|---------|
-| `project_budget` | 项目 Owner | 管理员 (`budget:approve`) | 部门可分配余额 → project.Budget |
-| `project_member_budget` | 项目成员 | 项目 Owner (`caller==ownerID`) | project 未分配余额 → member_budget |
+| 类型                    | 申请人     | 审批人                         | 资金流向                           |
+| ----------------------- | ---------- | ------------------------------ | ---------------------------------- |
+| `project_budget`        | 项目 Owner | 管理员 (`budget:approve`)      | 部门可分配余额 → project.Budget    |
+| `project_member_budget` | 项目成员   | 项目 Owner (`caller==ownerID`) | project 未分配余额 → member_budget |
 
 > `ApprovalTypeProjectBudget`、`ApprovalTypeProjectMemberBudget` 常量及 `ProjectBudgetApprovalMeta`、`ProjectMemberBudgetApprovalMeta` struct 已在 scope_id 重构中定义于 `domain/types/approval.go`。
 
@@ -99,6 +100,7 @@ FOREIGN KEY (company_id, owner_id) REFERENCES members(company_id, id)
 Meta struct 已定义（见 `domain/types/approval.go`），scope_id = project_id。
 
 **流程**：
+
 - Validate: applicant == project.OwnerID, amount > 0
 - PreApprove: 部门可分配余额 >= amount
 - OnApprovedTx: lock → 验证余额 → project.Budget += amount → persist
@@ -109,6 +111,7 @@ Meta struct 已定义（见 `domain/types/approval.go`），scope_id = project_i
 Meta struct 已定义（见 `domain/types/approval.go`），scope_id = project_id。
 
 **流程**：
+
 - Validate: applicant 在 project.MemberIDs 中, amount > 0
 - PreApprove: project.Budget - Σ已分配 member_budget >= amount
 - OnApprovedTx: lock → 验证余额 → project.MemberBudgets[applicant] += amount → persist
@@ -123,15 +126,18 @@ Meta struct 已定义（见 `domain/types/approval.go`），scope_id = project_i
 ### 项目详情页 `ProjectDetail`
 
 **管理员视角**（不变 + 增加 Owner 设置）：
+
 - `ProjectSettingsForm` 增加 Owner 选择 → 复用 `BudgetMemberPicker`（从项目 members 中单选）
 - 编辑成员时，如果试图移除 Owner → toast 提示"请先更换负责人"
 
 **Owner 视角**（新增按钮）：
+
 - `ProjectDetail` actions 区域增加「申请追加额度」Button
 - 点击 → `openWithRefresh('approval-submit', { defaultType: 'project_budget', projectId, projectName })`
 - 模式与 `member-keys-page-shell.tsx` 的「申请额度」按钮完全一致
 
 **成员视角**（项目成员列表中新增按钮）：
+
 - `ProjectMembersSection` 表格增加「额度」列（显示 member_budget）
 - 当前用户行增加「申请额度」按钮
 - 点击 → `openWithRefresh('approval-submit', { defaultType: 'project_member_budget', projectId, projectName })`
@@ -142,13 +148,18 @@ Select 增加两个选项（根据 payload 中 projectId 是否存在控制显�
 
 ```tsx
 // 当 payload.projectId 存在时才显示项目相关选项
-{projectId && <>
-  <SelectItem value="project_budget">项目额度追加</SelectItem>
-  <SelectItem value="project_member_budget">项目成员额度</SelectItem>
-</>}
+{
+  projectId && (
+    <>
+      <SelectItem value="project_budget">项目额度追加</SelectItem>
+      <SelectItem value="project_member_budget">项目成员额度</SelectItem>
+    </>
+  )
+}
 ```
 
 metadata 构造增加分支：
+
 ```tsx
 type === 'project_budget' || type === 'project_member_budget'
   ? { projectId, projectName, amount: displayToQuota(...), reason }
@@ -174,6 +185,7 @@ type === 'project_budget' || type === 'project_member_budget'
 ### 前置依赖（✅ 已完成）
 
 scope_id 重构已合入，以下改动已就绪：
+
 - `approval_requests` 表用 `scope_id` 替代 `department_id`/`department_name`
 - `ApprovalTypeProjectBudget` / `ApprovalTypeProjectMemberBudget` 常量 + Meta struct 已定义
 - 前端 `ApprovalType` union 已扩展、`TYPE_LABELS` 已更新
@@ -182,38 +194,38 @@ scope_id 重构已合入，以下改动已就绪：
 
 ### 后端
 
-| # | 文件 | 改动 |
-|---|------|------|
-| 1 | `store/postgres/schema.sql` | `projects` 表加 `owner_id UUID`（直接改 DDL，不做 migration） |
-| 2 | `domain/types/budget.go` | Project 加 `OwnerID *uuid.UUID`；UpdateProjectInput 加 `OwnerID *uuid.UUID` |
-| 3 | `store/postgres/budget_repo_projects.go` | SELECT/INSERT/UPDATE 加 owner_id 列 |
-| 4 | `domain/budget/projects.go` | CreateProject/UpdateProject 处理 OwnerID |
-| 5 | `domain/budget/projects.go` | 验证：OwnerID ∈ MemberIDs；移除成员时禁止移除 Owner |
-| 6 | `domain/budget/project_budget_approval.go` | 新文件：ProjectBudgetApprovalHandler（owner→管理员） |
-| 7 | `domain/budget/project_member_budget_approval.go` | 新文件：ProjectMemberBudgetApprovalHandler（成员→owner） |
-| 8 | `app/compose_domain_wire.go` | 注册两个新 handler |
-| 9 | `http/handler/approval/handler.go` | `decorateCanResolve`：`project_member_budget` 类型改为 caller==ownerID（批量查一次涉及的 project scopeIDs） |
-| 10 | `http/handler/approval/handler.go` | approve/reject 端点：`project_member_budget` 类型改为校验 caller==ownerID（不要求 budget:approve） |
+| #   | 文件                                              | 改动                                                                                                        |
+| --- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 1   | `store/postgres/schema.sql`                       | `projects` 表加 `owner_id UUID`（直接改 DDL，不做 migration）                                               |
+| 2   | `domain/types/budget.go`                          | Project 加 `OwnerID *uuid.UUID`；UpdateProjectInput 加 `OwnerID *uuid.UUID`                                 |
+| 3   | `store/postgres/budget_repo_projects.go`          | SELECT/INSERT/UPDATE 加 owner_id 列                                                                         |
+| 4   | `domain/budget/projects.go`                       | CreateProject/UpdateProject 处理 OwnerID                                                                    |
+| 5   | `domain/budget/projects.go`                       | 验证：OwnerID ∈ MemberIDs；移除成员时禁止移除 Owner                                                         |
+| 6   | `domain/budget/project_budget_approval.go`        | 新文件：ProjectBudgetApprovalHandler（owner→管理员）                                                        |
+| 7   | `domain/budget/project_member_budget_approval.go` | 新文件：ProjectMemberBudgetApprovalHandler（成员→owner）                                                    |
+| 8   | `app/compose_domain_wire.go`                      | 注册两个新 handler                                                                                          |
+| 9   | `http/handler/approval/handler.go`                | `decorateCanResolve`：`project_member_budget` 类型改为 caller==ownerID（批量查一次涉及的 project scopeIDs） |
+| 10  | `http/handler/approval/handler.go`                | approve/reject 端点：`project_member_budget` 类型改为校验 caller==ownerID（不要求 budget:approve）          |
 
 ### 前端
 
-| # | 文件 | 改动 |
-|---|------|------|
-| 1 | `api/types/budget.ts` | Project/ProjectView 加 `ownerId?: string` |
-| 2 | `features/workflow/payloads/keys.ts` | `'approval-submit'` payload 加 `projectId?`, `projectName?` |
-| 3 | `features/workflow/workflows/approval-submit.tsx` | Select 加两个选项（projectId 存在时显示）；metadata 构造加分支 |
-| 4 | `features/workflow/workflows/approval-review.tsx` | 展示项目名（从 meta.projectName 读取） |
-| 5 | `features/budget/components/project-detail.tsx` | 当前用户是 Owner 时显示「申请追加额度」Button |
-| 6 | `features/budget/components/project-members-section.tsx` | 表格加「额度」列；当前用户行加「申请额度」Button |
-| 7 | `features/budget/components/project-settings-form.tsx` | 加 Owner 选择（复用 `BudgetMemberPicker` 做单选） |
+| #   | 文件                                                     | 改动                                                           |
+| --- | -------------------------------------------------------- | -------------------------------------------------------------- |
+| 1   | `api/types/budget.ts`                                    | Project/ProjectView 加 `ownerId?: string`                      |
+| 2   | `features/workflow/payloads/keys.ts`                     | `'approval-submit'` payload 加 `projectId?`, `projectName?`    |
+| 3   | `features/workflow/workflows/approval-submit.tsx`        | Select 加两个选项（projectId 存在时显示）；metadata 构造加分支 |
+| 4   | `features/workflow/workflows/approval-review.tsx`        | 展示项目名（从 meta.projectName 读取）                         |
+| 5   | `features/budget/components/project-detail.tsx`          | 当前用户是 Owner 时显示「申请追加额度」Button                  |
+| 6   | `features/budget/components/project-members-section.tsx` | 表格加「额度」列；当前用户行加「申请额度」Button               |
+| 7   | `features/budget/components/project-settings-form.tsx`   | 加 Owner 选择（复用 `BudgetMemberPicker` 做单选）              |
 
 ### 测试
 
-| # | 文件 | 覆盖 |
-|---|------|------|
-| 1 | `tests/domain/budget/project_budget_approval_test.go` | Owner 发起、管理员批、部门余额扣减 |
-| 2 | `tests/domain/budget/project_member_budget_approval_test.go` | 成员发起、Owner 批、member_budget 增加 |
-| 3 | `tests/domain/budget/service_test.go` | Owner ∈ MemberIDs 约束、禁止移除 Owner |
+| #   | 文件                                                         | 覆盖                                   |
+| --- | ------------------------------------------------------------ | -------------------------------------- |
+| 1   | `tests/domain/budget/project_budget_approval_test.go`        | Owner 发起、管理员批、部门余额扣减     |
+| 2   | `tests/domain/budget/project_member_budget_approval_test.go` | 成员发起、Owner 批、member_budget 增加 |
+| 3   | `tests/domain/budget/service_test.go`                        | Owner ∈ MemberIDs 约束、禁止移除 Owner |
 
 ---
 

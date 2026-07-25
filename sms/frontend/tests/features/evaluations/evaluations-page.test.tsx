@@ -54,7 +54,9 @@ const mockEvaluationsResponse = {
 
 describe('EvaluationsPage', () => {
   beforeEach(() => {
-    useSession.setState({ user: { id: 'u1', username: 'admin', realName: '管理员', role: 'admin' } })
+    useSession.setState({
+      user: { id: 'u1', username: 'admin', realName: '管理员', role: 'admin' },
+    })
   })
 
   it('renders evaluation list from API', async () => {
@@ -109,7 +111,9 @@ describe('EvaluationsPage', () => {
   })
 
   it('hides 新建评估 button for viewer', async () => {
-    useSession.setState({ user: { id: 'u2', username: 'viewer', realName: '查看者', role: 'viewer' } })
+    useSession.setState({
+      user: { id: 'u2', username: 'viewer', realName: '查看者', role: 'viewer' },
+    })
     const apis = createMockApis({
       evaluationsApi: {
         list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }),
@@ -143,9 +147,7 @@ describe('EvaluationsPage', () => {
     fireEvent.change(input, { target: { value: '2024-Q2' } })
 
     await waitFor(() => {
-      expect(listFn).toHaveBeenCalledWith(
-        expect.objectContaining({ period: '2024-Q2', page: 1 }),
-      )
+      expect(listFn).toHaveBeenCalledWith(expect.objectContaining({ period: '2024-Q2', page: 1 }))
     })
   })
 

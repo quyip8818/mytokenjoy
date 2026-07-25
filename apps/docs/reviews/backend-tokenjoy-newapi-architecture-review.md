@@ -31,18 +31,18 @@ SDK 请求 (sk-xxx)                          浏览器 (session cookie)
 
 ## 2. 分层结构
 
-| 层 | 包 | 职责 |
-|----|-----|------|
-| 入口 | `cmd/server` | config → app.New → http.Server + graceful shutdown |
-| 组合根 | `internal/app` | DI 装配: infra → domain services → registry → router + workers |
-| Domain | `internal/domain/*` | 业务逻辑，每个 domain 定义自己的 narrow Store interface |
-| HTTP | `internal/http` | chi router + handler + middleware，只依赖 domain Service interface |
-| Adapter | `internal/adapter` | domain port → infra 桥接 (enqueuer/budget ops/etc.) |
-| Identity | `internal/identity` | authn (session/credential) + authz (permission check) |
-| Infra | `internal/infra` | River/Redis/notification channels/scheduler |
-| Integration | `internal/integration` | 外部 HTTP client (newapi/platform/datasource) |
-| Store | `internal/store` | Repository 接口定义 + postgres 实现 |
-| Pkg | `internal/pkg` | 纯函数工具 (budget calc/clock/model catalog/unit conversion) |
+| 层          | 包                     | 职责                                                               |
+| ----------- | ---------------------- | ------------------------------------------------------------------ |
+| 入口        | `cmd/server`           | config → app.New → http.Server + graceful shutdown                 |
+| 组合根      | `internal/app`         | DI 装配: infra → domain services → registry → router + workers     |
+| Domain      | `internal/domain/*`    | 业务逻辑，每个 domain 定义自己的 narrow Store interface            |
+| HTTP        | `internal/http`        | chi router + handler + middleware，只依赖 domain Service interface |
+| Adapter     | `internal/adapter`     | domain port → infra 桥接 (enqueuer/budget ops/etc.)                |
+| Identity    | `internal/identity`    | authn (session/credential) + authz (permission check)              |
+| Infra       | `internal/infra`       | River/Redis/notification channels/scheduler                        |
+| Integration | `internal/integration` | 外部 HTTP client (newapi/platform/datasource)                      |
+| Store       | `internal/store`       | Repository 接口定义 + postgres 实现                                |
+| Pkg         | `internal/pkg`         | 纯函数工具 (budget calc/clock/model catalog/unit conversion)       |
 
 **依赖方向**: domain 只依赖 interface (Store/Port)，不依赖 integration/infra 实现。
 
@@ -109,19 +109,19 @@ Update/Revoke/Rotate 类似: 本地状态先变更 → River job 同步到 NewAP
 
 River (PostgreSQL job queue) 注册的 workers:
 
-| Worker | 触发 | 作用 |
-|--------|------|------|
-| ingest | 每条 consume_log | 用量计费核心 |
-| ingest_reconcile | 定时/手动 | 批量补偿未处理的 log |
-| overrun | ingest 判断 remain≤0 | 多层预算评估 → 禁用 key |
-| rebalance | budget 变更 | 重算 combined_key_remain |
-| newapi_sync | key CRUD | TJ→NewAPI token 同步 |
-| org_sync | 组织变更 | 远程数据源同步 |
-| budget_reconcile | 定时 | 全量重算 budget_consumed |
-| dashboard_project | ingest 后 | 仪表盘投影更新 |
-| dashboard_reconcile | 定时 | 投影全量修复 |
-| watchdog | periodic | scheduler L2 → bulk enqueue |
-| notification_delivery | 事件触发 | 多渠道通知分发 |
+| Worker                | 触发                 | 作用                        |
+| --------------------- | -------------------- | --------------------------- |
+| ingest                | 每条 consume_log     | 用量计费核心                |
+| ingest_reconcile      | 定时/手动            | 批量补偿未处理的 log        |
+| overrun               | ingest 判断 remain≤0 | 多层预算评估 → 禁用 key     |
+| rebalance             | budget 变更          | 重算 combined_key_remain    |
+| newapi_sync           | key CRUD             | TJ→NewAPI token 同步        |
+| org_sync              | 组织变更             | 远程数据源同步              |
+| budget_reconcile      | 定时                 | 全量重算 budget_consumed    |
+| dashboard_project     | ingest 后            | 仪表盘投影更新              |
+| dashboard_reconcile   | 定时                 | 投影全量修复                |
+| watchdog              | periodic             | scheduler L2 → bulk enqueue |
+| notification_delivery | 事件触发             | 多渠道通知分发              |
 
 额外: `pricingsync.Worker` 作为 goroutine 运行，定时从 Platform 拉取定价写入 NewAPI。
 
@@ -158,6 +158,7 @@ River (PostgreSQL job queue) 注册的 workers:
 Gateway 热路径只有 `slog.Info` 级别拒绝日志。无 Prometheus/OTEL metrics。出问题时没有数据可查。
 
 **建议**: 添加:
+
 - `gateway_requests_total{result=allowed|rejected|rate_limited}`
 - `gateway_precheck_latency_seconds` (histogram)
 - `gateway_cache_hit_total` / `gateway_cache_miss_total`
@@ -238,6 +239,7 @@ NewAPI PUT 全量替换。TJ 每次 update 先 GET 当前值 merge 再 PUT。
 ## 7. 总结
 
 这是一套设计干净的分层架构。核心优势在于:
+
 - 管控面/执行面职责分离清晰
 - Domain 间通过 exported interface 协作，无循环依赖
 - Ingest 事务设计保证了计费正确性

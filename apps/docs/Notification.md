@@ -37,13 +37,13 @@
 
 ## 渠道
 
-| 渠道 | 实现 | IsConfigured 条件 | 备注 |
-|------|------|-------------------|------|
-| `log` | slog.Info | 始终 | 审计日志，不面向用户 |
-| `in_app` | 写 notification_log + SSE push | 始终 | 用户 Inbox 展示 |
-| `webhook` | HTTP POST | `NOTIFY_WEBHOOK_URL` 非空 | 兼容旧逻辑 |
-| `email` | net/smtp | `SMTP_HOST` + `SMTP_FROM` 非空 | 通过 RecipientResolver 查 member email |
-| `sms` | Twilio REST API | `TWILIO_ACCOUNT_SID` + token + from 非空 | 通过 RecipientResolver 查 member phone |
+| 渠道      | 实现                           | IsConfigured 条件                        | 备注                                   |
+| --------- | ------------------------------ | ---------------------------------------- | -------------------------------------- |
+| `log`     | slog.Info                      | 始终                                     | 审计日志，不面向用户                   |
+| `in_app`  | 写 notification_log + SSE push | 始终                                     | 用户 Inbox 展示                        |
+| `webhook` | HTTP POST                      | `NOTIFY_WEBHOOK_URL` 非空                | 兼容旧逻辑                             |
+| `email`   | net/smtp                       | `SMTP_HOST` + `SMTP_FROM` 非空           | 通过 RecipientResolver 查 member email |
+| `sms`     | Twilio REST API                | `TWILIO_ACCOUNT_SID` + token + from 非空 | 通过 RecipientResolver 查 member phone |
 
 ### 优先级 Fallback 链
 
@@ -60,14 +60,14 @@ low:       In-App
 
 存储在 `notification_preferences` 表，按 category × channel 的矩阵：
 
-| 类别 | 含义 |
-|------|------|
-| `budget_alert` | 预算告警 |
-| `key_expiration` | Key 到期 |
-| `usage_report` | 用量报告 |
-| `security_event` | 安全事件 |
+| 类别                 | 含义     |
+| -------------------- | -------- |
+| `budget_alert`       | 预算告警 |
+| `key_expiration`     | Key 到期 |
+| `usage_report`       | 用量报告 |
+| `security_event`     | 安全事件 |
 | `system_maintenance` | 系统维护 |
-| `overrun` | 超支通知 |
+| `overrun`            | 超支通知 |
 
 用户未设置偏好时使用默认值（见 `domain/notification/types.go` 中 `CategoryDefaultChannels`）。
 
@@ -145,20 +145,20 @@ src/
 
 ## API 端点
 
-| Method | Path | 描述 |
-|--------|------|------|
-| GET | `/api/notifications` | 通知列表（分页） |
-| GET | `/api/notifications/unread-count` | 未读数量 |
-| PATCH | `/api/notifications/:id/read` | 标记已读 |
-| POST | `/api/notifications/read-all` | 全部已读 |
-| GET | `/api/notifications/capabilities` | 已配置渠道查询 |
-| GET | `/api/notifications/stream` | SSE 实时推送 |
-| GET | `/api/notifications/preferences` | 获取偏好 |
-| PUT | `/api/notifications/preferences` | 更新偏好 |
-| POST | `/api/notifications/preferences/reset` | 恢复默认 |
-| GET | `/api/notifications/admin/log` | 投递日志（管理端） |
-| GET | `/api/notifications/admin/stats` | 投递统计 |
-| POST | `/api/notifications/admin/test` | 测试发送 |
+| Method | Path                                   | 描述               |
+| ------ | -------------------------------------- | ------------------ |
+| GET    | `/api/notifications`                   | 通知列表（分页）   |
+| GET    | `/api/notifications/unread-count`      | 未读数量           |
+| PATCH  | `/api/notifications/:id/read`          | 标记已读           |
+| POST   | `/api/notifications/read-all`          | 全部已读           |
+| GET    | `/api/notifications/capabilities`      | 已配置渠道查询     |
+| GET    | `/api/notifications/stream`            | SSE 实时推送       |
+| GET    | `/api/notifications/preferences`       | 获取偏好           |
+| PUT    | `/api/notifications/preferences`       | 更新偏好           |
+| POST   | `/api/notifications/preferences/reset` | 恢复默认           |
+| GET    | `/api/notifications/admin/log`         | 投递日志（管理端） |
+| GET    | `/api/notifications/admin/stats`       | 投递统计           |
+| POST   | `/api/notifications/admin/test`        | 测试发送           |
 
 ## 环境变量
 

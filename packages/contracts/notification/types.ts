@@ -11,8 +11,7 @@ export const NOTIFICATION_CHANNEL = {
   WEBHOOK: 'webhook',
 } as const
 
-export type NotificationChannel =
-  (typeof NOTIFICATION_CHANNEL)[keyof typeof NOTIFICATION_CHANNEL]
+export type NotificationChannel = (typeof NOTIFICATION_CHANNEL)[keyof typeof NOTIFICATION_CHANNEL]
 
 // --- Priority ---
 
@@ -54,8 +53,7 @@ export const NOTIFICATION_EVENT = {
   SYSTEM_MAINTENANCE_SCHEDULED: 'system_maintenance_scheduled',
 } as const
 
-export type NotificationEventType =
-  (typeof NOTIFICATION_EVENT)[keyof typeof NOTIFICATION_EVENT]
+export type NotificationEventType = (typeof NOTIFICATION_EVENT)[keyof typeof NOTIFICATION_EVENT]
 
 // --- Status ---
 
@@ -66,8 +64,7 @@ export const NOTIFICATION_STATUS = {
   READ: 'read',
 } as const
 
-export type NotificationStatus =
-  (typeof NOTIFICATION_STATUS)[keyof typeof NOTIFICATION_STATUS]
+export type NotificationStatus = (typeof NOTIFICATION_STATUS)[keyof typeof NOTIFICATION_STATUS]
 
 // --- Notification Event (trigger payload) ---
 

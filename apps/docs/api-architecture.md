@@ -23,32 +23,32 @@ RealIP → RequestID → LoggerContext → AccessLog → Recover → SecurityHea
 
 ### 路由级中间件 (handler 内部)
 
-| 工具函数 | 作用 | 用法 |
-|---------|------|------|
-| `SessionRoutes(r, p)` | 要求有效 session (已登录) | 用户个人操作 |
-| `ReadRoutes(r, p, perms...)` | session + 至少拥有任一 permission | 管理页面读操作 |
-| `.With(RequireAnyPermission(...))` | 追加写权限守卫 | 变更操作 |
+| 工具函数                           | 作用                              | 用法           |
+| ---------------------------------- | --------------------------------- | -------------- |
+| `SessionRoutes(r, p)`              | 要求有效 session (已登录)         | 用户个人操作   |
+| `ReadRoutes(r, p, perms...)`       | session + 至少拥有任一 permission | 管理页面读操作 |
+| `.With(RequireAnyPermission(...))` | 追加写权限守卫                    | 变更操作       |
 
 ## 域路由清单
 
-| 域 | 路由前缀 | Handler 包 | 前端 Client | 权限域 |
-|---|---|---|---|---|
-| Auth | `/auth/*` | `handler/auth` | `api/auth.ts` | 无 (公开) |
-| Register | `/auth/register/*` | `handler/register` | 同 auth.ts | 无 (SaaS only) |
-| Session | `/session` | `handler/session` | `api/session.ts` | 无 (session only) |
-| Me | `/me/*` | `handler/me` | `api/me.ts` | `self:keys` |
-| Org | `/org/*` | `handler/org` | `api/org.ts` | `org:*` |
-| Budget | `/budget/*` | `handler/budget` | `api/budget.ts` | `budget:*` |
-| Keys | `/keys/*` | `handler/keys` | `api/keys.ts` | `keys:*` |
-| Models | `/models/*` | `handler/models` | `api/models.ts` | `model:*` |
-| Dashboard | `/dashboard/*` | `handler/dashboard` | `api/dashboard.ts` | `dashboard:*` |
-| Audit | `/audit/*` | `handler/audit` | `api/audit.ts` | `audit:read` |
-| Approval | `/approvals/*` | `handler/approval` | `api/approval.ts` | `self:approval`, `budget:approve` |
-| Notification | `/notifications/*` | `handler/notification` | `api/notification.ts` | session / `audit:read` |
-| Billing | `/billing/*` | `handler/billing` | `api/billing.ts` | `billing:*` |
-| Platform | `/platform/*` | `handler/platform` | (超管专用) | `platform:manage` |
-| Ingest | `/internal/*` | `handler/ingest` | - | Webhook Secret |
-| Dev | `/dev/*` | `handler/dev` | `api/dev.ts` | 本地开发 only |
+| 域           | 路由前缀           | Handler 包             | 前端 Client           | 权限域                            |
+| ------------ | ------------------ | ---------------------- | --------------------- | --------------------------------- |
+| Auth         | `/auth/*`          | `handler/auth`         | `api/auth.ts`         | 无 (公开)                         |
+| Register     | `/auth/register/*` | `handler/register`     | 同 auth.ts            | 无 (SaaS only)                    |
+| Session      | `/session`         | `handler/session`      | `api/session.ts`      | 无 (session only)                 |
+| Me           | `/me/*`            | `handler/me`           | `api/me.ts`           | `self:keys`                       |
+| Org          | `/org/*`           | `handler/org`          | `api/org.ts`          | `org:*`                           |
+| Budget       | `/budget/*`        | `handler/budget`       | `api/budget.ts`       | `budget:*`                        |
+| Keys         | `/keys/*`          | `handler/keys`         | `api/keys.ts`         | `keys:*`                          |
+| Models       | `/models/*`        | `handler/models`       | `api/models.ts`       | `model:*`                         |
+| Dashboard    | `/dashboard/*`     | `handler/dashboard`    | `api/dashboard.ts`    | `dashboard:*`                     |
+| Audit        | `/audit/*`         | `handler/audit`        | `api/audit.ts`        | `audit:read`                      |
+| Approval     | `/approvals/*`     | `handler/approval`     | `api/approval.ts`     | `self:approval`, `budget:approve` |
+| Notification | `/notifications/*` | `handler/notification` | `api/notification.ts` | session / `audit:read`            |
+| Billing      | `/billing/*`       | `handler/billing`      | `api/billing.ts`      | `billing:*`                       |
+| Platform     | `/platform/*`      | `handler/platform`     | (超管专用)            | `platform:manage`                 |
+| Ingest       | `/internal/*`      | `handler/ingest`       | -                     | Webhook Secret                    |
+| Dev          | `/dev/*`           | `handler/dev`          | `api/dev.ts`          | 本地开发 only                     |
 
 ## Handler 代码结构约定
 
@@ -84,14 +84,14 @@ func (h *Handler) Tree(w http.ResponseWriter, r *http.Request) {
 
 ### 响应工具函数 (httputil)
 
-| 函数 | 场景 |
-|------|------|
+| 函数                              | 场景                                         |
+| --------------------------------- | -------------------------------------------- |
 | `WriteJSON(w, status, data, err)` | 有返回值的操作 (err 非 nil 时自动走错误路径) |
-| `WriteOK(w, data)` | 确定成功、无 err 分支 |
-| `WriteVoid(w, err)` | 无返回值的变更操作 (成功返回 204) |
-| `WriteError(w, err)` | 手动写错误 (自动识别 DomainError) |
-| `WriteStatus(w, code, msg)` | 固定状态码 + 消息 |
-| `DecodeJSON(r, &body)` | 请求体解码 (限 1MB、返回 DomainError) |
+| `WriteOK(w, data)`                | 确定成功、无 err 分支                        |
+| `WriteVoid(w, err)`               | 无返回值的变更操作 (成功返回 204)            |
+| `WriteError(w, err)`              | 手动写错误 (自动识别 DomainError)            |
+| `WriteStatus(w, code, msg)`       | 固定状态码 + 消息                            |
+| `DecodeJSON(r, &body)`            | 请求体解码 (限 1MB、返回 DomainError)        |
 
 ### 错误模型
 
@@ -119,6 +119,7 @@ apps/frontend/src/api/
 ```
 
 消费规则:
+
 - features 层通过 `useApis()` / `useInjectedApis()` 获取 API 对象，**禁止直接 import API 函数**
 - 每个 `api/{domain}.ts` export 一个对象 (如 `budgetApi`)，聚合该域所有端点
 - 请求函数签名: `(params) => request<ResponseType>(path, options)`
@@ -126,6 +127,7 @@ apps/frontend/src/api/
 ## 权限体系
 
 权限定义在 `packages/contracts/permission/` (单一来源)，通过代码生成同步到:
+
 - 后端: `internal/infra/permission/keys.go` (Go 常量)
 - 前端: 对应 TypeScript 常量
 
@@ -159,16 +161,16 @@ apps/frontend/src/api/
 
 ## 命名约定
 
-| 操作 | HTTP 方法 | 路径模式 | 示例 |
-|------|-----------|----------|------|
-| 列表 | GET | `/` 或 `/资源复数` | `GET /budget/projects` |
-| 详情 | GET | `/{id}` | `GET /approvals/{id}` |
-| 创建 | POST | `/` 或 `/资源复数` | `POST /budget/projects` |
-| 全量更新 | PUT | `/{id}` | `PUT /models/{id}` |
-| 部分更新 | PATCH | `/{id}/{field}` | `PATCH /notifications/{id}/read` |
-| 删除 | DELETE | `/{id}` | `DELETE /budget/projects/{id}` |
-| 状态切换 | PUT | `/{id}/toggle` | `PUT /keys/provider/{id}/toggle` |
-| 动作 | POST | `/{id}/{verb}` 或 `/{verb}` | `POST /approvals/{id}/approve` |
+| 操作     | HTTP 方法 | 路径模式                    | 示例                             |
+| -------- | --------- | --------------------------- | -------------------------------- |
+| 列表     | GET       | `/` 或 `/资源复数`          | `GET /budget/projects`           |
+| 详情     | GET       | `/{id}`                     | `GET /approvals/{id}`            |
+| 创建     | POST      | `/` 或 `/资源复数`          | `POST /budget/projects`          |
+| 全量更新 | PUT       | `/{id}`                     | `PUT /models/{id}`               |
+| 部分更新 | PATCH     | `/{id}/{field}`             | `PATCH /notifications/{id}/read` |
+| 删除     | DELETE    | `/{id}`                     | `DELETE /budget/projects/{id}`   |
+| 状态切换 | PUT       | `/{id}/toggle`              | `PUT /keys/provider/{id}/toggle` |
+| 动作     | POST      | `/{id}/{verb}` 或 `/{verb}` | `POST /approvals/{id}/approve`   |
 
 ## 权限规则
 

@@ -9,6 +9,7 @@
 当前限额体系（budget、consumed、remain）全部以 quota 单位存储。用户设定限额（例如 `5000`）时，前端调用 `displayToQuota(5000)` 按当时的 `quota_per_unit`（QPU）换算成 quota 值存入后端。
 
 **核心问题：QPU 会变动。** 变动后：
+
 - 已存的 budget 对应的货币购买力变了——用户设了 `5000`，QPU 涨了后显示变成约 `4166`
 - 消费端按新 QPU 生成 quota amount，同样的模型调用消耗的 quota 数量变了
 - 用户的预期是「我设了 5000 就是 5000（公司所选币种）」，不是「我设了 25 亿 quota」
@@ -34,11 +35,11 @@
 
 ## 不动的三块
 
-| 组件 | 单位 | 为什么不动 |
-|------|------|-----------|
-| `wallet_remain_quota` | quota (int64) | 钱包余额是「还剩多少 quota 可消费」，lot FIFO 扣减是整数原子操作，改成货币金额会引入浮点精度问题 |
-| `combined_key_remain` 列名 | 不改名 | 名字描述「综合剩余」，单位由 schema 约定，不编码在列名里；一个公司只有一个 `billing_currency`，不需要额外存 currency 列 |
-| NewAPI `user.remain_quota` | quota (int64) | 外部系统，token 已设 unlimited，user quota 是松散天花板，tokenjoy 侧做精确控制 |
+| 组件                       | 单位          | 为什么不动                                                                                                              |
+| -------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `wallet_remain_quota`      | quota (int64) | 钱包余额是「还剩多少 quota 可消费」，lot FIFO 扣减是整数原子操作，改成货币金额会引入浮点精度问题                        |
+| `combined_key_remain` 列名 | 不改名        | 名字描述「综合剩余」，单位由 schema 约定，不编码在列名里；一个公司只有一个 `billing_currency`，不需要额外存 currency 列 |
+| NewAPI `user.remain_quota` | quota (int64) | 外部系统，token 已设 unlimited，user quota 是松散天花板，tokenjoy 侧做精确控制                                          |
 
 ## 超额检查流程（改后）
 
@@ -103,17 +104,17 @@ QPU 变了？budget 不变（仍是 5000），消费金额由 lot 快照汇率�
 
 ## Schema 变更
 
-| 表 | 列 | 当前类型 | 目标类型 | 说明 |
-|----|----|---------|---------|----|
-| `platform_keys` | `budget` | BIGINT (quota) | NUMERIC(18,6) | 货币金额（公司 billing_currency） |
-| `platform_keys` | `combined_key_remain` | BIGINT (quota) | NUMERIC(18,6) | 货币金额；NULL = 无约束放行 |
-| `projects` | `budget` | BIGINT (quota) | NUMERIC(18,6) | 正规表列，非 JSONB |
-| `project_members` | `member_budget` | BIGINT (quota) | NUMERIC(18,6) | 正规表列，非 JSONB |
-| `members` | `personal_budget` | BIGINT (quota) | NUMERIC(18,6) | 货币金额 |
-| `org_nodes` | `budget` | BIGINT (quota) | NUMERIC(18,6) | 货币金额 |
-| `org_nodes` | `reserved_pool` | BIGINT (quota) | NUMERIC(18,6) | 与 budget 同单位 |
-| `org_nodes` | `member_avg_budget` | BIGINT (quota) | NUMERIC(18,6) | 与 budget 同单位 |
-| `budget_consumed` | `consumed` | BIGINT (quota) | NUMERIC(18,6) | 累计花费（货币） |
+| 表                | 列                    | 当前类型       | 目标类型      | 说明                              |
+| ----------------- | --------------------- | -------------- | ------------- | --------------------------------- |
+| `platform_keys`   | `budget`              | BIGINT (quota) | NUMERIC(18,6) | 货币金额（公司 billing_currency） |
+| `platform_keys`   | `combined_key_remain` | BIGINT (quota) | NUMERIC(18,6) | 货币金额；NULL = 无约束放行       |
+| `projects`        | `budget`              | BIGINT (quota) | NUMERIC(18,6) | 正规表列，非 JSONB                |
+| `project_members` | `member_budget`       | BIGINT (quota) | NUMERIC(18,6) | 正规表列，非 JSONB                |
+| `members`         | `personal_budget`     | BIGINT (quota) | NUMERIC(18,6) | 货币金额                          |
+| `org_nodes`       | `budget`              | BIGINT (quota) | NUMERIC(18,6) | 货币金额                          |
+| `org_nodes`       | `reserved_pool`       | BIGINT (quota) | NUMERIC(18,6) | 与 budget 同单位                  |
+| `org_nodes`       | `member_avg_budget`   | BIGINT (quota) | NUMERIC(18,6) | 与 budget 同单位                  |
+| `budget_consumed` | `consumed`            | BIGINT (quota) | NUMERIC(18,6) | 累计花费（货币）                  |
 
 > 选 NUMERIC(18,6) 而非 float：精确到最小货币子单位以下，避免浮点累加误差。Go 侧统一用 float64（15-16 位有效数字，对金额远超需要）。
 >
@@ -123,69 +124,69 @@ QPU 变了？budget 不变（仍是 5000），消费金额由 lot 快照汇率�
 
 ### 后端 — Domain/Types 层
 
-| 文件 | 变更 |
-|------|------|
-| `domain/types/budget.go` | BudgetNode/Project/MemberBudget 相关字段 int64 → float64 |
-| `domain/types/keys.go` | PlatformKey.Budget/Consumed int64 → float64 |
-| `domain/budget/consumed_attrib.go` | `AxisDelta.Amount` int64 → float64；赋值改为 **spend（segment display 之和）** |
-| `pkg/budget/chain.go` | `ChainInputs` 所有字段 int64 → float64；`GatewayChainRemain` 返回 `(remain float64, limiting string, uncapped bool)`（或等价：uncapped 时不产生 persist update） |
-| `domain/budget/combined_key_cache.go` | `CombinedKeyEntry.Remain` int64 → float64 |
-| Overrun 判断 | `BudgetExhausted(consumed, budget float64)` |
+| 文件                                  | 变更                                                                                                                                                             |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `domain/types/budget.go`              | BudgetNode/Project/MemberBudget 相关字段 int64 → float64                                                                                                         |
+| `domain/types/keys.go`                | PlatformKey.Budget/Consumed int64 → float64                                                                                                                      |
+| `domain/budget/consumed_attrib.go`    | `AxisDelta.Amount` int64 → float64；赋值改为 **spend（segment display 之和）**                                                                                   |
+| `pkg/budget/chain.go`                 | `ChainInputs` 所有字段 int64 → float64；`GatewayChainRemain` 返回 `(remain float64, limiting string, uncapped bool)`（或等价：uncapped 时不产生 persist update） |
+| `domain/budget/combined_key_cache.go` | `CombinedKeyEntry.Remain` int64 → float64                                                                                                                        |
+| Overrun 判断                          | `BudgetExhausted(consumed, budget float64)`                                                                                                                      |
 
 ### 后端 — Store 接口层
 
-| 文件 | 变更 |
-|------|------|
+| 文件                            | 变更                                                               |
+| ------------------------------- | ------------------------------------------------------------------ |
 | `store/budget_consumed_repo.go` | `ConsumedDelta.Amount` / `GetConsumed` / `ListConsumed*` → float64 |
-| `store/combined_key_summary.go` | `Remain` / `DecrementBatch` map value → float64 |
-| 审批相关 Amount/RequestedBudget | 与 budget 一并改为货币 float64 |
+| `store/combined_key_summary.go` | `Remain` / `DecrementBatch` map value → float64                    |
+| 审批相关 Amount/RequestedBudget | 与 budget 一并改为货币 float64                                     |
 
 ### 后端 — Store 实现层
 
-| 文件 | 变更 |
-|------|------|
-| `store/postgres/budget_consumed_repo.go` | SQL scan/insert 对齐 NUMERIC(18,6)；Go 侧 float64 |
-| `store/postgres/combined_key_summary_repo.go`（及 platform_keys remain 读写） | 同上 |
-| org/member/project/key budget 读写 | BIGINT → NUMERIC scan |
+| 文件                                                                          | 变更                                              |
+| ----------------------------------------------------------------------------- | ------------------------------------------------- |
+| `store/postgres/budget_consumed_repo.go`                                      | SQL scan/insert 对齐 NUMERIC(18,6)；Go 侧 float64 |
+| `store/postgres/combined_key_summary_repo.go`（及 platform_keys remain 读写） | 同上                                              |
+| org/member/project/key budget 读写                                            | BIGINT → NUMERIC scan                             |
 
 ### 后端 — Ingest 路径（关键）
 
-| 文件 | 变更 |
-|------|------|
-| `domain/usage/ingest.go` | 在 lot consume 之后计算 `spend = Σ segments.DisplayAmount`；`ConsumptionDeltas` 与 `DecrementBatch` 均用 `spend`，**禁止** `entry.DisplayAmount` / `entry.Amount` |
-| `domain/budget/consumed_attrib.go` | deltas 金额改为传入的 spend（float64） |
-| `adapter/usage_budget.go` | Amount int64 → float64 |
-| `domain/budget/alert_publisher.go` + `ledger_repo.SumAmountByDepartment` | 改为 `SUM(display_amount)`，与货币 budget 对齐 |
+| 文件                                                                     | 变更                                                                                                                                                              |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `domain/usage/ingest.go`                                                 | 在 lot consume 之后计算 `spend = Σ segments.DisplayAmount`；`ConsumptionDeltas` 与 `DecrementBatch` 均用 `spend`，**禁止** `entry.DisplayAmount` / `entry.Amount` |
+| `domain/budget/consumed_attrib.go`                                       | deltas 金额改为传入的 spend（float64）                                                                                                                            |
+| `adapter/usage_budget.go`                                                | Amount int64 → float64                                                                                                                                            |
+| `domain/budget/alert_publisher.go` + `ledger_repo.SumAmountByDepartment` | 改为 `SUM(display_amount)`，与货币 budget 对齐                                                                                                                    |
 
 ### 后端 — Rebalance/Precheck 路径
 
-| 文件 | 变更 |
-|------|------|
-| `pkg/budget/mapping_remain.go` | PreloadedConsumed / getConsumed → float64 |
-| `domain/budget/combined_key_summary.go` | 删除 `remain >= MaxInt64`；改为 `uncapped → skip update（NULL）` |
-| `domain/gateway/precheck.go` | `budgetRemainCheck` 适配 float64（`remain <= 0` 不变；NULL 仍放行） |
-| Redis combined_key cache | Remain float64；仍用 Set 覆盖，不用 DECRBY |
+| 文件                                    | 变更                                                                |
+| --------------------------------------- | ------------------------------------------------------------------- |
+| `pkg/budget/mapping_remain.go`          | PreloadedConsumed / getConsumed → float64                           |
+| `domain/budget/combined_key_summary.go` | 删除 `remain >= MaxInt64`；改为 `uncapped → skip update（NULL）`    |
+| `domain/gateway/precheck.go`            | `budgetRemainCheck` 适配 float64（`remain <= 0` 不变；NULL 仍放行） |
+| Redis combined_key cache                | Remain float64；仍用 Set 覆盖，不用 DECRBY                          |
 
 ### 前端
 
-| 变更 |
-|------|
-| 设 budget 时直接发货币金额（删除 `displayToQuota` 调用） |
+| 变更                                                                                                             |
+| ---------------------------------------------------------------------------------------------------------------- |
+| 设 budget 时直接发货币金额（删除 `displayToQuota` 调用）                                                         |
 | 展示 budget/consumed 时不再做 `quotaToDisplay`（后端直接返回货币）；改用 `formatMoney` / 公司 `billing_currency` |
-| 保留钱包余额的 quota→display 转换（钱包仍是 quota 维度） |
-| 审批提交金额改为直发货币，去掉 `displayToQuota` |
+| 保留钱包余额的 quota→display 转换（钱包仍是 quota 维度）                                                         |
+| 审批提交金额改为直发货币，去掉 `displayToQuota`                                                                  |
 
 ### 不改的部分
 
-| 组件 | 原因 |
-|------|------|
-| `wallet_remain_quota` | 钱包层，quota 维度，lot FIFO 整数扣减 |
-| Lot 消费逻辑 | FIFO 扣 quota、记录 segment display_amount——完全正确 |
-| usage_ledger.amount | 保留 quota 记录，用于钱包扣减和对账 |
-| Dashboard display_cost | 已经是货币，不动 |
-| `common.QuotaFromAmount` / `QuotaToDisplay` | 保留给钱包/充值场景 |
-| NewAPI user quota 同步 | 仍然用 quota 维度（PreCreditFunc 中 `add_quota(lot.QuotaGranted)`） |
-| `companies.billing_currency` | 客户选择币种的唯一来源；预算层只存金额，不另存 currency |
+| 组件                                        | 原因                                                                |
+| ------------------------------------------- | ------------------------------------------------------------------- |
+| `wallet_remain_quota`                       | 钱包层，quota 维度，lot FIFO 整数扣减                               |
+| Lot 消费逻辑                                | FIFO 扣 quota、记录 segment display_amount——完全正确                |
+| usage_ledger.amount                         | 保留 quota 记录，用于钱包扣减和对账                                 |
+| Dashboard display_cost                      | 已经是货币，不动                                                    |
+| `common.QuotaFromAmount` / `QuotaToDisplay` | 保留给钱包/充值场景                                                 |
+| NewAPI user quota 同步                      | 仍然用 quota 维度（PreCreditFunc 中 `add_quota(lot.QuotaGranted)`） |
+| `companies.billing_currency`                | 客户选择币种的唯一来源；预算层只存金额，不另存 currency             |
 
 ## 边界 case
 

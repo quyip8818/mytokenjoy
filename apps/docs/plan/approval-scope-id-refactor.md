@@ -10,6 +10,7 @@
 `approval_requests` 表当前有 `department_id` + `department_name` 两列，语义绑定"申请人所属部门"。随着新增项目相关审批类型（`project_budget`、`project_member_budget`），需要按 `project_id` 过滤审批列表（Owner 查看自己项目下的待审批）。
 
 问题：
+
 - 在通用审批表上加业务语义列（department_id、project_id...）会随类型增长无限膨胀
 - `department_name` 是展示字段，不应在关系表上做列
 
@@ -42,12 +43,12 @@ CREATE INDEX idx_approval_company_status ON approval_requests(company_id, status
 
 ### scope_id 语义约定
 
-| approval type | scope_id 存什么 | 用途 |
-|---------------|----------------|------|
-| `key` | applicant 的 department_id | 按部门过滤 key 审批 |
-| `member_budget` | applicant 的 department_id | 按部门过滤额度审批 |
-| `project_budget` | project_id | 管理员按项目过滤 |
-| `project_member_budget` | project_id | Owner 查看自己项目下的待审批 |
+| approval type           | scope_id 存什么            | 用途                         |
+| ----------------------- | -------------------------- | ---------------------------- |
+| `key`                   | applicant 的 department_id | 按部门过滤 key 审批          |
+| `member_budget`         | applicant 的 department_id | 按部门过滤额度审批           |
+| `project_budget`        | project_id                 | 管理员按项目过滤             |
+| `project_member_budget` | project_id                 | Owner 查看自己项目下的待审批 |
 
 规则：`scope_id` 是"这条审批归属的作用域实体 ID"，具体含义由 `type` 决定。
 
@@ -127,6 +128,7 @@ type CreateInput struct {
 ```
 
 注意：
+
 - `ScopeID` 为 `uuid.UUID`（非指针），对应 DB NOT NULL
 - `CreateInput` 保留 DepartmentID/DepartmentName——handler 透传 session 信息，由 engine 层决定如何使用（计算 scope_id + 构造完整 metadata）
 
@@ -142,18 +144,19 @@ export interface ApprovalRequest {
   status: ApprovalStatus
   applicantId: string
   applicantName: string
-  scopeId: string               // 替代 departmentId，NOT NULL
+  scopeId: string // 替代 departmentId，NOT NULL
   metadata: Record<string, unknown>
   approverId?: string
   approverName?: string
   rejectReason?: string
-  canResolve: boolean           // 后端计算，逐条返回
+  canResolve: boolean // 后端计算，逐条返回
   createdAt: string
   resolvedAt?: string
 }
 ```
 
 `TYPE_LABELS` 同步扩展：
+
 ```ts
 const TYPE_LABELS: Record<string, string> = {
   key: 'Key 申请',
@@ -170,6 +173,7 @@ const TYPE_LABELS: Record<string, string> = {
 ### Use Case 1：MemberBudgetApprovalHandler.resolveDeptID
 
 **现状**：
+
 ```go
 func (h *MemberBudgetApprovalHandler) resolveDeptID(ctx context.Context, req types.ApprovalRequest) uuid.UUID {
     if req.DepartmentID != uuid.Nil {
@@ -182,6 +186,7 @@ func (h *MemberBudgetApprovalHandler) resolveDeptID(ctx context.Context, req typ
 ```
 
 **迁移后**：
+
 - `scope_id` 存的就是 department_id（对 `member_budget` 类型），直接用 `req.ScopeID`
 - 或者从 metadata 中取 `departmentId`（更语义化）
 - fallback 逻辑不变
@@ -207,6 +212,7 @@ func (h *MemberBudgetApprovalHandler) resolveDeptID(ctx context.Context, req typ
 ### Use Case 2：KeyApprovalHandler 中使用 req.DepartmentID
 
 **现状**（`domain/keys/approval_handler.go`）：
+
 ```go
 deptID := req.DepartmentID
 if deptID == uuid.Nil {
@@ -237,6 +243,7 @@ if deptID == uuid.Nil {
 ### Use Case 3：HTTP Create handler 构造 CreateInput
 
 **现状**：
+
 ```go
 input := domainapproval.CreateInput{
     Type:           body.Type,
@@ -249,6 +256,7 @@ input := domainapproval.CreateInput{
 ```
 
 **迁移后**：
+
 - handler 只传原始 session 数据，engine 在 Create 内部完成：
   1. 根据 type + input 计算 scope_id
   2. 构造完整 metadata（注入 departmentId/departmentName 快照）
@@ -297,6 +305,7 @@ func resolveScopeID(input CreateInput) uuid.UUID {
 ```
 
 **设计要点**：
+
 - `resolveScopeID` 和 `buildMetadata` 放 engine 包级别函数（非方法），handler 不承担业务逻辑
 - metadata 由后端完整构造，前端不需要传 departmentId/departmentName
 - 前端只传：`{ reason, amount }` 或 `{ reason, requestedBudget, requestedModels }` 或 `{ projectId, amount, reason }`
@@ -327,6 +336,7 @@ function getDepartmentName(approval: ApprovalRequest): string {
 **现状**：List 按 `status`、`type`、`applicantId` 过滤，无按 department 过滤。
 
 **迁移后**：List 新增 `scopeId` / `scopeIds` 过滤参数：
+
 ```go
 if filter.ScopeIDs != nil && len(filter.ScopeIDs) > 0 {
     where += fmt.Sprintf(" AND scope_id = ANY($%d)", argIdx)
@@ -346,6 +356,7 @@ if filter.ScopeIDs != nil && len(filter.ScopeIDs) > 0 {
 **现状**：前端全局 `canResolve = has(BUDGET_APPROVE)`，传给 ApprovalTable 作为整体开关。
 
 **迁移后**：
+
 - 后端 List 返回中为每条审批增加 `canResolve: boolean` 字段
 - **计算层**：handler List 做装饰（engine List 只返回数据，handler 根据 session 权限计算）
 - 后端计算逻辑（当前简化版）：
@@ -380,7 +391,7 @@ func decorateCanResolve(items []types.ApprovalRequest, session types.SessionCont
 // ApprovalRequest 新增
 export interface ApprovalRequest {
   // ...existing...
-  canResolve: boolean  // 后端计算，非 optional
+  canResolve: boolean // 后端计算，非 optional
 }
 ```
 
@@ -390,33 +401,33 @@ export interface ApprovalRequest {
 
 ## 实施清单
 
-| # | 范围 | 文件 | 改动 |
-|---|------|------|------|
-| 1 | schema | `store/postgres/schema.sql` | 删 department_id/department_name 列，加 scope_id UUID NOT NULL + 双索引 |
-| 2 | types | `domain/types/approval.go` | ApprovalRequest 去掉 DepartmentID/DepartmentName，加 ScopeID uuid.UUID |
-| 3 | types | `domain/types/approval.go` | KeyApprovalMeta、MemberBudgetApprovalMeta 加 DepartmentID/DepartmentName；新增 ProjectBudgetApprovalMeta、ProjectMemberBudgetApprovalMeta |
-| 4 | types | `domain/types/approval.go` | ApprovalType 新增 `project_budget`、`project_member_budget` 常量 |
-| 5 | engine | `domain/approval/types.go` | CreateInput 保留 DepartmentID/DepartmentName（session 透传），去掉注释中的"替代"说法 |
-| 6 | engine | `domain/approval/engine.go` | Create 内部新增 resolveScopeID + buildMetadata（metadata 由后端完整构造） |
-| 7 | store | `store/postgres/approval_repo.go` | Create/Get/List/scan 改用 scope_id（NOT NULL，非指针） |
-| 8 | store | `store/store.go` (ApprovalListFilter) | 加 `ScopeIDs []uuid.UUID` 过滤 |
-| 9 | handler | `http/handler/approval/handler.go` | Create：handler 只传 session 信息，不做 enrichMetadata；List：加 scopeIds query param + decorateCanResolve |
-| 10 | handler | `http/handler/approval/handler.go` | approve/reject：project_member_budget 暂时统一走 budget:approve（后续加 project owner 校验） |
-| 11 | budget | `domain/budget/approval_handler.go` | resolveDeptID 改为从 metadata 取 DepartmentID |
-| 12 | keys | `domain/keys/approval_handler.go` | PreApprove + **OnApprovedTx** 两处 deptID 均改为从 metadata 取 |
-| 13 | frontend | `api/types/approval.ts` | 去掉 departmentId/departmentName 顶层字段，加 scopeId（非 optional）、canResolve；ApprovalType 扩展新类型 |
-| 14 | frontend | `features/approval/components/approval-table.tsx` | departmentName 改为从 metadata 取；TYPE_LABELS 扩展；canResolve 改为逐条读取 |
-| 15 | frontend | `features/approval/hooks/use-approval-page.ts` | 去掉全局 canResolve 计算（由后端逐条返回） |
+| #   | 范围     | 文件                                              | 改动                                                                                                                                      |
+| --- | -------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | schema   | `store/postgres/schema.sql`                       | 删 department_id/department_name 列，加 scope_id UUID NOT NULL + 双索引                                                                   |
+| 2   | types    | `domain/types/approval.go`                        | ApprovalRequest 去掉 DepartmentID/DepartmentName，加 ScopeID uuid.UUID                                                                    |
+| 3   | types    | `domain/types/approval.go`                        | KeyApprovalMeta、MemberBudgetApprovalMeta 加 DepartmentID/DepartmentName；新增 ProjectBudgetApprovalMeta、ProjectMemberBudgetApprovalMeta |
+| 4   | types    | `domain/types/approval.go`                        | ApprovalType 新增 `project_budget`、`project_member_budget` 常量                                                                          |
+| 5   | engine   | `domain/approval/types.go`                        | CreateInput 保留 DepartmentID/DepartmentName（session 透传），去掉注释中的"替代"说法                                                      |
+| 6   | engine   | `domain/approval/engine.go`                       | Create 内部新增 resolveScopeID + buildMetadata（metadata 由后端完整构造）                                                                 |
+| 7   | store    | `store/postgres/approval_repo.go`                 | Create/Get/List/scan 改用 scope_id（NOT NULL，非指针）                                                                                    |
+| 8   | store    | `store/store.go` (ApprovalListFilter)             | 加 `ScopeIDs []uuid.UUID` 过滤                                                                                                            |
+| 9   | handler  | `http/handler/approval/handler.go`                | Create：handler 只传 session 信息，不做 enrichMetadata；List：加 scopeIds query param + decorateCanResolve                                |
+| 10  | handler  | `http/handler/approval/handler.go`                | approve/reject：project_member_budget 暂时统一走 budget:approve（后续加 project owner 校验）                                              |
+| 11  | budget   | `domain/budget/approval_handler.go`               | resolveDeptID 改为从 metadata 取 DepartmentID                                                                                             |
+| 12  | keys     | `domain/keys/approval_handler.go`                 | PreApprove + **OnApprovedTx** 两处 deptID 均改为从 metadata 取                                                                            |
+| 13  | frontend | `api/types/approval.ts`                           | 去掉 departmentId/departmentName 顶层字段，加 scopeId（非 optional）、canResolve；ApprovalType 扩展新类型                                 |
+| 14  | frontend | `features/approval/components/approval-table.tsx` | departmentName 改为从 metadata 取；TYPE_LABELS 扩展；canResolve 改为逐条读取                                                              |
+| 15  | frontend | `features/approval/hooks/use-approval-page.ts`    | 去掉全局 canResolve 计算（由后端逐条返回）                                                                                                |
 
 ---
 
 ## 风险
 
-| 风险 | 缓解 |
-|------|------|
-| metadata 结构变更后旧数据不兼容 | 项目未上线，直接重建表 |
-| scope_id 语义随 type 变化，查询时需配合 type 条件 | 文档约定 + List API 始终带 type filter；索引 (company_id, type, scope_id, status) 覆盖 |
-| canResolve 当前简化为统一 budget:approve，后续需扩展 | 留了 switch case 扩展点 + 注释说明升级路径 |
+| 风险                                                 | 缓解                                                                                   |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| metadata 结构变更后旧数据不兼容                      | 项目未上线，直接重建表                                                                 |
+| scope_id 语义随 type 变化，查询时需配合 type 条件    | 文档约定 + List API 始终带 type filter；索引 (company_id, type, scope_id, status) 覆盖 |
+| canResolve 当前简化为统一 budget:approve，后续需扩展 | 留了 switch case 扩展点 + 注释说明升级路径                                             |
 
 ---
 

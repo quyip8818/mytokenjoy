@@ -30,12 +30,12 @@
 
 ### 1.3 设计原则
 
-| 原则 | 说明 |
-| --- | --- |
+| 原则                   | 说明                                                                             |
+| ---------------------- | -------------------------------------------------------------------------------- |
 | 只看账号类型，不看环境 | demo/trial/testing 可用，standard/selfhosted 不可用。`DEPLOY_ENV` 不参与功能门控 |
-| 流程真实，资金虚拟 | 走完整的 Gateway → NewAPI → Ingest 链路，但钱和算力都是假的 |
-| Trial 不充值 | trial 账户不能充值；想用真实模型必须先升级为 standard |
-| 升级即清除 | trial → standard 时过期所有 mock lot，一刀切 |
+| 流程真实，资金虚拟     | 走完整的 Gateway → NewAPI → Ingest 链路，但钱和算力都是假的                      |
+| Trial 不充值           | trial 账户不能充值；想用真实模型必须先升级为 standard                            |
+| 升级即清除             | trial → standard 时过期所有 mock lot，一刀切                                     |
 
 ---
 
@@ -46,6 +46,7 @@
 Trial 账户只有 mock lot，不允许充值。这意味着 **mock 和 real lot 不并存**（testing 类型除外，见 §3.3）。
 
 好处：
+
 - 不需要在 FIFO 消耗时区分 lot kind（trial 阶段所有 active lot 都是 mock）
 - 不需要拆分 `wallet_remain_quota`
 - 不需要修改 `consumeLotsWithCompany` 的签名
@@ -57,6 +58,7 @@ Trial 账户只有 mock lot，不允许充值。这意味着 **mock 和 real lot
 因为 trial 期间只有 mock lot，ingest 的 FIFO 消耗无需任何过滤——所有 active lot 都是 mock，正常消耗即可。
 
 真实模型在 trial 阶段根本到不了 NewAPI：
+
 1. Platform Key 白名单默认只含 `test-model`（创建 Key 时 UI 只显示可用模型，API 层也强制限制可选模型范围）
 2. Gateway 预检拦截：trial 账户的 Key 白名单不含真实模型 → `model not allowed`
 3. **Gateway 追加守卫**：即使白名单被绕过（用户通过 API 手动添加了真实模型），Gateway 在 precheck 通过后检查：`if !isTestModelAllowed(companyType) → reject` 只针对 test-model。对真实模型，需追加一条规则：`if isTrialOrDemo(companyType) && !modelcatalog.IsTestOnlyCallType(model) → reject`。这确保 trial/demo 账户**只能调用 test-model**，无论白名单配了什么。
@@ -81,33 +83,33 @@ Trial 阶段：`wallet_remain_quota` = mock lot 总和。语义清晰，就是"�
 
 ### 3.1 Mock Lot
 
-| 属性 | 值 |
-| --- | --- |
-| `lot_kind` | `mock` |
-| `amount_display` | 0（不对应真实支付） |
-| `quota_granted` | 系统配置额度（默认 500,000 point ≈ ¥500） |
-| FIFO 行为 | 正常参与 FIFO |
-| 过期条件 | 账户升级到 standard 时全部 expire |
-| 用途 | 供 test-model 模拟消耗使用 |
+| 属性             | 值                                        |
+| ---------------- | ----------------------------------------- |
+| `lot_kind`       | `mock`                                    |
+| `amount_display` | 0（不对应真实支付）                       |
+| `quota_granted`  | 系统配置额度（默认 500,000 point ≈ ¥500） |
+| FIFO 行为        | 正常参与 FIFO                             |
+| 过期条件         | 账户升级到 standard 时全部 expire         |
+| 用途             | 供 test-model 模拟消耗使用                |
 
 ### 3.2 test-model
 
-| 属性 | 值 |
-| --- | --- |
-| 模型 ID | `test-model`（`modelcatalog.TestCallType`） |
-| 上游 | `dev-mock-llm`（echo `dev_usage`，不消耗算力） |
-| 定价 | 与 gpt-4o-mini 同级（让客户看到合理的金额） |
-| 功能 | 客户可自定义 input/output token 数，模拟不同规模调用 |
+| 属性    | 值                                                   |
+| ------- | ---------------------------------------------------- |
+| 模型 ID | `test-model`（`modelcatalog.TestCallType`）          |
+| 上游    | `dev-mock-llm`（echo `dev_usage`，不消耗算力）       |
+| 定价    | 与 gpt-4o-mini 同级（让客户看到合理的金额）          |
+| 功能    | 客户可自定义 input/output token 数，模拟不同规模调用 |
 
 ### 3.3 账户类型矩阵
 
-| 企业类型 | 模拟消耗 | Mock Lot | test-model | 真实模型 | 充值 |
-| --- | --- | --- | --- | --- | --- |
-| `demo` | 可用 | 种子发放 | 放行 | 不可用（Key 白名单无真实模型） | 不可用 |
-| `trial` | 可用 | 注册发放 | 放行 | 不可用（Key 白名单无真实模型） | 不可用 |
-| `standard` | 不可用 | 无（已清除） | 403 | 正常 | 可用 |
-| `selfhosted` | 不可用 | 无 | 403 | 正常 | 可用 |
-| `testing` | 可用 | 可选 | 放行 | 正常 | 可用 |
+| 企业类型     | 模拟消耗 | Mock Lot     | test-model | 真实模型                       | 充值   |
+| ------------ | -------- | ------------ | ---------- | ------------------------------ | ------ |
+| `demo`       | 可用     | 种子发放     | 放行       | 不可用（Key 白名单无真实模型） | 不可用 |
+| `trial`      | 可用     | 注册发放     | 放行       | 不可用（Key 白名单无真实模型） | 不可用 |
+| `standard`   | 不可用   | 无（已清除） | 403        | 正常                           | 可用   |
+| `selfhosted` | 不可用   | 无           | 403        | 正常                           | 可用   |
+| `testing`    | 可用     | 可选         | 放行       | 正常                           | 可用   |
 
 ---
 
@@ -189,6 +191,7 @@ func isTrialOrDemo(companyType string) bool {
 ```
 
 优点：
+
 - `PrecheckResult` 已经返回 `CompanyType`（从 `PrecheckContextRow.CompanyType` 来），无需改动 precheck 层
 - trial/demo 即使白名单被手动篡改，也无法调用真实模型（Gateway 硬拦截）
 - standard/selfhosted 即使白名单含 test-model，也会被 `isTestModelAllowed` 拦截
@@ -202,6 +205,7 @@ GET /api/keys/platform/{id}/simulate-bearer
 ```
 
 权限：
+
 - 认证：session JWT ✓
 - 企业类型：demo/trial/testing ✓（否则 403）
 - Key 归属：Key 所属 company = 当前用户 company ✓
@@ -270,12 +274,11 @@ flowchart LR
 ```
 
 事务内（原子操作）：
+
 1. `UpdateCompanyType(companyID, "standard")` — 先改类型
 2. `ExpireMockLots(companyID)` — 过期所有 mock lot，重算 `wallet_remain_quota`（归零）
 
-事务提交后：
-3. **主动 invalidate Gateway precheck cache** — 调用 `precheckCache.Evict(companyID)` 或按 key hash 逐出。确保后续 test-model 请求立即被拒。
-4. 前端刷新 session → 模拟消耗入口消失
+事务提交后：3. **主动 invalidate Gateway precheck cache** — 调用 `precheckCache.Evict(companyID)` 或按 key hash 逐出。确保后续 test-model 请求立即被拒。4. 前端刷新 session → 模拟消耗入口消失
 
 ### 5.1 升级竞态处理
 
@@ -292,16 +295,16 @@ flowchart LR
 
 ## 6. 安全约束
 
-| 层 | 约束 | 实现 |
-| --- | --- | --- |
-| Gateway | standard/selfhosted 不能调 test-model | `isTestModelAllowed(companyType)` 判断 |
-| Gateway | trial/demo 只能调 test-model | `isTrialOrDemo(companyType) && !IsTestOnlyCallType(model) → reject` |
-| API | bearer 端点只对 demo/trial/testing 开放 | handler 校验 company.type |
-| NewAPI | `dev_usage` 只在 test-model channel 生效 | 仅 test-model channel 开启 `pass_through_body_enabled` |
-| 网络 | dev-mock-llm 不对公网暴露 | 内网部署 + NewAPI channel base_url 指向内网 |
-| 产品 | trial/demo 不能充值 | 充值 handler + 前端双重校验 |
-| 频率 | 模拟消耗不能被高频刷 | Gateway rate limiter（复用现有 per-key 限流） |
-| 升级 | 升级后立即失效 precheck cache | 事务提交后调用 cache evict |
+| 层      | 约束                                     | 实现                                                                |
+| ------- | ---------------------------------------- | ------------------------------------------------------------------- |
+| Gateway | standard/selfhosted 不能调 test-model    | `isTestModelAllowed(companyType)` 判断                              |
+| Gateway | trial/demo 只能调 test-model             | `isTrialOrDemo(companyType) && !IsTestOnlyCallType(model) → reject` |
+| API     | bearer 端点只对 demo/trial/testing 开放  | handler 校验 company.type                                           |
+| NewAPI  | `dev_usage` 只在 test-model channel 生效 | 仅 test-model channel 开启 `pass_through_body_enabled`              |
+| 网络    | dev-mock-llm 不对公网暴露                | 内网部署 + NewAPI channel base_url 指向内网                         |
+| 产品    | trial/demo 不能充值                      | 充值 handler + 前端双重校验                                         |
+| 频率    | 模拟消耗不能被高频刷                     | Gateway rate limiter（复用现有 per-key 限流）                       |
+| 升级    | 升级后立即失效 precheck cache            | 事务提交后调用 cache evict                                          |
 
 ---
 
@@ -339,6 +342,7 @@ flowchart LR
 ### 7.3 Onboarding 引导（可选 P2）
 
 首次登录 trial 账户时，引导步骤：
+
 1. "欢迎！我们为您准备了 ¥500 试用额度"
 2. "先给成员分配预算吧"
 3. "创建一把 API Key"
@@ -348,11 +352,11 @@ flowchart LR
 
 ## 8. 配置
 
-| 变量 | 默认值 | 说明 |
-| --- | --- | --- |
-| `TRIAL_MOCK_LOT_QUOTA` | `500000` | Trial 注册发放的 mock point |
-| `DEMO_MOCK_LOT_QUOTA` | `500000` | Demo 种子 mock point |
-| `MOCK_LLM_BASE_URL` | `http://dev-mock-llm:8765` | mock 上游地址（内网） |
+| 变量                   | 默认值                     | 说明                        |
+| ---------------------- | -------------------------- | --------------------------- |
+| `TRIAL_MOCK_LOT_QUOTA` | `500000`                   | Trial 注册发放的 mock point |
+| `DEMO_MOCK_LOT_QUOTA`  | `500000`                   | Demo 种子 mock point        |
+| `MOCK_LLM_BASE_URL`    | `http://dev-mock-llm:8765` | mock 上游地址（内网）       |
 
 功能门控唯一判据：`company.type`。不再依赖 `DEPLOY_ENV` 或 `allowDevModel` flag。
 
@@ -360,18 +364,18 @@ flowchart LR
 
 ## 9. 实现步骤
 
-| # | 任务 | 改动范围 | 复杂度 |
-| --- | --- | --- | --- |
-| 1 | test-model channel group 改为 `platform_shared` | `setup-dev-mock-channel.sh` | 一行 |
-| 2 | Gateway：移除 `allowDevModel` flag，改为 precheck 后按 companyType 判断 test-model 准入 | `gateway_service.go`、config | 小（~20 行） |
-| 3 | Gateway：trial/demo 只允许 test-model（拦截真实模型） | `gateway_service.go`（同上代码块） | 含在 #2 中 |
-| 4 | 新增 `/api/keys/platform/{id}/simulate-bearer` 正式路由 | handler 层 | 小 |
-| 5 | 前端渲染条件改为 `session.companyType` | `header-dev-backend-chrome.tsx` | 一行 |
-| 6 | 前端 `devApi.getPlatformKeyBearer` 迁移到正式 API 模块 | `api/` 目录 | 小 |
-| 7 | 充值入口限制 trial/demo | billing handler + 前端 | 小 |
-| 8 | 升级事务后 invalidate precheck cache | upgrade handler | 小（~5 行） |
-| 9 | 部署 dev-mock-llm 到生产内网 | DevOps | 配置 |
-| 10 | trial/demo 创建 Key 时白名单默认仅 test-model（UI + API 层限制可选模型） | Key 创建逻辑 / 前端 UI | 小 |
+| #   | 任务                                                                                    | 改动范围                           | 复杂度       |
+| --- | --------------------------------------------------------------------------------------- | ---------------------------------- | ------------ |
+| 1   | test-model channel group 改为 `platform_shared`                                         | `setup-dev-mock-channel.sh`        | 一行         |
+| 2   | Gateway：移除 `allowDevModel` flag，改为 precheck 后按 companyType 判断 test-model 准入 | `gateway_service.go`、config       | 小（~20 行） |
+| 3   | Gateway：trial/demo 只允许 test-model（拦截真实模型）                                   | `gateway_service.go`（同上代码块） | 含在 #2 中   |
+| 4   | 新增 `/api/keys/platform/{id}/simulate-bearer` 正式路由                                 | handler 层                         | 小           |
+| 5   | 前端渲染条件改为 `session.companyType`                                                  | `header-dev-backend-chrome.tsx`    | 一行         |
+| 6   | 前端 `devApi.getPlatformKeyBearer` 迁移到正式 API 模块                                  | `api/` 目录                        | 小           |
+| 7   | 充值入口限制 trial/demo                                                                 | billing handler + 前端             | 小           |
+| 8   | 升级事务后 invalidate precheck cache                                                    | upgrade handler                    | 小（~5 行）  |
+| 9   | 部署 dev-mock-llm 到生产内网                                                            | DevOps                             | 配置         |
+| 10  | trial/demo 创建 Key 时白名单默认仅 test-model（UI + API 层限制可选模型）                | Key 创建逻辑 / 前端 UI             | 小           |
 
 总改动量：~80 行后端代码 + ~30 行前端代码 + 1 个容器部署。
 
@@ -379,16 +383,16 @@ flowchart LR
 
 ## 10. 边界约束与风险
 
-| 场景 | 处理 |
-| --- | --- |
-| Trial 想充值 | 引导先升级。充值 API + 前端双重拦截 |
-| Trial 用户手动添加真实模型到白名单 | Gateway 硬拦截：`isTrialOrDemo && !IsTestOnlyCallType → reject`，无论白名单配了什么 |
-| Mock lot 用完了 | 前端显示"试用额度耗尽"+ 升级引导；Gateway 预检 wallet=0 也会拦 |
-| 升级后 test-model in-flight | Gateway 拒绝（cache evict 后）；极少数已过预检的请求走 overdraft（金额极小，可筛选清理） |
-| 恶意高频打 test-model | Gateway per-key rate limiter；mock lot 额度有限（最多"浪费" ¥500 假钱） |
-| bearer 泄露 | trial 阶段只有 mock lot，损失为零；Gateway 预检控额度/Key 状态 |
-| dev-mock-llm 挂了 | 模拟消耗失败，不影响任何真实流量；前端显示错误提示 |
-| testing 环境 mock+real lot 混合 FIFO | 可接受：testing 不需要财务精确性。P2 可加 callType 过滤 |
+| 场景                                 | 处理                                                                                     |
+| ------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Trial 想充值                         | 引导先升级。充值 API + 前端双重拦截                                                      |
+| Trial 用户手动添加真实模型到白名单   | Gateway 硬拦截：`isTrialOrDemo && !IsTestOnlyCallType → reject`，无论白名单配了什么      |
+| Mock lot 用完了                      | 前端显示"试用额度耗尽"+ 升级引导；Gateway 预检 wallet=0 也会拦                           |
+| 升级后 test-model in-flight          | Gateway 拒绝（cache evict 后）；极少数已过预检的请求走 overdraft（金额极小，可筛选清理） |
+| 恶意高频打 test-model                | Gateway per-key rate limiter；mock lot 额度有限（最多"浪费" ¥500 假钱）                  |
+| bearer 泄露                          | trial 阶段只有 mock lot，损失为零；Gateway 预检控额度/Key 状态                           |
+| dev-mock-llm 挂了                    | 模拟消耗失败，不影响任何真实流量；前端显示错误提示                                       |
+| testing 环境 mock+real lot 混合 FIFO | 可接受：testing 不需要财务精确性。P2 可加 callType 过滤                                  |
 
 ---
 

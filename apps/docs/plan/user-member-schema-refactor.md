@@ -26,14 +26,14 @@ members: id, company_id, user_id, alias, avatar, department_id, status, source, 
 
 ### name 来源对照表
 
-| 场景 | users.name 写入 | members.alias 写入 |
-|------|----------------|-------------------|
-| 用户注册/接受邀请 | 输入的姓名 | 同一个姓名（初始值） |
-| 管理员手动创建成员 | 输入的姓名 | 同一个姓名（初始值） |
-| CSV 批量导入 | row.Name（法名） | row.Name（同值） |
-| 飞书/企微远程导入 | remote.Name（法名） | remote.Name（同值） |
-| 用户自改姓名（/me/profile） | 新姓名 | 不变 |
-| 管理员改别名（UpdateMember） | 不变 | 新别名 |
+| 场景                         | users.name 写入     | members.alias 写入   |
+| ---------------------------- | ------------------- | -------------------- |
+| 用户注册/接受邀请            | 输入的姓名          | 同一个姓名（初始值） |
+| 管理员手动创建成员           | 输入的姓名          | 同一个姓名（初始值） |
+| CSV 批量导入                 | row.Name（法名）    | row.Name（同值）     |
+| 飞书/企微远程导入            | remote.Name（法名） | remote.Name（同值）  |
+| 用户自改姓名（/me/profile）  | 新姓名              | 不变                 |
+| 管理员改别名（UpdateMember） | 不变                | 新别名               |
 
 ---
 
@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS members (
 ## Step 2：Go types
 
 ### store/user_repo.go
+
 ```go
 type User struct {
     ID           uuid.UUID
@@ -96,6 +97,7 @@ UpdateName(ctx context.Context, id uuid.UUID, name string) error
 ```
 
 ### domain/types/session.go
+
 ```go
 type Member struct {
     ID             uuid.UUID `json:"id"`
@@ -172,6 +174,7 @@ type SessionContext struct {
 ```
 
 `addMember` (service_create.go) 改为：
+
 ```diff
  member := types.Member{
      ...
@@ -206,13 +209,14 @@ type SessionContext struct {
 
 所有调用方统一传 name：
 
-| 调用方 | name 来源 |
-|--------|-----------|
+| 调用方                          | name 来源                        |
+| ------------------------------- | -------------------------------- |
 | `member_mutate.go` CreateMember | `input.Name`（管理员输入的姓名） |
-| `member_batch.go` BatchImport | `row.Name`（CSV 行的姓名） |
-| `remote/import.go` 飞书导入 | `remote.Name`（飞书返回的姓名） |
+| `member_batch.go` BatchImport   | `row.Name`（CSV 行的姓名）       |
+| `remote/import.go` 飞书导入     | `remote.Name`（飞书返回的姓名）  |
 
 ### CreateMember
+
 ```diff
  member := types.Member{
 -    Name: input.Name, Phone: input.Phone, Email: input.Email,
@@ -223,6 +227,7 @@ type SessionContext struct {
 ```
 
 ### BatchImport
+
 ```diff
 -userID, uerr := s.resolveOrCreateUser(ctx, row.Phone, row.Email)
 +userID, uerr := s.resolveOrCreateUser(ctx, row.Phone, row.Email, row.Name)
@@ -235,6 +240,7 @@ type SessionContext struct {
 ```
 
 ### 飞书远程导入 (remote/import.go)
+
 ```diff
 -userID, uerr := core.ResolveOrCreateUser(ctx, st, remote.Mobile, remote.Email)
 +userID, uerr := core.ResolveOrCreateUser(ctx, st, remote.Mobile, remote.Email, remote.Name)
@@ -250,11 +256,13 @@ type SessionContext struct {
 ```
 
 更新已有成员时使用 `syncMember()` 按字段策略逐字段覆盖（参见 `docs/plan/org-sync-override-strategy.md`）：
+
 - immutable（employeeId）：本地为空才写入
 - user-owned（alias, avatar）：字段不在 `OverrideFields` 中才覆盖
 - sync-always（departmentId, departmentName）：无条件覆盖
 
 ### UpdateMember
+
 ```diff
 -if input.Name != "" { existing.Name = input.Name }
 -if input.Phone != "" { existing.Phone = input.Phone }
@@ -279,6 +287,7 @@ PUT  /me/profile  { "name": "...", "avatar": "..." }      → 204
 ```
 
 PUT 请求中字段为可选，只传了哪个改哪个：
+
 - `name` → 写 `users.name`，同时 invalidate session cache（触发前端 refresh）
 - `avatar` → 写当前 company 的 `members.avatar`（通过 session claims 定位 companyID + memberID）
 
@@ -287,6 +296,7 @@ PUT 请求中字段为可选，只传了哪个改哪个：
 ### handler 依赖变更
 
 `me.Handler` 新增 `store.OrgRepository` 依赖（用于写 member.avatar）：
+
 ```go
 type Handler struct {
     shared.ProtectedHandlerBase
@@ -328,6 +338,7 @@ type profileResponse struct {
 ## Step 7：前端 TypeScript types
 
 ### api/types/org.ts
+
 ```diff
  export interface Member {
    id: string
@@ -347,6 +358,7 @@ type profileResponse struct {
 ```
 
 ### api/types/common.ts (SessionContext)
+
 ```diff
  export interface SessionContext {
    companyId: string
@@ -362,6 +374,7 @@ type profileResponse struct {
 ```
 
 ### features/session/types.ts (AppSession)
+
 ```diff
  export interface AppSession {
    companyId: string
@@ -384,23 +397,23 @@ type profileResponse struct {
 - 看自己：`useSession().member?.alias || useSession().userName`
 - 看他人：`otherMember.alias`（别人的 userName 前端拿不到，也不需要）
 
-| 文件 | 改动 |
-|------|------|
-| `components/layout/header.tsx` | `member?.name` → `member?.alias \|\| userName` |
-| `components/layout/member-layout.tsx` | `member?.name` → `member?.alias`；头像用 `member?.avatar` |
+| 文件                                                       | 改动                                                         |
+| ---------------------------------------------------------- | ------------------------------------------------------------ |
+| `components/layout/header.tsx`                             | `member?.name` → `member?.alias \|\| userName`               |
+| `components/layout/member-layout.tsx`                      | `member?.name` → `member?.alias`；头像用 `member?.avatar`    |
 | `features/org/components/structure/member-form-dialog.tsx` | name 字段语义改为写 alias；phone/email 保留（写入 users 表） |
-| `features/org/components/structure/member-table.tsx` | `.name` → `.alias` |
-| `features/org/components/role-member-table.tsx` | `.name` → `.alias` |
-| `features/org/components/roles-page-shell.tsx` | `.name` → `.alias` |
-| `features/org/hooks/use-structure-page.ts` | `data.name` → 传给 API 的 name 字段（后端映射到 alias） |
-| `features/budget/components/budget-member-picker.tsx` | `.name` → `.alias` |
-| `features/budget/components/budget-org-member-picker.tsx` | `.name` → `.alias` |
-| `features/audit/hooks/use-audit-calls-page.ts` | `.name` → `.alias` |
-| `features/audit/hooks/use-audit-operations-page.ts` | `.name` → `.alias` |
-| `features/account/components/account-page-shell.tsx` | profile.name 来自 users.name，不变；新增 avatar 编辑 |
-| 所有展示头像的地方 | 新增 avatar 渲染（renderAvatar 工具函数） |
-| `e2e/org-structure.spec.ts` | `member.name` → `member.alias` |
-| `e2e/feishu-import.spec.ts` | `m.name` → `m.alias` |
+| `features/org/components/structure/member-table.tsx`       | `.name` → `.alias`                                           |
+| `features/org/components/role-member-table.tsx`            | `.name` → `.alias`                                           |
+| `features/org/components/roles-page-shell.tsx`             | `.name` → `.alias`                                           |
+| `features/org/hooks/use-structure-page.ts`                 | `data.name` → 传给 API 的 name 字段（后端映射到 alias）      |
+| `features/budget/components/budget-member-picker.tsx`      | `.name` → `.alias`                                           |
+| `features/budget/components/budget-org-member-picker.tsx`  | `.name` → `.alias`                                           |
+| `features/audit/hooks/use-audit-calls-page.ts`             | `.name` → `.alias`                                           |
+| `features/audit/hooks/use-audit-operations-page.ts`        | `.name` → `.alias`                                           |
+| `features/account/components/account-page-shell.tsx`       | profile.name 来自 users.name，不变；新增 avatar 编辑         |
+| 所有展示头像的地方                                         | 新增 avatar 渲染（renderAvatar 工具函数）                    |
+| `e2e/org-structure.spec.ts`                                | `member.name` → `member.alias`                               |
+| `e2e/feishu-import.spec.ts`                                | `m.name` → `m.alias`                                         |
 
 ---
 
@@ -467,7 +480,7 @@ export function renderAvatar(avatar: string): string {
     if (!styleFn) return ''
     return createAvatar(styleFn, { seed }).toDataUri()
   }
-  return avatar  // data:image/... 直接用
+  return avatar // data:image/... 直接用
 }
 ```
 

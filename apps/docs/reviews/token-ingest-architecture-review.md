@@ -54,14 +54,14 @@
 
 ### 1.2 技术栈
 
-| 组件 | 技术选型 |
-|------|----------|
-| 消息队列 | PostgreSQL 表 (ingest_jobs) + LISTEN/NOTIFY |
+| 组件     | 技术选型                                                              |
+| -------- | --------------------------------------------------------------------- |
+| 消息队列 | PostgreSQL 表 (ingest_jobs) + LISTEN/NOTIFY                           |
 | 后台任务 | [River](https://github.com/riverqueue/river) (PG-backed Go job queue) |
-| 锁 | PG 行锁 (`FOR UPDATE`) + advisory lock |
-| 事件驱动 | pg_notify → Go channel → Worker |
-| 投影 | Dashboard Projector (cursor-batch) / Budget Consumed (inline UPSERT) |
-| 缓存 | Redis (combined_key_remain 副本) |
+| 锁       | PG 行锁 (`FOR UPDATE`) + advisory lock                                |
+| 事件驱动 | pg_notify → Go channel → Worker                                       |
+| 投影     | Dashboard Projector (cursor-batch) / Budget Consumed (inline UPSERT)  |
+| 缓存     | Redis (combined_key_remain 副本)                                      |
 
 ### 1.3 关键设计决策
 
@@ -74,14 +74,14 @@
 
 ## 2. 架构优势
 
-| 方面 | 优势 |
-|------|------|
-| 一致性 | 所有写操作在单一 PG 事务内完成，无分布式事务，强一致 |
+| 方面     | 优势                                                             |
+| -------- | ---------------------------------------------------------------- |
+| 一致性   | 所有写操作在单一 PG 事务内完成，无分布式事务，强一致             |
 | 运维简单 | 无外部中间件依赖（无 Kafka/RabbitMQ/Redis 必要依赖），部署链路短 |
-| 幂等保证 | 基于 idempotency_key + 行锁，重放安全 |
-| 错误处理 | 分类重试 (IngestOutcome) + 指数退避 + 20次上限 + dead letter |
-| 可观测 | metrics refresh、结构化日志、reconcile 漂移告警 |
-| 自愈 | Reconcile 层（Budget + Dashboard）可修复 incremental 写入的漂移 |
+| 幂等保证 | 基于 idempotency_key + 行锁，重放安全                            |
+| 错误处理 | 分类重试 (IngestOutcome) + 指数退避 + 20次上限 + dead letter     |
+| 可观测   | metrics refresh、结构化日志、reconcile 漂移告警                  |
+| 自愈     | Reconcile 层（Budget + Dashboard）可修复 incremental 写入的漂移  |
 
 ---
 
@@ -92,12 +92,14 @@
 **问题**：高流量公司所有 ingest 串行等锁。`LockForUpdate` 在事务内包含 lot 消耗（可能 N 个 lot 逐一 UPDATE）、budget_consumed batch UPSERT、combined_key 递减、River job insert——锁持有时间长。
 
 **影响**：
+
 - 大客户峰值延迟飙升
 - 其他公司不受影响（按 company 隔离），但 worker goroutine 被占用
 
 ### 3.2 Ingest 事务过重
 
 单个 ingest 事务执行步骤：
+
 1. `Company.LockForUpdate` — 行锁
 2. `Ledger.ExistsIdempotency` — 查询
 3. `Billing.ListActiveLotsFIFO` + N × `UpdateLotRemaining` — 多次写
@@ -146,6 +148,7 @@
 #### 方案 A：减少事务内 Lot 消耗 SQL 次数
 
 当前逐 lot `UpdateLotRemaining`（N 个活跃 lot = N 条 UPDATE），改为：
+
 ```sql
 -- 单条批量 UPDATE，一次扫完 FIFO 队列
 WITH consumption AS (
@@ -163,10 +166,12 @@ UPDATE recharge_lots SET quota_remaining = quota_remaining - take ...
 #### 方案 B：仅将 Fanout Job Insert 移到 post-commit
 
 安全可移出的：
+
 - `InsertDashboardProject` — 纯投影聚合，延迟无业务影响
 - `InsertOverrun` — 通知类，延迟秒级无影响
 
 必须留在事务内的：
+
 - `InsertWalletSync` — 需保证 lot 消耗与 wallet 同步原子性
 - `budget_consumed` — 同公司串行一致性需要
 - `combined_key_remain` — 同上
@@ -186,12 +191,14 @@ UPDATE recharge_lots SET quota_remaining = quota_remaining - take ...
 **现状**：ingest_jobs + River 并行存在，维护成本双倍。
 
 **建议**：将 ingest pending 迁移为 River job，利用 River 的：
+
 - 内置 SKIP LOCKED claim
 - 指数退避 + max attempts
 - Dead letter / discard
 - 统一监控与 UI (river UI)
 
 **具体做法**：
+
 ```go
 type IngestArgs struct {
     LogID  int64  `json:"log_id" river:"unique"`
@@ -209,6 +216,7 @@ func (IngestArgs) InsertOpts() river.InsertOpts {
 **保留 LISTEN/NOTIFY**：River 本身监听 `river_notify` channel，延迟等价。
 
 **开源参考**：
+
 - [River](https://github.com/riverqueue/river) — 已在使用，只需扩展
 - 如需 River UI 监控：[riverui](https://github.com/riverqueue/riverui)
 
@@ -219,6 +227,7 @@ func (IngestArgs) InsertOpts() river.InsertOpts {
 当前同一公司所有 key 串行。若 lot 消耗可以 **按 platform_key 隔离**（每个 key 有独立余额池），则可以将锁粒度从 company 降到 platform_key。
 
 **评估**：当前 lot 是公司级共享池，因此短期内 company 锁无法避免。但可以：
+
 1. 将 budget_consumed + combined_key_remain 移到事务外（post-commit，已有 reconcile 兜底）
 2. 减少事务内 SQL 到绝对最小集（lock + idempotency + lot + ledger）
 
@@ -241,6 +250,7 @@ func (IngestArgs) InsertOpts() river.InsertOpts {
 **问题**：全量加载 50000/90天条目。
 
 **建议**：
+
 1. **增量 reconcile**：记录 `last_reconciled_at` 或 version，只加载自上次 reconcile 以来的条目
 2. **分片**：按 department / platform_key 分片 reconcile，每次只处理一个分区
 3. **抽样检查**：90% 场景无漂移，可先做 checksum 对比，发现差异再全量修
@@ -250,35 +260,36 @@ func (IngestArgs) InsertOpts() river.InsertOpts {
 **现状**：每次 ingest 都 enqueue WalletSync，5s 去重窗口在高频下仍可能频繁调用外部 API。
 
 **建议**：
+
 1. 将去重窗口从 5s 提高到 **30s~60s**（NewAPI quota 不需要实时同步）
 2. 使用 **delta 累积**模式：在本地累积 delta，定期 flush 一次 TopUp
 3. `ReconcileWalletDrift` 改为分页 + 只处理 `wallet_remain_quota` 变化的公司
 
 ### 4.7 可考虑的开源库/工具
 
-| 需求 | 推荐 | 说明 |
-|------|------|------|
-| 统一 Job Queue | [River](https://github.com/riverqueue/river) | 已在用，建议统一 ingest queue |
-| Job Queue 监控 | [River UI](https://github.com/riverqueue/riverui) | Web UI 查看 job 状态 |
-| PG CDC | [pglogrepl](https://github.com/jackc/pglogrepl) | 替代 LISTEN/NOTIFY，支持 WAL-level 变更捕获 |
-| 分布式锁 | [pglock](https://github.com/cirello-io/pglock) | 如需更细粒度的 advisory lock 管理 |
-| 限流 | [golang.org/x/time/rate](https://pkg.go.dev/golang.org/x/time/rate) | 外部 API 调用限流（WalletSync） |
-| 指标 | [river-prometheus](https://github.com/riverqueue/river/tree/main/rivertype) | River 原生指标导出 |
-| Outbox Pattern | 内置 River InsertInTx | 已在使用的模式，无需额外库 |
+| 需求           | 推荐                                                                        | 说明                                        |
+| -------------- | --------------------------------------------------------------------------- | ------------------------------------------- |
+| 统一 Job Queue | [River](https://github.com/riverqueue/river)                                | 已在用，建议统一 ingest queue               |
+| Job Queue 监控 | [River UI](https://github.com/riverqueue/riverui)                           | Web UI 查看 job 状态                        |
+| PG CDC         | [pglogrepl](https://github.com/jackc/pglogrepl)                             | 替代 LISTEN/NOTIFY，支持 WAL-level 变更捕获 |
+| 分布式锁       | [pglock](https://github.com/cirello-io/pglock)                              | 如需更细粒度的 advisory lock 管理           |
+| 限流           | [golang.org/x/time/rate](https://pkg.go.dev/golang.org/x/time/rate)         | 外部 API 调用限流（WalletSync）             |
+| 指标           | [river-prometheus](https://github.com/riverqueue/river/tree/main/rivertype) | River 原生指标导出                          |
+| Outbox Pattern | 内置 River InsertInTx                                                       | 已在使用的模式，无需额外库                  |
 
 ---
 
 ## 5. 优先级矩阵
 
-| 优化项 | 收益 | 实施难度 | 建议优先级 |
-|--------|------|----------|------------|
-| 减轻 Ingest 事务 (budget/combined 移到 post-commit) | 高 | 低 | P0 |
-| 合并 ingest queue 到 River | 中 | 中 | P1 |
-| Wallet Sync 去重窗口扩大 | 中 | 低 | P1 |
-| Dashboard inline 写入 | 中 | 低 | P1 |
-| Reconcile 增量化 | 中 | 中 | P2 |
-| Company 锁优化 (评估 per-key) | 高 | 高 | P2 (需设计) |
-| PG CDC 替代 Projector | 低 | 高 | P3 |
+| 优化项                                              | 收益 | 实施难度 | 建议优先级  |
+| --------------------------------------------------- | ---- | -------- | ----------- |
+| 减轻 Ingest 事务 (budget/combined 移到 post-commit) | 高   | 低       | P0          |
+| 合并 ingest queue 到 River                          | 中   | 中       | P1          |
+| Wallet Sync 去重窗口扩大                            | 中   | 低       | P1          |
+| Dashboard inline 写入                               | 中   | 低       | P1          |
+| Reconcile 增量化                                    | 中   | 中       | P2          |
+| Company 锁优化 (评估 per-key)                       | 高   | 高       | P2 (需设计) |
+| PG CDC 替代 Projector                               | 低   | 高       | P3          |
 
 ---
 

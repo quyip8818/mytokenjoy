@@ -468,7 +468,6 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
 
       {/* Content */}
       <div className="px-10 pb-10 pt-7">
-
         {/* === LOGIN: phone + password === */}
         {step === 'login-phone-pw' && (
           <form onSubmit={handleLoginPhonePw} className="flex flex-col gap-5">

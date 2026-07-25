@@ -15,6 +15,7 @@ Backend 通过 `adminport.Port` 接口与 NewAPI 通信，所有请求使用 adm
 ## 核心洞察
 
 Backend 和 NewAPI 共享同一个 Postgres 实例（相同用户 `tokenjoy`、相同 host），只是不同 database：
+
 - Backend → `tokenjoy` 库
 - NewAPI → `newapi` 库
 
@@ -43,14 +44,14 @@ Backend 启动
 
 ### 为什么这个方案最优
 
-| 对比维度 | .env 文件 | system_settings 表 | 直接读 NewAPI DB |
-|---------|-----------|-------------------|------------------|
-| Token 来源一致性 | 需同步 | 需同步 | **永远一致** |
-| 额外凭据 | token 本身 | root 密码 | **无需**（复用 DATABASE_URL 凭据） |
-| 新增 schema | 无 | system_settings 表 | **无** |
-| reset 后是否自愈 | ❌ | 需 auto-mint | **✅ 天然自愈** |
-| 长期运行失效 | token 不会过期 | token 不会过期 | **token 不会过期** |
-| 安全性 | 文件系统明文 | 同 DB 安全级别 | **同 DB 安全级别** |
+| 对比维度         | .env 文件      | system_settings 表 | 直接读 NewAPI DB                   |
+| ---------------- | -------------- | ------------------ | ---------------------------------- |
+| Token 来源一致性 | 需同步         | 需同步             | **永远一致**                       |
+| 额外凭据         | token 本身     | root 密码          | **无需**（复用 DATABASE_URL 凭据） |
+| 新增 schema      | 无             | system_settings 表 | **无**                             |
+| reset 后是否自愈 | ❌             | 需 auto-mint       | **✅ 天然自愈**                    |
+| 长期运行失效     | token 不会过期 | token 不会过期     | **token 不会过期**                 |
+| 安全性           | 文件系统明文   | 同 DB 安全级别     | **同 DB 安全级别**                 |
 
 核心优势：**token 的 Source of Truth 就是 NewAPI 的 users 表，直接读取消除了所有同步问题。**
 
@@ -149,6 +150,7 @@ func buildAdminPort(ctx context.Context, cfg config.Config) (adminport.Port, err
 #### 5. Bootstrap 脚本清理
 
 `bootstrap-local-after-reset.sh` 中移除：
+
 - `verify_bootstrap_newapi_admin_token` 调用
 - `verify_write_env_var ... NEW_API_ADMIN_TOKEN` 步骤
 
@@ -161,12 +163,12 @@ func buildAdminPort(ctx context.Context, cfg config.Config) (adminport.Port, err
 
 ### 边界情况
 
-| 场景 | 行为 |
-|------|------|
-| NewAPI 未启动（DB 不存在） | `FetchToken` 失败，Backend 启动报错（同当前行为） |
-| `pnpm reset` 后 | NewAPI 重新 setup → users 表有新 token → Backend 重启时自动读到新值 |
-| 运行时 NewAPI token 被 regenerate | 下一次请求 401 → SelfHealingClient 重读 DB → 自动恢复 |
-| 生产部署（分离 DB） | 需配置 `NEW_API_DATABASE_URL` env 指向 NewAPI DB |
+| 场景                              | 行为                                                                |
+| --------------------------------- | ------------------------------------------------------------------- |
+| NewAPI 未启动（DB 不存在）        | `FetchToken` 失败，Backend 启动报错（同当前行为）                   |
+| `pnpm reset` 后                   | NewAPI 重新 setup → users 表有新 token → Backend 重启时自动读到新值 |
+| 运行时 NewAPI token 被 regenerate | 下一次请求 401 → SelfHealingClient 重读 DB → 自动恢复               |
+| 生产部署（分离 DB）               | 需配置 `NEW_API_DATABASE_URL` env 指向 NewAPI DB                    |
 
 ### 生产环境适配
 
@@ -188,7 +190,7 @@ type NewAPIConfig struct {
 - `config.Config.NewAPIAdminToken` 字段
 - `config.validate` 中的 token 校验
 - `bootstrap-local-after-reset.sh` 中写 token 到 .env 的逻辑
-- `config.Load()` 中的 `cfg.NewAPIAdminToken = strings.TrimSpace(...)` 
+- `config.Load()` 中的 `cfg.NewAPIAdminToken = strings.TrimSpace(...)`
 
 ## 实施顺序
 

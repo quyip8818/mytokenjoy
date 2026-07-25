@@ -30,7 +30,9 @@ export default function WeightsPage() {
       }
     }
     fetchWeights()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [apis])
 
   const totalWeight = useMemo(() => weights.reduce((sum, w) => sum + w.weight, 0), [weights])

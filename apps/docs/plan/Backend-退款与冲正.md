@@ -15,11 +15,11 @@
 禁止 UPDATE 历史 ledger.display_amount / 用新 PPU 重算旧费用
 ```
 
-| 在范围内 | 不在范围内（首版） |
-| --- | --- |
+| 在范围内                                               | 不在范围内（首版）     |
+| ------------------------------------------------------ | ---------------------- |
 | 运营发起的用量冲正、充值未用退余额、overdraft 人工冲销 | 用户自助原路退支付通道 |
-| 幂等写路径 + 投影兼容 | FX 多币种汇兑退款 |
-| CallLog / 钱包 / 看板能看见冲正效果 | Gateway 热路径改动 |
+| 幂等写路径 + 投影兼容                                  | FX 多币种汇兑退款      |
+| CallLog / 钱包 / 看板能看见冲正效果                    | Gateway 热路径改动     |
 
 ---
 
@@ -40,13 +40,13 @@ flowchart TB
   end
 ```
 
-| | A 充值退余额 | B 用量冲正 | C overdraft 冲销 |
-| --- | --- | --- | --- |
-| 触发 | 运营对未用完的 lot 退款 | 误计费 / 对账回退 | 透支后补钱或抹账 |
-| `wallet_remain_quota` | **减少** | **增加** | 通常不变或随抵消变 |
-| lot | remaining **减少**（或关 lot） | 原 lot remaining **回补** | overdraft remaining **减少** |
-| ledger | 建议记 `wallet_refund`（审计） | **必须**负向用量段 | 可选审计段 |
-| 展示币 | 用该 lot `unit_price_display` 算退额 | 负 display = `-take × 原单价` | overdraft 单价多为 0 |
+|                       | A 充值退余额                         | B 用量冲正                    | C overdraft 冲销             |
+| --------------------- | ------------------------------------ | ----------------------------- | ---------------------------- |
+| 触发                  | 运营对未用完的 lot 退款              | 误计费 / 对账回退             | 透支后补钱或抹账             |
+| `wallet_remain_quota` | **减少**                             | **增加**                      | 通常不变或随抵消变           |
+| lot                   | remaining **减少**（或关 lot）       | 原 lot remaining **回补**     | overdraft remaining **减少** |
+| ledger                | 建议记 `wallet_refund`（审计）       | **必须**负向用量段            | 可选审计段                   |
+| 展示币                | 用该 lot `unit_price_display` 算退额 | 负 display = `-take × 原单价` | overdraft 单价多为 0         |
 
 **首版建议优先实现 B**（与现有 ingest 对称、闭环校验清晰）；A / C 第二刀。
 
@@ -54,19 +54,19 @@ flowchart TB
 
 ## 3. 架构原则（与现状对齐）
 
-1. **事实 SSOT**：`company_recharge_lots` + `usage_ledger` + `companies.wallet_remain_quota`（同事务）。  
-2. **投影可重建**：`budget_consumed` / `usage_buckets` / `gateway_soft_*` 只跟 ledger 走，不单独记「退款余额表」。  
-3. **冻结展示**：冲正展示额继承**原 lot 单价与币种**，不用公司当前 `billing_currency` PPU 现算。  
-4. **Gateway 不参与**：冲正走管理 API；soft 靠投影追平（可接受短 lag）。  
+1. **事实 SSOT**：`company_recharge_lots` + `usage_ledger` + `companies.wallet_remain_quota`（同事务）。
+2. **投影可重建**：`budget_consumed` / `usage_buckets` / `gateway_soft_*` 只跟 ledger 走，不单独记「退款余额表」。
+3. **冻结展示**：冲正展示额继承**原 lot 单价与币种**，不用公司当前 `billing_currency` PPU 现算。
+4. **Gateway 不参与**：冲正走管理 API；soft 靠投影追平（可接受短 lag）。
 5. **幂等**：与充值订单类似，`(company_id, idempotency_key)` 级防重。
 
 现状约束（实现时必碰）：
 
-| 现状 | 含义 |
-| --- | --- |
-| 投影只拉 `event_type = call_settled` | 若冲正用新 event_type，必须改 projector / dashboard 游标查询 |
-| Unique `(company_id, idempotency_key, lot_id, occurred_at)` | 冲正 key 需稳定设计，避免假冲突 |
-| CallLog 来自 ledger | 负向段要不要进调用列表：产品二选一（见 §6） |
+| 现状                                                        | 含义                                                         |
+| ----------------------------------------------------------- | ------------------------------------------------------------ |
+| 投影只拉 `event_type = call_settled`                        | 若冲正用新 event_type，必须改 projector / dashboard 游标查询 |
+| Unique `(company_id, idempotency_key, lot_id, occurred_at)` | 冲正 key 需稳定设计，避免假冲突                              |
+| CallLog 来自 ledger                                         | 负向段要不要进调用列表：产品二选一（见 §6）                  |
 
 ---
 
@@ -179,21 +179,21 @@ flowchart LR
 
 规则：
 
-- 可退 quota ≤ `lot.quota_remaining`  
-- 退款展示额 = `P × lot.unit_price_display`（冻结单价）  
-- gift / overdraft：**不允许走 A**（gift 无应付；overdraft 走 C）  
+- 可退 quota ≤ `lot.quota_remaining`
+- 退款展示额 = `P × lot.unit_price_display`（冻结单价）
+- gift / overdraft：**不允许走 A**（gift 无应付；overdraft 走 C）
 - 审计：`operation_logs` + 可选 `usage_ledger` event `wallet_refund`（投影**忽略**该 type）
 
 ---
 
 ## 6. 读侧与产品
 
-| 面 | 行为 |
-| --- | --- |
-| CallLog | **推荐**：列表仍以 `call_settled` 为主；冲正单独「冲正记录」或详情挂 `reversals[]`。备选：混排负行（实现简单、产品需接受） |
-| 看板 Spend | `Σ display_cost` 含 `call_reversal` → 花费下降 |
-| 钱包 | A 减少余额；B 增加余额；`balances[]` 按币种闭合 |
-| 预算 soft | 投影后 remain 回升；短窗 lag 可接受 |
+| 面         | 行为                                                                                                                       |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------- |
+| CallLog    | **推荐**：列表仍以 `call_settled` 为主；冲正单独「冲正记录」或详情挂 `reversals[]`。备选：混排负行（实现简单、产品需接受） |
+| 看板 Spend | `Σ display_cost` 含 `call_reversal` → 花费下降                                                                             |
+| 钱包       | A 减少余额；B 增加余额；`balances[]` 按币种闭合                                                                            |
+| 预算 soft  | 投影后 remain 回升；短窗 lag 可接受                                                                                        |
 
 前端：冲正展示额一律 `formatMoney`（可负），禁止再 ÷PPU。
 
@@ -225,13 +225,13 @@ POST /api/platform/companies/{id}/refunds/lot         # A，可选二期
 
 ## 8. 测试计划（实现验收）
 
-| 用例 | 期望 |
-| --- | --- |
-| 整段冲正 | 负向 ledger 1 行；lot remaining 回到扣前；wallet 回升；投影后 consumed/soft/buckets 闭合 |
-| 幂等重放 | 第二次 Insert 0 行 / 同结果，无二次加钱包 |
-| 禁止超冲 | 二次冲正同一段 → Validation |
-| 冻结币种 | 公司改币后冲正，`display_amount` 仍按原 lot 币与单价 |
-| A（二期） | remaining 不足不可退；gift 拒绝 |
+| 用例      | 期望                                                                                     |
+| --------- | ---------------------------------------------------------------------------------------- |
+| 整段冲正  | 负向 ledger 1 行；lot remaining 回到扣前；wallet 回升；投影后 consumed/soft/buckets 闭合 |
+| 幂等重放  | 第二次 Insert 0 行 / 同结果，无二次加钱包                                                |
+| 禁止超冲  | 二次冲正同一段 → Validation                                                              |
+| 冻结币种  | 公司改币后冲正，`display_amount` 仍按原 lot 币与单价                                     |
+| A（二期） | remaining 不足不可退；gift 拒绝                                                          |
 
 单测落点：`tests/domain/billing/refund_*` + 投影 `budget_projector` 负向段。
 
@@ -239,13 +239,13 @@ POST /api/platform/companies/{id}/refunds/lot         # A，可选二期
 
 ## 9. 建议落地切片（以后做）
 
-| 序 | 内容 | 产出 |
-| --- | --- | --- |
-| R1 | `EventTypeCallReversal` + projector/dashboard 查询扩事件 | 能吃负向段 |
-| R2 | `RefundUsage` 同事务 + idempotency + 整段冲正 | 核心写路径 |
-| R3 | Platform API + operation_log + FE 冲正可见 | 可用 |
-| R4 | `RefundLotBalance`（A） | 充值退余额 |
-| R5 | overdraft 冲销（C）+ 可选 metric | 财务收口 |
+| 序  | 内容                                                     | 产出       |
+| --- | -------------------------------------------------------- | ---------- |
+| R1  | `EventTypeCallReversal` + projector/dashboard 查询扩事件 | 能吃负向段 |
+| R2  | `RefundUsage` 同事务 + idempotency + 整段冲正            | 核心写路径 |
+| R3  | Platform API + operation_log + FE 冲正可见               | 可用       |
+| R4  | `RefundLotBalance`（A）                                  | 充值退余额 |
+| R5  | overdraft 冲销（C）+ 可选 metric                         | 财务收口   |
 
 **明确不做（与量纲文一致）：** Gateway 动态 estimate；ingest 同事务投影；热路径 `SUM(ledger)`。
 
@@ -253,9 +253,9 @@ POST /api/platform/companies/{id}/refunds/lot         # A，可选二期
 
 ## 10. 决策冻结（开做前确认）
 
-1. B 是否**只允许整段冲正**？（推荐是）  
-2. CallLog：**混排负行** vs **独立冲正列表**？  
-3. A 是否需要对接真实支付通道，还是只做账本退额？  
+1. B 是否**只允许整段冲正**？（推荐是）
+2. CallLog：**混排负行** vs **独立冲正列表**？
+3. A 是否需要对接真实支付通道，还是只做账本退额？
 4. API 挂 Platform 还是企业 Admin？
 
 确认后再开 PR；在此之前**不写代码**。
@@ -264,7 +264,7 @@ POST /api/platform/companies/{id}/refunds/lot         # A，可选二期
 
 ## 11. 相关
 
-- [Backend-计费模式.md](../Backend-计费模式.md) — 量纲、冻结展示、事实/投影  
-- [Backend-预算.md](../Backend-预算.md) — 投影 / soft remain  
-- [Backend-离线任务.md](../Backend-离线任务.md) — River 入队  
-- [架构终态设计.md](../架构终态设计.md) — 摘要列=投影  
+- [Backend-计费模式.md](../Backend-计费模式.md) — 量纲、冻结展示、事实/投影
+- [Backend-预算.md](../Backend-预算.md) — 投影 / soft remain
+- [Backend-离线任务.md](../Backend-离线任务.md) — River 入队
+- [架构终态设计.md](../架构终态设计.md) — 摘要列=投影

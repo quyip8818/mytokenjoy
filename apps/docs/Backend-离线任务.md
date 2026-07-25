@@ -18,10 +18,10 @@ cmd/server
   └─ infra/river.Client.Start()      ← 线 B：river_job claim + Workers + Periodic
 ```
 
-| 线 | 包 | 存储 | 职责 |
-| --- | --- | --- | --- |
+| 线             | 包                      | 存储                                         | 职责                                              |
+| -------------- | ----------------------- | -------------------------------------------- | ------------------------------------------------- |
 | **A — Ingest** | `internal/infra/ingest` | 日志库 `ingest_jobs`；主库 `scheduler_locks` | webhook/reconcile → `IngestByLogID`；钱包漂移扫描 |
-| **B — River** | `internal/infra/river` | 主库 `river_job` 等 | 温/冷副作用；**唯一 Periodic** = 看门狗 |
+| **B — River**  | `internal/infra/river`  | 主库 `river_job` 等                          | 温/冷副作用；**唯一 Periodic** = 看门狗           |
 
 装配：`internal/app/compose_worker.go` → `buildBackgroundWorkers`。
 
@@ -52,13 +52,13 @@ flowchart TB
 
 ## 2. 分层与依赖方向
 
-| 层 | 路径 | 职责 |
-| --- | --- | --- |
-| **domain** | `domain/*` | 业务逻辑；**不** import `river` / `pgx` |
-| **jobs** | `internal/infra/jobs` | `Enqueuer` 接口、Job Args、`Insert*` helper |
-| **scheduler** | `internal/infra/scheduler` | L2 只读 due 查询 + 看门狗批量入队 |
-| **river workers** | `internal/infra/river/workers` | 薄壳：`Work()` → 调 domain 一个方法 |
-| **river client** | `internal/infra/river` | Client 装配、Periodic、队列权重 |
+| 层                | 路径                           | 职责                                        |
+| ----------------- | ------------------------------ | ------------------------------------------- |
+| **domain**        | `domain/*`                     | 业务逻辑；**不** import `river` / `pgx`     |
+| **jobs**          | `internal/infra/jobs`          | `Enqueuer` 接口、Job Args、`Insert*` helper |
+| **scheduler**     | `internal/infra/scheduler`     | L2 只读 due 查询 + 看门狗批量入队           |
+| **river workers** | `internal/infra/river/workers` | 薄壳：`Work()` → 调 domain 一个方法         |
+| **river client**  | `internal/infra/river`         | Client 装配、Periodic、队列权重             |
 
 Domain 入队经各域 `JobEnqueuer` 端口（`domain/*/ports.go` + `app/port_*.go`）；底层统一 `jobs.Enqueuer`（`Insert` / `InsertInTx`）。事务内入队通过 `store.Tx`（`postgres.txStore` 实现），domain 不 import `pgx`。
 
@@ -68,14 +68,14 @@ Domain 入队经各域 `JobEnqueuer` 端口（`domain/*/ports.go` + `app/port_*.
 
 **业务入队走域端口**，不直接依赖 Holder：
 
-| 域 | 端口 | 适配器 |
-| --- | --- | --- |
-| billing | `billing.JobEnqueuer` | `app/port_billing.go` |
-| budget | `budget.JobEnqueuer` | `app/port_budget.go` |
-| usage | `usage.IngestJobEnqueuer` | `app/port_usage.go` |
-| dashboard | `dashboard.JobEnqueuer` | `app/port_dashboard.go` |
-| newapisync | `newapisync.SyncJobEnqueuer` | `app/port_newapisync.go` |
-| org-remote | `remote.JobEnqueuer` | `app/port_org.go`（含 `CancelPendingOrgSync`） |
+| 域         | 端口                         | 适配器                                         |
+| ---------- | ---------------------------- | ---------------------------------------------- |
+| billing    | `billing.JobEnqueuer`        | `app/port_billing.go`                          |
+| budget     | `budget.JobEnqueuer`         | `app/port_budget.go`                           |
+| usage      | `usage.IngestJobEnqueuer`    | `app/port_usage.go`                            |
+| dashboard  | `dashboard.JobEnqueuer`      | `app/port_dashboard.go`                        |
+| newapisync | `newapisync.SyncJobEnqueuer` | `app/port_newapisync.go`                       |
+| org-remote | `remote.JobEnqueuer`         | `app/port_org.go`（含 `CancelPendingOrgSync`） |
 
 `RIVER_ENABLED=false` 时 Holder 保持 `NoopEnqueuer`（`Insert` 返回 `nil`，**不入队**）。
 
@@ -83,17 +83,17 @@ Domain 入队经各域 `JobEnqueuer` 端口（`domain/*/ports.go` + `app/port_*.
 
 ## 3. Job kind（终态）
 
-| kind | 队列 | Unique | 触发层级 | Worker | Domain 入口 |
-| --- | --- | --- | --- | --- | --- |
-| `newapi_sync` | critical | 无 | L1 业务 | `workers/newapi_sync.go` | `newapisync.OutboxHandler` |
-| `wallet_sync` | default | args，~5s | L0 ingest / L1 充值漂移 | `workers/wallet_sync.go` | `billing.SyncCompanyWallet` |
-| `rebalance` | default | per axis | L1 按需 / 充值月切 / reconcile / L2 | `workers/rebalance.go` | `budget.Rebalancer.ProcessAxis` |
-| `overrun` | default | per payload | L1 **仅可能触顶时** | `workers/overrun.go` | `budget.OverrunProcessor` |
-| `org_sync` | default | per company | L1 ScheduledAt；L2 看门狗 | `workers/org_sync.go` | `org.RunScheduledSync` |
-| `budget_reconcile` | low | args，~24h | L1 手动；L2 看门狗 | `workers/budget_reconcile.go` | `budget.ReconcileService.RunCompany` |
-| `dashboard_project` | low | args，~1h | L1 自续；L2 看门狗（每小时检测 lag） | `workers/dashboard_project.go` | `dashboard.Projector.RunBatch` |
-| `dashboard_reconcile` | low | args，~24h | L1 手动；L2 看门狗 | `workers/dashboard_project.go` | `dashboard.ReconcileService.RunCompany` |
-| `tenant_watchdog` | low | ByPeriod = 间隔 | L2 Periodic | `workers/watchdog.go` | `scheduler.CollectDue` + `BulkEnqueue` |
+| kind                  | 队列     | Unique          | 触发层级                             | Worker                         | Domain 入口                             |
+| --------------------- | -------- | --------------- | ------------------------------------ | ------------------------------ | --------------------------------------- |
+| `newapi_sync`         | critical | 无              | L1 业务                              | `workers/newapi_sync.go`       | `newapisync.OutboxHandler`              |
+| `wallet_sync`         | default  | args，~5s       | L0 ingest / L1 充值漂移              | `workers/wallet_sync.go`       | `billing.SyncCompanyWallet`             |
+| `rebalance`           | default  | per axis        | L1 按需 / 充值月切 / reconcile / L2  | `workers/rebalance.go`         | `budget.Rebalancer.ProcessAxis`         |
+| `overrun`             | default  | per payload     | L1 **仅可能触顶时**                  | `workers/overrun.go`           | `budget.OverrunProcessor`               |
+| `org_sync`            | default  | per company     | L1 ScheduledAt；L2 看门狗            | `workers/org_sync.go`          | `org.RunScheduledSync`                  |
+| `budget_reconcile`    | low      | args，~24h      | L1 手动；L2 看门狗                   | `workers/budget_reconcile.go`  | `budget.ReconcileService.RunCompany`    |
+| `dashboard_project`   | low      | args，~1h       | L1 自续；L2 看门狗（每小时检测 lag） | `workers/dashboard_project.go` | `dashboard.Projector.RunBatch`          |
+| `dashboard_reconcile` | low      | args，~24h      | L1 手动；L2 看门狗                   | `workers/dashboard_project.go` | `dashboard.ReconcileService.RunCompany` |
+| `tenant_watchdog`     | low      | ByPeriod = 间隔 | L2 Periodic                          | `workers/watchdog.go`          | `scheduler.CollectDue` + `BulkEnqueue`  |
 
 **终态删除：** `budget_projection`（及 progress / 看门狗 NeedsBudgetProject）。
 
@@ -105,13 +105,13 @@ Args：`internal/infra/jobs/kinds_*.go`。入队：`enqueue.go`。Worker：`infr
 
 表：`tenant_background_state`（`schema.sql`）。每 active company 一行，由 `CreateCompany` / seed `EnsureRow` 初始化。
 
-| 字段 | 写入时机 | 读取方 |
-| --- | --- | --- |
-| `next_org_sync_at` | `UpdateSyncConfig` / 同步成功后 reschedule | L1 org、`scheduler.orgDue` |
-| `last_org_sync_at` | 同步成功 | `ComputeNextOrgSync` |
-| `last_rebalanced_period` | **仅** company 轴 `rebalance` worker 成功 | `EnsureMonthRebalance`、`scheduler.monthDue` |
-| `last_budget_reconcile_at` | `budget_reconcile` worker 成功 | `scheduler.budgetReconcileDue` |
-| `last_dashboard_reconcile_at` | `dashboard_reconcile` worker 成功 | `scheduler.dashboardReconcileDue` |
+| 字段                          | 写入时机                                   | 读取方                                       |
+| ----------------------------- | ------------------------------------------ | -------------------------------------------- |
+| `next_org_sync_at`            | `UpdateSyncConfig` / 同步成功后 reschedule | L1 org、`scheduler.orgDue`                   |
+| `last_org_sync_at`            | 同步成功                                   | `ComputeNextOrgSync`                         |
+| `last_rebalanced_period`      | **仅** company 轴 `rebalance` worker 成功  | `EnsureMonthRebalance`、`scheduler.monthDue` |
+| `last_budget_reconcile_at`    | `budget_reconcile` worker 成功             | `scheduler.budgetReconcileDue`               |
+| `last_dashboard_reconcile_at` | `dashboard_reconcile` worker 成功          | `scheduler.dashboardReconcileDue`            |
 
 Store：`store/tenant_background_state.go` + `postgres/tenant_background_state_repo.go`。
 
@@ -131,18 +131,18 @@ Store：`store/tenant_background_state.go` + `postgres/tenant_background_state_r
 
 ### 5.2 L1 — 业务路径（`Insert`）
 
-| 来源 | kind | 说明 |
-| --- | --- | --- |
-| Ingest 预判触顶 | `overrun` | 可先判跳过 |
-| 按需 / Key 变更 | `rebalance` | 按轴 Unique |
-| `schedule.EnsureMonthRebalance` | `rebalance`（company） | 月切；reconcile 批首或看门狗 |
-| `billing.afterRecharge` | `wallet_sync` | 充值后仅同步钱包；不触发 rebalance |
-| `billing.ReconcileWalletDrift` | `wallet_sync` | |
-| `budget.ReconcileService` 修复后 | `rebalance`（company） | |
-| `newapisync/*` | `newapi_sync` | |
-| `org.UpdateSyncConfig` / 同步成功 | `org_sync` | |
-| `dashboard.Projector` 批满 | `dashboard_project` | 自续（追赶积压） |
-| 手动 reconcile API | `budget_reconcile` / `dashboard_reconcile` | |
+| 来源                              | kind                                       | 说明                               |
+| --------------------------------- | ------------------------------------------ | ---------------------------------- |
+| Ingest 预判触顶                   | `overrun`                                  | 可先判跳过                         |
+| 按需 / Key 变更                   | `rebalance`                                | 按轴 Unique                        |
+| `schedule.EnsureMonthRebalance`   | `rebalance`（company）                     | 月切；reconcile 批首或看门狗       |
+| `billing.afterRecharge`           | `wallet_sync`                              | 充值后仅同步钱包；不触发 rebalance |
+| `billing.ReconcileWalletDrift`    | `wallet_sync`                              |                                    |
+| `budget.ReconcileService` 修复后  | `rebalance`（company）                     |                                    |
+| `newapisync/*`                    | `newapi_sync`                              |                                    |
+| `org.UpdateSyncConfig` / 同步成功 | `org_sync`                                 |                                    |
+| `dashboard.Projector` 批满        | `dashboard_project`                        | 自续（追赶积压）                   |
+| 手动 reconcile API                | `budget_reconcile` / `dashboard_reconcile` |                                    |
 
 ### 5.3 L2 — 看门狗（`tenant_watchdog`）
 
@@ -201,12 +201,12 @@ Due 判据（只读 store，见 `infra/scheduler/due.go`）：
 
 ## 7. Periodic 与启动时看门狗
 
-| 机制 | 何时跑 | 是否挡启动 |
-| --- | --- | --- |
-| **`tenant_watchdog` Periodic** | `RIVER_PERIODIC_ENABLED=true`（默认）时每 `WATCHDOG_INTERVAL_SEC`（1h） | 否（River 后台 goroutine） |
-| **Deferred 首次扫描** | 进程启动 `WATCHDOG_STARTUP_DELAY_SEC`（默认 5s）后 `scheduler.RunOnce` | **否**——只入队，Worker 后台消费 |
-| **`/healthz`** | 立即可用 | — |
-| **`/api/dev/readiness`** | L1b：platform key 已 sync（`pnpm reset` → `dev-bootstrap`）；**不**挡 `pnpm start` | 与 River / 看门狗无关 |
+| 机制                           | 何时跑                                                                             | 是否挡启动                      |
+| ------------------------------ | ---------------------------------------------------------------------------------- | ------------------------------- |
+| **`tenant_watchdog` Periodic** | `RIVER_PERIODIC_ENABLED=true`（默认）时每 `WATCHDOG_INTERVAL_SEC`（1h）            | 否（River 后台 goroutine）      |
+| **Deferred 首次扫描**          | 进程启动 `WATCHDOG_STARTUP_DELAY_SEC`（默认 5s）后 `scheduler.RunOnce`             | **否**——只入队，Worker 后台消费 |
+| **`/healthz`**                 | 立即可用                                                                           | —                               |
+| **`/api/dev/readiness`**       | L1b：platform key 已 sync（`pnpm reset` → `dev-bootstrap`）；**不**挡 `pnpm start` | 与 River / 看门狗无关           |
 
 注册 Periodic：`internal/infra/river/periodic/watchdog.go`（需 `RIVER_ENABLED` + `RIVER_PERIODIC_ENABLED`）。
 
@@ -214,26 +214,26 @@ Deferred 入队：`compose_watchdog.go` → `startDeferredWatchdog`（`app.go` �
 
 `dev-bootstrap`（`pnpm reset` 末步）负责 L1a seed + L1b platform key 同步；`pnpm start` 只等 `/healthz`。契约见 [本地开发-启动优化.md](./本地开发-启动优化.md)。
 
-| env | 默认 | 含义 |
-| --- | --- | --- |
-| `WATCHDOG_INTERVAL_SEC` | `3600` | Periodic 间隔（1h，驱动 dashboard projection） |
-| `WATCHDOG_STARTUP_DELAY_SEC` | `5` | 启动后首次 due 扫描延迟 |
-| `WATCHDOG_BULK_BATCH_SIZE` | `200` | 每批 tenant 数 |
+| env                          | 默认   | 含义                                           |
+| ---------------------------- | ------ | ---------------------------------------------- |
+| `WATCHDOG_INTERVAL_SEC`      | `3600` | Periodic 间隔（1h，驱动 dashboard projection） |
+| `WATCHDOG_STARTUP_DELAY_SEC` | `5`    | 启动后首次 due 扫描延迟                        |
+| `WATCHDOG_BULK_BATCH_SIZE`   | `200`  | 每批 tenant 数                                 |
 
 ---
 
 ## 8. 配置
 
-| 变量 | 默认 | 含义 |
-| --- | --- | --- |
-| `RIVER_ENABLED` | `true` | 是否启动 River Client |
-| `RIVER_PERIODIC_ENABLED` | `true` | 是否注册 `tenant_watchdog` Periodic |
-| `RIVER_MAX_WORKERS` | `20` | 全局 worker 上限；按 2:2:1 分到 critical / default / low |
-| `WATCHDOG_INTERVAL_SEC` | `3600` | 看门狗 Periodic 间隔（1h，驱动 dashboard projection） |
-| `WATCHDOG_STARTUP_DELAY_SEC` | `5` | 启动后 deferred due 扫描延迟（不挡 health） |
-| `WATCHDOG_BULK_BATCH_SIZE` | `200` | 看门狗每批处理 tenant 数 |
-| `WORKER_POLL_INTERVAL_SEC` | `1` | ingest Worker 轮询（**仅**线 A） |
-| `INGEST_RECONCILE_*` | — | reconcile 批次与锁（线 A，非 River） |
+| 变量                         | 默认   | 含义                                                     |
+| ---------------------------- | ------ | -------------------------------------------------------- |
+| `RIVER_ENABLED`              | `true` | 是否启动 River Client                                    |
+| `RIVER_PERIODIC_ENABLED`     | `true` | 是否注册 `tenant_watchdog` Periodic                      |
+| `RIVER_MAX_WORKERS`          | `20`   | 全局 worker 上限；按 2:2:1 分到 critical / default / low |
+| `WATCHDOG_INTERVAL_SEC`      | `3600` | 看门狗 Periodic 间隔（1h，驱动 dashboard projection）    |
+| `WATCHDOG_STARTUP_DELAY_SEC` | `5`    | 启动后 deferred due 扫描延迟（不挡 health）              |
+| `WATCHDOG_BULK_BATCH_SIZE`   | `200`  | 看门狗每批处理 tenant 数                                 |
+| `WORKER_POLL_INTERVAL_SEC`   | `1`    | ingest Worker 轮询（**仅**线 A）                         |
+| `INGEST_RECONCILE_*`         | —      | reconcile 批次与锁（线 A，非 River）                     |
 
 ---
 
@@ -250,16 +250,16 @@ Deferred 入队：`compose_watchdog.go` → `startDeferredWatchdog`（`app.go` �
 
 ## 10. 测试
 
-| 区域 | 路径 |
-| --- | --- |
-| Worker 集成 | `tests/worker/` |
-| 看门狗 due | `tests/infra/scheduler/due_test.go` |
-| TBS 生命周期 | `tests/domain/company/create_company_test.go` |
-| 入队 / Unique | `tests/store/postgres/wallet_sync_test.go`、`enqueue_tx_test.go` |
-| Ingest 三 job | `tests/domain/usage/ingest_enqueue_test.go` |
-| Org ScheduledAt | `tests/worker/sync_scheduler_test.go` |
+| 区域                      | 路径                                                                             |
+| ------------------------- | -------------------------------------------------------------------------------- |
+| Worker 集成               | `tests/worker/`                                                                  |
+| 看门狗 due                | `tests/infra/scheduler/due_test.go`                                              |
+| TBS 生命周期              | `tests/domain/company/create_company_test.go`                                    |
+| 入队 / Unique             | `tests/store/postgres/wallet_sync_test.go`、`enqueue_tx_test.go`                 |
+| Ingest 三 job             | `tests/domain/usage/ingest_enqueue_test.go`                                      |
+| Org ScheduledAt           | `tests/worker/sync_scheduler_test.go`                                            |
 | 月切 EnsureMonthRebalance | `tests/domain/budget/schedule/monthly_test.go`（或 `monthly_rebalance_test.go`） |
-| 测试辅助 | `tests/testutil/river/`（`NewRuntime`、`DisablePeriodic`） |
+| 测试辅助                  | `tests/testutil/river/`（`NewRuntime`、`DisablePeriodic`）                       |
 
 单测需 PostgreSQL：`make test-unit`（`-tags=testhook`）。
 
@@ -292,9 +292,9 @@ internal/
 
 ## 12. 关联文档
 
-| 文档 | 内容 |
-| --- | --- |
+| 文档                                             | 内容                         |
+| ------------------------------------------------ | ---------------------------- |
 | [Backend-模块化设计.md](./Backend-模块化设计.md) | 模块地图与 `infra/` 目录终态 |
-| [Backend-架构.md](./Backend-架构.md) §7 | 后台运行时 |
-| [Backend-Ingest架构.md](./Backend-Ingest架构.md) | webhook → pending → ingest |
-| [Backend-预算.md](./Backend-预算.md) | 预算域、异步投影 |
+| [Backend-架构.md](./Backend-架构.md) §7          | 后台运行时                   |
+| [Backend-Ingest架构.md](./Backend-Ingest架构.md) | webhook → pending → ingest   |
+| [Backend-预算.md](./Backend-预算.md)             | 预算域、异步投影             |

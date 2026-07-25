@@ -44,20 +44,20 @@ TokenJoy 的计费体系由两根**独立的轴**控成本：
 
 系统内部只有一个量纲：**point（quota）**。与 NewAPI 的 `logs.quota` 完全对齐，不做二次换算。
 
-| 方向 | 公式 | 代码 |
-|------|------|------|
+| 方向           | 公式                             | 代码                     |
+| -------------- | -------------------------------- | ------------------------ |
 | 展示币 → point | `round(amount × quota_per_unit)` | `common.QuotaFromAmount` |
-| point → 展示币 | `quota / quota_per_unit` | `common.QuotaToDisplay` |
+| point → 展示币 | `quota / quota_per_unit`         | `common.QuotaToDisplay`  |
 
 默认：**1 CNY = 500,000 point**（`DefaultQuotaPerUnit`）。
 
 ### 1.2 与 NewAPI 的关系
 
-| 组件 | 当前状态 | 说明 |
-|------|---------|------|
-| NewAPI Token | `UnlimitedQuota = true` | 不限额，Gateway 不靠它做拦截 |
-| NewAPI User | 充值时 TopUp(+delta) | 镜像钱包金额，仅防直连穿透 |
-| NewAPI logs.quota | 真实消费金额 | Ingest 透传入账，不做换算 |
+| 组件              | 当前状态                | 说明                         |
+| ----------------- | ----------------------- | ---------------------------- |
+| NewAPI Token      | `UnlimitedQuota = true` | 不限额，Gateway 不靠它做拦截 |
+| NewAPI User       | 充值时 TopUp(+delta)    | 镜像钱包金额，仅防直连穿透   |
+| NewAPI logs.quota | 真实消费金额            | Ingest 透传入账，不做换算    |
 
 ---
 
@@ -124,11 +124,11 @@ flowchart TB
 
 `budget_consumed` 只记录三种 axis：
 
-| axis_kind | axis_id | 用途 |
-|-----------|---------|------|
-| `platform_key` | Key ID | Key 级消耗 |
-| `member` | 成员 ID | 成员总消耗 |
-| `project` | 项目 ID | 项目总消耗 |
+| axis_kind      | axis_id | 用途       |
+| -------------- | ------- | ---------- |
+| `platform_key` | Key ID  | Key 级消耗 |
+| `member`       | 成员 ID | 成员总消耗 |
+| `project`      | 项目 ID | 项目总消耗 |
 
 **部门花费**不在 consumed 里——通过 `usage_ledger.department_id` 聚合。
 
@@ -136,10 +136,10 @@ flowchart TB
 
 `pkg/budget.GatewayChainRemain(scope, inputs)` 按 scope 取各级剩余的 **min**：
 
-| scope | remain = min of |
-|-------|-----------------|
-| `member` | key_remain, personal_remain |
-| `project` | key_remain, project_remain |
+| scope            | remain = min of                  |
+| ---------------- | -------------------------------- |
+| `member`         | key_remain, personal_remain      |
+| `project`        | key_remain, project_remain       |
 | `project_member` | sub_quota_remain, project_remain |
 
 注意：`key_remain` 只在 `KeyBudget > 0` 时参与计算（无预算 = 无限制）。  
@@ -174,6 +174,7 @@ sequenceDiagram
    - PreCreditFunc 失败 → 充值不执行，用户重试
 
 **FIFO lot 队列（`domain/billing/lot/consume.go`）：**
+
 - 充值产生 lot（paid/gift/adjust/overdraft 四种）
 - 消费时从 `FIFOHeadLotID` 开始逐个扣减
 - lot 耗尽标记 `exhausted`，指针前移
@@ -204,6 +205,7 @@ flowchart TD
 ```
 
 **重要设计决策：**
+
 - 预检**不做按请求估价**，只判断「还有没有额度」
 - Redis 缓存 fail-open：miss 或 Redis 挂了 → 回退到 PG 查询
 - `combined_key_remain` 的 version 字段用于防止 stale cache 误拦
@@ -307,6 +309,7 @@ sequenceDiagram
 ```
 
 **关键点：**
+
 - Rebalance 只刷 PG 的 `combined_key_remain`，**不同步 NewAPI Token**
 - 代码注释：`"Token is unlimited on NewAPI — no remote quota to sync"`
 - 下一个请求到达 Gateway 时即按新限额拦截
@@ -315,10 +318,10 @@ sequenceDiagram
 
 系统定义三种 Rebalance 轴（`store/rebalance.go`），决定需要刷新哪些 Key 的 `combined_key_remain`：
 
-| 轴 | 值 | 加载范围 | 典型触发场景 |
-|---|---|---|---|
-| `member` | 成员 ID | 只加载该成员关联的所有 PlatformKeyMapping | 修改成员 personal_budget |
-| `project` | 项目 ID | 只加载该项目关联的所有 PlatformKeyMapping | 修改项目 budget |
+| 轴        | 值      | 加载范围                                        | 典型触发场景                        |
+| --------- | ------- | ----------------------------------------------- | ----------------------------------- |
+| `member`  | 成员 ID | 只加载该成员关联的所有 PlatformKeyMapping       | 修改成员 personal_budget            |
+| `project` | 项目 ID | 只加载该项目关联的所有 PlatformKeyMapping       | 修改项目 budget                     |
 | `company` | 企业 ID | 加载该企业**所有 active** 的 PlatformKeyMapping | 修改部门 budget、均分额度、月初重置 |
 
 ### 5.2 Rebalance 处理流程详解
@@ -395,14 +398,14 @@ sequenceDiagram
 
 ### 5.5 操作影响矩阵
 
-| 操作 | PG 影响 | NewAPI Token | NewAPI User |
-|------|---------|-------------|-------------|
-| 改部门/成员预算 | 写 limit + Rebalance | 不调用 | 不变 |
-| 改 Key budget | 写 + RefreshPlatformKeyCombined | UpdateToken 只同步 status/models/group | 不变 |
-| 创建 Key | 写 + Refresh | CreateToken(Unlimited=true) | 不变 |
-| 充值 | Credit lot + wallet | 不变 | PreCreditFunc: add_quota(+delta)，失败阻止充值 |
-| 消费入账 | wallet/consumed/remain 递减 | user quota 由 NewAPI 自扣 | — |
-| 月初重置 | consumed 新月自动归零（按 periodKey 查） | 不调用 | 不变 |
+| 操作            | PG 影响                                  | NewAPI Token                           | NewAPI User                                    |
+| --------------- | ---------------------------------------- | -------------------------------------- | ---------------------------------------------- |
+| 改部门/成员预算 | 写 limit + Rebalance                     | 不调用                                 | 不变                                           |
+| 改 Key budget   | 写 + RefreshPlatformKeyCombined          | UpdateToken 只同步 status/models/group | 不变                                           |
+| 创建 Key        | 写 + Refresh                             | CreateToken(Unlimited=true)            | 不变                                           |
+| 充值            | Credit lot + wallet                      | 不变                                   | PreCreditFunc: add_quota(+delta)，失败阻止充值 |
+| 消费入账        | wallet/consumed/remain 递减              | user quota 由 NewAPI 自扣              | —                                              |
+| 月初重置        | consumed 新月自动归零（按 periodKey 查） | 不调用                                 | 不变                                           |
 
 ### 5.6 设计决策
 
@@ -482,13 +485,13 @@ DisablePlatformKey(keyID):
 
 ### 6.4 各级 Disable 范围
 
-| 级别 | 判定条件 | Disable 范围 | 通知 |
-|------|---------|-------------|------|
-| Key | `keyConsumed >= key.Budget` | 仅该 Key | ✓ |
-| Member | `memberConsumed >= personal_budget` | 该成员所有 active Key（`ListActiveMemberKeys`） | ✓ |
-| ProjectMember | `subConsumed >= project.memberBudget` | 该项目中该成员的所有 `scope=project_member` Key | ✓ |
-| Project | `projectConsumed >= project.budget` | 该项目所有 `scope=project/project_member` Key | ✓ |
-| Department | `ledgerSum >= dept.budget` | 无（仅通知） | ✓ |
+| 级别          | 判定条件                              | Disable 范围                                    | 通知 |
+| ------------- | ------------------------------------- | ----------------------------------------------- | ---- |
+| Key           | `keyConsumed >= key.Budget`           | 仅该 Key                                        | ✓    |
+| Member        | `memberConsumed >= personal_budget`   | 该成员所有 active Key（`ListActiveMemberKeys`） | ✓    |
+| ProjectMember | `subConsumed >= project.memberBudget` | 该项目中该成员的所有 `scope=project_member` Key | ✓    |
+| Project       | `projectConsumed >= project.budget`   | 该项目所有 `scope=project/project_member` Key   | ✓    |
+| Department    | `ledgerSum >= dept.budget`            | 无（仅通知）                                    | ✓    |
 
 ### 6.5 具体场景举例
 
@@ -558,7 +561,7 @@ DisablePlatformKey(keyID):
   T2: Webhook → Ingest 入账 → combined_key_remain 递减至 0
   T3: ShouldEnqueueOverrun → 入队
   T4: OverrunService 评估 → Disable Key
-  
+
   T0~T4 之间如果有并发请求：
   - T0~T2: 可能多放行（超卖窗口，见 §10.3）
   - T2~T4: Gateway 用 combined_key_remain ≤ 0 自然拦截（无需等 Disable）
@@ -624,6 +627,7 @@ sequenceDiagram
 ```
 
 **机制：**
+
 - 触发时机：Ingest post-commit，对本次入账涉及的 department 检查
 - 规则存储：`alert_rules` 表，每个规则绑定一个 `NodeID`（部门）
 - 阈值：`rule.Thresholds` 数组，取已突破的最高阈值
@@ -658,6 +662,7 @@ sequenceDiagram
 ```
 
 **已实现的完整闭环：**
+
 - 审批通过时在同一事务内扣减 `reserved_pool` 并增加成员 `personal_budget`
 - 之后触发 member 轴的 Rebalance 刷新 `combined_key_remain`
 
@@ -665,25 +670,25 @@ sequenceDiagram
 
 ## 9. 关键文件索引
 
-| 职责 | 路径（相对 `apps/backend/internal/`） |
-|------|------|
-| Gateway 预检 | `domain/gateway/evaluate.go` |
-| 预检上下文 | `domain/gateway/precheck_context.go` |
-| Remain 链公式 | `pkg/budget/chain.go` |
-| 刷 combined remain | `domain/budget/combined_key_summary.go` |
-| Rebalance | `domain/budget/rebalance.go` |
-| Redis 缓存 | `domain/budget/combined_key_cache.go` |
-| 入账 | `domain/usage/ingest.go` |
-| 金额构建 | `domain/usage/entry_build.go` |
-| Lot FIFO 消费 | `domain/billing/lot/consume.go` |
-| 充值确认 | `domain/billing/lot_confirm.go` |
-| NewAPI TopUp | `domain/billing/wallet_topup.go` |
-| 超限处理 | `domain/budget/overrun.go` |
-| 预警检查 | `domain/budget/alert_publisher.go` |
-| 预算审批 | `domain/budget/approvals.go` |
-| Token 同步 | `integration/newapi/admin_port_adapter.go` |
-| 预算树变更 | `domain/budget/tree_mutate.go` |
-| QPU 常量 | `pkg/common/constants.go` |
+| 职责               | 路径（相对 `apps/backend/internal/`）      |
+| ------------------ | ------------------------------------------ |
+| Gateway 预检       | `domain/gateway/evaluate.go`               |
+| 预检上下文         | `domain/gateway/precheck_context.go`       |
+| Remain 链公式      | `pkg/budget/chain.go`                      |
+| 刷 combined remain | `domain/budget/combined_key_summary.go`    |
+| Rebalance          | `domain/budget/rebalance.go`               |
+| Redis 缓存         | `domain/budget/combined_key_cache.go`      |
+| 入账               | `domain/usage/ingest.go`                   |
+| 金额构建           | `domain/usage/entry_build.go`              |
+| Lot FIFO 消费      | `domain/billing/lot/consume.go`            |
+| 充值确认           | `domain/billing/lot_confirm.go`            |
+| NewAPI TopUp       | `domain/billing/wallet_topup.go`           |
+| 超限处理           | `domain/budget/overrun.go`                 |
+| 预警检查           | `domain/budget/alert_publisher.go`         |
+| 预算审批           | `domain/budget/approvals.go`               |
+| Token 同步         | `integration/newapi/admin_port_adapter.go` |
+| 预算树变更         | `domain/budget/tree_mutate.go`             |
+| QPU 常量           | `pkg/common/constants.go`                  |
 
 ---
 
@@ -691,20 +696,20 @@ sequenceDiagram
 
 ### 10.1 可简化项
 
-| 现状 | 问题 | 建议 |
-|------|------|------|
-| **NewAPI User TopUp** 镜像钱包 | 仅防直连穿透，通过 PreCreditFunc 保证同步——失败则充值中止，不产生不一致 | 如果所有流量必须经过 Gateway，可评估移除 User quota 依赖，改为网络层封堵直连 |
-| **Overrun job 异步 Disable** | 入账与 Disable 之间有时间窗口，期间可能多放行 1-2 个请求 | 若 combined_key_remain 已 ≤ 0，Gateway 下一请求自然拦截；Overrun Disable 是补充保险，当前设计可接受 |
-| **tree_mutate.go 过时注释** | L218/L227 仍写 "NewAPI token remain_quota" | 改为 "refresh combined_key_remain"（纯文本修改，零风险） |
+| 现状                           | 问题                                                                    | 建议                                                                                                |
+| ------------------------------ | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **NewAPI User TopUp** 镜像钱包 | 仅防直连穿透，通过 PreCreditFunc 保证同步——失败则充值中止，不产生不一致 | 如果所有流量必须经过 Gateway，可评估移除 User quota 依赖，改为网络层封堵直连                        |
+| **Overrun job 异步 Disable**   | 入账与 Disable 之间有时间窗口，期间可能多放行 1-2 个请求                | 若 combined_key_remain 已 ≤ 0，Gateway 下一请求自然拦截；Overrun Disable 是补充保险，当前设计可接受 |
+| **tree_mutate.go 过时注释**    | L218/L227 仍写 "NewAPI token remain_quota"                              | 改为 "refresh combined_key_remain"（纯文本修改，零风险）                                            |
 
 ### 10.2 可提升效率项
 
-| 现状 | 瓶颈 | 优化方向 |
-|------|------|---------|
-| **Ingest 按 company LockForUpdate** | 高并发同公司串行化 | 可拆细锁粒度到 platform_key 级别（lot 消费仍需公司锁，但 consumed/remain 可并行）；或接受当前简单方案 |
-| **Rebalance 全量加载 BudgetContext** | 大租户 keys 多时 LoadBudgetContext 查询重 | 按 axis 范围只加载受影响的 keys/consumed；但当前 preload-once 策略在大多数租户下性能足够 |
-| **CheckBudgetAlerts 每次 post-commit 全查 rules** | 每次入账后都 SELECT alert_rules | 可缓存 rules（TTL 几分钟）；或改为 Ingest 只 enqueue，由独立 worker 批量检查 |
-| **部门花费报表靠 ledger 实时聚合** | 数据量增长后 SUM 变慢 | 增加 `budget_consumed` 的 `org_node` 轴作为预聚合；或用 `usage_buckets` 物化视图 |
+| 现状                                              | 瓶颈                                      | 优化方向                                                                                              |
+| ------------------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Ingest 按 company LockForUpdate**               | 高并发同公司串行化                        | 可拆细锁粒度到 platform_key 级别（lot 消费仍需公司锁，但 consumed/remain 可并行）；或接受当前简单方案 |
+| **Rebalance 全量加载 BudgetContext**              | 大租户 keys 多时 LoadBudgetContext 查询重 | 按 axis 范围只加载受影响的 keys/consumed；但当前 preload-once 策略在大多数租户下性能足够              |
+| **CheckBudgetAlerts 每次 post-commit 全查 rules** | 每次入账后都 SELECT alert_rules           | 可缓存 rules（TTL 几分钟）；或改为 Ingest 只 enqueue，由独立 worker 批量检查                          |
+| **部门花费报表靠 ledger 实时聚合**                | 数据量增长后 SUM 变慢                     | 增加 `budget_consumed` 的 `org_node` 轴作为预聚合；或用 `usage_buckets` 物化视图                      |
 
 ### 10.3 可收紧的风险窗口
 
@@ -719,11 +724,11 @@ flowchart LR
   style window fill:#fff3cd
 ```
 
-| 风险 | 影响 | 收紧方案 | 成本 |
-|------|------|---------|------|
-| **Precheck → Ingest 超卖** | 最后一滴额度可能多放 N 个并发请求 | Redis 原子 DECRBY 预扣（粗估费用），Ingest 后 reconcile | Gateway 增加 Redis 写；需处理估价不准时的 reconcile |
-| **TopUp PreCreditFunc 失败** | 充值中止，用户重试 | 当前设计已保证不会出现"本地有余额但 NewAPI 不足"的不一致 | 零成本（已解决） |
-| **absoluteRecompute 锁竞争** | 新 Key 首次消费走 LockPlatformKeysForUpdate | 创建 Key 时同步 INSERT combined_key_summaries 初始行 | 极低成本 |
+| 风险                         | 影响                                        | 收紧方案                                                 | 成本                                                |
+| ---------------------------- | ------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------- |
+| **Precheck → Ingest 超卖**   | 最后一滴额度可能多放 N 个并发请求           | Redis 原子 DECRBY 预扣（粗估费用），Ingest 后 reconcile  | Gateway 增加 Redis 写；需处理估价不准时的 reconcile |
+| **TopUp PreCreditFunc 失败** | 充值中止，用户重试                          | 当前设计已保证不会出现"本地有余额但 NewAPI 不足"的不一致 | 零成本（已解决）                                    |
+| **absoluteRecompute 锁竞争** | 新 Key 首次消费走 LockPlatformKeysForUpdate | 创建 Key 时同步 INSERT combined_key_summaries 初始行     | 极低成本                                            |
 
 ### 10.4 架构层面的简化机会
 
@@ -746,25 +751,25 @@ flowchart LR
 
 ### 10.5 已无需修改的正确设计
 
-| 设计 | 理由 |
-|------|------|
-| 双轴模型（钱包 + 组织预算） | 职责清晰，互不干扰 |
-| Token Unlimited + User TopUp | 与 ADR 一致 |
-| point ≡ NewAPI quota（无换算） | 正确简化 |
-| consumed 三轴 + ledger 审计 | SSOT 清晰 |
-| 充值不涨部门 budget | 产品约定 |
-| Lot FIFO + overdraft 扩展 | 灵活处理余额不足 |
-| Overrun 逐级评估（细→粗） | 精确定位超限范围 |
+| 设计                           | 理由               |
+| ------------------------------ | ------------------ |
+| 双轴模型（钱包 + 组织预算）    | 职责清晰，互不干扰 |
+| Token Unlimited + User TopUp   | 与 ADR 一致        |
+| point ≡ NewAPI quota（无换算） | 正确简化           |
+| consumed 三轴 + ledger 审计    | SSOT 清晰          |
+| 充值不涨部门 budget            | 产品约定           |
+| Lot FIFO + overdraft 扩展      | 灵活处理余额不足   |
+| Overrun 逐级评估（细→粗）      | 精确定位超限范围   |
 
 ---
 
 ## 附录：与旧文档的差异
 
-| 旧文档描述 | 实际代码 | 本文档修正 |
-|-----------|---------|-----------|
-| "审批通过后不扣减 reserved_pool" | `approvals.go` 同事务扣减 | §8 已正确描述 |
-| tree_mutate 注释写"同步 NewAPI token remain_quota" | Rebalance 只刷 PG | §5 明确说明 |
-| gateway_soft_* 命名 | 已改名 `combined_key_remain*` | 全文统一使用新名称 |
-| Ingest 入队 wallet_sync | 充值后直接 TopUp | §3 描述当前逻辑 |
-| Gateway 钱包≥预估 | 仅 `wallet_remain_quota >= 1` | §4.1 流程图明确 |
-| pkg/newapiunits 做 point↔quota 换算 | 换算函数已删 | §1.1 说明无换算 |
+| 旧文档描述                                         | 实际代码                      | 本文档修正         |
+| -------------------------------------------------- | ----------------------------- | ------------------ |
+| "审批通过后不扣减 reserved_pool"                   | `approvals.go` 同事务扣减     | §8 已正确描述      |
+| tree_mutate 注释写"同步 NewAPI token remain_quota" | Rebalance 只刷 PG             | §5 明确说明        |
+| gateway*soft*\* 命名                               | 已改名 `combined_key_remain*` | 全文统一使用新名称 |
+| Ingest 入队 wallet_sync                            | 充值后直接 TopUp              | §3 描述当前逻辑    |
+| Gateway 钱包≥预估                                  | 仅 `wallet_remain_quota >= 1` | §4.1 流程图明确    |
+| pkg/newapiunits 做 point↔quota 换算                | 换算函数已删                  | §1.1 说明无换算    |
