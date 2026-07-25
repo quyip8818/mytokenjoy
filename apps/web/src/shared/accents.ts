@@ -1,0 +1,68 @@
+export type AccentKey = 'brand' | 'cyan' | 'orange' | 'ink'
+
+const ACCENT_STYLES = {
+  brand: {
+    line: 'from-brand-400 via-brand-500 to-brand-600',
+    iconBg: 'from-brand-50 to-white',
+    iconBgSolid: 'bg-brand-50',
+    iconColor: 'text-brand-600',
+    checkColor: 'text-brand-600',
+    numText: 'text-brand-600',
+    border: 'border-brand-200',
+    hoverBg: 'group-hover:bg-brand-50',
+    tagBg: 'bg-brand-50',
+    tagText: 'text-brand-700',
+    tagBorder: 'border-brand-200',
+    borderLeft: 'border-l-brand-500',
+    dot: 'bg-brand-600',
+  },
+  cyan: {
+    line: 'from-cyan-400 via-cyan-500 to-cyan-600',
+    iconBg: 'from-cyan-50 to-white',
+    iconBgSolid: 'bg-cyan-50',
+    iconColor: 'text-cyan-600',
+    checkColor: 'text-cyan-600',
+    numText: 'text-cyan-600',
+    border: 'border-cyan-200',
+    hoverBg: 'group-hover:bg-cyan-50',
+    tagBg: 'bg-cyan-50',
+    tagText: 'text-cyan-700',
+    tagBorder: 'border-cyan-200',
+    borderLeft: 'border-l-cyan-500',
+    dot: 'bg-cyan-600',
+  },
+  orange: {
+    line: 'from-orange-400 via-orange-500 to-orange-600',
+    iconBg: 'from-orange-50 to-white',
+    iconBgSolid: 'bg-orange-50',
+    iconColor: 'text-orange-600',
+    checkColor: 'text-orange-600',
+    numText: 'text-orange-600',
+    border: 'border-orange-200',
+    hoverBg: 'group-hover:bg-orange-50',
+    tagBg: 'bg-orange-50',
+    tagText: 'text-orange-700',
+    tagBorder: 'border-orange-200',
+    borderLeft: 'border-l-orange-500',
+    dot: 'bg-orange-600',
+  },
+  ink: {
+    line: 'from-ink-700 via-ink-800 to-ink-900',
+    iconBg: 'from-ink-100 to-white',
+    iconBgSolid: 'bg-ink-100',
+    iconColor: 'text-ink-800',
+    checkColor: 'text-ink-800',
+    numText: 'text-ink-800',
+    border: 'border-ink-200',
+    hoverBg: 'group-hover:bg-ink-100',
+    tagBg: 'bg-ink-100',
+    tagText: 'text-ink-700',
+    tagBorder: 'border-ink-200',
+    borderLeft: 'border-l-ink-800',
+    dot: 'bg-ink-800',
+  },
+} as const satisfies Record<AccentKey, Record<string, string>>
+
+export function getAccent(key: AccentKey) {
+  return ACCENT_STYLES[key]
+}

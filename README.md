@@ -18,6 +18,7 @@ mytokenjoy/
 ├── apps/                    ← 客户侧产品（TokenJoy Local + SaaS）
 │   ├── frontend/            ← React SPA（@tokenjoy/frontend）
 │   ├── backend/             ← Go 后端（github.com/tokenjoy/backend）
+│   ├── web/                 ← 官网 Landing Page（@tokenjoy/web）
 │   ├── newapi/              ← NewAPI Docker 构建 + 脚本
 │   ├── dev-mock-llm/        ← 本地模拟 LLM 上游
 │   └── docs/                ← TokenJoy 产品文档
@@ -56,6 +57,7 @@ mytokenjoy/
 | Redis | 6310 | 6310 | 共用一个容器，不同 db number |
 | Backend | 8010 | 8020 | |
 | Frontend | 5173 | 5174 | |
+| Web (官网) | 5175 | — | |
 | NewAPI | 3010 | 3020 | |
 
 ### 数据库隔离
@@ -97,6 +99,7 @@ pnpm reset all           # 重置全部
 # 测试
 pnpm test                # apps 全量测试
 pnpm test:sms            # sms 全量测试
+pnpm test:web            # web 官网测试
 pnpm test:integration    # apps 后端集成测试
 pnpm test:sms:integration
 pnpm test:e2e            # apps 前端 E2E
@@ -105,11 +108,16 @@ pnpm test:sms:e2e
 # 质量
 pnpm lint                # apps lint
 pnpm lint:sms            # sms lint
+pnpm lint:web            # web 官网 lint
 pnpm verify              # CI: lint + test + build
 
 # 构建
 pnpm build               # apps frontend
 pnpm build:sms           # sms frontend
+pnpm build:web           # web 官网
+
+# 官网开发
+pnpm start:web           # 启动官网 dev server (port 5175)
 ```
 
 ### Reset 机制
@@ -154,6 +162,7 @@ pnpm build:sms           # sms frontend
 | tokenjoy/frontend | apps/frontend/ | 客户 |
 | tokenjoy/backend | apps/backend/ | 客户 |
 | tokenjoy/newapi | apps/newapi/ | 客户 |
+| tokenjoy/web | apps/web/ | 公开（www.tokenjoy.com） |
 | sms-ui | sms/frontend/ | 仅内部 |
 | sms-backend | sms/backend/ | 仅内部 |
 | sms-newapi | sms/newapi/ | 仅内部 |

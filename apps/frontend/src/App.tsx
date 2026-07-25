@@ -11,6 +11,7 @@ import { SessionGate } from '@/features/session'
 
 const LoginPage = lazy(() => import('@/routes/auth/login'))
 const InviteAcceptPage = lazy(() => import('@/routes/auth/invite-accept'))
+const AuthEmbedPage = lazy(() => import('@/routes/auth/embed'))
 
 const lazyPages = APP_ROUTES.map((entry) => ({
   path: toRouterPath(entry.path),
@@ -52,6 +53,14 @@ export default function App() {
                 element={
                   <Suspense fallback={<RouteFallback />}>
                     <InviteAcceptPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="auth/embed"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <AuthEmbedPage />
                   </Suspense>
                 }
               />
