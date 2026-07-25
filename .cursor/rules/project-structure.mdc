@@ -1,70 +1,37 @@
 ---
-description: 项目文件分配规则——测试、文档、前后端源码放置约束
+description: 文件放置规则
 globs: "**/*"
 alwaysApply: true
 ---
 
-# 文件分配规则
+# 架构
 
-## 测试
-- Frontend：`apps/frontend/tests/`（镜像 src/ 路径）
-- Backend：`apps/backend/tests/`（镜像 internal/ 路径，外部测试包）
-- SMS Frontend：`sms/frontend/tests/`（镜像 src/ 路径）
-- SMS Backend：`sms/backend/tests/`（镜像 internal/ 路径）
-- 禁止在 src/、internal/、组件旁边放测试文件
+默认在 apps/。路径无前缀 = apps/。
 
-## 文档
-- 根 `docs/`：仓库级/跨产品文档（策略 ADR、整体 Roadmap）
-- `apps/docs/`：TokenJoy（apps）产品专属文档（plan/、adr/、todos/ 等）
-- `sms/docs/`：SMS 产品专属文档
-- 禁止在 apps/frontend/、apps/backend/、sms/frontend/、sms/backend/ 下新建 .md（README.md、DESIGN.md 除外）
-- 禁止在项目根新建 .md（CLAUDE.md、DESIGN.md 除外）
+- `apps/` — TokenJoy，客户侧 LLM API 管控平台。前端 React19+TailwindV4+TanStackQuery，后端 Go+PG+Redis。`SUPPORT_SAAS` flag 区分私有化/SaaS。
+- `apps/web/` — 官网，纯展示 React+TailwindV3，无路由，iframe 嵌入 App 认证。
+- `sms/` — 内部供应商管理系统，独立 Go module，制品不出门。
+- apps/sms 互不 import，跨产品仅 HTTP API，共享契约放 `packages/contracts/`。
 
-## 后端
-- 禁止在 cmd/ 放业务逻辑（仅 main 入口 + 启动编排）
-- 禁止跨 domain 直接引用另一个 domain 的内部实现（具体 struct、私有逻辑）
-- 允许依赖另一个 domain 暴露的 exported interface、value types 和纯函数（方向性服务契约）
-- 共享内核例外：`domain/types`、`domain/grants`、`domain/company`、`domain/newapisync` 可被自由引用
-- 跨域协作通过 ports/interfaces 解耦（当需要调用对方的具体实现时）
+# 文件放置
 
-## 前端文件放置
+## apps 前端 (apps/frontend/)
+- 页面：`routes/{domain}/{page}.tsx`（仅组合）
+- 领域：`features/{domain}/`（含 hooks/components/lib/index.ts，外部禁止 deep import）
+- 原子 UI：`components/ui/`（无业务语义）
+- API：`api/{domain}.ts`，禁止直接 import——通过 useApis()
+- 测试：`apps/frontend/tests/`（镜像 src/）
+- 文档：`apps/docs/`
 
-| 代码类型 | 位置 | 条件 |
-|---------|------|------|
-| 页面入口 | `routes/{domain}/{page}.tsx` | 仅组合，从 features/ 导入 |
-| 领域特性包 | `features/{domain}/` | 含 hooks/、components/、lib/、index.ts |
-| 横切特性包 | `features/{concern}/` | session、query、workflow 等基础设施 |
-| 原子组件 | `components/ui/` | 无业务语义 |
-| 布局组件 | `components/layout/` | app-level 布局壳 |
-| HTTP 客户端 | `api/{domain}.ts` | |
-| 纯工具函数 | `lib/` | 无 React 依赖 |
+## apps 后端 (apps/backend/)
+- cmd/ 仅入口，业务放 internal/
+- domain 间禁止引用对方内部实现，通过 exported interface 协作
+- 共享内核可自由引用：`domain/types`、`domain/grants`、`domain/company`、`domain/newapisync`
+- 测试：`apps/backend/tests/`（镜像 internal/，外部测试包）
 
-### features/ 约束
-- 必须有 index.ts barrel export
-- 外部只能 `import from '@/features/{name}'`，禁止 deep import
-- features 之间只通过对方 index.ts 引用
-- 例外：`features/query/query-keys.ts` 允许引用各 feature 的 `query-keys.ts`
-- 页面 hook 命名：`use-{page}-page.ts`
+## sms
+结构同 apps。测试 `sms/{frontend,backend}/tests/`，文档 `sms/docs/`。
 
-### 其他
-- components/ui/ 禁止放带业务语义的文件
-- 禁止直接 import API 函数——通过 useApis()/useInjectedApis()
-- 共享合约/类型放 packages/contracts/
-- 全局脚本放 scripts/（根目录）；app 专属构建脚本允许在 apps/{app}/scripts/
-
-## SMS (sms/) 文件放置
-
-### 后端 (sms/backend/)
-- 结构同 apps/backend：cmd/ 只放入口，internal/ 放业务
-- Go module: sms/backend（独立，不引用 apps/backend）
-
-### 前端 (sms/frontend/)
-- 结构同 apps/frontend：features/、components/ui/、routes/ 等
-- 包名 @sms/frontend
-- 禁止与 apps/frontend 互相 import
-
-### 跨产品约束
-- apps/ 和 sms/ 之间禁止 Go import
-- apps/ 和 sms/ 之间禁止 TypeScript import
-- 共享类型/契约只能放 packages/contracts/
-- 跨产品通信只能通过 HTTP API
+## 通用
+- 禁止在 src/internal/组件旁放测试文件
+- 禁止在 frontend/backend/ 下新建 .md（README.md 除外）

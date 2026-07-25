@@ -1,65 +1,29 @@
 ---
-description: 测试规范 — template version bump、时钟对齐、文件位置、命令
+description: 测试规范
 globs:
 alwaysApply: true
 ---
 
-# 测试规范
+# 测试
 
-## 运行
-
+## 命令
 ```bash
-# Apps (TokenJoy)
-pnpm test                    # apps 全量（frontend + backend）
-pnpm test:integration        # apps 后端集成测试
-pnpm test:e2e                # apps 前端 E2E
+pnpm test                 # apps 全量
+pnpm test:sms             # sms 全量
+# 单文件
 cd apps/backend && go test -tags=testhook -run "TestXxx" ./tests/domain/xxx/ -v -count=1
-
-# SMS
-pnpm test:sms                # sms 全量（frontend + backend）
-pnpm test:sms:integration    # sms 后端集成测试
-pnpm test:sms:e2e            # sms 前端 E2E
-
-# Lint
-pnpm lint                    # apps lint
-pnpm lint:sms                # sms lint
+cd sms/backend && go test -run "TestXxx" ./tests/domain/xxx/ -v
 ```
 
-## 后端核心规则（apps/backend）
+## 后端（apps）
+- 改 schema.sql/seed → bump `testTemplateVersion`（`tests/testutil/pg/template.go`）
+- 时钟固定 `2026-06-19`，不用 `time.Now()` 断言
+- 必须 `-tags=testhook`
+- DB: `postgres://tokenjoy:tokenjoy@127.0.0.1:5510/tokenjoy`
 
-1. **改了 schema.sql 或 seed/ 下任何文件 → 必须 bump `testTemplateVersion`**
-   - 文件：`tests/testutil/pg/template.go`
-   - 不 bump = 旧模板复用 = 幽灵失败
+## 后端（sms）
+- DB: `postgres://sms:sms@127.0.0.1:5510/sms`，无需 build tag
 
-2. **时钟固定**：测试默认 `ClockAnchor = "2026-06-19"`，period = `"2026-06"`
-   - 不要用 `time.Now()` 做 period 断言
-
-3. **Build tag**：运行后端测试必须加 `-tags=testhook`
-
-4. **测试文件放 `apps/backend/tests/`**，镜像 internal/ 路径，禁止放在 src 旁边
-
-5. **DATABASE_URL** 默认 `postgres://tokenjoy:tokenjoy@127.0.0.1:5510/tokenjoy`（端口 5510）
-
-## 后端核心规则（sms/backend）
-
-1. **测试文件放 `sms/backend/tests/`**，镜像 internal/ 路径
-2. **DATABASE_URL** 默认 `postgres://sms:sms@127.0.0.1:5510/sms`（共用 Postgres，不同 database）
-3. 运行：`cd sms/backend && go test ./tests/...`
-
-## 前端核心规则（apps/frontend + sms/frontend）
-
-1. Vitest + @testing-library/react
-2. apps 测试文件放 `apps/frontend/tests/`，sms 放 `sms/frontend/tests/`
-3. 镜像 src/ 路径
-4. API 层用 `vi.mock` mock，不要真实请求
-5. E2E 用 Playwright，配置在各自 `playwright.config.ts`
-
-## 端口速查
-
-| 服务 | apps | sms |
-|------|------|-----|
-| Postgres | 5510 | 5510（共用） |
-| Redis | 6310 | 6310（共用） |
-| Backend | 8010 | 8020 |
-| Frontend | 5173 | 5174 |
-| NewAPI | 3010 | 3020 |
+## 前端
+- Vitest + @testing-library/react，API 层 vi.mock
+- E2E: Playwright
