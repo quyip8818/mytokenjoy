@@ -336,11 +336,6 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 		userID = user.ID
 	}
 
-	// Write users.name if provided.
-	if body.Name != "" {
-		_ = h.users.UpdateName(ctx, userID, body.Name)
-	}
-
 	// Build accepted_meta from request context.
 	acceptedMeta := map[string]any{
 		"ip": r.RemoteAddr,

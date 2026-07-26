@@ -43,7 +43,7 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 	err = s.store.WithTx(ctx, func(tx store.Store) error {
 		if invite.MemberID != uuid.Nil {
 			// Member-invite: member already exists as pending — activate it.
-			m, err := s.activateExistingMember(ctx, tx, invite.MemberID, req.UserID, req.RegistrationChannel)
+			m, err := s.activateExistingMember(ctx, tx, invite.MemberID, req.UserID, req.Name, req.RegistrationChannel)
 			if err != nil {
 				return err
 			}
@@ -65,7 +65,7 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 }
 
 // activateExistingMember transitions a pending member to active and sets registrationChannel.
-func (s *service) activateExistingMember(ctx context.Context, tx store.Store, memberID, userID uuid.UUID, channel string) (types.Member, error) {
+func (s *service) activateExistingMember(ctx context.Context, tx store.Store, memberID, userID uuid.UUID, alias, channel string) (types.Member, error) {
 	// Find the company this member belongs to.
 	companyID, err := tx.Org().FindMemberCompanyID(ctx, memberID)
 	if err != nil || companyID == uuid.Nil {
@@ -89,6 +89,9 @@ func (s *service) activateExistingMember(ctx context.Context, tx store.Store, me
 			members[i].Status = types.MemberStatusActive
 			members[i].UserID = userID
 			members[i].RegistrationChannel = channel
+			if alias != "" {
+				members[i].Alias = alias
+			}
 			found = &members[i]
 			break
 		}
