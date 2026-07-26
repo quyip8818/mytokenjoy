@@ -103,6 +103,8 @@ func resolveTemplateID(msg domainnotification.RenderedMessage) string {
 		return "verification-code"
 	case "company_invite":
 		return "company-invite"
+	case "member_invite":
+		return "company-invite"
 	default:
 		return ""
 	}
