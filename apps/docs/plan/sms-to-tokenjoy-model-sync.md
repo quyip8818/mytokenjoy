@@ -24,7 +24,7 @@ SMS 是模型配置的单一数据源（SOT），TokenJoy 通过定时轮询 SMS
 
 ```
 1. 管理员在 SMS 配置渠道/模型/价格
-2. TokenJoy 后台 worker 定时（如每 5 分钟）调用 SMS API
+2. TokenJoy 后台 worker 定时（如每 10 分钟）调用 SMS API
 3. 获取完整模型目录（渠道 + 模型 + 价格）
 4. 对比本地数据，diff 后执行：
    a. 渠道 → 同步到 TokenJoy-NewAPI（创建/更新 channel）
