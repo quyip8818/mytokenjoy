@@ -81,7 +81,7 @@ func (s *LocalService) BatchInvite(ctx context.Context, ids []uuid.UUID) (types.
 			continue
 		}
 
-		s.sendInviteNotifications(ctx, invite.InviteCode, invite.ExpiresAt, user.Phone, user.Email)
+		s.sendInviteNotifications(ctx, invite.InviteCode, user.Phone, user.Email)
 		sent++
 	}
 
@@ -106,7 +106,6 @@ func (s *LocalService) BatchImport(ctx context.Context, rows []types.BatchImport
 
 	type importedMember struct {
 		inviteCode string
-		expiresAt  time.Time
 		phone      string
 		email      string
 	}
@@ -175,7 +174,7 @@ func (s *LocalService) BatchImport(ctx context.Context, rows []types.BatchImport
 		}
 
 		invitesToSend = append(invitesToSend, importedMember{
-			inviteCode: code, expiresAt: expiresAt, phone: row.Phone, email: row.Email,
+			inviteCode: code, phone: row.Phone, email: row.Email,
 		})
 		imported++
 	}
@@ -196,7 +195,7 @@ func (s *LocalService) BatchImport(ctx context.Context, rows []types.BatchImport
 
 	// Best-effort: send invite notifications.
 	for _, im := range invitesToSend {
-		s.sendInviteNotifications(ctx, im.inviteCode, im.expiresAt, im.phone, im.email)
+		s.sendInviteNotifications(ctx, im.inviteCode, im.phone, im.email)
 	}
 
 	return types.MemberBatchImportResult{Imported: imported, Failures: failures}, nil

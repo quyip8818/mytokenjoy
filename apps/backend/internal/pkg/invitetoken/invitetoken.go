@@ -1,42 +1,40 @@
-// Package invitetoken provides AES-GCM encrypted invite tokens that embed
-// the invite code, delivery channel, and expiry. The channel is tamper-proof
-// because it lives inside authenticated ciphertext.
+// Package invitetoken provides compact encrypted invite tokens (18 chars).
+// Scheme: XOR encryption with HMAC-derived keystream + 4-byte truncated MAC.
+// Plaintext: [8-byte code][1-byte channel] = 9 bytes.
+// Token: base64url(9-byte ciphertext + 4-byte MAC) = 18 chars.
+//
+// ponytail: intentionally compact for SMS constraints (阿里云变量 ≤35 chars).
+// Upgrade path: switch to AES-GCM if token length budget allows (50+ chars).
 package invitetoken
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 )
 
 // Channel identifies how the invite was delivered.
 const (
-	ChannelSMS       = "sms"
-	ChannelEmail     = "email"
-	ChannelAdminLink = "admin_link"
+	ChannelSMS       = "s"
+	ChannelEmail     = "e"
+	ChannelAdminLink = "a"
 )
 
-// Payload is the plaintext embedded in the encrypted token.
+// Payload is the decrypted invite token content.
 type Payload struct {
-	Code    string `json:"code"`
-	Channel string `json:"ch"`
-	Exp     int64  `json:"exp"`
+	Code    string // hex-encoded invite code (for DB lookup)
+	Channel string // single char: s/e/a
 }
 
 // Issuer encrypts and decrypts invite tokens.
 type Issuer struct {
-	keys [][]byte // first key is primary (encrypt), all are tried on decrypt
+	keys [][]byte
 }
 
 // NewIssuer creates an Issuer from one or more hex-encoded 32-byte keys.
-// The first key is used for encryption; all keys are tried during decryption
-// to support key rotation.
 func NewIssuer(hexKeys ...string) (*Issuer, error) {
 	if len(hexKeys) == 0 {
 		return nil, errors.New("invitetoken: at least one key required")
@@ -55,83 +53,83 @@ func NewIssuer(hexKeys ...string) (*Issuer, error) {
 	return &Issuer{keys: keys}, nil
 }
 
-// Encrypt produces a base64url token embedding the given invite code, channel, and expiry.
-func (iss *Issuer) Encrypt(code, channel string, expiresAt time.Time) (string, error) {
-	payload := Payload{Code: code, Channel: channel, Exp: expiresAt.Unix()}
-	plaintext, err := json.Marshal(payload)
-	if err != nil {
-		return "", fmt.Errorf("invitetoken: marshal: %w", err)
+// Encrypt produces an 18-char base64url token from invite code (16 hex chars) and channel.
+func (iss *Issuer) Encrypt(codeHex, channel string) (string, error) {
+	codeBytes, err := hex.DecodeString(codeHex)
+	if err != nil || len(codeBytes) != 8 {
+		return "", fmt.Errorf("invitetoken: code must be 16 hex chars, got %q", codeHex)
+	}
+	if len(channel) != 1 {
+		return "", fmt.Errorf("invitetoken: channel must be single char, got %q", channel)
 	}
 
-	block, err := aes.NewCipher(iss.keys[0])
-	if err != nil {
-		return "", fmt.Errorf("invitetoken: cipher: %w", err)
-	}
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return "", fmt.Errorf("invitetoken: gcm: %w", err)
+	// plaintext = [8-byte code][1-byte channel]
+	var plaintext [9]byte
+	copy(plaintext[:8], codeBytes)
+	plaintext[8] = channel[0]
+
+	// Derive keystream: HMAC-SHA256(key, "enc") truncated to 9 bytes.
+	keystream := deriveBlock(iss.keys[0], []byte("enc"))
+
+	// XOR encrypt.
+	var ciphertext [9]byte
+	for i := range plaintext {
+		ciphertext[i] = plaintext[i] ^ keystream[i]
 	}
 
-	nonce := make([]byte, gcm.NonceSize()) // 12 bytes
-	if _, err := rand.Read(nonce); err != nil {
-		return "", fmt.Errorf("invitetoken: nonce: %w", err)
-	}
+	// MAC: HMAC-SHA256(key, ciphertext) truncated to 4 bytes.
+	mac := computeMAC(iss.keys[0], ciphertext[:])
 
-	ciphertext := gcm.Seal(nil, nonce, plaintext, nil)
-	raw := make([]byte, 0, len(nonce)+len(ciphertext))
-	raw = append(raw, nonce...)
-	raw = append(raw, ciphertext...)
-	return base64.RawURLEncoding.EncodeToString(raw), nil
+	// Output: ciphertext(9) + mac(4) = 13 bytes → base64url = 18 chars.
+	var out [13]byte
+	copy(out[:9], ciphertext[:])
+	copy(out[9:], mac)
+	return base64.RawURLEncoding.EncodeToString(out[:]), nil
 }
 
-// Decrypt decodes a base64url token and returns the payload.
-// Tries all configured keys (supports rotation). Returns error if all fail or token is expired.
+// Decrypt decodes an 18-char token. Tries all keys for rotation support.
 func (iss *Issuer) Decrypt(token string) (*Payload, error) {
 	raw, err := base64.RawURLEncoding.DecodeString(token)
 	if err != nil {
 		return nil, fmt.Errorf("invitetoken: base64 decode: %w", err)
 	}
+	if len(raw) != 13 {
+		return nil, fmt.Errorf("invitetoken: invalid token length %d", len(raw))
+	}
 
-	var lastErr error
+	ciphertext := raw[:9]
+	tokenMAC := raw[9:13]
+
 	for _, key := range iss.keys {
-		payload, err := decryptWithKey(key, raw)
-		if err != nil {
-			lastErr = err
+		// Verify MAC first.
+		expectedMAC := computeMAC(key, ciphertext)
+		if !hmac.Equal(tokenMAC, expectedMAC) {
 			continue
 		}
-		// Check token-level expiry (DB expiry is checked separately).
-		if time.Now().Unix() > payload.Exp {
-			return nil, errors.New("invitetoken: token expired")
+		// Decrypt via XOR.
+		keystream := deriveBlock(key, []byte("enc"))
+		var plaintext [9]byte
+		for i := range ciphertext {
+			plaintext[i] = ciphertext[i] ^ keystream[i]
 		}
-		return payload, nil
+		return &Payload{
+			Code:    hex.EncodeToString(plaintext[:8]),
+			Channel: string(plaintext[8:]),
+		}, nil
 	}
-	return nil, fmt.Errorf("invitetoken: decrypt failed: %w", lastErr)
+	return nil, errors.New("invitetoken: decrypt failed (bad MAC)")
 }
 
-func decryptWithKey(key, raw []byte) (*Payload, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-	nonceSize := gcm.NonceSize()
-	if len(raw) < nonceSize+1 {
-		return nil, errors.New("ciphertext too short")
-	}
-	nonce := raw[:nonceSize]
-	ciphertext := raw[nonceSize:]
+// deriveBlock returns first 9 bytes of HMAC-SHA256(key, label).
+func deriveBlock(key, label []byte) []byte {
+	h := hmac.New(sha256.New, key)
+	h.Write(label)
+	return h.Sum(nil)[:9]
+}
 
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	var payload Payload
-	if err := json.Unmarshal(plaintext, &payload); err != nil {
-		return nil, fmt.Errorf("invitetoken: unmarshal: %w", err)
-	}
-	return &payload, nil
+// computeMAC returns first 4 bytes of HMAC-SHA256(key, data).
+func computeMAC(key, data []byte) []byte {
+	h := hmac.New(sha256.New, key)
+	h.Write(data)
+	return h.Sum(nil)[:4]
 }

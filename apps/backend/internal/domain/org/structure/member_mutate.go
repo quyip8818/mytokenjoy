@@ -99,14 +99,14 @@ func (s *LocalService) CreateMember(ctx context.Context, input types.Member) (ty
 	}
 
 	// Best-effort: send invite notifications after commit.
-	s.sendInviteNotifications(ctx, inviteCode, expiresAt, input.Phone, input.Email)
+	s.sendInviteNotifications(ctx, inviteCode, input.Phone, input.Email)
 
 	return member, nil
 }
 
 // sendInviteNotifications encrypts the invite code with channel info and sends SMS/email.
 // Failures are logged but not propagated — the member is already created.
-func (s *LocalService) sendInviteNotifications(ctx context.Context, inviteCode string, expiresAt time.Time, phone, email string) {
+func (s *LocalService) sendInviteNotifications(ctx context.Context, inviteCode string, phone, email string) {
 	if s.d.InviteIssuer == nil || s.d.Sender == nil {
 		return
 	}
@@ -120,16 +120,16 @@ func (s *LocalService) sendInviteNotifications(ctx context.Context, inviteCode s
 	}
 
 	if phone != "" {
-		token, err := s.d.InviteIssuer.Encrypt(inviteCode, invitetoken.ChannelSMS, expiresAt)
+		token, err := s.d.InviteIssuer.Encrypt(inviteCode, invitetoken.ChannelSMS)
 		if err == nil {
 			inviteURL := fmt.Sprintf("%s/invite/accept?code=%s", baseURL, token)
 			msg := domainnotification.RenderedMessage{
 				Title: "邀请您加入 " + companyName,
-				Body:  fmt.Sprintf("您已被邀请加入%s，请点击链接完成注册：%s", companyName, inviteURL),
+				Body:  fmt.Sprintf("%s邀请您加入TokenJoy平台管理AI用量，点击加入：%s", companyName, inviteURL),
 				Payload: map[string]any{
-					"eventType":   "member_invite",
-					"inviteUrl":   inviteURL,
-					"companyName": companyName,
+					"eventType": "member_invite",
+					"company":   companyName,
+					"code":      token,
 				},
 			}
 			if err := s.d.Sender.SendDirect(ctx, "sms", phone, msg); err != nil {
@@ -139,7 +139,7 @@ func (s *LocalService) sendInviteNotifications(ctx context.Context, inviteCode s
 	}
 
 	if email != "" {
-		token, err := s.d.InviteIssuer.Encrypt(inviteCode, invitetoken.ChannelEmail, expiresAt)
+		token, err := s.d.InviteIssuer.Encrypt(inviteCode, invitetoken.ChannelEmail)
 		if err == nil {
 			inviteURL := fmt.Sprintf("%s/invite/accept?code=%s", baseURL, token)
 			msg := domainnotification.RenderedMessage{
@@ -158,9 +158,9 @@ func (s *LocalService) sendInviteNotifications(ctx context.Context, inviteCode s
 	}
 }
 
-// randomHexCode generates a 32-byte random hex string for invite codes.
+// randomHexCode generates an 8-byte random hex string for invite codes (16 chars).
 func randomHexCode() (string, error) {
-	buf := make([]byte, 32)
+	buf := make([]byte, 8)
 	if _, err := rand.Read(buf); err != nil {
 		return "", err
 	}

@@ -62,7 +62,7 @@ func (s *LocalService) GetMemberInviteLink(ctx context.Context, memberID uuid.UU
 	}
 
 	// Encrypt with ch=admin_link.
-	token, err := s.d.InviteIssuer.Encrypt(invite.InviteCode, invitetoken.ChannelAdminLink, invite.ExpiresAt)
+	token, err := s.d.InviteIssuer.Encrypt(invite.InviteCode, invitetoken.ChannelAdminLink)
 	if err != nil {
 		return "", fmt.Errorf("encrypt invite token: %w", err)
 	}

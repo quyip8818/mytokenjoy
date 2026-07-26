@@ -17,11 +17,11 @@ import (
 
 // SMSChannel delivers notifications via Alibaba Cloud SMS (阿里云短信服务).
 type SMSChannel struct {
-	client       *dysmsapi.Client
-	signName     string
-	templateCode string
-	resolver     *RecipientResolver
-	logger       *slog.Logger
+	client    *dysmsapi.Client
+	signName  string
+	templates map[string]string // eventType → templateCode
+	resolver  *RecipientResolver
+	logger    *slog.Logger
 }
 
 // SMSConfig holds Alibaba Cloud SMS settings.
@@ -29,24 +29,33 @@ type SMSConfig struct {
 	AccessKeyID     string
 	AccessKeySecret string
 	SignName        string
-	TemplateCode    string
-	Endpoint        string // defaults to dysmsapi.aliyuncs.com
+	TemplateCode    string            // default (verification code)
+	Templates       map[string]string // additional eventType → templateCode mappings
+	Endpoint        string            // defaults to dysmsapi.aliyuncs.com
 }
 
 // NewSMSChannel creates an Aliyun SMS channel.
 // If credentials are incomplete the channel reports IsConfigured() == false
 // and the registry will skip it during dispatch.
 func NewSMSChannel(cfg SMSConfig, resolver *RecipientResolver, logger *slog.Logger) *SMSChannel {
+	// Build template map: default template handles "verification_code" and fallback.
+	templates := map[string]string{
+		"": strings.TrimSpace(cfg.TemplateCode), // fallback/default
+	}
+	for event, code := range cfg.Templates {
+		templates[event] = strings.TrimSpace(code)
+	}
+
 	ch := &SMSChannel{
-		signName:     strings.TrimSpace(cfg.SignName),
-		templateCode: strings.TrimSpace(cfg.TemplateCode),
-		resolver:     resolver,
-		logger:       logger,
+		signName:  strings.TrimSpace(cfg.SignName),
+		templates: templates,
+		resolver:  resolver,
+		logger:    logger,
 	}
 
 	keyID := strings.TrimSpace(cfg.AccessKeyID)
 	keySecret := strings.TrimSpace(cfg.AccessKeySecret)
-	if keyID == "" || keySecret == "" || ch.signName == "" || ch.templateCode == "" {
+	if keyID == "" || keySecret == "" || ch.signName == "" || templates[""] == "" {
 		return ch
 	}
 
@@ -111,20 +120,35 @@ func (c *SMSChannel) sendToPhone(phone string, msg domainnotification.RenderedMe
 		phoneNum = strings.TrimPrefix(phone, "+86")
 	}
 
-	// Build template params: use code directly if present (verification code),
-	// otherwise fall back to content string for general notifications.
-	var paramJSON []byte
-	if code, ok := msg.Payload["code"].(string); ok && code != "" {
-		paramJSON, _ = json.Marshal(map[string]string{"code": code})
-	} else {
-		content := buildSMSContent(msg)
-		paramJSON, _ = json.Marshal(map[string]string{"content": content})
+	// Resolve template code by eventType (same pattern as email channel).
+	eventType, _ := msg.Payload["eventType"].(string)
+	tmpl := c.templates[eventType]
+	if tmpl == "" {
+		tmpl = c.templates[""] // fallback to default
 	}
+	if tmpl == "" {
+		return fmt.Errorf("sms: no template for event %q", eventType)
+	}
+
+	// Build template params: all string payload fields except eventType.
+	params := make(map[string]string)
+	for k, v := range msg.Payload {
+		if k == "eventType" {
+			continue
+		}
+		if s, ok := v.(string); ok && s != "" {
+			params[k] = s
+		}
+	}
+	if len(params) == 0 {
+		params["content"] = buildSMSContent(msg)
+	}
+	paramJSON, _ := json.Marshal(params)
 
 	resp, err := c.client.SendSms(&dysmsapi.SendSmsRequest{
 		PhoneNumbers:  tea.String(phoneNum),
 		SignName:      tea.String(c.signName),
-		TemplateCode:  tea.String(c.templateCode),
+		TemplateCode:  tea.String(tmpl),
 		TemplateParam: tea.String(string(paramJSON)),
 	})
 	if err != nil {
