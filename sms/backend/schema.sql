@@ -171,3 +171,12 @@ CREATE TABLE IF NOT EXISTS evaluation_weights (
     dimension VARCHAR(32) UNIQUE NOT NULL,
     weight    INT NOT NULL CHECK (weight >= 0 AND weight <= 100)
 );
+
+-- ====== oauth_clients (for cross-system API access) ======
+CREATE TABLE IF NOT EXISTS oauth_clients (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    client_id           TEXT UNIQUE NOT NULL,
+    client_secret_hash  TEXT NOT NULL,
+    scope               TEXT NOT NULL DEFAULT 'sync:read',
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

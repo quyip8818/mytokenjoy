@@ -51,5 +51,13 @@ func main() {
 		ON CONFLICT (dimension) DO NOTHING`,
 		uuid.Must(uuid.NewV7()), uuid.Must(uuid.NewV7()), uuid.Must(uuid.NewV7()), uuid.Must(uuid.NewV7()), uuid.Must(uuid.NewV7()))
 
+	// OAuth client for TokenJoy sync
+	syncSecretHash, _ := bcrypt.GenerateFromPassword([]byte("e2e-test-secret"), 10)
+	_, _ = pool.Exec(ctx, `
+		INSERT INTO oauth_clients (id, client_id, client_secret_hash, scope)
+		VALUES ($1, 'tokenjoy-sync', $2, 'sync:read')
+		ON CONFLICT (client_id) DO NOTHING`,
+		uuid.Must(uuid.NewV7()), string(syncSecretHash))
+
 	fmt.Println("[seed] done. Login: admin / admin123")
 }

@@ -12,8 +12,10 @@ import (
 	evalsvc "sms/backend/internal/domain/evaluation"
 	modelsvc "sms/backend/internal/domain/model"
 	newapisyncsvc "sms/backend/internal/domain/newapisync"
+	oauthsvc "sms/backend/internal/domain/oauth"
 	ordersvc "sms/backend/internal/domain/order"
 	suppliersvc "sms/backend/internal/domain/supplier"
+	syncsvc "sms/backend/internal/domain/sync"
 	usersvc "sms/backend/internal/domain/user"
 	httpapi "sms/backend/internal/http"
 	"sms/backend/internal/http/deps"
@@ -74,6 +76,8 @@ func New(cfg config.Config, logger *slog.Logger) (*App, error) {
 		Dashboard:  dashboardService,
 		User:       userService,
 		NewAPISync: syncService,
+		OAuth:      oauthsvc.NewService(postgres.NewOAuthClientStore(pool), cfg.JWTSecret, cfg.AccessTokenTTL()),
+		Sync:       syncsvc.NewService(postgres.NewSyncStore(pool)),
 	}
 
 	router := httpapi.NewRouter(d)
