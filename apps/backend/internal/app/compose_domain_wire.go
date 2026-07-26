@@ -34,7 +34,7 @@ func dashboardScopeConfig() domainusage.DashboardScopeConfig {
 
 func wireOrg(cfg config.Config, i infra, logger *slog.Logger, grants domaingrants.Normalizer, enqueuer jobs.Enqueuer, orgAdmin *enqueue.OrgRiverAdminHolder) domainorg.Service {
 	factory := datasource.NewFactory(cfg)
-	return domainorg.NewService(cfg, i.store, factory, i.notifier, i.delayer, logger, grants, enqueue.NewOrgEnqueuer(enqueuer, orgAdmin))
+	return domainorg.NewService(cfg, i.store, factory, i.notifier, i.notificationSvc, i.delayer, logger, grants, enqueue.NewOrgEnqueuer(enqueuer, orgAdmin))
 }
 
 func wireBudget(cfg config.Config, i infra, enqueuer jobs.Enqueuer) domainbudget.Service {

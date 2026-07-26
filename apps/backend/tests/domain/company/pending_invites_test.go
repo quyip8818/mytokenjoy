@@ -129,7 +129,7 @@ func TestPendingInvitesForUserExcludesAccepted(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.Invite().MarkInviteAccepted(ctx, inviteID, now); err != nil {
+	if err := st.Invite().MarkInviteAccepted(ctx, inviteID, now, nil); err != nil {
 		t.Fatal(err)
 	}
 

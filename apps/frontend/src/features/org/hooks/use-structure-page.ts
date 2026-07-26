@@ -24,7 +24,6 @@ export function useStructurePage(injectedApis?: AppApis) {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [formOpen, setFormOpen] = useState(false)
   const [editingMember, setEditingMember] = useState<Member | null>(null)
-  const [inviteOpen, setInviteOpen] = useState(false)
   const [transferOpen, setTransferOpen] = useState(false)
   const [transferDeptId, setTransferDeptId] = useState('')
   const { confirmState, setConfirmState } = useStructureConfirmState()
@@ -128,7 +127,12 @@ export function useStructurePage(injectedApis?: AppApis) {
           departmentId: data.departmentId,
           departmentName: dept?.name ?? '',
         })
-        toast.success(`成员「${data.name}」添加成功`)
+        if (data.phone || data.email) {
+          const target = data.phone || data.email
+          toast.success(`成员已添加，邀请已发送至 ${target}`)
+        } else {
+          toast.success('成员已添加，请手动获取邀请链接')
+        }
       }
       setFormOpen(false)
       setEditingMember(null)
@@ -190,12 +194,6 @@ export function useStructurePage(injectedApis?: AppApis) {
     setTransferOpen(false)
     setTransferDeptId('')
     setRowSelection({})
-    await invalidateOrg()
-  }
-
-  const inviteMember = async (value: string) => {
-    const isEmail = value.includes('@')
-    await apis.memberApi.invite(isEmail ? { email: value } : { phone: value })
     await invalidateOrg()
   }
 
@@ -282,7 +280,6 @@ export function useStructurePage(injectedApis?: AppApis) {
     membersError,
     formOpen,
     editingMember,
-    inviteOpen,
     transferOpen,
     transferDeptId,
     confirmState,
@@ -304,7 +301,6 @@ export function useStructurePage(injectedApis?: AppApis) {
     refresh,
     refreshDepartments,
     refreshMembers,
-    setInviteOpen,
     setTransferOpen,
     setTransferDeptId,
     setConfirmState,
@@ -312,7 +308,6 @@ export function useStructurePage(injectedApis?: AppApis) {
     handleStatusChange,
     handleDelete,
     handleBatchTransfer,
-    inviteMember,
     openCreateMember,
     openEditMember,
     closeMemberForm,

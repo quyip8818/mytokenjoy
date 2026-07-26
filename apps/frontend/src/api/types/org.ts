@@ -74,6 +74,10 @@ export interface Department {
 
 export type MemberStatus = 'active' | 'inactive' | 'pending'
 
+export type MemberSource = 'manual' | 'csv' | 'feishu' | 'dingtalk' | 'wecom' | 'invited' | 'imported'
+
+export type RegistrationChannel = 'sms' | 'email' | 'admin_link'
+
 export interface Member {
   id: string
   companyId: string
@@ -83,7 +87,8 @@ export interface Member {
   departmentName: string
   status: MemberStatus
   roles: string[]
-  source: 'imported' | 'manual' | 'invited'
+  source: MemberSource
+  registrationChannel?: RegistrationChannel
   externalId?: string
   username?: string
   employeeId?: string

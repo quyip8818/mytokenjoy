@@ -91,14 +91,14 @@ func (h *Handler) MembersTransfer(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteVoid(w, err)
 }
 
-func (h *Handler) MembersInvite(w http.ResponseWriter, r *http.Request) {
-	var body struct{}
-	if err := httputil.DecodeJSON(r, &body); err != nil {
-		httputil.WriteError(w, err)
+func (h *Handler) MemberInviteLink(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
 		return
 	}
-	err := h.service.InviteMember()
-	httputil.WriteVoid(w, err)
+	code, err := h.service.GetMemberInviteLink(r.Context(), id)
+	httputil.WriteJSON(w, http.StatusOK, map[string]string{"inviteLink": code}, err)
 }
 
 func (h *Handler) MembersBatchInvite(w http.ResponseWriter, r *http.Request) {

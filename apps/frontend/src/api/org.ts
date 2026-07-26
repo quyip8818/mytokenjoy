@@ -120,10 +120,9 @@ export const memberApi = {
       method: 'POST',
       body: JSON.stringify({ ids, departmentId }),
     }),
-  invite: (data: { email?: string; phone?: string }) =>
-    request<void>('/org/members/invite', {
+  getInviteLink: (id: string) =>
+    request<{ inviteLink: string }>(`/org/members/${id}/invite-link`, {
       method: 'POST',
-      body: JSON.stringify(data),
     }),
   batchInvite: (ids?: string[]) =>
     request<{ sent: number }>('/org/members/batch-invite', {

@@ -16,6 +16,7 @@ import (
 	"github.com/tokenjoy/backend/internal/identity/httpx"
 	"github.com/tokenjoy/backend/internal/identity/registertoken"
 	"github.com/tokenjoy/backend/internal/identity/verifycode"
+	"github.com/tokenjoy/backend/internal/pkg/invitetoken"
 	"github.com/tokenjoy/backend/internal/store"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -28,11 +29,13 @@ type Handler struct {
 	invites       store.InviteRepository
 	verifyCode    *verifycode.Service
 	registerToken *registertoken.Issuer
+	inviteToken   *invitetoken.Issuer
 }
 
 func NewHandler(pub httpdeps.Public, companySvc domaincompany.Service,
 	users store.UserRepository, sessions store.SessionRepository,
-	invites store.InviteRepository, vc *verifycode.Service, regToken *registertoken.Issuer) *Handler {
+	invites store.InviteRepository, vc *verifycode.Service, regToken *registertoken.Issuer,
+	invToken *invitetoken.Issuer) *Handler {
 	return &Handler{
 		pub:           pub,
 		companySvc:    companySvc,
@@ -41,6 +44,7 @@ func NewHandler(pub httpdeps.Public, companySvc domaincompany.Service,
 		invites:       invites,
 		verifyCode:    vc,
 		registerToken: regToken,
+		inviteToken:   invToken,
 	}
 }
 
@@ -189,6 +193,7 @@ type acceptInviteBody struct {
 
 // AcceptInvite handles both logged-in users (session → userID) and
 // unauthenticated users (email invite link → password creates/updates User).
+// The inviteCode is an encrypted token containing the raw invite code and delivery channel.
 func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 	var body acceptInviteBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -201,19 +206,33 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
+
+	// Decrypt token to extract raw invite code and channel.
+	if h.inviteToken == nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, "invite secret not configured")
+		return
+	}
+	payload, err := h.inviteToken.Decrypt(body.InviteCode)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid invite token")
+		return
+	}
+	rawCode := payload.Code
+	channel := payload.Channel
+
 	var userID uuid.UUID
 
 	// Try to resolve from session (logged-in user).
 	if claims, ok := httpx.ResolveMemberClaims(r, h.pub.SessionToken); ok && claims.UserID != uuid.Nil {
 		userID = claims.UserID
 	} else {
-		// Unauthenticated path: need password + resolve user from invite email.
+		// Unauthenticated path: need password + resolve user from invite email/phone.
 		if len(body.Password) < 8 {
 			httputil.WriteStatus(w, http.StatusBadRequest, "password too short (min 8)")
 			return
 		}
 		// Validate invite early — fail before mutating user if invite is bad.
-		invite, err := h.invites.GetInviteByCode(ctx, body.InviteCode)
+		invite, err := h.invites.GetInviteByCode(ctx, rawCode)
 		if err != nil || invite == nil {
 			httputil.WriteStatus(w, http.StatusNotFound, "invite not found")
 			return
@@ -232,18 +251,26 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 			return
 		}
-		// Find or create user by email.
-		user, err := h.users.GetByEmail(ctx, invite.Email)
+
+		// Find or create user by email or phone from the invite.
+		var user *store.User
+		if invite.Email != "" {
+			user, err = h.users.GetByEmail(ctx, invite.Email)
+		} else if invite.Phone != "" {
+			user, err = h.users.GetByPhone(ctx, invite.Phone)
+		}
 		if err != nil {
 			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 			return
 		}
+
 		if user == nil {
 			now := time.Now().UTC()
 			newUser := store.User{
 				ID:           uuid.Must(uuid.NewV7()),
 				Name:         body.Name,
 				Email:        invite.Email,
+				Phone:        invite.Phone,
 				PasswordHash: string(passwordHash),
 				Status:       "active",
 				CreatedAt:    now,
@@ -268,10 +295,18 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 		_ = h.users.UpdateName(ctx, userID, body.Name)
 	}
 
+	// Build accepted_meta from request context.
+	acceptedMeta := map[string]any{
+		"ip": r.RemoteAddr,
+		"ua": r.UserAgent(),
+	}
+
 	member, err := h.companySvc.AcceptInvite(ctx, domaincompany.AcceptInviteRequest{
-		UserID:     userID,
-		InviteCode: body.InviteCode,
-		Name:       body.Name,
+		UserID:              userID,
+		InviteCode:          rawCode,
+		Name:                body.Name,
+		RegistrationChannel: channel,
+		AcceptedMeta:        acceptedMeta,
 	})
 	if err != nil {
 		httputil.WriteJSON(w, http.StatusBadRequest, nil, err)

@@ -17,7 +17,6 @@ interface StructureMembersPanelProps {
   selectedIds: string[]
   onKeywordChange: (keyword: string) => void
   onSearch: () => void
-  onInvite: () => void
   onAdd: () => void
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
@@ -41,7 +40,6 @@ export function StructureMembersPanel({
   selectedIds,
   onKeywordChange,
   onSearch,
-  onInvite,
   onAdd,
   onPageChange,
   onPageSizeChange,
@@ -76,7 +74,6 @@ export function StructureMembersPanel({
         keyword={keyword}
         onKeywordChange={onKeywordChange}
         onSearch={onSearch}
-        onInvite={onInvite}
         onAdd={onAdd}
       />
 

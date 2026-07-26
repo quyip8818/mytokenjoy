@@ -4,7 +4,6 @@ import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog'
 import type { useStructurePage } from '@/features/org'
 import { DepartmentPanel } from './department-panel'
 import { MemberFormDialog } from './member-form-dialog'
-import { InviteDialog } from './invite-dialog'
 import { TransferMembersDialog } from './transfer-members-dialog'
 import { StructureMembersPanel } from './structure-members-panel'
 
@@ -25,7 +24,6 @@ export function StructurePageShell({
   membersError,
   formOpen,
   editingMember,
-  inviteOpen,
   transferOpen,
   transferDeptId,
   confirmState,
@@ -42,7 +40,6 @@ export function StructurePageShell({
   setRowSelection,
   refreshDepartments,
   refreshMembers,
-  setInviteOpen,
   setTransferOpen,
   setTransferDeptId,
   setConfirmState,
@@ -51,7 +48,6 @@ export function StructurePageShell({
   handleStatusChange,
   handleDelete,
   handleBatchTransfer,
-  inviteMember,
   openCreateMember,
   openEditMember,
   closeMemberForm,
@@ -96,7 +92,6 @@ export function StructurePageShell({
             selectedIds={selectedIds}
             onKeywordChange={setKeyword}
             onSearch={handleSearch}
-            onInvite={() => setInviteOpen(true)}
             onAdd={openCreateMember}
             onPageChange={setPage}
             onPageSizeChange={setPageSize}
@@ -117,8 +112,6 @@ export function StructurePageShell({
         onSubmit={handleMemberSubmit}
         onClose={closeMemberForm}
       />
-
-      <InviteDialog open={inviteOpen} onOpenChange={setInviteOpen} onInvite={inviteMember} />
 
       <TransferMembersDialog
         open={transferOpen}

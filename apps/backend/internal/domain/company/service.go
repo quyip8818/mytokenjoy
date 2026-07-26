@@ -52,9 +52,11 @@ type CreateCompanyResult struct {
 
 // AcceptInviteRequest — user identity is resolved by the handler layer.
 type AcceptInviteRequest struct {
-	UserID     uuid.UUID
-	InviteCode string
-	Name       string
+	UserID              uuid.UUID
+	InviteCode          string
+	Name                string
+	RegistrationChannel string         // from decrypted token: "sms" | "email" | "admin_link"
+	AcceptedMeta        map[string]any // client info: ip, ua
 }
 
 type PendingInvitesForUserRequest struct {

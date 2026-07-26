@@ -24,12 +24,13 @@ func NewService(
 	st store.Store,
 	factory datasource.Factory,
 	notifier types.Notifier,
+	sender core.DirectSender,
 	delayer common.Delayer,
 	logger *slog.Logger,
 	grants grants.Normalizer,
 	enqueuer remote.JobEnqueuer,
 ) Service {
-	deps := core.NewDeps(cfg, st, factory, notifier, delayer, logger, grants)
+	deps := core.NewDeps(cfg, st, factory, notifier, sender, delayer, logger, grants)
 	return &service{
 		LocalService: structure.New(deps),
 		Service:      remote.New(deps, enqueuer),

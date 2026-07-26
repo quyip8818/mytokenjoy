@@ -13,6 +13,10 @@ const (
 	MemberSourceImported = "imported"
 	MemberSourceManual   = "manual"
 	MemberSourceInvited  = "invited"
+	MemberSourceCSV      = "csv"
+	MemberSourceFeishu   = "feishu"
+	MemberSourceDingtalk = "dingtalk"
+	MemberSourceWecom    = "wecom"
 
 	SyncTypeManual    = "manual"
 	SyncTypeScheduled = "scheduled"

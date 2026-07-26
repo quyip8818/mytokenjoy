@@ -62,7 +62,7 @@ func TestCompanyInviteRoundTrip(t *testing.T) {
 		t.Fatalf("unexpected invite: %+v err=%v", got, err)
 	}
 	accepted := now.Add(time.Minute)
-	if err := st.Invite().MarkInviteAccepted(ctx, invite.ID, accepted); err != nil {
+	if err := st.Invite().MarkInviteAccepted(ctx, invite.ID, accepted, nil); err != nil {
 		t.Fatal(err)
 	}
 	got, err = st.Invite().GetInviteByCode(ctx, invite.InviteCode)

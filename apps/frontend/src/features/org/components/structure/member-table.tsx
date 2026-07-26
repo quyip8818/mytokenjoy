@@ -7,6 +7,7 @@ import {
   type RowSelectionState,
 } from '@tanstack/react-table'
 import type { Member } from '@/api/types'
+import { memberApi } from '@/api/org'
 import { useSession } from '@/features/session'
 import {
   Pagination,
@@ -35,6 +36,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 interface MemberTableProps {
   data: Member[]
@@ -59,6 +61,22 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   active: { label: '已激活', className: 'bg-emerald-50 text-emerald-700' },
   inactive: { label: '已停用', className: 'bg-slate-100 text-slate-600' },
   pending: { label: '待激活', className: 'bg-amber-50 text-amber-700' },
+}
+
+const sourceLabels: Record<string, string> = {
+  manual: '手动',
+  csv: 'CSV',
+  feishu: '飞书',
+  dingtalk: '钉钉',
+  wecom: '企微',
+  invited: '邀请',
+  imported: '导入',
+}
+
+const registrationChannelLabels: Record<string, string> = {
+  sms: '短信',
+  email: '邮件',
+  admin_link: '管理员链接',
 }
 
 const columnHelper = createColumnHelper<Member>()
@@ -95,9 +113,11 @@ export function MemberTable({
   rowSelection,
   onRowSelectionChange,
 }: MemberTableProps) {
-  const { memberId: currentMemberId } = useSession()
+  const { memberId: currentMemberId, member: currentMember } = useSession()
   const columns = useMemo(
-    () => [
+    () => {
+      const currentMemberRoles = currentMember?.roles ?? []
+      return [
       columnHelper.display({
         id: 'select',
         header: ({ table }) => (
@@ -148,11 +168,51 @@ export function MemberTable({
           )
         },
       }),
+      columnHelper.accessor('source', {
+        header: '来源',
+        cell: (info) => (
+          <span className="text-muted-foreground text-xs">
+            {sourceLabels[info.getValue()] ?? info.getValue()}
+          </span>
+        ),
+      }),
+      columnHelper.accessor('registrationChannel', {
+        header: '注册方式',
+        cell: (info) => {
+          const val = info.getValue()
+          if (!val) return <span className="text-muted-foreground text-xs">未注册</span>
+          return (
+            <span className="text-muted-foreground text-xs">
+              {registrationChannelLabels[val] ?? val}
+            </span>
+          )
+        },
+      }),
       columnHelper.display({
         id: 'actions',
         header: '操作',
         cell: ({ row }) => {
           const member = row.original
+          const canInvite =
+            currentMemberRoles.includes('超级管理员') ||
+            currentMemberRoles.includes('组织管理员')
+          const handleGetInviteLink = async () => {
+            try {
+              const { inviteLink } = await memberApi.getInviteLink(member.id)
+              await navigator.clipboard.writeText(inviteLink)
+              toast.success('邀请链接已复制到剪贴板')
+            } catch {
+              toast.error('获取邀请链接失败')
+            }
+          }
+          const handleResendInvite = async () => {
+            try {
+              await memberApi.batchInvite([member.id])
+              toast.success('邀请已重新发送')
+            } catch {
+              toast.error('重新发送邀请失败')
+            }
+          }
           return (
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="xs" onClick={() => onEdit(member)}>
@@ -165,6 +225,16 @@ export function MemberTable({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  {canInvite && member.status === 'pending' && (
+                    <DropdownMenuItem onClick={handleGetInviteLink}>
+                      获取邀请链接
+                    </DropdownMenuItem>
+                  )}
+                  {member.status === 'pending' && (
+                    <DropdownMenuItem onClick={handleResendInvite}>
+                      重新发送邀请
+                    </DropdownMenuItem>
+                  )}
                   {member.status === 'active' ? (
                     <DropdownMenuItem onClick={() => onStatusChange([member.id], 'inactive')}>
                       停用
@@ -186,8 +256,8 @@ export function MemberTable({
           )
         },
       }),
-    ],
-    [onEdit, onStatusChange, onDelete],
+    ]},
+    [onEdit, onStatusChange, onDelete, currentMember],
   )
 
   const table = useReactTable({

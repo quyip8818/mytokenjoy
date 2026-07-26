@@ -33,20 +33,23 @@ CREATE TABLE IF NOT EXISTS companies (
 );
 
 CREATE TABLE IF NOT EXISTS company_invites (
-    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id   UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
-    email        TEXT,
-    phone        TEXT,
-    user_id      UUID,
-    role         TEXT NOT NULL DEFAULT 'super_admin',
-    invite_code  TEXT NOT NULL UNIQUE,
-    expires_at   TIMESTAMPTZ NOT NULL,
-    accepted_at  TIMESTAMPTZ,
-    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id      UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    member_id       UUID,
+    email           TEXT,
+    phone           TEXT,
+    user_id         UUID,
+    role            TEXT NOT NULL DEFAULT 'super_admin',
+    invite_code     TEXT NOT NULL UNIQUE,
+    expires_at      TIMESTAMPTZ NOT NULL,
+    accepted_at     TIMESTAMPTZ,
+    accepted_meta   JSONB,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_company_invites_invite_code ON company_invites (invite_code);
 CREATE INDEX IF NOT EXISTS idx_company_invites_company ON company_invites (company_id);
+CREATE INDEX IF NOT EXISTS idx_company_invites_member ON company_invites (member_id) WHERE member_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_company_invites_email_pending ON company_invites (email) WHERE accepted_at IS NULL AND email IS NOT NULL AND email != '';
 CREATE INDEX IF NOT EXISTS idx_company_invites_phone_pending ON company_invites (phone) WHERE accepted_at IS NULL AND phone IS NOT NULL AND phone != '';
 CREATE INDEX IF NOT EXISTS idx_company_invites_user_pending ON company_invites (user_id) WHERE accepted_at IS NULL AND user_id IS NOT NULL;
@@ -195,21 +198,22 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_org_nodes_external
     ON org_nodes (company_id, external_id) WHERE external_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS members (
-    id              UUID NOT NULL,
-    company_id      UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
-    user_id         UUID NOT NULL,
-    alias           TEXT NOT NULL DEFAULT '',
-    avatar          TEXT NOT NULL DEFAULT '',
-    department_id   UUID,
-    status          TEXT NOT NULL,
-    source          TEXT NOT NULL DEFAULT '',
-    external_id     TEXT,
-    employee_id     TEXT,
-    job_title       TEXT,
-    override_fields TEXT[] NOT NULL DEFAULT '{}',
-    personal_budget NUMERIC(18,6) NOT NULL DEFAULT 0,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    id                   UUID NOT NULL,
+    company_id           UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    user_id              UUID NOT NULL,
+    alias                TEXT NOT NULL DEFAULT '',
+    avatar               TEXT NOT NULL DEFAULT '',
+    department_id        UUID,
+    status               TEXT NOT NULL,
+    source               TEXT NOT NULL DEFAULT '',
+    registration_channel TEXT NOT NULL DEFAULT '',
+    external_id          TEXT,
+    employee_id          TEXT,
+    job_title            TEXT,
+    override_fields      TEXT[] NOT NULL DEFAULT '{}',
+    personal_budget      NUMERIC(18,6) NOT NULL DEFAULT 0,
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (company_id, id),
     UNIQUE (user_id, company_id),
     FOREIGN KEY (company_id, department_id) REFERENCES org_nodes (company_id, id) ON DELETE RESTRICT

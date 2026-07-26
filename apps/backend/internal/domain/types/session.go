@@ -21,6 +21,9 @@ type Member struct {
 	OverrideFields []string  `json:"overrideFields,omitempty"`
 	PersonalBudget float64   `json:"-"`
 
+	// RegistrationChannel records how the user completed registration: "sms" | "email" | "admin_link" | ""
+	RegistrationChannel string `json:"registrationChannel,omitempty"`
+
 	// Input-only fields: used for member creation/update, not persisted on members table.
 	// Phone/Email are used to resolve/create the user record and stored in users table.
 	Phone string `json:"phone,omitempty"`

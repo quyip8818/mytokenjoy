@@ -2,14 +2,20 @@ package structure
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
 	"slices"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/grants"
+	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/invitetoken"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -42,8 +48,29 @@ func (s *LocalService) CreateMember(ctx context.Context, input types.Member) (ty
 		Username: input.Username, EmployeeID: input.EmployeeID,
 		JobTitle: input.JobTitle, HireDate: input.HireDate,
 		DepartmentID: input.DepartmentID, DepartmentName: deptName,
-		Status: types.MemberStatusActive, Roles: []string{grants.RoleMember}, Source: "manual",
+		Status: types.MemberStatusPending, Roles: []string{grants.RoleMember}, Source: types.MemberSourceManual,
 		PersonalBudget: common.DefaultPersonalBudget,
+	}
+
+	// Generate invite code.
+	inviteCode, err := randomHexCode()
+	if err != nil {
+		return types.Member{}, err
+	}
+
+	now := time.Now().UTC()
+	expiresAt := now.Add(s.d.Cfg.InviteExpireDuration())
+	invite := store.CompanyInvite{
+		ID:         uuid.Must(uuid.NewV7()),
+		CompanyID:  store.CompanyID(ctx),
+		MemberID:   member.ID,
+		Email:      input.Email,
+		Phone:      input.Phone,
+		UserID:     userID,
+		Role:       "member",
+		InviteCode: inviteCode,
+		ExpiresAt:  expiresAt,
+		CreatedAt:  now,
 	}
 
 	err = s.d.Store.WithTx(ctx, func(st store.Store) error {
@@ -58,6 +85,9 @@ func (s *LocalService) CreateMember(ctx context.Context, input types.Member) (ty
 		if err := st.Org().SetMembers(ctx, members); err != nil {
 			return err
 		}
+		if err := st.Invite().CreateInvite(ctx, invite); err != nil {
+			return err
+		}
 		if err := persistRecalculatedMemberCounts(ctx, st, members); err != nil {
 			return err
 		}
@@ -66,7 +96,65 @@ func (s *LocalService) CreateMember(ctx context.Context, input types.Member) (ty
 	if err != nil {
 		return types.Member{}, mapMemberUniqueError(err)
 	}
+
+	// Best-effort: send invite notifications after commit.
+	s.sendInviteNotifications(ctx, inviteCode, expiresAt, input.Phone, input.Email)
+
 	return member, nil
+}
+
+// sendInviteNotifications encrypts the invite code with channel info and sends SMS/email.
+// Failures are logged but not propagated — the member is already created.
+func (s *LocalService) sendInviteNotifications(ctx context.Context, inviteCode string, expiresAt time.Time, phone, email string) {
+	if s.d.InviteIssuer == nil || s.d.Sender == nil {
+		return
+	}
+	baseURL := s.d.Cfg.FrontendURL
+
+	if phone != "" {
+		token, err := s.d.InviteIssuer.Encrypt(inviteCode, invitetoken.ChannelSMS, expiresAt)
+		if err == nil {
+			inviteURL := fmt.Sprintf("%s/invite/accept?code=%s", baseURL, token)
+			msg := domainnotification.RenderedMessage{
+				Title: "邀请您加入 TokenJoy",
+				Body:  fmt.Sprintf("您已被邀请加入 TokenJoy 平台，请点击链接完成注册：%s", inviteURL),
+				Payload: map[string]any{
+					"eventType": "member_invite",
+					"inviteUrl": inviteURL,
+				},
+			}
+			if err := s.d.Sender.SendDirect(ctx, "sms", phone, msg); err != nil {
+				s.d.Logger.Warn("invite sms send failed", "phone", phone, "error", err)
+			}
+		}
+	}
+
+	if email != "" {
+		token, err := s.d.InviteIssuer.Encrypt(inviteCode, invitetoken.ChannelEmail, expiresAt)
+		if err == nil {
+			inviteURL := fmt.Sprintf("%s/invite/accept?code=%s", baseURL, token)
+			msg := domainnotification.RenderedMessage{
+				Title: "邀请您加入 TokenJoy",
+				Body:  "您已被邀请加入 TokenJoy 平台，请点击链接完成注册。",
+				Payload: map[string]any{
+					"eventType": "member_invite",
+					"inviteUrl": inviteURL,
+				},
+			}
+			if err := s.d.Sender.SendDirect(ctx, "email", email, msg); err != nil {
+				s.d.Logger.Warn("invite email send failed", "email", email, "error", err)
+			}
+		}
+	}
+}
+
+// randomHexCode generates a 32-byte random hex string for invite codes.
+func randomHexCode() (string, error) {
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf), nil
 }
 
 func (s *LocalService) UpdateMember(ctx context.Context, id uuid.UUID, input types.Member) (types.Member, error) {

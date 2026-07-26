@@ -118,6 +118,12 @@ type IdentityConfig struct {
 	AuthzCacheSize     int    `env:"AUTHZ_CACHE_SIZE" envDefault:"4096"`
 }
 
+// InviteConfig holds member invite token encryption settings.
+type InviteConfig struct {
+	InviteSecret      string `env:"INVITE_SECRET"`                        // hex-encoded 32-byte AES key (comma-separated for rotation)
+	InviteExpireHours int    `env:"INVITE_EXPIRE_HOURS" envDefault:"168"` // default 7 days
+}
+
 // CacheConfig holds Redis and gateway budget-check cache settings.
 type CacheConfig struct {
 	RedisURL                 string `env:"REDIS_URL"`
@@ -150,6 +156,7 @@ type Config struct {
 	RiverConfig
 	PlatformConfig
 	IdentityConfig
+	InviteConfig
 	CacheConfig
 	RateLimitConfig
 	TrialConfig
@@ -222,4 +229,29 @@ func (c Config) DBPoolMinConns() int32 {
 		return c.DBMinConnsEnv
 	}
 	return 5
+}
+
+// InviteSecretKeys splits INVITE_SECRET by comma for key rotation support.
+func (c Config) InviteSecretKeys() []string {
+	raw := strings.TrimSpace(c.InviteSecret)
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	keys := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if k := strings.TrimSpace(p); k != "" {
+			keys = append(keys, k)
+		}
+	}
+	return keys
+}
+
+// InviteExpireDuration returns the invite validity period.
+func (c Config) InviteExpireDuration() time.Duration {
+	h := c.InviteExpireHours
+	if h <= 0 {
+		h = 168
+	}
+	return time.Duration(h) * time.Hour
 }

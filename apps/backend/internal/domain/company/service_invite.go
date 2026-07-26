@@ -41,17 +41,66 @@ func (s *service) AcceptInvite(ctx context.Context, req AcceptInviteRequest) (ty
 
 	var member types.Member
 	err = s.store.WithTx(ctx, func(tx store.Store) error {
-		m, err := s.addMember(ctx, tx, req.UserID, invite.CompanyID, req.Name, "", invite.Role)
-		if err != nil {
-			return err
+		if invite.MemberID != uuid.Nil {
+			// Member-invite: member already exists as pending — activate it.
+			m, err := s.activateExistingMember(ctx, tx, invite.MemberID, req.UserID, req.RegistrationChannel)
+			if err != nil {
+				return err
+			}
+			member = m
+		} else {
+			// Company-invite (platform provisioning): member doesn't exist yet — create one.
+			m, err := s.addMember(ctx, tx, req.UserID, invite.CompanyID, req.Name, "", invite.Role)
+			if err != nil {
+				return err
+			}
+			member = m
 		}
-		member = m
-		return tx.Invite().MarkInviteAccepted(ctx, invite.ID, time.Now().UTC())
+		return tx.Invite().MarkInviteAccepted(ctx, invite.ID, time.Now().UTC(), req.AcceptedMeta)
 	})
 	if err != nil {
 		return types.Member{}, err
 	}
 	return member, nil
+}
+
+// activateExistingMember transitions a pending member to active and sets registrationChannel.
+func (s *service) activateExistingMember(ctx context.Context, tx store.Store, memberID, userID uuid.UUID, channel string) (types.Member, error) {
+	// Find the company this member belongs to.
+	companyID, err := tx.Org().FindMemberCompanyID(ctx, memberID)
+	if err != nil || companyID == uuid.Nil {
+		return types.Member{}, domain.NotFound("member company not found")
+	}
+	company, err := tx.Company().GetByID(ctx, companyID)
+	if err != nil || company == nil {
+		return types.Member{}, domain.NotFound("company not found")
+	}
+
+	companyCtx := WithContext(ctx, ContextFromStore(*company))
+
+	members, err := tx.Org().Members(companyCtx)
+	if err != nil {
+		return types.Member{}, err
+	}
+
+	var found *types.Member
+	for i := range members {
+		if members[i].ID == memberID {
+			members[i].Status = types.MemberStatusActive
+			members[i].UserID = userID
+			members[i].RegistrationChannel = channel
+			found = &members[i]
+			break
+		}
+	}
+	if found == nil {
+		return types.Member{}, domain.NotFound("member not found")
+	}
+
+	if err := tx.Org().SetMembers(companyCtx, members); err != nil {
+		return types.Member{}, err
+	}
+	return *found, nil
 }
 
 func (s *service) PendingInvitesForUser(ctx context.Context, req PendingInvitesForUserRequest) ([]PendingInvite, error) {

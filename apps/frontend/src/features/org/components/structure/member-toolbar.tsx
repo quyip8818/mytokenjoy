@@ -1,12 +1,11 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, UserPlus, Plus } from 'lucide-react'
+import { Search, Plus } from 'lucide-react'
 
 interface MemberToolbarProps {
   keyword: string
   onKeywordChange: (keyword: string) => void
   onSearch: () => void
-  onInvite: () => void
   onAdd: () => void
 }
 
@@ -14,7 +13,6 @@ export function MemberToolbar({
   keyword,
   onKeywordChange,
   onSearch,
-  onInvite,
   onAdd,
 }: MemberToolbarProps) {
   return (
@@ -39,10 +37,6 @@ export function MemberToolbar({
         </button>
       </div>
       <div className="flex-1" />
-      <Button variant="outline" size="sm" onClick={onInvite}>
-        <UserPlus className="size-3.5" />
-        邀请成员
-      </Button>
       <Button size="sm" onClick={onAdd}>
         <Plus className="size-3.5" />
         添加成员

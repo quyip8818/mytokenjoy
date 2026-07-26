@@ -61,7 +61,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	membersWrite.Delete("/members", h.MembersDelete)
 	membersWrite.Put("/members/status", h.MembersStatus)
 	membersWrite.Post("/members/transfer", h.MembersTransfer)
-	membersWrite.Post("/members/invite", h.MembersInvite)
+	membersWrite.Post("/members/{id}/invite-link", h.MemberInviteLink)
 	membersWrite.Post("/members/batch-invite", h.MembersBatchInvite)
 	membersWrite.Post("/members/batch-import", h.MembersBatchImport)
 

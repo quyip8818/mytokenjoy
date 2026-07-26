@@ -41,7 +41,7 @@ type MemberService interface {
 	DeleteMembers(ctx context.Context, ids []uuid.UUID, currentMemberID uuid.UUID) error
 	UpdateMemberStatus(ctx context.Context, ids []uuid.UUID, status string) error
 	TransferMembers(ctx context.Context, ids []uuid.UUID, departmentID uuid.UUID) error
-	InviteMember() error
+	GetMemberInviteLink(ctx context.Context, memberID uuid.UUID) (string, error)
 	BatchInvite(ctx context.Context, ids []uuid.UUID) (types.BatchInviteResult, error)
 	BatchImport(ctx context.Context, rows []types.BatchImportRow) (types.MemberBatchImportResult, error)
 }

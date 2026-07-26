@@ -11,14 +11,14 @@ import (
 )
 
 const memberSelect = `
-	SELECT m.id, m.user_id, m.alias, m.avatar, COALESCE(m.department_id, '00000000-0000-0000-0000-000000000000'::uuid), COALESCE(o.name, ''), m.status, m.source, m.external_id, COALESCE(m.employee_id, ''), COALESCE(m.job_title, ''), m.override_fields, m.personal_budget
+	SELECT m.id, m.user_id, m.alias, m.avatar, COALESCE(m.department_id, '00000000-0000-0000-0000-000000000000'::uuid), COALESCE(o.name, ''), m.status, m.source, m.registration_channel, m.external_id, COALESCE(m.employee_id, ''), COALESCE(m.job_title, ''), m.override_fields, m.personal_budget
 	FROM members m
 	LEFT JOIN org_nodes o ON o.company_id = m.company_id AND o.id = m.department_id
 `
 
 const memberListSelect = `
 	SELECT m.id, m.user_id, m.alias, m.avatar, COALESCE(m.department_id, '00000000-0000-0000-0000-000000000000'::uuid), COALESCE(o.name, ''),
-		m.status, m.source, m.external_id, COALESCE(m.employee_id, ''), COALESCE(m.job_title, ''), m.override_fields, m.personal_budget,
+		m.status, m.source, m.registration_channel, m.external_id, COALESCE(m.employee_id, ''), COALESCE(m.job_title, ''), m.override_fields, m.personal_budget,
 		COALESCE(array_agg(r.name ORDER BY r.name) FILTER (WHERE r.name IS NOT NULL), '{}') AS roles
 	FROM members m
 	LEFT JOIN org_nodes o ON o.company_id = m.company_id AND o.id = m.department_id
@@ -40,7 +40,7 @@ func (r *pgOrgRepo) Members(ctx context.Context) ([]types.Member, error) {
 	rows, err := r.db.Query(ctx, memberListSelect+`
 		WHERE m.company_id = $1
 		GROUP BY m.id, m.user_id, m.alias, m.avatar, m.department_id, o.name,
-			m.status, m.source, m.external_id, m.employee_id, m.job_title, m.override_fields, m.personal_budget
+			m.status, m.source, m.registration_channel, m.external_id, m.employee_id, m.job_title, m.override_fields, m.personal_budget
 		ORDER BY m.id
 	`, companyID)
 	if err != nil {
@@ -53,7 +53,7 @@ func (r *pgOrgRepo) Members(ctx context.Context) ([]types.Member, error) {
 		var roles []string
 		if err := rows.Scan(
 			&item.ID, &item.UserID, &item.Alias, &item.Avatar,
-			&item.DepartmentID, &item.DepartmentName, &item.Status, &item.Source, &item.ExternalID,
+			&item.DepartmentID, &item.DepartmentName, &item.Status, &item.Source, &item.RegistrationChannel, &item.ExternalID,
 			&item.EmployeeID, &item.JobTitle, &item.OverrideFields, &item.PersonalBudget, &roles,
 		); err != nil {
 			return nil, err
@@ -71,7 +71,7 @@ func (r *pgOrgRepo) MemberByID(ctx context.Context, memberID uuid.UUID) (*types.
 	var item types.Member
 	if err := row.Scan(
 		&item.ID, &item.UserID, &item.Alias, &item.Avatar,
-		&item.DepartmentID, &item.DepartmentName, &item.Status, &item.Source, &item.ExternalID,
+		&item.DepartmentID, &item.DepartmentName, &item.Status, &item.Source, &item.RegistrationChannel, &item.ExternalID,
 		&item.EmployeeID, &item.JobTitle, &item.OverrideFields, &item.PersonalBudget,
 	); err != nil {
 		if err == pgx.ErrNoRows {
@@ -100,7 +100,7 @@ func (r *pgOrgRepo) MemberByID(ctx context.Context, memberID uuid.UUID) (*types.
 
 func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID uuid.UUID, email string) (*types.Member, string, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT m.id, m.user_id, m.alias, m.avatar, COALESCE(m.department_id, '00000000-0000-0000-0000-000000000000'::uuid), COALESCE(o.name, ''), m.status, m.source, m.external_id, COALESCE(m.employee_id, ''), COALESCE(m.job_title, ''), m.override_fields, m.personal_budget, u.password_hash
+		SELECT m.id, m.user_id, m.alias, m.avatar, COALESCE(m.department_id, '00000000-0000-0000-0000-000000000000'::uuid), COALESCE(o.name, ''), m.status, m.source, m.registration_channel, m.external_id, COALESCE(m.employee_id, ''), COALESCE(m.job_title, ''), m.override_fields, m.personal_budget, u.password_hash
 		FROM members m
 		JOIN users u ON u.id = m.user_id
 		LEFT JOIN org_nodes o ON o.company_id = m.company_id AND o.id = m.department_id
@@ -109,7 +109,7 @@ func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID uuid.UUID, emai
 	var passwordHash *string
 	if err := row.Scan(
 		&item.ID, &item.UserID, &item.Alias, &item.Avatar,
-		&item.DepartmentID, &item.DepartmentName, &item.Status, &item.Source, &item.ExternalID,
+		&item.DepartmentID, &item.DepartmentName, &item.Status, &item.Source, &item.RegistrationChannel, &item.ExternalID,
 		&item.EmployeeID, &item.JobTitle, &item.OverrideFields, &item.PersonalBudget, &passwordHash,
 	); err != nil {
 		if err == pgx.ErrNoRows {
@@ -142,7 +142,7 @@ func (r *pgOrgRepo) MemberByEmail(ctx context.Context, companyID uuid.UUID, emai
 
 func (r *pgOrgRepo) GetMemberAuthz(ctx context.Context, companyID uuid.UUID, memberID uuid.UUID) (*store.MemberAuthz, error) {
 	row := r.db.QueryRow(ctx, `
-		SELECT m.id, m.user_id, m.alias, m.avatar, COALESCE(m.department_id, '00000000-0000-0000-0000-000000000000'::uuid), COALESCE(o.name, ''), m.status, m.source, m.external_id, COALESCE(m.employee_id, ''), COALESCE(m.job_title, ''), m.override_fields, m.personal_budget,
+		SELECT m.id, m.user_id, m.alias, m.avatar, COALESCE(m.department_id, '00000000-0000-0000-0000-000000000000'::uuid), COALESCE(o.name, ''), m.status, m.source, m.registration_channel, m.external_id, COALESCE(m.employee_id, ''), COALESCE(m.job_title, ''), m.override_fields, m.personal_budget,
 		       u.name, c.authz_revision
 		FROM members m
 		JOIN users u ON u.id = m.user_id
@@ -155,7 +155,7 @@ func (r *pgOrgRepo) GetMemberAuthz(ctx context.Context, companyID uuid.UUID, mem
 	var revision int64
 	if err := row.Scan(
 		&item.ID, &item.UserID, &item.Alias, &item.Avatar,
-		&item.DepartmentID, &item.DepartmentName, &item.Status, &item.Source, &item.ExternalID,
+		&item.DepartmentID, &item.DepartmentName, &item.Status, &item.Source, &item.RegistrationChannel, &item.ExternalID,
 		&item.EmployeeID, &item.JobTitle, &item.OverrideFields, &item.PersonalBudget, &userName, &revision,
 	); err != nil {
 		if err == pgx.ErrNoRows {
@@ -219,8 +219,8 @@ func (r *pgOrgRepo) SetMembers(ctx context.Context, members []types.Member) erro
 		if _, err := r.db.Exec(ctx, `
 			INSERT INTO members (
 				id, company_id, user_id, alias, avatar, department_id,
-				status, source, external_id, employee_id, job_title, override_fields, personal_budget, updated_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
+				status, source, registration_channel, external_id, employee_id, job_title, override_fields, personal_budget, updated_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
 			ON CONFLICT (company_id, id) DO UPDATE SET
 				alias = EXCLUDED.alias,
 				avatar = EXCLUDED.avatar,
@@ -228,6 +228,7 @@ func (r *pgOrgRepo) SetMembers(ctx context.Context, members []types.Member) erro
 				department_id = EXCLUDED.department_id,
 				status = EXCLUDED.status,
 				source = EXCLUDED.source,
+				registration_channel = EXCLUDED.registration_channel,
 				external_id = EXCLUDED.external_id,
 				employee_id = EXCLUDED.employee_id,
 				job_title = EXCLUDED.job_title,
@@ -235,7 +236,7 @@ func (r *pgOrgRepo) SetMembers(ctx context.Context, members []types.Member) erro
 				personal_budget = EXCLUDED.personal_budget,
 				updated_at = NOW()
 		`, member.ID, companyID, member.UserID, member.Alias, member.Avatar,
-			nilUUID(member.DepartmentID), member.Status, member.Source, member.ExternalID,
+			nilUUID(member.DepartmentID), member.Status, member.Source, member.RegistrationChannel, member.ExternalID,
 			nilText(member.EmployeeID), nilText(member.JobTitle), member.OverrideFields, member.PersonalBudget); err != nil {
 			return fmt.Errorf("upsert member %s: %w", member.ID, err)
 		}
