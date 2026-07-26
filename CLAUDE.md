@@ -21,9 +21,10 @@
 
 ```bash
 # 开发环境
-pnpm start              # 启动后端+前端（需先 pnpm docker:reset）
-pnpm docker:reset       # 重置 Docker 容器（postgres+redis+newapi）
+pnpm start              # 启动后端+前端（需先 pnpm reset）
+pnpm reset              # 重置 Docker 容器（postgres+redis+newapi）
 pnpm infra              # 仅启动基础设施容器
+pnpm infra:down         # 停止基础设施容器
 
 # 前端 (apps/frontend)
 pnpm -F @tokenjoy/frontend dev       # Vite dev server
@@ -35,7 +36,10 @@ pnpm -F @tokenjoy/frontend test:e2e  # Playwright
 make start              # air 热重载启动（读 .env）
 make dev-bootstrap      # 初始化本地开发数据（需 NEW_API_ENABLED=true）
 make test-unit          # go test -tags=testhook ./tests/...
-make lint               # go vet + gofmt check
+make test-integration   # 集成测试
+make lint               # lint-clock + lint-layer
+make format             # gofmt -w
+make scaffold-domain    # 脚手架新域
 
 # 权限生成
 pnpm generate:permissions  # 从 packages/contracts/permission/manifest.json 生成后端+前端常量
@@ -122,22 +126,28 @@ pnpm -F @tokenjoy/frontend exec vitest run tests/features/xxx/yyy.test.ts
 
 关键变量（见 `apps/backend/.env.example` 完整列表）：
 - `DATABASE_URL` — PostgreSQL 连接
+- `LOG_DATABASE_URL` — 日志库连接（可选）
 - `SESSION_SECRET` — JWT session 签名
 - `DATA_SOURCE_CREDENTIAL_KEY` — 数据源凭证加密 key
 - `DEPLOY_ENV` — local / staging / production
 - `BOOTSTRAP_MODE` — none / minimal / demo
 - `NEW_API_ENABLED` — 启用 NewAPI 集成
-- `NEW_API_BASE_URL` / `NEW_API_ADMIN_TOKEN` — NewAPI 服务
+- `NEW_API_BASE_URL` — NewAPI 服务地址
+- `NEW_API_DATABASE_URL` — 读取 NewAPI 管理员 token（替代旧的 NEW_API_ADMIN_TOKEN）
 - `SUPPORT_SAAS` — 多租户 SaaS 模式
 - `REDIS_URL` — Redis（限流、网关预算缓存）
 - `VITE_API_PROXY_TARGET` — 前端代理目标（默认 http://localhost:8010）
+- `TOKENJOY_COMPANY_ID` / `LOCAL_COMPANY_ID` — SaaS 模式下的公司 ID
+- `PLATFORM_BOOTSTRAP_EMAIL` / `PLATFORM_BOOTSTRAP_PASSWORD` — 平台初始化账号
 
 ## 脚本
 
 - `scripts/dev.sh` — 开发环境编排主入口
+- `scripts/dev-sms.sh` — SMS 产品开发脚本
 - `scripts/reset-budget-data.sh` — 清空预算数据（保留总公司+admin）
 - `scripts/dev/` — 子脚本（infra, reset, start, test, frontend-wait）
 - `scripts/lib/` — 共享函数（common.sh, db-reset.sh）
+- `scripts/postgres-init/` — Docker postgres 初始化（创建多数据库）
 
 ## Ponytail — lazy senior dev
 
