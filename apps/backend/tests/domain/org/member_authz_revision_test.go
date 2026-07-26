@@ -20,9 +20,9 @@ func TestCreateMemberBumpsAuthzRevision(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := svc.CreateMember(ctx, types.Member{
-		Alias: "Revision User", Phone: "13900003333", Email: "revision@example.com",
-		DepartmentID: contract.IDDept5,
+	if _, err := svc.CreateMember(ctx, types.CreateMemberInput{
+		User:   types.CreateMemberUserInput{Name: "Revision User", Phone: "13900003333", Email: "revision@example.com"},
+		Member: types.CreateMemberData{DepartmentID: contract.IDDept5},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -45,19 +45,9 @@ func TestUpdateMemberRolesBumpsAuthzRevision(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	members, err := st.Org().Members(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var target types.Member
-	for _, member := range members {
-		if member.ID == contract.IDMember1 {
-			target = member
-			break
-		}
-	}
-	target.Roles = []string{"预算审批员"}
-	if _, err := svc.UpdateMember(ctx, contract.IDMember1, target); err != nil {
+	if _, err := svc.UpdateMember(ctx, contract.IDMember1, types.UpdateMemberInput{
+		Roles: []string{"预算审批员"},
+	}); err != nil {
 		t.Fatal(err)
 	}
 	after, err := st.Company().GetAuthzRevision(ctx, contract.DefaultCompanyID)

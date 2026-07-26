@@ -97,10 +97,41 @@ export interface Member {
   source: MemberSource
   registrationChannel?: RegistrationChannel
   externalId?: string
-  username?: string
   employeeId?: string
   jobTitle?: string
   hireDate?: string
+  // Read-only fields from users table (JOIN)
+  name?: string
+  phone?: string
+  email?: string
+}
+
+// Request body for POST /org/members
+export interface CreateMemberInput {
+  user: { name: string; phone: string; email: string }
+  member: {
+    alias?: string
+    departmentId: string
+    employeeId?: string
+    jobTitle?: string
+    hireDate?: string
+  }
+}
+
+// Request body for PUT /org/members/:id
+export interface UpdateMemberInput {
+  alias?: string
+  departmentId?: string
+  employeeId?: string
+  jobTitle?: string
+  hireDate?: string
+  roles?: string[]
+  status?: string
+}
+
+// Request body for PUT /org/members/:id/user
+export interface UpdateMemberUserInput {
+  name?: string
   phone?: string
   email?: string
 }

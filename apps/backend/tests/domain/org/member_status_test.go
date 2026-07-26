@@ -133,21 +133,21 @@ func TestBatchStatusChangeMultipleMembers(t *testing.T) {
 	}
 }
 
-func TestCreateMemberDefaultsToActive(t *testing.T) {
+func TestCreateMemberDefaultsToPending(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	member, err := svc.CreateMember(ctx, types.Member{
-		Alias: "New Person", Phone: "13900009999", Email: "new@example.com",
-		DepartmentID: contract.IDDept3,
+	member, err := svc.CreateMember(ctx, types.CreateMemberInput{
+		User:   types.CreateMemberUserInput{Name: "New Person", Phone: "13900009999", Email: "new@example.com"},
+		Member: types.CreateMemberData{DepartmentID: contract.IDDept3},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if member.Status != "active" {
-		t.Errorf("new member should be active, got %s", member.Status)
+	if member.Status != "pending" {
+		t.Errorf("new member should be pending, got %s", member.Status)
 	}
 }
 
@@ -158,9 +158,9 @@ func TestBatchInviteSetsStatus(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	// Create a member first
-	member, err := svc.CreateMember(ctx, types.Member{
-		Alias: "Invite Target", Phone: "13900001111", Email: "invite@example.com",
-		DepartmentID: contract.IDDept3,
+	member, err := svc.CreateMember(ctx, types.CreateMemberInput{
+		User:   types.CreateMemberUserInput{Name: "Invite Target", Phone: "13900001111", Email: "invite@example.com"},
+		Member: types.CreateMemberData{DepartmentID: contract.IDDept3},
 	})
 	if err != nil {
 		t.Fatal(err)

@@ -36,8 +36,9 @@ type DepartmentService interface {
 
 type MemberService interface {
 	ListMembers(ctx context.Context, departmentID uuid.UUID, keyword string, directOnly bool, page, pageSize int) (types.MemberPageResult, error)
-	CreateMember(ctx context.Context, input types.Member) (types.Member, error)
-	UpdateMember(ctx context.Context, id uuid.UUID, input types.Member) (types.Member, error)
+	CreateMember(ctx context.Context, input types.CreateMemberInput) (types.Member, error)
+	UpdateMember(ctx context.Context, id uuid.UUID, input types.UpdateMemberInput) (types.Member, error)
+	UpdateMemberUser(ctx context.Context, memberID uuid.UUID, input types.UpdateMemberUserInput) error
 	DeleteMembers(ctx context.Context, ids []uuid.UUID, currentMemberID uuid.UUID) error
 	UpdateMemberStatus(ctx context.Context, ids []uuid.UUID, status string) error
 	TransferMembers(ctx context.Context, ids []uuid.UUID, departmentID uuid.UUID) error

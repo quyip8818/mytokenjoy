@@ -138,6 +138,8 @@ test.describe('组织架构 - 成员 CRUD', () => {
     await dialog.locator('input').first().fill(uniqueName)
     // Fill email (type="email" input)
     await dialog.locator('input[type="email"]').fill(`auto-${Date.now()}@test.com`)
+    // Fill required employee_id (工号)
+    await dialog.getByRole('textbox', { name: '员工工号' }).fill(`EMP${Date.now().toString().slice(-6)}`)
     // Select department via combobox
     await dialog.getByRole('combobox').click()
     await page.getByRole('option', { name: /总公司/ }).click()

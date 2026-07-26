@@ -12,9 +12,9 @@ import (
 func TestCreateMemberRejectsNoContact(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
-	_, err := svc.CreateMember(testutil.Ctx(), types.Member{
-		Alias:        "No Contact",
-		DepartmentID: contract.IDDept5,
+	_, err := svc.CreateMember(testutil.Ctx(), types.CreateMemberInput{
+		User:   types.CreateMemberUserInput{Name: "No Contact"},
+		Member: types.CreateMemberData{DepartmentID: contract.IDDept5},
 	})
 	de := asDomainError(t, err)
 	if de.Status != domain.StatusBadRequest {
@@ -25,9 +25,9 @@ func TestCreateMemberRejectsNoContact(t *testing.T) {
 func TestCreateMemberAcceptsPhoneOnly(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
-	_, err := svc.CreateMember(testutil.Ctx(), types.Member{
-		Alias: "Phone Only", Phone: "13700009999",
-		DepartmentID: contract.IDDept5,
+	_, err := svc.CreateMember(testutil.Ctx(), types.CreateMemberInput{
+		User:   types.CreateMemberUserInput{Name: "Phone Only", Phone: "13700009999"},
+		Member: types.CreateMemberData{DepartmentID: contract.IDDept5},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -37,9 +37,9 @@ func TestCreateMemberAcceptsPhoneOnly(t *testing.T) {
 func TestCreateMemberAcceptsEmailOnly(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
-	_, err := svc.CreateMember(testutil.Ctx(), types.Member{
-		Alias: "Email Only", Email: "emailonly@example.com",
-		DepartmentID: contract.IDDept5,
+	_, err := svc.CreateMember(testutil.Ctx(), types.CreateMemberInput{
+		User:   types.CreateMemberUserInput{Name: "Email Only", Email: "emailonly@example.com"},
+		Member: types.CreateMemberData{DepartmentID: contract.IDDept5},
 	})
 	if err != nil {
 		t.Fatal(err)

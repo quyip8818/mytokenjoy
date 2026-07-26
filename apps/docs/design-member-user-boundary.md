@@ -28,78 +28,108 @@
 | department_id | 部门 |
 | employee_id | 工号 |
 | job_title | 职位 |
+| hire_date | 入职时间 |
 | status | 状态 |
 | source | 来源 |
 
 ### 删除的字段
 - `member.username` → 删除。alias 就是昵称，不需要两个名字字段。
-- `types.Member.Phone/Email` 作为 input-only 字段保留（用于 CreateMember 时解析/创建 user），但不再在 member 列表响应中返回。
+- `types.Member.Phone/Email/Name` → 语义从"input-only 写入字段"改为"只读 JOIN 展示字段"。创建和更新不再通过 Member struct 传递，而是通过独立的 User API 或嵌套的 `user` 子结构。列表通过 JOIN users 表只读返回。
 
-## API 变更
+## API 总览
+
+重构后管理员所有操作保持在 `/org/members` 下，不引入顶级 `/org/users`。
+
+| API | 用途 | 变更 |
+|-----|------|------|
+| `GET /org/members` | 成员列表 | JOIN users 返回 name/phone/email（只读） |
+| `POST /org/members` | 创建成员 | body 改为 `{user:{...}, member:{...}}` resolveOrCreateUserMember 语义 |
+| `PUT /org/members/:id` | 更新 member 字段 | 只含 alias/departmentId/employeeId/jobTitle/hireDate |
+| `PUT /org/members/:id/user` | 管理员改别人的 user 字段 | **新增**，含 name/phone/email |
+| `DELETE /org/members` | 删除成员 | 不变 |
+| `PUT /org/members/status` | 批量状态 | 不变 |
+| `POST /org/members/transfer` | 批量转部门 | 不变 |
+| `POST /org/members/:id/invite-link` | 获取邀请链接 | 不变 |
+| `POST /org/members/batch-invite` | 批量重发邀请 | 不变 |
+| `POST /org/members/batch-import` | CSV 导入 | 内部 resolveOrCreate，接口不变 |
+| `PUT /me/profile` | 用户改自己 | 保持现状（name/avatar/alias） |
+
+## API 详细
 
 ### Member 列表响应（GET /org/members）
-新增 `name` 字段（来自 users 表 JOIN）：
+JOIN users 表返回只读展示字段：
 
 ```json
 {
   "id": "...",
   "alias": "小曲",       // 昵称（member 表）
-  "name": "曲一鹏",     // 姓名（users 表）
-  "phone": "138...",    // 手机（users 表）
-  "email": "q@x.com",  // 邮箱（users 表）
+  "name": "曲一鹏",     // 姓名（users 表，JOIN 只读）
+  "phone": "138...",    // 手机（users 表，JOIN 只读）
+  "email": "q@x.com",  // 邮箱（users 表，JOIN 只读）
   "departmentId": "...",
   "employeeId": "E001",
   "jobTitle": "工程师",
+  "hireDate": "2024-03-01",
   ...
 }
 ```
 
-phone/email/name 通过 JOIN users 表返回，只读展示。
+### 创建成员（POST /org/members）— resolveOrCreateUserMember
+一个 API 原子完成 user + member 创建：
 
-### 创建成员（POST /org/members）
-请求体只包含 member 字段：
-- `alias` → `member.alias`（昵称）
-- `departmentId` → `member.department_id`
-- `employeeId` → `member.employee_id`
-- `jobTitle` → `member.job_title`
-- `hireDate` → `member.hire_date`（如果需要）
+```json
+{
+  "user": { "name": "曲一鹏", "phone": "138...", "email": "q@x.com" },
+  "member": { "alias": "小曲", "departmentId": "...", "employeeId": "E001", "jobTitle": "工程师", "hireDate": "2024-03-01" }
+}
+```
 
-**不传 name/phone/email**。用户身份通过独立的 user API 管理。
+后端流程：
+1. resolveOrCreate user（按 phone/email 查找，不存在则创建）
+2. 创建 member（关联 userId，status=pending）
+3. 创建 invite + 发送邀请通知
 
-### 创建用户（POST /org/users 或复用现有 resolveOrCreateUser）
-前端在创建成员前先创建/解析 user：
-- `name` → `user.name`
-- `phone` → `user.phone`
-- `email` → `user.email`
-
-返回 `userId`，前端再用这个 userId 创建 member。
-
-或者更简单：**CreateMember 接收 `userId` 参数**（前端先确保 user 存在），member API 本身不碰 user 字段。
+`member.alias` 可选，缺省复制 `user.name`。
 
 ### 更新成员（PUT /org/members/:id）
-只更新 member 字段：alias、departmentId、employeeId、jobTitle、hireDate。
+只更新 member 字段：
 
-### 更新用户（PUT /org/users/:id 或 PATCH）
-独立 API 更新 user 字段：name、phone、email。
+```json
+{ "alias": "小曲", "departmentId": "...", "employeeId": "E001", "jobTitle": "工程师", "hireDate": "2024-03-01" }
+```
 
-### 删除 username 字段
-- 后端 `types.Member.Username` 字段删除
-- 数据库 members 表无 username 列（当前没有，只在 Go struct 里）
-- 前端 Member 类型删除 `username`
+### 更新成员关联用户（PUT /org/members/:id/user）— 新增
+管理员修改成员对应的 user 信息：
+
+```json
+{ "name": "曲一鹏", "phone": "138...", "email": "q@x.com" }
+```
+
+后端通过 member.user_id 找到对应 user 更新。
+
+**唯一性冲突策略**：如果新 phone/email 已被其他 user 占用，直接报错"该手机号/邮箱已被其他用户使用"，不做 merge。避免管理员无意间把 member 关联到别的 user。
+
+### 用户自改（PUT /me/profile）
+保持不变，已有 name/avatar/alias 支持。
 
 ## 前端表单映射
 
 ### 编辑成员表单
-| UI 标签 | 字段名 | 存储位置 |
-|---------|--------|----------|
-| 姓名 * | name | users.name |
-| 昵称 | alias | members.alias |
-| 手机号 | phone | users.phone |
-| 邮箱 | email | users.email |
-| 工号 * | employeeId | members.employee_id |
-| 职位 | jobTitle | members.job_title |
-| 入职时间 | hireDate | 不持久化（或加列） |
-| 主部门 * | departmentId | members.department_id |
+| UI 标签 | 字段名 | API | 存储位置 |
+|---------|--------|-----|----------|
+| 姓名 * | name | PUT /org/members/:id/user | users.name |
+| 昵称 | alias | PUT /org/members/:id | members.alias |
+| 手机号 | phone | PUT /org/members/:id/user | users.phone |
+| 邮箱 | email | PUT /org/members/:id/user | users.email |
+| 工号 * | employeeId | PUT /org/members/:id | members.employee_id |
+| 职位 | jobTitle | PUT /org/members/:id | members.job_title |
+| 入职时间 | hireDate | PUT /org/members/:id | members.hire_date |
+| 主部门 * | departmentId | PUT /org/members/:id | members.department_id |
+
+前端提交时串行调用两个 API：先 `PUT /org/members/:id/user`（user 字段），成功后再 `PUT /org/members/:id`（member 字段）。任一失败直接报错，不继续后续调用。
+
+### 添加成员表单
+所有字段一次提交到 `POST /org/members`（`{user, member}` 嵌套结构）。
 
 ### 接受邀请表单
 | UI 标签 | 字段名 | 存储位置 |
@@ -111,18 +141,36 @@ phone/email/name 通过 JOIN users 表返回，只读展示。
 ## 后端改动清单
 
 1. **members SQL query**：JOIN users 表返回 name/phone/email（只读展示）
-2. **types.Member**：删除 `Username`、`Phone`、`Email` 字段（不再作为 input-only）
-3. **CreateMember**：只接收 member 字段 + `userId`（调用方负责先创建 user）
-4. **UpdateMember**：只更新 member 字段，不碰 user
-5. **新增 user API**：`POST /org/users`（创建）、`PUT /org/users/:id`（更新 name/phone/email）
-6. **前端 Member 类型**：删除 `username`；`name`/`phone`/`email` 为只读展示字段
-7. **member-form-dialog**：拆分为两步或并行调用（user 字段走 user API，member 字段走 member API）
-8. **invite-accept**：保持当前行为（只改 member.alias + 设密码）
-9. **Seed 数据**：删除重建（破坏性迁移，`pnpm reset`）
+2. **types.Member**：删除 `Username`；`Phone`/`Email`/`Name` 改为只读 JOIN 展示字段
+3. **CreateMember（重写）**：改为 resolveOrCreateUserMember 语义。接收 `{user, member}` 嵌套体，内部原子完成 resolveOrCreate user + 创建 member + 创建 invite + 发通知
+4. **UpdateMember**：只更新 member 字段（alias、departmentId、employeeId、jobTitle、hireDate），移除 phone/email 逻辑
+5. **新增 `PUT /org/members/:id/user`**：管理员更新成员的 user 信息（name/phone/email）。phone/email 唯一性冲突时报错，不做 user merge
+6. **BatchImport**：内部直接调 resolveOrCreateUser 拿 userId，不通过 Member struct
+7. **remote/import.go**（飞书/钉钉同步）：同上
+8. **HTTP handler（member.go）**：CreateMember body 改为 `{user, member}` 嵌套结构；新增 MemberUserUpdate handler
+9. **前端 Member 类型**：删除 `username`；列表响应新增只读 `name`/`phone`/`email`（来自 JOIN）
+10. **member-form-dialog**：创建时提交 `{user, member}` 到 POST；更新时串行调用 user PUT → member PUT，任一失败直接报错不继续
+11. **use-structure-page**：更新逻辑拆分两个串行 API 调用
+12. **invite-accept**：保持当前行为（只改 member.alias + 设密码）
+13. **schema.sql**：members 表增加 `hire_date` 列
+14. **Seed 数据**：删除重建（破坏性迁移，`pnpm reset`）
+
+## 不需要改的
+
+- `resolveOrCreateUser` 函数保留（CreateMember 和 BatchImport 内部使用）
+- `store.MemberAuthz`（已 JOIN users 取 UserName）
+- `SessionContext.User.Name`（已正确从 users 表读）
+- `PUT /me/profile`（用户自改，保持现状）
+- invitetoken / invite 流程
+- feishu/dingtalk adapter（内部处理）
 
 ## 破坏性变更
 
-- members 列表 API 响应新增 `name` 字段（来自 user）
-- 删除 `username` 字段
-- 前端表单字段映射变更
-- seed 数据需要重建
+- `POST /org/members` 请求体从 flat 改为 `{user, member}` 嵌套
+- `PUT /org/members/:id` 请求体移除 phone/email/username
+- 列表响应新增 name/phone/email（JOIN），移除 username
+- 新增 `PUT /org/members/:id/user`
+- 前端 Member 类型定义变更
+- 前端表单提交逻辑变更（创建一次调用，更新串行两次调用）
+- schema.sql 增加 hire_date 列
+- seed 数据需要重建（`pnpm reset`）

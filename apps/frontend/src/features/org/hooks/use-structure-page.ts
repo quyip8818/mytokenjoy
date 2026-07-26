@@ -97,9 +97,9 @@ export function useStructurePage(injectedApis?: AppApis) {
 
   const handleMemberSubmit = async (data: {
     name: string
+    alias: string
     phone: string
     email: string
-    username: string
     employeeId: string
     jobTitle: string
     hireDate: string
@@ -107,25 +107,30 @@ export function useStructurePage(injectedApis?: AppApis) {
   }) => {
     try {
       if (editingMember) {
-        await apis.memberApi.update(editingMember.id, {
-          alias: data.name,
+        // Sequential: update user fields first, then member fields.
+        await apis.memberApi.updateUser(editingMember.id, {
+          name: data.name,
           phone: data.phone,
           email: data.email,
+        })
+        await apis.memberApi.update(editingMember.id, {
+          alias: data.alias,
           departmentId: data.departmentId,
-          departmentName:
-            flattenDepartments(departments).find((dept) => dept.id === data.departmentId)?.name ??
-            '',
+          employeeId: data.employeeId,
+          jobTitle: data.jobTitle,
+          hireDate: data.hireDate,
         })
         toast.success(`成员「${data.name}」已更新`)
       } else {
-        const dept = flattenDepartments(departments).find((item) => item.id === data.departmentId)
         await apis.memberApi.create({
-          alias: data.name,
-          avatar: '',
-          phone: data.phone,
-          email: data.email,
-          departmentId: data.departmentId,
-          departmentName: dept?.name ?? '',
+          user: { name: data.name, phone: data.phone, email: data.email },
+          member: {
+            alias: data.alias || undefined,
+            departmentId: data.departmentId,
+            employeeId: data.employeeId || undefined,
+            jobTitle: data.jobTitle || undefined,
+            hireDate: data.hireDate || undefined,
+          },
         })
         if (data.phone || data.email) {
           const target = data.phone || data.email

@@ -2,8 +2,6 @@ package company
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"time"
 
 	"github.com/google/uuid"
@@ -147,11 +145,7 @@ func (s *service) PendingInvitesForUser(ctx context.Context, req PendingInvitesF
 }
 
 func randomInviteCode() (string, error) {
-	buf := make([]byte, 32)
-	if _, err := rand.Read(buf); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(buf), nil
+	return secrets.RandomHex(8), nil
 }
 
 func randomPassword() string {

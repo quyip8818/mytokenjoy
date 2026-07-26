@@ -144,7 +144,7 @@ func TestSaaSContractEndpoints(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/accept-invite", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("accept-invite invalid token: expected 404, got %d body=%s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("accept-invite invalid token: expected 400, got %d body=%s", rec.Code, rec.Body.String())
 	}
 }

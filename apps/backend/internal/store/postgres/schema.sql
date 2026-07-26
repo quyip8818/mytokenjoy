@@ -212,6 +212,7 @@ CREATE TABLE IF NOT EXISTS members (
     external_id          TEXT,
     employee_id          TEXT,
     job_title            TEXT,
+    hire_date            TEXT,
     override_fields      TEXT[] NOT NULL DEFAULT '{}',
     personal_budget      NUMERIC(18,6) NOT NULL DEFAULT 0,
     created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),

@@ -295,8 +295,8 @@ test.describe('角色管理 - 角色 CRUD', () => {
 
     // toast 通知
     await expect(page.getByText(`角色「${updatedName}」已更新`)).toBeVisible()
-    // 列表中显示新名称
-    await expect(page.getByText(updatedName, { exact: true })).toBeVisible()
+    // 列表中显示新名称（sidebar span + detail heading 都有，用 first）
+    await expect(page.getByText(updatedName, { exact: true }).first()).toBeVisible()
 
     // 清理
     await page.evaluate(async (id) => {
@@ -525,8 +525,8 @@ test.describe('角色管理 - 成员管理', () => {
     }, roleName)
     await page.reload()
 
-    // 选中自定义角色
-    await page.getByText(roleName).click()
+    // 选中自定义角色（sidebar span + detail heading 都有该名称，用 first 定位 sidebar）
+    await page.getByText(roleName).first().click()
     await page.waitForTimeout(500)
 
     // 初始无成员
@@ -912,7 +912,7 @@ test.describe('角色管理 - 权限表单与交互细节', () => {
 
     await dialog.getByRole('button', { name: '创建' }).click()
     await expect(page.getByRole('dialog')).toBeHidden({ timeout: 10_000 })
-    await expect(page.getByText(roleName, { exact: true })).toBeVisible()
+    await expect(page.getByText(roleName, { exact: true }).first()).toBeVisible()
 
     // 通过 API 验证保存的权限数
     const roles = await page.evaluate(async () => {

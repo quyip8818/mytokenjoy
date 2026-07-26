@@ -20,11 +20,11 @@ import {
 } from '@/components/ui/select'
 import { flattenDepartments } from '@/features/org'
 
-interface MemberFormData {
+export interface MemberFormData {
   name: string
+  alias: string
   phone: string
   email: string
-  username: string
   employeeId: string
   jobTitle: string
   hireDate: string
@@ -58,21 +58,21 @@ export function MemberFormDialog({
   useEffect(() => {
     if (open && member) {
       reset({
-        name: member.alias,
-        phone: member.phone,
-        email: member.email,
-        username: member.username,
-        employeeId: member.employeeId,
-        jobTitle: member.jobTitle,
-        hireDate: member.hireDate,
+        name: member.name ?? '',
+        alias: member.alias ?? '',
+        phone: member.phone ?? '',
+        email: member.email ?? '',
+        employeeId: member.employeeId ?? '',
+        jobTitle: member.jobTitle ?? '',
+        hireDate: member.hireDate ?? '',
         departmentId: member.departmentId,
       })
     } else if (open) {
       reset({
         name: '',
+        alias: '',
         phone: '',
         email: '',
-        username: '',
         employeeId: '',
         jobTitle: '',
         hireDate: '',
@@ -164,7 +164,7 @@ export function MemberFormDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>昵称</Label>
-              <Input placeholder="昵称" {...register('username')} />
+              <Input placeholder="公司内显示名" {...register('alias')} />
             </div>
             <div className="space-y-1.5">
               <Label>

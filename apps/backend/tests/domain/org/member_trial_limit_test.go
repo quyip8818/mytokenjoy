@@ -40,9 +40,9 @@ func TestTrialMemberLimitBlocks(t *testing.T) {
 
 	// The limit is 3 — if existing already >= 3, the next create should fail.
 	if existingCount >= 3 {
-		_, err := svc.CreateMember(ctx, types.Member{
-			Alias: "Over Limit", Phone: "13900009999", Email: "over@example.com",
-			DepartmentID: contract.IDDept5,
+		_, err := svc.CreateMember(ctx, types.CreateMemberInput{
+			User:   types.CreateMemberUserInput{Name: "Over Limit", Phone: "13900009999", Email: "over@example.com"},
+			Member: types.CreateMemberData{DepartmentID: contract.IDDept5},
 		})
 		if err == nil {
 			t.Fatal("expected trial member limit error, got nil")
@@ -52,9 +52,9 @@ func TestTrialMemberLimitBlocks(t *testing.T) {
 
 	// Fill up to limit
 	for i := existingCount; i < 3; i++ {
-		_, err := svc.CreateMember(ctx, types.Member{
-			Alias: "Fill", Phone: "", Email: "",
-			DepartmentID: contract.IDDept5,
+		_, err := svc.CreateMember(ctx, types.CreateMemberInput{
+			User:   types.CreateMemberUserInput{Name: "Fill"},
+			Member: types.CreateMemberData{DepartmentID: contract.IDDept5},
 		})
 		if err != nil {
 			t.Fatalf("expected create to succeed (filling up), got %v", err)
@@ -62,9 +62,9 @@ func TestTrialMemberLimitBlocks(t *testing.T) {
 	}
 
 	// Now the next one should fail
-	_, err = svc.CreateMember(ctx, types.Member{
-		Alias: "Over Limit", Phone: "13900008888", Email: "overlimit@example.com",
-		DepartmentID: contract.IDDept5,
+	_, err = svc.CreateMember(ctx, types.CreateMemberInput{
+		User:   types.CreateMemberUserInput{Name: "Over Limit", Phone: "13900008888", Email: "overlimit@example.com"},
+		Member: types.CreateMemberData{DepartmentID: contract.IDDept5},
 	})
 	if err == nil {
 		t.Fatal("expected trial member limit error, got nil")
@@ -85,9 +85,9 @@ func TestTrialMemberLimitAllowsNonTrial(t *testing.T) {
 	})
 
 	// Should succeed even though limit is 1 and there are already members
-	_, err := svc.CreateMember(ctx, types.Member{
-		Alias: "No Limit", Phone: "13900007777", Email: "nolimit@example.com",
-		DepartmentID: contract.IDDept5,
+	_, err := svc.CreateMember(ctx, types.CreateMemberInput{
+		User:   types.CreateMemberUserInput{Name: "No Limit", Phone: "13900007777", Email: "nolimit@example.com"},
+		Member: types.CreateMemberData{DepartmentID: contract.IDDept5},
 	})
 	if err != nil {
 		t.Fatalf("non-trial should not be limited, got %v", err)

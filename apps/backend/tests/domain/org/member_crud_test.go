@@ -17,9 +17,9 @@ func TestCreateMemberPersists(t *testing.T) {
 	svc := newTestOrgService(t)
 	ctx := testutil.Ctx()
 
-	member, err := svc.CreateMember(ctx, types.Member{
-		Alias: "Phase0 User", Phone: "13900001111", Email: "phase0@example.com",
-		DepartmentID: contract.IDDept5,
+	member, err := svc.CreateMember(ctx, types.CreateMemberInput{
+		User:   types.CreateMemberUserInput{Name: "Phase0 User", Phone: "13900001111", Email: "phase0@example.com"},
+		Member: types.CreateMemberData{DepartmentID: contract.IDDept5},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -47,9 +47,9 @@ func TestCreateMemberPersists(t *testing.T) {
 func TestCreateMemberUnknownDepartment404(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
-	_, err := svc.CreateMember(testutil.Ctx(), types.Member{
-		Alias: "Ghost", Phone: "13900002222", Email: "ghost@example.com",
-		DepartmentID: uuid.MustParse("00000000-0000-7000-0000-ffffffffffff"),
+	_, err := svc.CreateMember(testutil.Ctx(), types.CreateMemberInput{
+		User:   types.CreateMemberUserInput{Name: "Ghost", Phone: "13900002222", Email: "ghost@example.com"},
+		Member: types.CreateMemberData{DepartmentID: uuid.MustParse("00000000-0000-7000-0000-ffffffffffff")},
 	})
 	asDomainError(t, err)
 }

@@ -58,6 +58,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	membersWrite := write.With(httpmiddleware.RequireAnyPermission(permission.OrgMembers))
 	membersWrite.Post("/members", h.MemberCreate)
 	membersWrite.Put("/members/{id}", h.MemberUpdate)
+	membersWrite.Put("/members/{id}/user", h.MemberUserUpdate)
 	membersWrite.Delete("/members", h.MembersDelete)
 	membersWrite.Put("/members/status", h.MembersStatus)
 	membersWrite.Post("/members/transfer", h.MembersTransfer)

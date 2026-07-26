@@ -43,9 +43,8 @@ func TestUpdateMemberMergeSemanticsPreservesUnchangedFields(t *testing.T) {
 	}
 
 	// Update only alias and phone (partial update from frontend)
-	updated, err := svc.UpdateMember(ctx, contract.IDMember1, types.Member{
+	updated, err := svc.UpdateMember(ctx, contract.IDMember1, types.UpdateMemberInput{
 		Alias: "张三改名",
-		Phone: "13999999999",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -77,7 +76,7 @@ func TestUpdateMemberRolesUpdatedWhenProvided(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	newRoles := []string{permission.RoleMember}
-	updated, err := svc.UpdateMember(ctx, contract.IDMember1, types.Member{
+	updated, err := svc.UpdateMember(ctx, contract.IDMember1, types.UpdateMemberInput{
 		Roles: newRoles,
 	})
 	if err != nil {

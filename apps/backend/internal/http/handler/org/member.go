@@ -24,7 +24,7 @@ func (h *Handler) MembersList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) MemberCreate(w http.ResponseWriter, r *http.Request) {
-	var body types.Member
+	var body types.CreateMemberInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
@@ -39,13 +39,28 @@ func (h *Handler) MemberUpdate(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
 		return
 	}
-	var body types.Member
+	var body types.UpdateMemberInput
 	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
 	}
 	member, err := h.service.UpdateMember(r.Context(), id, body)
 	httputil.WriteJSON(w, http.StatusOK, member, err)
+}
+
+func (h *Handler) MemberUserUpdate(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var body types.UpdateMemberUserInput
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	err = h.service.UpdateMemberUser(r.Context(), id, body)
+	httputil.WriteVoid(w, err)
 }
 
 func (h *Handler) MembersDelete(w http.ResponseWriter, r *http.Request) {

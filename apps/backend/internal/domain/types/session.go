@@ -8,7 +8,6 @@ type Member struct {
 	UserID         uuid.UUID `json:"userId"`
 	Alias          string    `json:"alias"`
 	Avatar         string    `json:"avatar,omitempty"`
-	Username       string    `json:"username,omitempty"`
 	EmployeeID     string    `json:"employeeId,omitempty"`
 	JobTitle       string    `json:"jobTitle,omitempty"`
 	HireDate       string    `json:"hireDate,omitempty"`
@@ -24,8 +23,8 @@ type Member struct {
 	// RegistrationChannel records how the user completed registration: "sms" | "email" | "admin_link" | ""
 	RegistrationChannel string `json:"registrationChannel,omitempty"`
 
-	// Input-only fields: used for member creation/update, not persisted on members table.
-	// Phone/Email are used to resolve/create the user record and stored in users table.
+	// Read-only fields populated via JOIN with users table (not persisted on members).
+	Name  string `json:"name,omitempty"`
 	Phone string `json:"phone,omitempty"`
 	Email string `json:"email,omitempty"`
 }

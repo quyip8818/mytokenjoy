@@ -1,6 +1,7 @@
 import { request, buildQuery } from './client'
 import type {
   Credential,
+  CreateMemberInput,
   DataSourceStatus,
   Department,
   FieldMapping,
@@ -17,6 +18,8 @@ import type {
   SyncLog,
   BatchImportRow,
   MemberBatchImportResult,
+  UpdateMemberInput,
+  UpdateMemberUserInput,
 } from './types'
 
 // 数据源
@@ -95,13 +98,18 @@ export const memberApi = {
   }) => {
     return request<MemberPaginated>(`/org/members${buildQuery(params)}`)
   },
-  create: (data: Omit<Member, 'id' | 'status' | 'roles' | 'source' | 'companyId'>) =>
+  create: (data: CreateMemberInput) =>
     request<Member>('/org/members', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  update: (id: string, data: Partial<Member>) =>
+  update: (id: string, data: UpdateMemberInput) =>
     request<Member>(`/org/members/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  updateUser: (id: string, data: UpdateMemberUserInput) =>
+    request<void>(`/org/members/${id}/user`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),

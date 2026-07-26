@@ -21,35 +21,44 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (s *LocalService) CreateMember(ctx context.Context, input types.Member) (types.Member, error) {
+func (s *LocalService) CreateMember(ctx context.Context, input types.CreateMemberInput) (types.Member, error) {
 	departments, err := common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
 	if err != nil {
 		return types.Member{}, err
 	}
-	dept := pkgorg.FindDepartment(departments, input.DepartmentID)
+	dept := pkgorg.FindDepartment(departments, input.Member.DepartmentID)
 	if dept == nil {
 		return types.Member{}, domain.NewDomainError(domain.StatusNotFound, "types.Department not found")
 	}
 
 	deptName := dept.Name
-	if path := pkgorg.GetDeptPath(departments, input.DepartmentID); path != nil {
+	if path := pkgorg.GetDeptPath(departments, input.Member.DepartmentID); path != nil {
 		deptName = *path
 	}
 
 	// Resolve or create user for this member.
-	userID, err := s.resolveOrCreateUser(ctx, input.Phone, input.Email, input.Alias)
+	userID, err := s.resolveOrCreateUser(ctx, input.User.Phone, input.User.Email, input.User.Name)
 	if err != nil {
 		return types.Member{}, err
 	}
 
+	alias := input.Member.Alias
+	if alias == "" {
+		alias = input.User.Name
+	}
+
 	member := types.Member{
-		ID:       generateID(),
-		UserID:   userID,
-		Alias:    input.Alias,
-		Username: input.Username, EmployeeID: input.EmployeeID,
-		JobTitle: input.JobTitle, HireDate: input.HireDate,
-		DepartmentID: input.DepartmentID, DepartmentName: deptName,
-		Status: types.MemberStatusPending, Roles: []string{grants.RoleMember}, Source: types.MemberSourceManual,
+		ID:             generateID(),
+		UserID:         userID,
+		Alias:          alias,
+		EmployeeID:     input.Member.EmployeeID,
+		JobTitle:       input.Member.JobTitle,
+		HireDate:       input.Member.HireDate,
+		DepartmentID:   input.Member.DepartmentID,
+		DepartmentName: deptName,
+		Status:         types.MemberStatusPending,
+		Roles:          []string{grants.RoleMember},
+		Source:         types.MemberSourceManual,
 		PersonalBudget: common.DefaultPersonalBudget,
 	}
 
@@ -65,8 +74,8 @@ func (s *LocalService) CreateMember(ctx context.Context, input types.Member) (ty
 		ID:         uuid.Must(uuid.NewV7()),
 		CompanyID:  store.CompanyID(ctx),
 		MemberID:   member.ID,
-		Email:      input.Email,
-		Phone:      input.Phone,
+		Email:      input.User.Email,
+		Phone:      input.User.Phone,
 		UserID:     userID,
 		Role:       "member",
 		InviteCode: inviteCode,
@@ -99,7 +108,7 @@ func (s *LocalService) CreateMember(ctx context.Context, input types.Member) (ty
 	}
 
 	// Best-effort: send invite notifications after commit.
-	s.sendInviteNotifications(ctx, inviteCode, input.Phone, input.Email)
+	s.sendInviteNotifications(ctx, inviteCode, input.User.Phone, input.User.Email)
 
 	return member, nil
 }
@@ -167,7 +176,7 @@ func randomHexCode() (string, error) {
 	return hex.EncodeToString(buf), nil
 }
 
-func (s *LocalService) UpdateMember(ctx context.Context, id uuid.UUID, input types.Member) (types.Member, error) {
+func (s *LocalService) UpdateMember(ctx context.Context, id uuid.UUID, input types.UpdateMemberInput) (types.Member, error) {
 	if err := validateRolesNotEscalated(input.Roles); err != nil {
 		return types.Member{}, err
 	}
@@ -184,9 +193,6 @@ func (s *LocalService) UpdateMember(ctx context.Context, id uuid.UUID, input typ
 				existing.OverrideFields = core.TrackOverride(existing.OverrideFields, "alias")
 				existing.Alias = input.Alias
 			}
-			if input.Username != "" {
-				existing.Username = input.Username
-			}
 			if input.EmployeeID != "" {
 				existing.EmployeeID = input.EmployeeID
 			}
@@ -196,9 +202,21 @@ func (s *LocalService) UpdateMember(ctx context.Context, id uuid.UUID, input typ
 			if input.HireDate != "" {
 				existing.HireDate = input.HireDate
 			}
-			if input.DepartmentID != uuid.Nil {
+			if input.DepartmentID != uuid.Nil && input.DepartmentID != existing.DepartmentID {
+				departments, err := common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
+				if err != nil {
+					return types.Member{}, err
+				}
+				dept := pkgorg.FindDepartment(departments, input.DepartmentID)
+				if dept == nil {
+					return types.Member{}, domain.NewDomainError(domain.StatusNotFound, "types.Department not found")
+				}
 				existing.DepartmentID = input.DepartmentID
-				existing.DepartmentName = input.DepartmentName
+				deptName := dept.Name
+				if path := pkgorg.GetDeptPath(departments, input.DepartmentID); path != nil {
+					deptName = *path
+				}
+				existing.DepartmentName = deptName
 			}
 			if len(input.Roles) > 0 {
 				rolesChanged := !slices.Equal(existing.Roles, input.Roles)
@@ -218,22 +236,37 @@ func (s *LocalService) UpdateMember(ctx context.Context, id uuid.UUID, input typ
 				return types.Member{}, err
 			}
 
-			// Update phone/email on users table if provided.
-			if input.Phone != "" {
-				if err := s.d.Store.User().UpdatePhone(ctx, existing.UserID, input.Phone); err != nil {
-					return types.Member{}, err
-				}
-			}
-			if input.Email != "" {
-				if err := s.d.Store.User().UpdateEmail(ctx, existing.UserID, input.Email); err != nil {
-					return types.Member{}, err
-				}
-			}
-
 			return existing, nil
 		}
 	}
 	return types.Member{}, domain.NewDomainError(404, "types.Member not found")
+}
+
+func (s *LocalService) UpdateMemberUser(ctx context.Context, memberID uuid.UUID, input types.UpdateMemberUserInput) error {
+	member, err := s.d.Store.Org().MemberByID(ctx, memberID)
+	if err != nil {
+		return err
+	}
+	if member == nil {
+		return domain.NewDomainError(404, "types.Member not found")
+	}
+
+	if input.Name != "" {
+		if err := s.d.Store.User().UpdateName(ctx, member.UserID, input.Name); err != nil {
+			return err
+		}
+	}
+	if input.Phone != "" {
+		if err := s.d.Store.User().UpdatePhone(ctx, member.UserID, input.Phone); err != nil {
+			return mapMemberUniqueError(err)
+		}
+	}
+	if input.Email != "" {
+		if err := s.d.Store.User().UpdateEmail(ctx, member.UserID, input.Email); err != nil {
+			return mapMemberUniqueError(err)
+		}
+	}
+	return nil
 }
 
 func (s *LocalService) UpdateMemberStatus(ctx context.Context, ids []uuid.UUID, status string) error {

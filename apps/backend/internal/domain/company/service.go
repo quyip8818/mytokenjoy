@@ -12,6 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/invitetoken"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -92,6 +93,7 @@ type service struct {
 	grants           grants.Normalizer
 	cacheInvalidator types.PrecheckCacheInvalidator
 	emailSender      EmailSender
+	inviteIssuer     *invitetoken.Issuer
 }
 
 // EmailSender is the subset of notification.Service that company needs for invite emails.
@@ -117,6 +119,13 @@ func WithEmailSender(sender EmailSender) CompanyServiceOption {
 		if sender != nil {
 			s.emailSender = sender
 		}
+	}
+}
+
+// WithInviteIssuer sets the invite token issuer for encrypting invite URLs.
+func WithInviteIssuer(iss *invitetoken.Issuer) CompanyServiceOption {
+	return func(s *service) {
+		s.inviteIssuer = iss
 	}
 }
 

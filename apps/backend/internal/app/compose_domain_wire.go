@@ -23,6 +23,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
+	"github.com/tokenjoy/backend/internal/pkg/invitetoken"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -67,10 +68,16 @@ func wireAudit(cfg config.Config, i infra, reader domainusage.Reader) domainaudi
 }
 
 func wireCompany(cfg config.Config, i infra, grants domaingrants.Normalizer) domaincompany.Service {
-	return domaincompany.NewService(cfg, i.store, i.adminPort, grants,
+	opts := []domaincompany.CompanyServiceOption{
 		domaincompany.WithCompanyCacheInvalidator(i.precheckCache),
 		domaincompany.WithEmailSender(i.notificationSvc),
-	)
+	}
+	if keys := cfg.InviteSecretKeys(); len(keys) > 0 {
+		if iss, err := invitetoken.NewIssuer(keys...); err == nil {
+			opts = append(opts, domaincompany.WithInviteIssuer(iss))
+		}
+	}
+	return domaincompany.NewService(cfg, i.store, i.adminPort, grants, opts...)
 }
 
 func wireBilling(cfg config.Config, i infra, reader domainusage.Reader) domainbilling.Service {

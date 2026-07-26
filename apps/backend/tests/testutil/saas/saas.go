@@ -25,6 +25,7 @@ import (
 const (
 	PlatformBootstrapEmail    = "ops@tokenjoy.test"
 	PlatformBootstrapPassword = "platform-pass-123"
+	TestInviteSecret          = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 )
 
 func ApplyConfig(cfg *config.Config) {
@@ -32,12 +33,14 @@ func ApplyConfig(cfg *config.Config) {
 	cfg.SimulateDelay = false
 	cfg.PlatformBootstrapEmail = PlatformBootstrapEmail
 	cfg.PlatformBootstrapPassword = PlatformBootstrapPassword
+	cfg.InviteSecret = TestInviteSecret
 }
 
 func Config(opts ...testutil.ConfigOption) config.Config {
 	all := append([]testutil.ConfigOption{
 		testutil.WithSupportSaas(true),
 		testutil.WithPlatformBootstrap(PlatformBootstrapEmail, PlatformBootstrapPassword),
+		func(cfg *config.Config) { cfg.InviteSecret = TestInviteSecret },
 	}, opts...)
 	return testutil.TestConfig(all...)
 }
@@ -218,10 +221,10 @@ func CreateCompanyHTTP(t *testing.T, router http.Handler, platformCookie, name, 
 	return created
 }
 
-func AcceptInviteHTTP(t *testing.T, router http.Handler, inviteToken, name, password string) (types.Member, string) {
+func AcceptInviteHTTP(t *testing.T, router http.Handler, encryptedToken, name, password string) (types.Member, string) {
 	t.Helper()
 	body, _ := json.Marshal(map[string]string{
-		"inviteCode": inviteToken, "name": name, "password": password,
+		"inviteCode": encryptedToken, "name": name, "password": password,
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/accept-invite", bytes.NewReader(body))
 	rec := httptest.NewRecorder()

@@ -12,6 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/invitetoken"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -76,6 +77,12 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 		logDetail = fmt.Sprintf("created company %s invite for %s", result.Company.ID, req.InviteEmail)
 		// Send invite email (best-effort, non-fatal).
 		s.sendInviteEmail(ctx, req.InviteEmail, result.Company.Name, result.InviteCode)
+	}
+	// Encrypt invite code for API response (so caller can share the link directly).
+	if s.inviteIssuer != nil && result.InviteCode != "" {
+		if enc, err := s.inviteIssuer.Encrypt(result.InviteCode, invitetoken.ChannelAdminLink); err == nil {
+			result.InviteCode = enc
+		}
 	}
 	_ = AppendPlatformOperationLog(ctx, s.store, result.Company.ID, "platform.company.create", uuid.Nil,
 		result.Company.ID.String(), logDetail)
@@ -220,14 +227,20 @@ func (s *service) sendInviteEmail(ctx context.Context, email, companyName, invit
 	if s.emailSender == nil {
 		return
 	}
-	inviteURL := fmt.Sprintf("%s/invite?code=%s", s.cfg.FrontendURL, inviteCode)
+	// Encrypt raw invite code into a URL-safe token.
+	token := inviteCode // fallback: raw code if issuer not configured
+	if s.inviteIssuer != nil {
+		if enc, err := s.inviteIssuer.Encrypt(inviteCode, invitetoken.ChannelEmail); err == nil {
+			token = enc
+		}
+	}
+	inviteURL := fmt.Sprintf("%s/invite/accept?code=%s", s.cfg.FrontendURL, token)
 	msg := domainnotification.RenderedMessage{
 		Title: fmt.Sprintf("%s 邀请您加入 TokenJoy", companyName),
-		Body:  fmt.Sprintf("%s 邀请您加入 TokenJoy 平台，邀请码：%s", companyName, inviteCode),
+		Body:  fmt.Sprintf("%s 邀请您加入 TokenJoy 平台", companyName),
 		Payload: map[string]any{
 			"eventType":   "company_invite",
 			"companyName": companyName,
-			"inviteCode":  inviteCode,
 			"inviteUrl":   inviteURL,
 		},
 	}
