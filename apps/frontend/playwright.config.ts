@@ -54,14 +54,14 @@ export default defineConfig({
       },
     },
     {
-      command: 'make run',
+      command: 'make seed && make run',
       cwd: '../../sms/backend',
-      url: 'http://127.0.0.1:8020/api/auth/login',
+      url: 'http://127.0.0.1:8020/api/health',
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
       gracefulShutdown: { signal: 'SIGTERM', timeout: 5_000 },
       env: {
-        DATABASE_URL: 'postgres://sms:sms@127.0.0.1:5510/sms?sslmode=disable',
+        DATABASE_URL: 'postgres://tokenjoy:tokenjoy@127.0.0.1:5510/sms?sslmode=disable',
         JWT_SECRET: 'e2e-sms-jwt-secret',
         PORT: '8020',
       },

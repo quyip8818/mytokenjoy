@@ -53,6 +53,12 @@ func (s *Service) GetCatalog(ctx context.Context) (Catalog, error) {
 	if err != nil {
 		return Catalog{}, err
 	}
+	if models == nil {
+		models = []CatalogModel{}
+	}
+	if channels == nil {
+		channels = []CatalogChannel{}
+	}
 	return Catalog{
 		Models:   models,
 		Channels: channels,
