@@ -38,7 +38,7 @@ ENV_FILE="${ROOT}/apps/backend/.env.development"
 
 set_env() {
   local key="$1" value="$2"
-  if grep -q "^${key}=" "${ENV_FILE}"; then
+  if [[ -f "${ENV_FILE}" ]] && grep -q "^${key}=" "${ENV_FILE}"; then
     sed -i '' "s|^${key}=.*|${key}=${value}|" "${ENV_FILE}"
   fi
 }

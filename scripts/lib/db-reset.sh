@@ -4,9 +4,15 @@
 
 PG_URL="postgres://tokenjoy:tokenjoy@127.0.0.1:5510/postgres"
 
+# ponytail: use docker exec instead of local psql — avoids requiring psql on host.
+# Upgrade path: if local psql is ever standardized, switch back.
+_psql() {
+  "${COMPOSE[@]}" exec -T postgres psql "$@"
+}
+
 # reset_apps_databases — drop/recreate tokenjoy, newapi, logs (apps side only)
 reset_apps_databases() {
-  psql "${PG_URL}" -v ON_ERROR_STOP=1 <<-EOSQL
+  _psql -U tokenjoy -d postgres -v ON_ERROR_STOP=1 <<-EOSQL
     -- Terminate lingering connections before DROP
     SELECT pg_terminate_backend(pid) FROM pg_stat_activity
       WHERE datname IN ('tokenjoy','newapi','logs') AND pid <> pg_backend_pid();
@@ -19,17 +25,15 @@ reset_apps_databases() {
 EOSQL
 
   for db in tokenjoy newapi logs; do
-    psql "postgres://tokenjoy:tokenjoy@127.0.0.1:5510/$db" -c \
-      "CREATE EXTENSION IF NOT EXISTS ltree;"
+    _psql -U tokenjoy -d "$db" -c "CREATE EXTENSION IF NOT EXISTS ltree;"
   done
 
-  psql "postgres://tokenjoy:tokenjoy@127.0.0.1:5510/logs" -c \
-    "CREATE SCHEMA IF NOT EXISTS newapi;"
+  _psql -U tokenjoy -d logs -c "CREATE SCHEMA IF NOT EXISTS newapi;"
 }
 
 # reset_sms_databases — drop/recreate sms, sms_newapi, sms_logs (sms side only)
 reset_sms_databases() {
-  psql "${PG_URL}" -v ON_ERROR_STOP=1 <<-EOSQL
+  _psql -U tokenjoy -d postgres -v ON_ERROR_STOP=1 <<-EOSQL
     SELECT pg_terminate_backend(pid) FROM pg_stat_activity
       WHERE datname IN ('sms','sms_newapi','sms_logs') AND pid <> pg_backend_pid();
     DROP DATABASE IF EXISTS sms;
@@ -41,10 +45,8 @@ reset_sms_databases() {
 EOSQL
 
   for db in sms sms_newapi sms_logs; do
-    psql "postgres://tokenjoy:tokenjoy@127.0.0.1:5510/$db" -c \
-      "CREATE EXTENSION IF NOT EXISTS ltree;"
+    _psql -U tokenjoy -d "$db" -c "CREATE EXTENSION IF NOT EXISTS ltree;"
   done
 
-  psql "postgres://tokenjoy:tokenjoy@127.0.0.1:5510/sms_logs" -c \
-    "CREATE SCHEMA IF NOT EXISTS newapi AUTHORIZATION sms;"
+  _psql -U tokenjoy -d sms_logs -c "CREATE SCHEMA IF NOT EXISTS newapi AUTHORIZATION sms;"
 }
