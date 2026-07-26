@@ -9,8 +9,10 @@ import (
 	evalhandler "sms/backend/internal/http/handler/evaluation"
 	modelhandler "sms/backend/internal/http/handler/model"
 	newapisynchandler "sms/backend/internal/http/handler/newapisync"
+	oauthhandler "sms/backend/internal/http/handler/oauth"
 	orderhandler "sms/backend/internal/http/handler/order"
 	supplierhandler "sms/backend/internal/http/handler/supplier"
+	synchandler "sms/backend/internal/http/handler/sync"
 	userhandler "sms/backend/internal/http/handler/user"
 	httpmiddleware "sms/backend/internal/http/middleware"
 )
@@ -25,6 +27,8 @@ type Registry struct {
 	dash       *dashhandler.Handler
 	user       *userhandler.Handler
 	newapisync *newapisynchandler.Handler
+	oauth      *oauthhandler.Handler
+	sync       *synchandler.Handler
 	deps       deps.Deps
 }
 
@@ -43,11 +47,30 @@ func NewRegistry(d deps.Deps) Registry {
 	if d.NewAPISync != nil {
 		reg.newapisync = newapisynchandler.NewHandler(d.NewAPISync)
 	}
+	if d.OAuth != nil {
+		reg.oauth = oauthhandler.NewHandler(d.OAuth)
+	}
+	if d.Sync != nil {
+		reg.sync = synchandler.NewHandler(d.Sync)
+	}
 	return reg
 }
 
 func (reg Registry) RegisterAPIRoutes(r chi.Router) {
 	r.Route("/auth", reg.auth.RegisterRoutes)
+
+	// OAuth2 token endpoint (public, no user auth required)
+	if reg.oauth != nil {
+		r.Route("/oauth", reg.oauth.RegisterRoutes)
+	}
+
+	// Sync API (protected by OAuth2 Bearer token)
+	if reg.sync != nil {
+		r.Group(func(r chi.Router) {
+			r.Use(httpmiddleware.OAuthGuard(reg.deps.Config.JWTSecret, "sync:read"))
+			r.Route("/sync", reg.sync.RegisterRoutes)
+		})
+	}
 
 	r.Group(func(r chi.Router) {
 		r.Use(httpmiddleware.Auth(reg.deps.Config.JWTSecret))

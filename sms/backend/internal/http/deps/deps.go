@@ -10,8 +10,10 @@ import (
 	evalsvc "sms/backend/internal/domain/evaluation"
 	modelsvc "sms/backend/internal/domain/model"
 	newapisyncsvc "sms/backend/internal/domain/newapisync"
+	oauthsvc "sms/backend/internal/domain/oauth"
 	ordersvc "sms/backend/internal/domain/order"
 	suppliersvc "sms/backend/internal/domain/supplier"
+	syncsvc "sms/backend/internal/domain/sync"
 	usersvc "sms/backend/internal/domain/user"
 )
 
@@ -27,4 +29,6 @@ type Deps struct {
 	Dashboard  *dashboardsvc.Service
 	User       *usersvc.Service
 	NewAPISync *newapisyncsvc.Service // nil when NEWAPI_BASE_URL is empty
+	OAuth      *oauthsvc.Service      // nil when SYNC_API_KEY is not configured
+	Sync       *syncsvc.Service       // nil when sync is not configured
 }
