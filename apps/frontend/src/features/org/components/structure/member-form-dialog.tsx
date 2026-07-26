@@ -163,12 +163,17 @@ export function MemberFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>用户名</Label>
-              <Input placeholder="登录用户名" {...register('username')} />
+              <Label>昵称</Label>
+              <Input placeholder="昵称" {...register('username')} />
             </div>
             <div className="space-y-1.5">
-              <Label>工号</Label>
-              <Input placeholder="员工工号" {...register('employeeId')} />
+              <Label>
+                工号 <span className="text-destructive">*</span>
+              </Label>
+              <Input placeholder="员工工号" {...register('employeeId', { required: '请输入工号' })} />
+              {errors.employeeId && (
+                <p className="text-xs text-destructive">{errors.employeeId.message}</p>
+              )}
             </div>
           </div>
 

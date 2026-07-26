@@ -87,7 +87,9 @@ export function KeyFormWorkflow({
         setExistingNames(new Set(res.items.map((k) => k.name)))
       }
     })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [apis, effectiveMemberId, memberId])
 
   const nameDuplicate = isCreate && !!name.trim() && existingNames.has(name.trim())
@@ -110,7 +112,9 @@ export function KeyFormWorkflow({
     void resolve().then((models) => {
       if (!cancelled) setAvailableModels(models)
     })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [isTrialOrDemo, resolveAllModels, apis.modelApi])
 
   const {
@@ -163,7 +167,11 @@ export function KeyFormWorkflow({
 
   const budgetInvalid = budget === '' || budgetAmount <= 0
   const formInvalid =
-    !name.trim() || nameDuplicate || models.length === 0 || budgetInvalid || (requiresMemberPick && !targetMemberId)
+    !name.trim() ||
+    nameDuplicate ||
+    models.length === 0 ||
+    budgetInvalid ||
+    (requiresMemberPick && !targetMemberId)
 
   const handleCreate = async () => {
     if (budgetInsufficient) {
@@ -251,12 +259,7 @@ export function KeyFormWorkflow({
       <WorkflowPanelChrome
         title="创建成功"
         onClose={onClose}
-        footer={
-          <WorkflowPanelFooter
-            primaryLabel="完成"
-            onPrimary={onClose}
-          />
-        }
+        footer={<WorkflowPanelFooter primaryLabel="完成" onPrimary={onClose} />}
       >
         <div className="space-y-6 py-4">
           <div className="flex items-center gap-2 text-emerald-600">
@@ -331,11 +334,7 @@ export function KeyFormWorkflow({
         {requiresMemberPick && (
           <div className="space-y-1.5">
             <Label>绑定成员</Label>
-            <Button
-              variant="outline"
-              className="w-full justify-start"
-              onClick={openPickMember}
-            >
+            <Button variant="outline" className="w-full justify-start" onClick={openPickMember}>
               {targetMemberName || '选择成员'}
             </Button>
           </div>
@@ -351,9 +350,7 @@ export function KeyFormWorkflow({
             placeholder="如：开发调试"
             maxLength={64}
           />
-          {nameDuplicate && (
-            <p className="text-xs text-destructive">已存在同名 Key</p>
-          )}
+          {nameDuplicate && <p className="text-xs text-destructive">已存在同名 Key</p>}
         </div>
         <div className="space-y-1.5">
           <Label>额度 ({currencyLabel})</Label>
@@ -381,7 +378,6 @@ export function KeyFormWorkflow({
     </WorkflowPanelChrome>
   )
 }
-
 
 function CopyKeyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)

@@ -59,7 +59,9 @@ export function ApprovalSubmitWorkflow({
       const allowed = new Set(allowedIds)
       setAvailableModels(enabled.filter((m) => allowed.has(m.modelId)))
     })()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [apis, resolveAllowedModelIds])
 
   const validateModels = async (): Promise<boolean> => {

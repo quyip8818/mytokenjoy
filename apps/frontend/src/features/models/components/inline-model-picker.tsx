@@ -54,9 +54,7 @@ export function InlineModelPicker({
   }, [models, search])
 
   const toggle = (modelId: string) => {
-    onChange(
-      value.includes(modelId) ? value.filter((id) => id !== modelId) : [...value, modelId],
-    )
+    onChange(value.includes(modelId) ? value.filter((id) => id !== modelId) : [...value, modelId])
   }
 
   const toggleAll = () => {
@@ -68,9 +66,7 @@ export function InlineModelPicker({
       <div className="flex items-center justify-between">
         <Label>
           {label}
-          {hint && (
-            <span className="ml-2 text-xs font-normal text-muted-foreground">{hint}</span>
-          )}
+          {hint && <span className="ml-2 text-xs font-normal text-muted-foreground">{hint}</span>}
           {value.length > 0 && (
             <span className="ml-2 text-xs font-normal text-muted-foreground">
               已选 {value.length}/{allIds.length}
