@@ -15,6 +15,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 	"github.com/tokenjoy/backend/internal/pkg/invitetoken"
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/internal/store"
@@ -110,17 +111,25 @@ func (s *LocalService) sendInviteNotifications(ctx context.Context, inviteCode s
 		return
 	}
 	baseURL := s.d.Cfg.FrontendURL
+	companyName := ""
+	if info, ok := ctxcompany.From(ctx); ok {
+		companyName = info.Name
+	}
+	if companyName == "" {
+		companyName = "TokenJoy"
+	}
 
 	if phone != "" {
 		token, err := s.d.InviteIssuer.Encrypt(inviteCode, invitetoken.ChannelSMS, expiresAt)
 		if err == nil {
 			inviteURL := fmt.Sprintf("%s/invite/accept?code=%s", baseURL, token)
 			msg := domainnotification.RenderedMessage{
-				Title: "邀请您加入 TokenJoy",
-				Body:  fmt.Sprintf("您已被邀请加入 TokenJoy 平台，请点击链接完成注册：%s", inviteURL),
+				Title: "邀请您加入 " + companyName,
+				Body:  fmt.Sprintf("您已被邀请加入%s，请点击链接完成注册：%s", companyName, inviteURL),
 				Payload: map[string]any{
-					"eventType": "member_invite",
-					"inviteUrl": inviteURL,
+					"eventType":   "member_invite",
+					"inviteUrl":   inviteURL,
+					"companyName": companyName,
 				},
 			}
 			if err := s.d.Sender.SendDirect(ctx, "sms", phone, msg); err != nil {
@@ -134,11 +143,12 @@ func (s *LocalService) sendInviteNotifications(ctx context.Context, inviteCode s
 		if err == nil {
 			inviteURL := fmt.Sprintf("%s/invite/accept?code=%s", baseURL, token)
 			msg := domainnotification.RenderedMessage{
-				Title: "邀请您加入 TokenJoy",
-				Body:  "您已被邀请加入 TokenJoy 平台，请点击链接完成注册。",
+				Title: "邀请您加入 " + companyName,
+				Body:  fmt.Sprintf("您已被邀请加入%s，请点击链接完成注册。", companyName),
 				Payload: map[string]any{
-					"eventType": "member_invite",
-					"inviteUrl": inviteURL,
+					"eventType":   "member_invite",
+					"inviteUrl":   inviteURL,
+					"companyName": companyName,
 				},
 			}
 			if err := s.d.Sender.SendDirect(ctx, "email", email, msg); err != nil {
