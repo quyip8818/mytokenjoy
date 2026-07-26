@@ -159,6 +159,8 @@ CREATE TABLE IF NOT EXISTS models (
     max_tokens   INT NOT NULL DEFAULT 0,
     enabled      BOOLEAN NOT NULL DEFAULT TRUE,
     capabilities TEXT[] NOT NULL DEFAULT '{}',
+    source       TEXT NOT NULL DEFAULT 'manual',
+    sms_synced_at TIMESTAMPTZ,
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (company_id, provider, type)
 );

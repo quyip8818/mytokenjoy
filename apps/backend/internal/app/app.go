@@ -95,7 +95,7 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 		bgWorkers.start(workerCtx, cfg)
 		startDeferredWatchdog(workerCtx, cfg, logger, st, holder)
 		startPricingSyncWorker(workerCtx, cfg, registry.Infra.adminPort)
-		startSMSSyncWorker(workerCtx, cfg, registry.Infra.adminPort)
+		startSMSSyncWorker(workerCtx, cfg, registry.Infra.adminPort, st)
 	}
 
 	return &App{
@@ -139,7 +139,7 @@ func startPricingSyncWorker(ctx context.Context, cfg config.Config, adminPort ad
 	slog.Info("pricing sync worker started", "interval", interval)
 }
 
-func startSMSSyncWorker(ctx context.Context, cfg config.Config, adminPort adminport.Port) {
+func startSMSSyncWorker(ctx context.Context, cfg config.Config, adminPort adminport.Port, st store.Store) {
 	if !cfg.SMSSyncEnabled {
 		return
 	}
@@ -156,17 +156,10 @@ func startSMSSyncWorker(ctx context.Context, cfg config.Config, adminPort adminp
 		ClientID:     cfg.SMSClientID,
 		ClientSecret: cfg.SMSClientSecret,
 	})
-	// ponytail: ModelStore is nil for now — UpsertModel will be a no-op until
-	// the models store implements UpsertFromSMS. Channel + pricing sync works immediately.
-	target := smssync.NewAdminPortTarget(adminPort, noopModelStore{})
+	// ponytail: ModelStore now uses real repo — writes to models table with source="sms"
+	target := smssync.NewAdminPortTarget(adminPort, smssync.NewRepoModelStore(st.Models()))
 	w := smssync.NewWithInterval(client, target, interval)
 	go w.Run(ctx)
 	slog.Info("sms sync worker started", "interval", interval, "url", cfg.SMSAPIBaseURL)
 }
 
-// noopModelStore is a temporary placeholder until models store implements UpsertFromSMS.
-type noopModelStore struct{}
-
-func (noopModelStore) UpsertFromSMS(_ context.Context, _ smsintegration.CatalogModel) error {
-	return nil
-}

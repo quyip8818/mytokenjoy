@@ -64,10 +64,15 @@ func (w *Worker) Execute(ctx context.Context) error {
 		return fmt.Errorf("fetch sms catalog: %w", err)
 	}
 
+	var channelOK, channelFail, pricingOK, pricingFail, modelOK, modelFail int
+
 	// Sync channels
 	for _, ch := range catalog.Channels {
 		if err := w.target.UpsertChannel(ctx, ch); err != nil {
 			slog.Error("smssync: upsert channel failed", "channel", ch.Name, "error", err)
+			channelFail++
+		} else {
+			channelOK++
 		}
 	}
 	if len(catalog.Channels) > 0 {
@@ -80,6 +85,9 @@ func (w *Worker) Execute(ctx context.Context) error {
 	for _, m := range catalog.Models {
 		if err := w.target.UpsertModelRatio(ctx, m.ModelID, m.InputPrice, m.OutputPrice); err != nil {
 			slog.Error("smssync: upsert model ratio failed", "model", m.ModelID, "error", err)
+			pricingFail++
+		} else {
+			pricingOK++
 		}
 	}
 
@@ -87,9 +95,17 @@ func (w *Worker) Execute(ctx context.Context) error {
 	for _, m := range catalog.Models {
 		if err := w.target.UpsertModel(ctx, m); err != nil {
 			slog.Error("smssync: upsert model metadata failed", "model", m.ModelID, "error", err)
+			modelFail++
+		} else {
+			modelOK++
 		}
 	}
 
+	slog.Info("smssync: cycle complete",
+		"channels", fmt.Sprintf("%d ok / %d fail", channelOK, channelFail),
+		"pricing", fmt.Sprintf("%d ok / %d fail", pricingOK, pricingFail),
+		"models", fmt.Sprintf("%d ok / %d fail", modelOK, modelFail),
+	)
 	return nil
 }
 

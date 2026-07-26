@@ -169,4 +169,22 @@ func (r *pgModelsRepo) DeleteModel(ctx context.Context, modelID uuid.UUID) error
 	return nil
 }
 
+func (r *pgModelsRepo) UpsertFromSMS(ctx context.Context, modelType, name, provider, callType string) error {
+	companyID := store.CompanyID(ctx)
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO models (company_id, provider, type, name, source, sms_synced_at, updated_at)
+		VALUES ($1, $2, $3, $4, 'sms', NOW(), NOW())
+		ON CONFLICT (company_id, provider, type) DO UPDATE SET
+			name = EXCLUDED.name,
+			source = 'sms',
+			sms_synced_at = NOW(),
+			updated_at = NOW()
+		WHERE models.source = 'sms'
+	`, companyID, provider, modelType, name)
+	if err != nil {
+		return fmt.Errorf("upsert model from sms %s: %w", modelType, err)
+	}
+	return nil
+}
+
 var _ store.ModelsRepository = (*pgModelsRepo)(nil)
