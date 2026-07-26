@@ -133,7 +133,7 @@ func (s *LocalService) sendInviteNotifications(ctx context.Context, inviteCode s
 				},
 			}
 			if err := s.d.Sender.SendDirect(ctx, "sms", phone, msg); err != nil {
-				s.d.Logger.Warn("invite sms send failed", "phone", phone, "error", err)
+				s.d.Logger.Error("invite sms send failed", "phone", phone, "error", err)
 			}
 		}
 	}
@@ -152,7 +152,7 @@ func (s *LocalService) sendInviteNotifications(ctx context.Context, inviteCode s
 				},
 			}
 			if err := s.d.Sender.SendDirect(ctx, "email", email, msg); err != nil {
-				s.d.Logger.Warn("invite email send failed", "email", email, "error", err)
+				s.d.Logger.Error("invite email send failed", "email", email, "error", err)
 			}
 		}
 	}

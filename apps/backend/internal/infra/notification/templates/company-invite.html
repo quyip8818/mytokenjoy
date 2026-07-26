@@ -1,4 +1,4 @@
-<!-- 备份：此文件不被代码引用，实际模板托管在 Resend Dashboard。变量: {{companyName}} {{inviteCode}} {{inviteUrl}} -->
+<!-- 备份：此文件不被代码引用，实际模板托管在 Resend Dashboard。变量: {{companyName}} {{inviteUrl}} -->
 <!doctype html>
 <html>
   <head>
@@ -23,8 +23,13 @@
       "
     >
       <h2 style="margin: 0 0 8px 0; font-size: 20px; color: #111">您收到一封邀请</h2>
-      <p style="margin: 0 0 24px 0; font-size: 14px; color: #666">
-        <strong>{{companyName}}</strong> 邀请您加入 TokenJoy 平台进行团队协作。
+      <p style="margin: 0 0 16px 0; font-size: 14px; color: #666">
+        <strong>{{companyName}}</strong> 邀请您加入团队，通过
+        <a href="https://www.tokenjoy.me/" style="color: #111; text-decoration: underline">TokenJoy</a>
+        统一管理 AI 模型用量与预算。
+      </p>
+      <p style="margin: 0 0 24px 0; font-size: 13px; color: #999">
+        点击下方按钮设置密码并完成注册，即可开始使用。
       </p>
       <div style="text-align: center; margin: 0 0 24px 0">
         <a
@@ -43,25 +48,12 @@
           接受邀请
         </a>
       </div>
-      <p style="margin: 0 0 8px 0; font-size: 13px; color: #999">或手动输入邀请码：</p>
-      <div
-        style="
-          background: #f8f9fa;
-          border: 1px solid #e5e7eb;
-          border-radius: 6px;
-          padding: 12px;
-          text-align: center;
-          margin: 0 0 24px 0;
-        "
-      >
-        <code style="font-size: 16px; font-weight: 600; color: #111">{{inviteCode}}</code>
-      </div>
       <p style="margin: 0 0 16px 0; font-size: 13px; color: #999">
         此邀请 7 天内有效。如果您不认识发送者，请忽略此邮件。
       </p>
       <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0" />
       <p style="font-size: 12px; color: #bbb; margin: 0">
-        此邮件由 TokenJoy 系统自动发送，请勿回复。
+        此邮件由 <a href="https://www.tokenjoy.me/" style="color: #bbb; text-decoration: underline">TokenJoy</a> 系统自动发送，请勿回复。
       </p>
     </div>
   </body>

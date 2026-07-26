@@ -41,27 +41,47 @@ func (s *LocalService) BatchInvite(ctx context.Context, ids []uuid.UUID) (types.
 
 	sent := 0
 	for _, target := range targets {
-		// Find existing invite for this member.
+		// Find or create invite for this member.
 		invite, err := s.d.Store.Invite().GetInviteByMemberID(ctx, target.ID)
 		if err != nil || invite == nil {
-			continue
+			// No invite exists — create one.
+			code, cerr := randomHexCode()
+			if cerr != nil {
+				continue
+			}
+			now := time.Now().UTC()
+			newInvite := store.CompanyInvite{
+				ID:         uuid.Must(uuid.NewV7()),
+				CompanyID:  store.CompanyID(ctx),
+				MemberID:   target.ID,
+				UserID:     target.UserID,
+				Role:       "member",
+				InviteCode: code,
+				ExpiresAt:  now.Add(s.d.Cfg.InviteExpireDuration()),
+				CreatedAt:  now,
+			}
+			if err := s.d.Store.Invite().CreateInvite(ctx, newInvite); err != nil {
+				s.d.Logger.Warn("batch invite: create invite failed", "memberID", target.ID, "error", err)
+				continue
+			}
+			invite = &newInvite
+		} else if time.Now().After(invite.ExpiresAt) {
+			// Renew expiry if expired.
+			newExpiry := time.Now().UTC().Add(s.d.Cfg.InviteExpireDuration())
+			if err := s.d.Store.Invite().UpdateInviteExpiry(ctx, invite.ID, newExpiry); err != nil {
+				s.d.Logger.Warn("batch invite: renew expiry failed", "memberID", target.ID, "error", err)
+				continue
+			}
+			invite.ExpiresAt = newExpiry
 		}
 
-		// Renew expiry.
-		newExpiry := time.Now().UTC().Add(s.d.Cfg.InviteExpireDuration())
-		if err := s.d.Store.Invite().UpdateInviteExpiry(ctx, invite.ID, newExpiry); err != nil {
-			s.d.Logger.Warn("batch invite: renew expiry failed", "memberID", target.ID, "error", err)
-			continue
-		}
-
-		// Lookup user to get phone/email for re-sending.
+		// Lookup user to get phone/email for sending.
 		user, err := s.d.Store.User().GetByID(ctx, target.UserID)
 		if err != nil || user == nil {
 			continue
 		}
 
-		// Re-send notifications.
-		s.sendInviteNotifications(ctx, invite.InviteCode, newExpiry, user.Phone, user.Email)
+		s.sendInviteNotifications(ctx, invite.InviteCode, invite.ExpiresAt, user.Phone, user.Email)
 		sent++
 	}
 
