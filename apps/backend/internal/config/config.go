@@ -108,6 +108,13 @@ type PlatformConfig struct {
 	PlatformPricingSyncURL         string `env:"PLATFORM_PRICING_SYNC_URL"`
 	PlatformPricingSyncKey         string `env:"PLATFORM_PRICING_SYNC_KEY"`
 	PlatformPricingSyncIntervalSec int    `env:"PLATFORM_PRICING_SYNC_INTERVAL_SEC" envDefault:"600"`
+
+	// SMS sync (pull model/channel/pricing from SMS system)
+	SMSSyncEnabled     bool   `env:"SMS_SYNC_ENABLED" envDefault:"false"`
+	SMSAPIBaseURL      string `env:"SMS_API_BASE_URL"`
+	SMSClientID        string `env:"SMS_CLIENT_ID"`
+	SMSClientSecret    string `env:"SMS_CLIENT_SECRET"`
+	SMSSyncIntervalSec int    `env:"SMS_SYNC_INTERVAL_SEC" envDefault:"600"`
 }
 
 // IdentityConfig holds authentication, session, and authorization settings.

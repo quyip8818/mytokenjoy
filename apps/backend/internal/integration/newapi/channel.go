@@ -17,12 +17,17 @@ type addChannelRequest struct {
 
 // UpsertChannelBody is the JSON body for PUT /api/channel/ (full replacement).
 type UpsertChannelBody struct {
-	ID     int    `json:"id,omitempty"`
-	Type   int    `json:"type"`
-	Name   string `json:"name"`
-	Key    string `json:"key"`
-	Status int    `json:"status"`
-	Group  string `json:"group,omitempty"`
+	ID       int               `json:"id,omitempty"`
+	Type     int               `json:"type"`
+	Name     string            `json:"name"`
+	Key      string            `json:"key"`
+	Status   int               `json:"status"`
+	Group    string            `json:"group,omitempty"`
+	BaseURL  string            `json:"base_url,omitempty"`
+	Models   string            `json:"models,omitempty"`
+	Priority int               `json:"priority,omitempty"`
+	Weight   int               `json:"weight,omitempty"`
+	Settings map[string]string `json:"settings,omitempty"`
 }
 
 func (c *Client) UpsertChannel(ctx context.Context, req adminport.UpsertChannelInput) (adminport.ChannelResult, error) {
@@ -36,11 +41,16 @@ func (c *Client) createChannel(ctx context.Context, req adminport.UpsertChannelI
 	payload := addChannelRequest{
 		Mode: channelAddModeSingle,
 		Channel: UpsertChannelBody{
-			Type:   req.Type,
-			Name:   req.Name,
-			Key:    req.Key,
-			Status: req.Status,
-			Group:  req.Group,
+			Type:     req.Type,
+			Name:     req.Name,
+			Key:      req.Key,
+			Status:   req.Status,
+			Group:    req.Group,
+			BaseURL:  req.BaseURL,
+			Models:   req.Models,
+			Priority: req.Priority,
+			Weight:   req.Weight,
+			Settings: req.Settings,
 		},
 	}
 	// Upstream AddChannel returns success with empty data; resolve by unique name.

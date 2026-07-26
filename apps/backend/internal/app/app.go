@@ -16,6 +16,8 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/internal/worker/pricingsync"
+	"github.com/tokenjoy/backend/internal/worker/smssync"
+	smsintegration "github.com/tokenjoy/backend/internal/integration/sms"
 )
 
 func openStore(ctx context.Context, cfg config.Config) (store.Store, error) {
@@ -93,6 +95,7 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 		bgWorkers.start(workerCtx, cfg)
 		startDeferredWatchdog(workerCtx, cfg, logger, st, holder)
 		startPricingSyncWorker(workerCtx, cfg, registry.Infra.adminPort)
+		startSMSSyncWorker(workerCtx, cfg, registry.Infra.adminPort)
 	}
 
 	return &App{
@@ -134,4 +137,36 @@ func startPricingSyncWorker(ctx context.Context, cfg config.Config, adminPort ad
 	w := pricingsync.New(pc, adminPort, interval)
 	go w.Run(ctx)
 	slog.Info("pricing sync worker started", "interval", interval)
+}
+
+func startSMSSyncWorker(ctx context.Context, cfg config.Config, adminPort adminport.Port) {
+	if !cfg.SMSSyncEnabled {
+		return
+	}
+	if cfg.SMSAPIBaseURL == "" || cfg.SMSClientID == "" || cfg.SMSClientSecret == "" {
+		slog.Warn("sms sync enabled but config incomplete, skipping")
+		return
+	}
+	interval := time.Duration(cfg.SMSSyncIntervalSec) * time.Second
+	if interval <= 0 {
+		interval = 10 * time.Minute
+	}
+	client := smsintegration.NewClient(smsintegration.Config{
+		BaseURL:      cfg.SMSAPIBaseURL,
+		ClientID:     cfg.SMSClientID,
+		ClientSecret: cfg.SMSClientSecret,
+	})
+	// ponytail: ModelStore is nil for now — UpsertModel will be a no-op until
+	// the models store implements UpsertFromSMS. Channel + pricing sync works immediately.
+	target := smssync.NewAdminPortTarget(adminPort, noopModelStore{})
+	w := smssync.NewWithInterval(client, target, interval)
+	go w.Run(ctx)
+	slog.Info("sms sync worker started", "interval", interval, "url", cfg.SMSAPIBaseURL)
+}
+
+// noopModelStore is a temporary placeholder until models store implements UpsertFromSMS.
+type noopModelStore struct{}
+
+func (noopModelStore) UpsertFromSMS(_ context.Context, _ smsintegration.CatalogModel) error {
+	return nil
 }

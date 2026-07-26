@@ -34,12 +34,17 @@ type TokenResult struct {
 // --- Channel lifecycle (used by newapisync/provider) ---
 
 type UpsertChannelInput struct {
-	ID     int    `json:"id,omitempty"`
-	Type   int    `json:"type"`
-	Name   string `json:"name"`
-	Key    string `json:"key"`
-	Status int    `json:"status"`
-	Group  string `json:"group,omitempty"`
+	ID       int               `json:"id,omitempty"`
+	Type     int               `json:"type"`
+	Name     string            `json:"name"`
+	Key      string            `json:"key"`
+	Status   int               `json:"status"`
+	Group    string            `json:"group,omitempty"`
+	BaseURL  string            `json:"base_url,omitempty"`
+	Models   string            `json:"models,omitempty"`
+	Priority int               `json:"priority,omitempty"`
+	Weight   int               `json:"weight,omitempty"`
+	Settings map[string]string `json:"settings,omitempty"`
 }
 
 type ChannelResult struct {
