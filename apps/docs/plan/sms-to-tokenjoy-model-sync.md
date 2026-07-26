@@ -39,7 +39,7 @@ SMS 是模型配置的单一数据源（SOT），TokenJoy 通过定时轮询 SMS
 
 **接口：** `GET /api/sync/catalog`
 
-**认证：** API Key（配置在 TokenJoy 的 .env 中）
+**认证：** OAuth2 Bearer Token（TokenJoy 先通过 client_credentials 换取短命 token）
 
 **响应体：**
 ```json
@@ -116,9 +116,67 @@ for _, m := range catalog.Models {
 **环境变量：**
 ```
 SMS_API_BASE_URL=http://127.0.0.1:8020
-SMS_API_KEY=your-sync-api-key
-SMS_SYNC_INTERVAL_SEC=300
+SMS_SYNC_API_KEY=sms-sync-key-xxxxx
+SMS_SYNC_INTERVAL_SEC=600
 ```
+
+---
+
+### 2.5 授信方案
+
+**方式：OAuth2 Client Credentials（公网安全）**
+
+两个系统通过公网通信，采用标准 OAuth2 client_credentials 流程：
+
+```
+TokenJoy                                    SMS
+   │                                          │
+   │ POST /api/oauth/token                    │
+   │ { client_id, client_secret,              │
+   │   grant_type: "client_credentials" }     │
+   │ ────────────────────────────────────────► │
+   │                                          │
+   │ { access_token, expires_in: 600 }        │
+   │ ◄──────────────────────────────────────── │
+   │                                          │
+   │ GET /api/sync/catalog                    │
+   │ Authorization: Bearer <access_token>     │
+   │ ────────────────────────────────────────► │
+   │                                          │
+   │ { channels, models }                     │
+   │ ◄──────────────────────────────────────── │
+```
+
+**设计要点：**
+
+| 维度 | 决策 |
+|------|------|
+| Token 有效期 | 10 分钟（每次轮询前换取新 token） |
+| Client 管理 | SMS 维护 oauth_clients 表（client_id + hashed_secret + scope） |
+| Scope | `sync:read`（只允许读同步接口） |
+| Secret 吸销 | SMS 单端操作即可，TokenJoy 下次换 token 失败，不影响已有服务 |
+| 传输安全 | 生产环境 HTTPS 强制 |
+| Token 缓存 | TokenJoy 本地缓存 token，过期前 30s 主动刷新 |
+| 审计 | SMS 记录 token 签发日志（client_id + IP + timestamp） |
+
+**SMS 侧环境变量：**
+```
+OAUTH_CLIENT_ID=tokenjoy-sync
+OAUTH_CLIENT_SECRET=xxx-generated-secret
+```
+
+**TokenJoy 侧环境变量：**
+```
+SMS_API_BASE_URL=https://sms.example.com
+SMS_CLIENT_ID=tokenjoy-sync
+SMS_CLIENT_SECRET=xxx-generated-secret
+SMS_SYNC_INTERVAL_SEC=600
+```
+
+**SMS 侧需要新增：**
+- `POST /api/oauth/token` — 签发短命 JWT（验证 client_id + secret，返回 access_token）
+- `oauth_clients` 表 — 存储注册的客户端（id, hashed_secret, scope, created_at）
+- 中间件：`/api/sync/*` 路由验证 Bearer token（JWT 签名校验 + scope 检查）
 
 ---
 
