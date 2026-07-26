@@ -78,7 +78,9 @@ func (iss *Issuer) Encrypt(code, channel string, expiresAt time.Time) (string, e
 	}
 
 	ciphertext := gcm.Seal(nil, nonce, plaintext, nil)
-	raw := append(nonce, ciphertext...)
+	raw := make([]byte, 0, len(nonce)+len(ciphertext))
+	raw = append(raw, nonce...)
+	raw = append(raw, ciphertext...)
 	return base64.RawURLEncoding.EncodeToString(raw), nil
 }
 

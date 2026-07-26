@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/tokenjoy/backend/internal/identity/httpx"
 	"github.com/tokenjoy/backend/internal/identity/registertoken"
 	"github.com/tokenjoy/backend/internal/identity/verifycode"
+	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 	"github.com/tokenjoy/backend/internal/pkg/invitetoken"
 	"github.com/tokenjoy/backend/internal/store"
 	"golang.org/x/crypto/bcrypt"
@@ -27,6 +29,7 @@ type Handler struct {
 	users         store.UserRepository
 	sessions      store.SessionRepository
 	invites       store.InviteRepository
+	orgRepo       store.OrgRepository
 	verifyCode    *verifycode.Service
 	registerToken *registertoken.Issuer
 	inviteToken   *invitetoken.Issuer
@@ -34,7 +37,8 @@ type Handler struct {
 
 func NewHandler(pub httpdeps.Public, companySvc domaincompany.Service,
 	users store.UserRepository, sessions store.SessionRepository,
-	invites store.InviteRepository, vc *verifycode.Service, regToken *registertoken.Issuer,
+	invites store.InviteRepository, orgRepo store.OrgRepository,
+	vc *verifycode.Service, regToken *registertoken.Issuer,
 	invToken *invitetoken.Issuer) *Handler {
 	return &Handler{
 		pub:           pub,
@@ -42,6 +46,7 @@ func NewHandler(pub httpdeps.Public, companySvc domaincompany.Service,
 		users:         users,
 		sessions:      sessions,
 		invites:       invites,
+		orgRepo:       orgRepo,
 		verifyCode:    vc,
 		registerToken: regToken,
 		inviteToken:   invToken,
@@ -52,6 +57,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Post("/auth/login", h.Login)
 	r.Post("/auth/logout", h.Logout)
 	r.Post("/auth/refresh", h.Refresh)
+	r.Get("/auth/invite-info", h.InviteInfo)
 	r.Post("/auth/accept-invite", h.AcceptInvite)
 	r.Post("/auth/set-password", h.SetPassword)
 	r.Post("/auth/reset-password", h.ResetPassword)
@@ -185,6 +191,47 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// InviteInfo returns pre-fill data for the invite acceptance page.
+// GET /auth/invite-info?code=<encrypted_token>
+func (h *Handler) InviteInfo(w http.ResponseWriter, r *http.Request) {
+	code := r.URL.Query().Get("code")
+	if code == "" {
+		httputil.WriteStatus(w, http.StatusBadRequest, "code required")
+		return
+	}
+	if h.inviteToken == nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, "invite secret not configured")
+		return
+	}
+	payload, err := h.inviteToken.Decrypt(code)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid or expired invite token")
+		return
+	}
+
+	ctx := r.Context()
+	invite, err := h.invites.GetInviteByCode(ctx, payload.Code)
+	if err != nil || invite == nil {
+		httputil.WriteStatus(w, http.StatusNotFound, "invite not found")
+		return
+	}
+	if invite.AcceptedAt != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invite already accepted")
+		return
+	}
+
+	// Lookup member alias using invite's company context.
+	var alias string
+	if invite.MemberID != uuid.Nil {
+		tenantCtx := ctxcompany.With(ctx, ctxcompany.Info{CompanyID: invite.CompanyID})
+		if member, err := h.orgRepo.MemberByID(tenantCtx, invite.MemberID); err == nil && member != nil {
+			alias = member.Alias
+		}
+	}
+
+	httputil.WriteJSON(w, http.StatusOK, map[string]string{"alias": alias}, nil)
+}
+
 type acceptInviteBody struct {
 	InviteCode string `json:"inviteCode"`
 	Name       string `json:"name"`
@@ -222,72 +269,71 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 
 	var userID uuid.UUID
 
-	// Try to resolve from session (logged-in user).
-	if claims, ok := httpx.ResolveMemberClaims(r, h.pub.SessionToken); ok && claims.UserID != uuid.Nil {
-		userID = claims.UserID
+	// Accept-invite is always an unauthenticated flow — ignore any existing session.
+	// The invited user creates their own identity (or reuses one found via invite metadata).
+	if len(body.Password) < 8 {
+		httputil.WriteStatus(w, http.StatusBadRequest, "password too short (min 8)")
+		return
+	}
+	// Validate invite early — fail before mutating user if invite is bad.
+	invite, err := h.invites.GetInviteByCode(ctx, rawCode)
+	if err != nil || invite == nil {
+		httputil.WriteStatus(w, http.StatusNotFound, "invite not found")
+		return
+	}
+	if invite.AcceptedAt != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invite already accepted")
+		return
+	}
+	if time.Now().After(invite.ExpiresAt) {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invite expired")
+		return
+	}
+
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return
+	}
+
+	// Find or create user.
+	// For member-invites (admin_link), invite may have no email/phone — use UserID if set.
+	var user *store.User
+	if invite.UserID != uuid.Nil {
+		user, err = h.users.GetByID(ctx, invite.UserID)
+	} else if invite.Email != "" {
+		user, err = h.users.GetByEmail(ctx, invite.Email)
+	} else if invite.Phone != "" {
+		user, err = h.users.GetByPhone(ctx, invite.Phone)
+	}
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return
+	}
+
+	if user == nil {
+		now := time.Now().UTC()
+		newUser := store.User{
+			ID:           uuid.Must(uuid.NewV7()),
+			Name:         body.Name,
+			Email:        invite.Email,
+			Phone:        invite.Phone,
+			PasswordHash: string(passwordHash),
+			Status:       "active",
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		}
+		if err := h.users.Create(ctx, newUser); err != nil {
+			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+			return
+		}
+		userID = newUser.ID
 	} else {
-		// Unauthenticated path: need password + resolve user from invite email/phone.
-		if len(body.Password) < 8 {
-			httputil.WriteStatus(w, http.StatusBadRequest, "password too short (min 8)")
-			return
-		}
-		// Validate invite early — fail before mutating user if invite is bad.
-		invite, err := h.invites.GetInviteByCode(ctx, rawCode)
-		if err != nil || invite == nil {
-			httputil.WriteStatus(w, http.StatusNotFound, "invite not found")
-			return
-		}
-		if invite.AcceptedAt != nil {
-			httputil.WriteStatus(w, http.StatusBadRequest, "invite already accepted")
-			return
-		}
-		if time.Now().After(invite.ExpiresAt) {
-			httputil.WriteStatus(w, http.StatusBadRequest, "invite expired")
-			return
-		}
-
-		passwordHash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
-		if err != nil {
+		if err := h.users.UpdatePassword(ctx, user.ID, string(passwordHash)); err != nil {
 			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 			return
 		}
-
-		// Find or create user by email or phone from the invite.
-		var user *store.User
-		if invite.Email != "" {
-			user, err = h.users.GetByEmail(ctx, invite.Email)
-		} else if invite.Phone != "" {
-			user, err = h.users.GetByPhone(ctx, invite.Phone)
-		}
-		if err != nil {
-			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
-			return
-		}
-
-		if user == nil {
-			now := time.Now().UTC()
-			newUser := store.User{
-				ID:           uuid.Must(uuid.NewV7()),
-				Name:         body.Name,
-				Email:        invite.Email,
-				Phone:        invite.Phone,
-				PasswordHash: string(passwordHash),
-				Status:       "active",
-				CreatedAt:    now,
-				UpdatedAt:    now,
-			}
-			if err := h.users.Create(ctx, newUser); err != nil {
-				httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
-				return
-			}
-			userID = newUser.ID
-		} else {
-			if err := h.users.UpdatePassword(ctx, user.ID, string(passwordHash)); err != nil {
-				httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
-				return
-			}
-			userID = user.ID
-		}
+		userID = user.ID
 	}
 
 	// Write users.name if provided.
@@ -313,6 +359,7 @@ func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err := h.issueTokenPair(w, r, member.CompanyID, member.ID, member.UserID); err != nil {
+		slog.Error("accept-invite: issue token pair", "error", err, "memberID", member.ID, "userID", member.UserID)
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
 	}

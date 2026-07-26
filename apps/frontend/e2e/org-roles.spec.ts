@@ -271,7 +271,9 @@ test.describe('角色管理 - 角色 CRUD', () => {
       return res.json()
     }, roleName)
     await page.reload()
-    await expect(page.locator('[class*="cursor-pointer"]').filter({ hasText: roleName })).toBeVisible()
+    await expect(
+      page.locator('[class*="cursor-pointer"]').filter({ hasText: roleName }),
+    ).toBeVisible()
 
     // hover 角色项显示编辑按钮并点击
     const roleItem = page.locator('[class*="cursor-pointer"]').filter({ hasText: roleName })
@@ -318,7 +320,9 @@ test.describe('角色管理 - 角色 CRUD', () => {
 
     await page.reload()
     await expect(page.getByRole('heading', { name: '角色管理' })).toBeVisible()
-    await expect(page.locator('[class*="cursor-pointer"]').filter({ hasText: roleName })).toBeVisible({ timeout: 10_000 })
+    await expect(
+      page.locator('[class*="cursor-pointer"]').filter({ hasText: roleName }),
+    ).toBeVisible({ timeout: 10_000 })
 
     // hover 角色项显示删除按钮
     const roleItem = page.locator('[class*="cursor-pointer"]').filter({ hasText: roleName })
@@ -1032,7 +1036,9 @@ test.describe('角色管理 - 权限表单与交互细节', () => {
       return res.json()
     }, roleName)
     await page.reload()
-    await expect(page.locator('[class*="cursor-pointer"]').filter({ hasText: roleName })).toBeVisible()
+    await expect(
+      page.locator('[class*="cursor-pointer"]').filter({ hasText: roleName }),
+    ).toBeVisible()
 
     // hover 自定义角色
     const roleItem = page.locator('[class*="cursor-pointer"]').filter({ hasText: roleName })

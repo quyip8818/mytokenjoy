@@ -114,10 +114,9 @@ export function MemberTable({
   onRowSelectionChange,
 }: MemberTableProps) {
   const { memberId: currentMemberId, member: currentMember } = useSession()
-  const columns = useMemo(
-    () => {
-      const currentMemberRoles = currentMember?.roles ?? []
-      return [
+  const columns = useMemo(() => {
+    const currentMemberRoles = currentMember?.roles ?? []
+    return [
       columnHelper.display({
         id: 'select',
         header: ({ table }) => (
@@ -194,8 +193,7 @@ export function MemberTable({
         cell: ({ row }) => {
           const member = row.original
           const canInvite =
-            currentMemberRoles.includes('超级管理员') ||
-            currentMemberRoles.includes('组织管理员')
+            currentMemberRoles.includes('超级管理员') || currentMemberRoles.includes('组织管理员')
           const handleGetInviteLink = async () => {
             try {
               const { inviteLink } = await memberApi.getInviteLink(member.id)
@@ -226,14 +224,10 @@ export function MemberTable({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   {canInvite && member.status === 'pending' && (
-                    <DropdownMenuItem onClick={handleGetInviteLink}>
-                      获取邀请链接
-                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleGetInviteLink}>获取邀请链接</DropdownMenuItem>
                   )}
                   {member.status === 'pending' && (
-                    <DropdownMenuItem onClick={handleResendInvite}>
-                      重新发送邀请
-                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleResendInvite}>重新发送邀请</DropdownMenuItem>
                   )}
                   {member.status === 'active' ? (
                     <DropdownMenuItem onClick={() => onStatusChange([member.id], 'inactive')}>
@@ -256,9 +250,8 @@ export function MemberTable({
           )
         },
       }),
-    ]},
-    [onEdit, onStatusChange, onDelete, currentMember],
-  )
+    ]
+  }, [onEdit, onStatusChange, onDelete, currentMember])
 
   const table = useReactTable({
     data,

@@ -170,7 +170,10 @@ export function MemberFormDialog({
               <Label>
                 工号 <span className="text-destructive">*</span>
               </Label>
-              <Input placeholder="员工工号" {...register('employeeId', { required: '请输入工号' })} />
+              <Input
+                placeholder="员工工号"
+                {...register('employeeId', { required: '请输入工号' })}
+              />
               {errors.employeeId && (
                 <p className="text-xs text-destructive">{errors.employeeId.message}</p>
               )}

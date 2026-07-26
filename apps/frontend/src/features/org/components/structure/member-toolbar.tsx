@@ -9,12 +9,7 @@ interface MemberToolbarProps {
   onAdd: () => void
 }
 
-export function MemberToolbar({
-  keyword,
-  onKeywordChange,
-  onSearch,
-  onAdd,
-}: MemberToolbarProps) {
+export function MemberToolbar({ keyword, onKeywordChange, onSearch, onAdd }: MemberToolbarProps) {
   return (
     <div className="flex items-center gap-3">
       <div className="relative w-56">
