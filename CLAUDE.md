@@ -9,9 +9,37 @@
 默认在 apps/。路径无前缀 = apps/。
 
 - `apps/` — TokenJoy，客户侧 LLM API 管控平台。前端 React19+TailwindV4+TanStackQuery，后端 Go+PG+Redis。`SUPPORT_SAAS` flag 区分私有化/SaaS。
-- `apps/web/` — 官网，纯展示 React+TailwindV3，无路由，iframe 嵌入 App 认证。
+- `apps/newapi/` — NewAPI 网关服务（Docker 部署），后端通过 HTTP 集成。
+- `apps/dev-mock-llm/` — 本地开发用模拟 LLM 服务。
+- `apps/docs/` — 项目文档（架构、PRD、ADR、计划、评审）。
+- `web/` — 官网，纯展示 React+TailwindV3，无路由，iframe 嵌入 App 认证。
 - `sms/` — 内部供应商管理系统，独立 Go module，制品不出门。
-- apps/sms 互不 import，跨产品仅 HTTP API，共享契约放 `packages/contracts/`。
+- `packages/contracts/` — 跨产品共享契约（permission manifest、notification types）。
+- apps/sms 互不 import，跨产品仅 HTTP API。
+
+## 命令
+
+```bash
+# 开发环境
+pnpm start              # 启动后端+前端（需先 pnpm docker:reset）
+pnpm docker:reset       # 重置 Docker 容器（postgres+redis+newapi）
+pnpm infra              # 仅启动基础设施容器
+
+# 前端 (apps/frontend)
+pnpm -F @tokenjoy/frontend dev       # Vite dev server
+pnpm -F @tokenjoy/frontend build     # tsc + vite build
+pnpm -F @tokenjoy/frontend test      # vitest run
+pnpm -F @tokenjoy/frontend test:e2e  # Playwright
+
+# 后端 (apps/backend)
+make start              # air 热重载启动（读 .env）
+make dev-bootstrap      # 初始化本地开发数据（需 NEW_API_ENABLED=true）
+make test-unit          # go test -tags=testhook ./tests/...
+make lint               # go vet + gofmt check
+
+# 权限生成
+pnpm generate:permissions  # 从 packages/contracts/permission/manifest.json 生成后端+前端常量
+```
 
 ## 文件放置
 
@@ -21,13 +49,41 @@
 - 原子 UI：`components/ui/`（无业务语义）
 - API：`api/{domain}.ts`，禁止直接 import——通过 useApis()
 - 测试：`apps/frontend/tests/`（镜像 src/）
-- 文档：`apps/docs/`
+- E2E：`apps/frontend/e2e/`
+
+**前端特性目录：** account, approval, audit, auth, billing, budget, dashboard, keys, models, mydashboard, notifications, org, query, session, workflow
+
+**路由结构：**
+- `/dashboard/cost|usage` — 数据看板
+- `/keys/platform` — Key 管理
+- `/approvals` — 审批中心
+- `/keys/provider` — 供应商 Key
+- `/models/list|routing` — 模型管理
+- `/budget|/budget/alerts` — 预算管理
+- `/billing` — 钱包管理
+- `/org/data-source|structure|roles` — 组织与权限
+- `/audit/operations|calls` — 审计
+- `/me/keys|usage|settings` — 我的
 
 ### apps 后端 (apps/backend/)
-- cmd/ 仅入口，业务放 internal/
-- domain 间禁止引用对方内部实现，通过 exported interface 协作
-- 共享内核可自由引用：`domain/types`、`domain/grants`、`domain/company`、`domain/newapisync`
-- 测试：`apps/backend/tests/`（镜像 internal/，外部测试包）
+- `cmd/server/` — 主入口
+- `cmd/dev-bootstrap/` — 开发环境初始化
+- `internal/app/` — 组合根（DI wiring）
+- `internal/config/` — 环境配置
+- `internal/domain/` — 业务逻辑（按子域隔离）
+- `internal/http/handler/` — HTTP handler（每域一包）
+- `internal/http/middleware/` — 中间件（auth, RBAC, CORS）
+- `internal/identity/` — 认证授权（session, verifycode, secrets）
+- `internal/infra/` — 基础设施（jobs, notification, permission, ratelimit, river, scheduler）
+- `internal/integration/` — 外部集成（newapi, datasource/feishu）
+- `internal/pkg/` — 共享工具（budget, common, org, tree, newapiunits）
+- `internal/store/` — 仓储接口
+- `internal/store/postgres/` — PostgreSQL 实现（raw SQL，无 ORM）
+- `internal/worker/` — 后台任务 worker
+- `seed/` — 数据种子（demo bootstrap）
+- `tests/` — 全部单元测试（mirrors internal/）
+
+**后端域目录 (internal/domain/):** adminport, approval, audit, billing, budget, company, dashboard, gateway, grants, keys, memberanalytics, models, notification, org, port, types, usage
 
 ### sms
 结构同 apps。测试 `sms/{frontend,backend}/tests/`，文档 `sms/docs/`。
@@ -35,6 +91,7 @@
 ### 通用
 - 禁止在 src/internal/组件旁放测试文件
 - 禁止在 frontend/backend/ 下新建 .md（README.md 除外）
+- 文档统一放 `apps/docs/`
 
 ## 测试
 
@@ -44,6 +101,8 @@ pnpm test:sms             # sms 全量
 # 单文件
 cd apps/backend && go test -tags=testhook -run "TestXxx" ./tests/domain/xxx/ -v -count=1
 cd sms/backend && go test -run "TestXxx" ./tests/domain/xxx/ -v
+# 前端单文件
+pnpm -F @tokenjoy/frontend exec vitest run tests/features/xxx/yyy.test.ts
 ```
 
 ### 后端（apps）
@@ -57,7 +116,28 @@ cd sms/backend && go test -run "TestXxx" ./tests/domain/xxx/ -v
 
 ### 前端
 - Vitest + @testing-library/react，API 层 vi.mock
-- E2E: Playwright
+- E2E: Playwright（`apps/frontend/e2e/`）
+
+## 环境变量
+
+关键变量（见 `apps/backend/.env.example` 完整列表）：
+- `DATABASE_URL` — PostgreSQL 连接
+- `SESSION_SECRET` — JWT session 签名
+- `DATA_SOURCE_CREDENTIAL_KEY` — 数据源凭证加密 key
+- `DEPLOY_ENV` — local / staging / production
+- `BOOTSTRAP_MODE` — none / minimal / demo
+- `NEW_API_ENABLED` — 启用 NewAPI 集成
+- `NEW_API_BASE_URL` / `NEW_API_ADMIN_TOKEN` — NewAPI 服务
+- `SUPPORT_SAAS` — 多租户 SaaS 模式
+- `REDIS_URL` — Redis（限流、网关预算缓存）
+- `VITE_API_PROXY_TARGET` — 前端代理目标（默认 http://localhost:8010）
+
+## 脚本
+
+- `scripts/dev.sh` — 开发环境编排主入口
+- `scripts/reset-budget-data.sh` — 清空预算数据（保留总公司+admin）
+- `scripts/dev/` — 子脚本（infra, reset, start, test, frontend-wait）
+- `scripts/lib/` — 共享函数（common.sh, db-reset.sh）
 
 ## Ponytail — lazy senior dev
 
