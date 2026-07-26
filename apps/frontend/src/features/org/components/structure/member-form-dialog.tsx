@@ -98,9 +98,9 @@ export function MemberFormDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>
-                姓名 <span className="text-destructive">*</span>
+                昵称 <span className="text-destructive">*</span>
               </Label>
-              <Input {...register('name', { required: '请输入姓名' })} />
+              <Input {...register('name', { required: '请输入昵称' })} />
               {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
             </div>
             <div className="space-y-1.5">
@@ -163,8 +163,8 @@ export function MemberFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>昵称</Label>
-              <Input placeholder="昵称" {...register('username')} />
+              <Label>用户名</Label>
+              <Input placeholder="用户名" {...register('username')} />
             </div>
             <div className="space-y-1.5">
               <Label>
