@@ -20,6 +20,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Get("/status", h.Status)
 	r.Get("/models", h.Models)
 	r.Post("/sync", h.Sync)
+	r.Post("/pull", h.Pull)
 }
 
 func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
@@ -47,4 +48,13 @@ func (h *Handler) Sync(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.JSON(w, http.StatusOK, map[string]int{"synced": count})
+}
+
+func (h *Handler) Pull(w http.ResponseWriter, r *http.Request) {
+	result, err := h.svc.PullFromNewAPI(r.Context())
+	if err != nil {
+		response.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	response.JSON(w, http.StatusOK, result)
 }
