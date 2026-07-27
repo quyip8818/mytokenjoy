@@ -17,11 +17,10 @@ import (
 
 // SMSChannel delivers notifications via Alibaba Cloud SMS (阿里云短信服务).
 type SMSChannel struct {
-	client    *dysmsapi.Client
-	signName  string
-	templates map[string]string // eventType → templateCode
-	resolver  *RecipientResolver
-	logger    *slog.Logger
+	client   *dysmsapi.Client
+	signName string
+	resolver *RecipientResolver
+	logger   *slog.Logger
 }
 
 // SMSConfig holds Alibaba Cloud SMS settings.
@@ -29,33 +28,22 @@ type SMSConfig struct {
 	AccessKeyID     string
 	AccessKeySecret string
 	SignName        string
-	TemplateCode    string            // default (verification code)
-	Templates       map[string]string // additional eventType → templateCode mappings
-	Endpoint        string            // defaults to dysmsapi.aliyuncs.com
+	Endpoint        string // defaults to dysmsapi.aliyuncs.com
 }
 
 // NewSMSChannel creates an Aliyun SMS channel.
 // If credentials are incomplete the channel reports IsConfigured() == false
 // and the registry will skip it during dispatch.
 func NewSMSChannel(cfg SMSConfig, resolver *RecipientResolver, logger *slog.Logger) *SMSChannel {
-	// Build template map: default template handles "verification_code" and fallback.
-	templates := map[string]string{
-		"": strings.TrimSpace(cfg.TemplateCode), // fallback/default
-	}
-	for event, code := range cfg.Templates {
-		templates[event] = strings.TrimSpace(code)
-	}
-
 	ch := &SMSChannel{
-		signName:  strings.TrimSpace(cfg.SignName),
-		templates: templates,
-		resolver:  resolver,
-		logger:    logger,
+		signName: strings.TrimSpace(cfg.SignName),
+		resolver: resolver,
+		logger:   logger,
 	}
 
 	keyID := strings.TrimSpace(cfg.AccessKeyID)
 	keySecret := strings.TrimSpace(cfg.AccessKeySecret)
-	if keyID == "" || keySecret == "" || ch.signName == "" || templates[""] == "" {
+	if keyID == "" || keySecret == "" || ch.signName == "" {
 		return ch
 	}
 
@@ -120,12 +108,9 @@ func (c *SMSChannel) sendToPhone(phone string, msg domainnotification.RenderedMe
 		phoneNum = strings.TrimPrefix(phone, "+86")
 	}
 
-	// Resolve template code by eventType (same pattern as email channel).
+	// Resolve template code by eventType.
 	eventType, _ := msg.Payload["eventType"].(string)
-	tmpl := c.templates[eventType]
-	if tmpl == "" {
-		tmpl = c.templates[""] // fallback to default
-	}
+	tmpl := SMSTemplateCode(eventType)
 	if tmpl == "" {
 		return fmt.Errorf("sms: no template for event %q", eventType)
 	}

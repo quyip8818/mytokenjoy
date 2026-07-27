@@ -60,9 +60,10 @@ func (c *EmailChannel) SendDirect(ctx context.Context, address string, msg domai
 }
 
 func (c *EmailChannel) sendToAddress(to string, msg domainnotification.RenderedMessage) error {
-	templateID := resolveTemplateID(msg)
+	eventType, _ := msg.Payload["eventType"].(string)
+	templateID := EmailTemplateID(eventType)
 	if templateID == "" {
-		return fmt.Errorf("resend: no template configured for event %v", msg.Payload["eventType"])
+		return fmt.Errorf("resend: no template configured for event %q", eventType)
 	}
 
 	vars := make(map[string]any, len(msg.Payload))
@@ -87,27 +88,6 @@ func (c *EmailChannel) sendToAddress(to string, msg domainnotification.RenderedM
 
 	c.logger.Debug("email sent via resend", "to", to, "subject", msg.Title, "template", templateID)
 	return nil
-}
-
-// resolveTemplateID maps eventType to a hardcoded Resend template alias (kebab-case).
-func resolveTemplateID(msg domainnotification.RenderedMessage) string {
-	eventType, _ := msg.Payload["eventType"].(string)
-	switch eventType {
-	case domainnotification.EventBudgetAlertReached:
-		return "budget-alert"
-	case domainnotification.EventOverrunBlocked, domainnotification.EventOverdraftExpanded:
-		return "overrun-blocked"
-	case domainnotification.EventSyncThresholdExceeded:
-		return "sync-threshold-exceeded"
-	case "verification_code":
-		return "verification-code"
-	case "company_invite":
-		return "company-invite"
-	case "member_invite":
-		return "company-invite"
-	default:
-		return ""
-	}
 }
 
 var _ Channel = (*EmailChannel)(nil)

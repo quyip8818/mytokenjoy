@@ -51,16 +51,10 @@ func NewService(cfg config.Config, st store.Store, logger *slog.Logger) *Service
 	}, resolver, logger))
 
 	// Conditionally register SMS channel (Aliyun)
-	smsTemplates := map[string]string{}
-	if cfg.AliyunSMSInviteTemplateCode != "" {
-		smsTemplates["member_invite"] = cfg.AliyunSMSInviteTemplateCode
-	}
 	registry.Register(NewSMSChannel(SMSConfig{
 		AccessKeyID:     cfg.AliyunSMSAccessKeyID,
 		AccessKeySecret: cfg.AliyunSMSAccessKeySecret,
 		SignName:        cfg.AliyunSMSSignName,
-		TemplateCode:    cfg.AliyunSMSTemplateCode,
-		Templates:       smsTemplates,
 		Endpoint:        cfg.AliyunSMSEndpoint,
 	}, resolver, logger))
 

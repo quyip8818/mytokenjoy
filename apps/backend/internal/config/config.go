@@ -65,15 +65,13 @@ type NotificationConfig struct {
 	// Resend email channel
 	ResendAPIKey string `env:"RESEND_API_KEY"`
 	ResendFrom   string `env:"RESEND_FROM"`
-	// Resend template IDs are hardcoded as kebab-case aliases (see infra/notification/channel_email.go)
+	// Template IDs for email and SMS are hardcoded in infra/notification/templates.go
 
 	// SMS channel (Aliyun / 阿里云)
-	AliyunSMSAccessKeyID        string `env:"ALIYUN_SMS_ACCESS_KEY_ID"`
-	AliyunSMSAccessKeySecret    string `env:"ALIYUN_SMS_ACCESS_KEY_SECRET"`
-	AliyunSMSSignName           string `env:"ALIYUN_SMS_SIGN_NAME"`
-	AliyunSMSTemplateCode       string `env:"ALIYUN_SMS_TEMPLATE_CODE"`
-	AliyunSMSInviteTemplateCode string `env:"ALIYUN_SMS_INVITE_TEMPLATE_CODE"` // member invite template
-	AliyunSMSEndpoint           string `env:"ALIYUN_SMS_ENDPOINT" envDefault:"dysmsapi.aliyuncs.com"`
+	AliyunSMSAccessKeyID     string `env:"ALIYUN_SMS_ACCESS_KEY_ID"`
+	AliyunSMSAccessKeySecret string `env:"ALIYUN_SMS_ACCESS_KEY_SECRET"`
+	AliyunSMSSignName        string `env:"ALIYUN_SMS_SIGN_NAME"`
+	AliyunSMSEndpoint        string `env:"ALIYUN_SMS_ENDPOINT" envDefault:"dysmsapi.aliyuncs.com"`
 }
 
 // IngestConfig holds ingest worker and reconciliation settings.
