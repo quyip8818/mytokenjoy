@@ -226,8 +226,8 @@ func TestCoreHandler(t *testing.T) {
 			if err := json.NewDecoder(rec.Body).Decode(&modelsList); err != nil {
 				t.Fatal(err)
 			}
-			if len(modelsList) < 3 {
-				t.Fatalf("expected at least 3 models, got %d", len(modelsList))
+			if len(modelsList) < 2 {
+				t.Fatalf("expected at least 2 models, got %d", len(modelsList))
 			}
 		})
 

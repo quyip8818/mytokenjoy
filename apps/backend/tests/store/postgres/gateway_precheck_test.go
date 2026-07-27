@@ -56,10 +56,14 @@ func TestLoadPrecheckContextAllowlistTypes(t *testing.T) {
 	if !row.HasAllowlist {
 		t.Fatal("expected platform key allowlist to be present")
 	}
-	for _, want := range []string{"deepseek-v4-pro", "deepseek-v4-flash", "test-model"} {
+	for _, want := range []string{"deepseek-v4-pro", "deepseek-v4-flash"} {
 		if !contains(row.AllowlistTypes, want) {
 			t.Fatalf("expected allowlist to include %q, got %v", want, row.AllowlistTypes)
 		}
+	}
+	// test-model must NOT be in the allowlist — it's gateway-implicit via source=="test".
+	if contains(row.AllowlistTypes, "test-model") {
+		t.Fatal("test-model should not appear in allowlist")
 	}
 }
 
