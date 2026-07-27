@@ -1,5 +1,6 @@
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/layout/page-header'
 import type { useMyCallLogsPage } from '@/features/mydashboard'
 import { CallLogsList } from './call-logs-list'
 
@@ -16,14 +17,10 @@ export function MyCallLogsPageShell({
   setPage,
 }: MyCallLogsPageShellProps) {
   return (
-    <PageShell description={<h1 className="text-sm font-semibold">使用记录</h1>}>
-      <DataSection
-        loading={loading}
-        error={error}
-        onRetry={() => void refresh()}
-        contentClassName="p-0"
-        className="overflow-hidden"
-      >
+    <PageShell>
+      <PageHeader title="我的用量" />
+
+      <DataSection loading={loading} error={error} onRetry={() => void refresh()}>
         <CallLogsList
           logs={logs}
           total={total}

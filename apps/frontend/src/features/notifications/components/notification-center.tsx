@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/layout/page-header'
 import { useNotificationInbox } from '../hooks/use-notification-inbox'
 import { useUnreadCount } from '../hooks/use-notifications'
 import { NotificationListItem } from './notification-list-item'
@@ -71,19 +72,21 @@ export function NotificationCenter() {
   )
 
   return (
-    <PageShell
-      description={<h1 className="text-sm font-semibold">通知中心</h1>}
-      actions={
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-xs text-muted-foreground"
-          onClick={() => navigate('/me/settings')}
-        >
-          ⚙️ 通知偏好设置
-        </Button>
-      }
-    >
+    <PageShell>
+      <PageHeader
+        title="通知中心"
+        actions={
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-muted-foreground"
+            onClick={() => navigate('/me/settings')}
+          >
+            通知偏好设置
+          </Button>
+        }
+      />
+
       <div className="mx-auto max-w-3xl">
         {/* Tabs */}
         <Tabs value={tab} onValueChange={(v) => setTab(v as 'inbox' | 'archived')}>

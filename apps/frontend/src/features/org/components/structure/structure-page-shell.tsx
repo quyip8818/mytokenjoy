@@ -1,5 +1,7 @@
-import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
+import { SplitPanel } from '@/components/layout/split-panel'
+import { ContextHeader } from '@/components/layout/context-header'
+import { DataSection } from '@/components/layout/data-section'
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog'
 import type { useStructurePage } from '@/features/org'
 import { DepartmentPanel } from './department-panel'
@@ -53,57 +55,63 @@ export function StructurePageShell({
   closeMemberForm,
 }: StructurePageShellProps) {
   return (
-    <PageShell layout="fill" className="min-h-0 flex-1">
-      <div className="flex min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-card shadow-xs">
-        <DataSection
-          loading={departmentsLoading}
-          error={departmentsError}
-          onRetry={() => void refreshDepartments()}
-          className="shrink-0 rounded-none border-0 shadow-none"
-          contentClassName="h-full p-0"
-          loadingVariant="spinner"
-        >
-          <DepartmentPanel
-            tree={departments}
-            selectedId={selectedDept?.id}
-            onSelect={selectDept}
-            onCreateDept={createDept}
-            onUpdateDept={updateDept}
-            onDeleteDept={deleteDept}
-          />
-        </DataSection>
-
-        <DataSection
-          loading={membersLoading}
-          error={membersError}
-          onRetry={() => void refreshMembers()}
-          className="flex min-h-0 min-w-0 flex-1 flex-col rounded-none border-0 shadow-none"
-          contentClassName="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-5"
-        >
-          <StructureMembersPanel
-            selectedDeptName={selectedDept?.name}
-            members={members}
-            total={total}
-            page={page}
-            pageSize={pageSize}
-            keyword={keyword}
-            rowSelection={rowSelection}
-            pendingCount={pendingCount}
-            selectedIds={selectedIds}
-            onKeywordChange={setKeyword}
-            onSearch={handleSearch}
-            onAdd={openCreateMember}
-            onPageChange={setPage}
-            onPageSizeChange={setPageSize}
-            onEdit={openEditMember}
-            onStatusChange={handleStatusChange}
-            onDelete={handleDelete}
-            onRowSelectionChange={setRowSelection}
-            onTransfer={() => setTransferOpen(true)}
-            onClearSelection={() => setRowSelection({})}
-          />
-        </DataSection>
-      </div>
+    <PageShell className="flex min-h-0 flex-1 flex-col">
+      <SplitPanel
+        master={
+          <DataSection
+            loading={departmentsLoading}
+            error={departmentsError}
+            onRetry={() => void refreshDepartments()}
+            loadingVariant="spinner"
+          >
+            <DepartmentPanel
+              tree={departments}
+              selectedId={selectedDept?.id}
+              onSelect={selectDept}
+              onCreateDept={createDept}
+              onUpdateDept={updateDept}
+              onDeleteDept={deleteDept}
+            />
+          </DataSection>
+        }
+        detail={
+          <>
+            {selectedDept && <ContextHeader title={selectedDept.name} />}
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <DataSection
+                loading={membersLoading}
+                error={membersError}
+                onRetry={() => void refreshMembers()}
+                loadingVariant="spinner"
+                className="flex h-full flex-col gap-4 overflow-hidden p-5"
+              >
+                <StructureMembersPanel
+                  selectedDeptName={selectedDept?.name}
+                  members={members}
+                  total={total}
+                  page={page}
+                  pageSize={pageSize}
+                  keyword={keyword}
+                  rowSelection={rowSelection}
+                  pendingCount={pendingCount}
+                  selectedIds={selectedIds}
+                  onKeywordChange={setKeyword}
+                  onSearch={handleSearch}
+                  onAdd={openCreateMember}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                  onEdit={openEditMember}
+                  onStatusChange={handleStatusChange}
+                  onDelete={handleDelete}
+                  onRowSelectionChange={setRowSelection}
+                  onTransfer={() => setTransferOpen(true)}
+                  onClearSelection={() => setRowSelection({})}
+                />
+              </DataSection>
+            </div>
+          </>
+        }
+      />
 
       <MemberFormDialog
         open={formOpen}

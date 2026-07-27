@@ -1,6 +1,8 @@
+import { PageShell } from '@/components/layout/page-shell'
+import { SplitPanel } from '@/components/layout/split-panel'
+import { ContextHeader } from '@/components/layout/context-header'
 import { CostDashboardPageShell } from './cost-dashboard-page-shell'
 import { DashboardDateRangePicker } from './dashboard-date-range-picker'
-import { DashboardPageLayout } from './dashboard-page-layout'
 import { OrgTreeSidebar } from './org-tree-sidebar'
 import type { useCostDashboardRoutePage } from '../hooks/use-cost-dashboard-route-page'
 
@@ -15,26 +17,33 @@ export function CostDashboardLayoutPageShell({
   pageData,
 }: CostDashboardLayoutPageShellProps) {
   return (
-    <DashboardPageLayout
-      sidebar={
-        <OrgTreeSidebar
-          departments={departments}
-          selectedDeptId={selectedDeptId}
-          onSelect={setSelectedDeptId}
-          loading={treeLoading}
-        />
-      }
-    >
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-xs text-muted-foreground">
-            {getBreadcrumb(selectedDeptId).join(' > ')}
-          </p>
-          <h1 className="text-lg font-semibold">成本看板</h1>
-        </div>
-        <DashboardDateRangePicker value={pageData.period} onChange={pageData.handlePeriodChange} />
-      </div>
-      <CostDashboardPageShell pageData={pageData} onSelectDept={setSelectedDeptId} />
-    </DashboardPageLayout>
+    <PageShell className="flex min-h-0 flex-1 flex-col">
+      <SplitPanel
+        master={
+          <OrgTreeSidebar
+            departments={departments}
+            selectedDeptId={selectedDeptId}
+            onSelect={setSelectedDeptId}
+            loading={treeLoading}
+          />
+        }
+        detail={
+          <>
+            <ContextHeader
+              breadcrumb={getBreadcrumb(selectedDeptId)}
+              actions={
+                <DashboardDateRangePicker
+                  value={pageData.period}
+                  onChange={pageData.handlePeriodChange}
+                />
+              }
+            />
+            <div className="min-h-0 flex-1 overflow-y-auto p-6">
+              <CostDashboardPageShell pageData={pageData} onSelectDept={setSelectedDeptId} />
+            </div>
+          </>
+        }
+      />
+    </PageShell>
   )
 }

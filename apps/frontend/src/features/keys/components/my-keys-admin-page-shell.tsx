@@ -1,7 +1,9 @@
 import { KeyRound } from 'lucide-react'
 import { listEmpty } from '@/lib/list-empty'
+import { Card, CardContent } from '@/components/ui/card'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/layout/page-header'
 import { StatCard } from '@/components/ui/stat-card'
 import { Button } from '@/components/ui/button'
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog'
@@ -31,77 +33,79 @@ export function MyKeysAdminPageShell({
   openRotateKey,
   openWithRefresh,
 }: MyKeysAdminPageShellProps) {
-  const applyBudgetButton = (
-    <Button
-      id={applyBudgetCta.id}
-      variant="outline"
-      className={applyBudgetCta.className}
-      onClick={() => openWithRefresh('approval-submit', { defaultType: 'member_budget' })}
-    >
-      申请额度
-    </Button>
-  )
-
-  const createKeyButton = (
-    <Button
-      id={createKeyCta.id}
-      variant="brand"
-      className={createKeyCta.className}
-      disabled={budgetSummary !== null && budgetSummary.remaining <= 0}
-      onClick={() => openCreateKey()}
-    >
-      创建 Key
-    </Button>
-  )
-
   return (
-    <PageShell
-      actions={
-        <>
-          <PermissionGate permission={PERMISSION.SELF_APPROVAL}>{applyBudgetButton}</PermissionGate>
-          <PermissionGate write permission={PERMISSION.SELF_KEYS}>
-            {createKeyButton}
-          </PermissionGate>
-        </>
-      }
-      stats={
-        budgetSummary ? (
-          <div className="grid grid-cols-3 gap-4">
-            <StatCard label="总额度" value={formatMoney(budgetSummary.totalBudget)} />
-            <StatCard label="已使用" value={formatMoney(budgetSummary.consumed)} />
-            <StatCard label="剩余" value={formatMoney(budgetSummary.remaining)} accent />
-          </div>
-        ) : loading ? (
-          <div className="grid grid-cols-3 gap-4">
-            <StatCard label="总额度" value="-" />
-            <StatCard label="已使用" value="-" />
-            <StatCard label="剩余" value="-" />
-          </div>
-        ) : null
-      }
-    >
-      <DataSection
-        loading={loading}
-        error={error}
-        onRetry={() => void refresh()}
-        skeletonColumns={6}
-        empty={listEmpty(loading, keys, {
-          icon: KeyRound,
-          title: '还没有 Key',
-          description: '创建 Platform Key 后即可调用模型 API',
-          actionLabel: '创建第一个 Key',
-          onAction: () => openCreateKey(),
-        })}
-      >
-        <MyKeysTable
-          keys={keys}
-          rowClass={rowClass}
-          onEdit={openEditKey}
-          onRotate={openRotateKey}
-          onToggle={handleToggleWithFlash}
-          onDelete={setDeleteTarget}
-        />
-      </DataSection>
+    <PageShell>
+      <PageHeader
+        title="我的 Key"
+        actions={
+          <>
+            <PermissionGate permission={PERMISSION.SELF_APPROVAL}>
+              <Button
+                id={applyBudgetCta.id}
+                variant="outline"
+                size="sm"
+                className={applyBudgetCta.className}
+                onClick={() => openWithRefresh('approval-submit', { defaultType: 'member_budget' })}
+              >
+                申请额度
+              </Button>
+            </PermissionGate>
+            <PermissionGate write permission={PERMISSION.SELF_KEYS}>
+              <Button
+                id={createKeyCta.id}
+                size="sm"
+                variant="brand"
+                className={createKeyCta.className}
+                disabled={budgetSummary !== null && budgetSummary.remaining <= 0}
+                onClick={() => openCreateKey()}
+              >
+                创建 Key
+              </Button>
+            </PermissionGate>
+          </>
+        }
+      />
+
+      {budgetSummary ? (
+        <div className="grid grid-cols-3 gap-4">
+          <StatCard label="总额度" value={formatMoney(budgetSummary.totalBudget)} />
+          <StatCard label="已使用" value={formatMoney(budgetSummary.consumed)} />
+          <StatCard label="剩余" value={formatMoney(budgetSummary.remaining)} accent />
+        </div>
+      ) : loading ? (
+        <div className="grid grid-cols-3 gap-4">
+          <StatCard label="总额度" value="-" />
+          <StatCard label="已使用" value="-" />
+          <StatCard label="剩余" value="-" />
+        </div>
+      ) : null}
+
+      <Card className="border-border shadow-xs">
+        <CardContent className="px-5 pt-5 pb-4">
+          <DataSection
+            loading={loading}
+            error={error}
+            onRetry={() => void refresh()}
+            skeletonColumns={6}
+            empty={listEmpty(loading, keys, {
+              icon: KeyRound,
+              title: '还没有 Key',
+              description: '创建 Platform Key 后即可调用模型 API',
+              actionLabel: '创建第一个 Key',
+              onAction: () => openCreateKey(),
+            })}
+          >
+            <MyKeysTable
+              keys={keys}
+              rowClass={rowClass}
+              onEdit={openEditKey}
+              onRotate={openRotateKey}
+              onToggle={handleToggleWithFlash}
+              onDelete={setDeleteTarget}
+            />
+          </DataSection>
+        </CardContent>
+      </Card>
 
       <ConfirmActionDialog
         state={

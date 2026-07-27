@@ -1,5 +1,6 @@
-import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
+import { SplitPanel } from '@/components/layout/split-panel'
+import { DataSection } from '@/components/layout/data-section'
 import type { usePlatformKeysPage } from '@/features/keys'
 import { useModelLabels } from '@/features/models'
 import { PlatformKeyTable } from './platform-key-table'
@@ -30,45 +31,46 @@ export function PlatformKeysPageShell({
 }: PlatformKeysPageShellProps) {
   const { labelFor } = useModelLabels()
   return (
-    <PageShell layout="fill">
+    <PageShell className="flex min-h-0 flex-1 flex-col">
       <DataSection
         loading={loading}
         error={error}
         onRetry={() => void refresh()}
         skeletonColumns={8}
-        className="flex h-full min-h-0 flex-col overflow-hidden border-border shadow-xs"
-        contentClassName="flex h-full min-h-0 flex-col p-0"
       >
-        <div className="flex h-full min-h-0 overflow-hidden rounded-lg border border-border bg-card shadow-xs">
-          <PlatformKeysDeptTree
-            departments={departments}
-            selectedId={selectedDeptId}
-            onSelect={setSelectedDeptId}
-            expanded={expanded}
-            onToggle={toggleExpand}
-            treeSearch={treeSearch}
-            onTreeSearchChange={setTreeSearch}
-          />
-
-          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-            <PlatformKeysToolbar
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              search={search}
-              onSearchChange={setSearch}
-              onCreateKey={openCreateKey}
+        <SplitPanel
+          master={
+            <PlatformKeysDeptTree
+              departments={departments}
+              selectedId={selectedDeptId}
+              onSelect={setSelectedDeptId}
+              expanded={expanded}
+              onToggle={toggleExpand}
+              treeSearch={treeSearch}
+              onTreeSearchChange={setTreeSearch}
             />
-            <div className="flex-1 overflow-auto px-5 py-4">
-              <PlatformKeyTable
-                keys={keys}
-                type={activeTab}
-                rowClass={rowClass}
-                onDelete={handleDelete}
-                modelLabel={labelFor}
+          }
+          detail={
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+              <PlatformKeysToolbar
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                search={search}
+                onSearchChange={setSearch}
+                onCreateKey={openCreateKey}
               />
+              <div className="flex-1 overflow-auto px-5 py-4">
+                <PlatformKeyTable
+                  keys={keys}
+                  type={activeTab}
+                  rowClass={rowClass}
+                  onDelete={handleDelete}
+                  modelLabel={labelFor}
+                />
+              </div>
             </div>
-          </div>
-        </div>
+          }
+        />
       </DataSection>
     </PageShell>
   )

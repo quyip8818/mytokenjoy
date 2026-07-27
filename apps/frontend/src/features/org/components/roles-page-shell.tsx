@@ -1,6 +1,9 @@
 import { Shield } from 'lucide-react'
-import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
+import { SplitPanel } from '@/components/layout/split-panel'
+import { ContextHeader } from '@/components/layout/context-header'
+import { DataSection } from '@/components/layout/data-section'
+import { EmptyState } from '@/components/ui/empty-state'
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog'
 import type { useRolesPage } from '@/features/org'
 import { RoleList } from './role-list'
@@ -42,48 +45,50 @@ export function RolesPageShell({
   searchMembers,
 }: RolesPageShellProps) {
   return (
-    <PageShell layout="fill">
-      <div className="flex min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-card shadow-xs">
-        <DataSection
-          loading={rolesLoading}
-          error={rolesError}
-          onRetry={() => void refreshRoles()}
-          className="shrink-0 rounded-none border-0 shadow-none"
-          contentClassName="h-full p-0"
-          loadingVariant="spinner"
-        >
-          <RoleList
-            roles={roles}
-            selectedRoleId={selectedRoleId}
-            onSelect={handleSelectRole}
-            onAdd={handleAddRole}
-            onEdit={handleEditRole}
-            onDelete={handleDeleteRole}
-          />
-        </DataSection>
-
-        <DataSection
-          loading={membersLoading}
-          error={membersError}
-          onRetry={() => void refreshMembers()}
-          className="flex min-h-0 min-w-0 flex-1 flex-col rounded-none border-0 shadow-none"
-          contentClassName="flex min-h-0 flex-1 flex-col overflow-auto p-6"
-        >
-          {selectedRole ? (
-            <RoleMemberTable
-              role={selectedRole}
-              members={members}
-              onRemoveMember={handleRemoveMember}
-              onAddMember={() => setAddMemberOpen(true)}
+    <PageShell className="flex min-h-0 flex-1 flex-col">
+      <SplitPanel
+        master={
+          <DataSection
+            loading={rolesLoading}
+            error={rolesError}
+            onRetry={() => void refreshRoles()}
+            loadingVariant="spinner"
+          >
+            <RoleList
+              roles={roles}
+              selectedRoleId={selectedRoleId}
+              onSelect={handleSelectRole}
+              onAdd={handleAddRole}
+              onEdit={handleEditRole}
+              onDelete={handleDeleteRole}
             />
-          ) : (
-            <div className="flex h-full flex-col items-center justify-center gap-2">
-              <Shield className="h-10 w-10 text-muted-foreground/30" strokeWidth={1.5} />
-              <p className="text-sm text-muted-foreground">请选择一个角色</p>
+          </DataSection>
+        }
+        detail={
+          <>
+            {selectedRole && <ContextHeader title={selectedRole.name} />}
+            <div className="min-h-0 flex-1 overflow-auto p-6">
+              <DataSection
+                loading={membersLoading}
+                error={membersError}
+                onRetry={() => void refreshMembers()}
+                loadingVariant="spinner"
+              >
+                {selectedRole ? (
+                  <RoleMemberTable
+                    role={selectedRole}
+                    members={members}
+                    onRemoveMember={handleRemoveMember}
+                    onAddMember={() => setAddMemberOpen(true)}
+                  />
+                ) : (
+                  <EmptyState variant="minimal" icon={Shield} title="请选择一个角色" />
+                )}
+              </DataSection>
             </div>
-          )}
-        </DataSection>
-      </div>
+          </>
+        }
+      />
 
       <RoleForm
         open={formOpen}

@@ -1,10 +1,13 @@
-import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
+import { SplitPanel } from '@/components/layout/split-panel'
+import { ContextHeader } from '@/components/layout/context-header'
+import { DataSection } from '@/components/layout/data-section'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Wallet } from 'lucide-react'
 import type { useBudgetPage } from '@/features/budget'
 import { BudgetTreePanel } from './budget-tree-panel'
 import { BudgetDetailTeam } from './budget-detail-team'
 import { ProjectDetail } from './project-detail'
-import { ChevronRight } from 'lucide-react'
 
 type BudgetPageShellProps = ReturnType<typeof useBudgetPage>
 
@@ -36,38 +39,37 @@ export function BudgetPageShell({
   getAllDeptMembers,
   searchMembers,
 }: BudgetPageShellProps) {
-  return (
-    <PageShell layout="fill" className="min-h-0 flex-1">
-      <DataSection
-        loading={loading}
-        error={error}
-        onRetry={() => void refresh()}
-        className="flex min-h-0 flex-1 flex-col"
-        contentClassName="flex min-h-0 flex-1 flex-col"
-      >
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xs">
-          <div className="flex min-h-0 flex-1 overflow-hidden">
-            <BudgetTreePanel tree={tree} selectedId={selectedTeamId} onSelect={handleSelectTeam} />
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              {activeProject && selectedNode && (
-                <nav
-                  aria-label="breadcrumb"
-                  className="flex items-center gap-1.5 border-b border-border px-5 py-2.5"
-                >
-                  <button
-                    type="button"
-                    className="text-xs text-muted-foreground hover:text-foreground"
-                    onClick={() => setActiveProjectId(null)}
-                  >
-                    {selectedNode.name}
-                  </button>
-                  <ChevronRight className="size-3 text-muted-foreground" aria-hidden="true" />
-                  <span className="text-xs font-medium text-foreground" aria-current="page">
-                    {activeProject.name}
-                  </span>
-                </nav>
-              )}
+  const breadcrumb = activeProject && selectedNode
+    ? [selectedNode.name, activeProject.name]
+    : selectedNode
+      ? [selectedNode.name]
+      : undefined
 
+  return (
+    <PageShell className="flex min-h-0 flex-1 flex-col">
+      <DataSection loading={loading} error={error} onRetry={() => void refresh()} loadingVariant="spinner">
+        <SplitPanel
+          master={
+            <BudgetTreePanel tree={tree} selectedId={selectedTeamId} onSelect={handleSelectTeam} />
+          }
+          detail={
+            <>
+              {breadcrumb && (
+                <ContextHeader
+                  breadcrumb={breadcrumb}
+                  actions={
+                    activeProject ? (
+                      <button
+                        type="button"
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => setActiveProjectId(null)}
+                      >
+                        返回
+                      </button>
+                    ) : undefined
+                  }
+                />
+              )}
               <div className="min-h-0 flex-1 overflow-y-auto">
                 {activeProject ? (
                   <ProjectDetail
@@ -102,14 +104,12 @@ export function BudgetPageShell({
                     searchMembers={searchMembers}
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                    选择左侧节点查看预算详情
-                  </div>
+                  <EmptyState variant="minimal" icon={Wallet} title="选择左侧节点查看预算详情" />
                 )}
               </div>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        />
       </DataSection>
     </PageShell>
   )

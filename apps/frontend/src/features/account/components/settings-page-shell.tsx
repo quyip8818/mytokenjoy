@@ -1,4 +1,6 @@
 import { cn } from '@/lib/utils'
+import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/layout/page-header'
 import { AccountPageShell } from './account-page-shell'
 import { LoginActivityPageShell } from './login-activity-page-shell'
 import { NotificationsPageShell } from '@/features/notifications'
@@ -18,7 +20,9 @@ export function SettingsPageShell({
   notificationsPage,
 }: SettingsPageState) {
   return (
-    <div className="space-y-4">
+    <PageShell>
+      <PageHeader title="设置" />
+
       <nav className="flex gap-1 border-b border-border" aria-label="设置">
         {TABS.map((tab) => (
           <button
@@ -41,6 +45,6 @@ export function SettingsPageShell({
       {activeTab === 'account' && <AccountPageShell {...accountPage} />}
       {activeTab === 'security' && <LoginActivityPageShell {...loginActivityPage} />}
       {activeTab === 'notifications' && <NotificationsPageShell {...notificationsPage} />}
-    </div>
+    </PageShell>
   )
 }

@@ -1,5 +1,6 @@
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/layout/page-header'
 import type { useMyDashboardPage } from '@/features/mydashboard'
 import { MyConsumptionCharts } from './consumption-charts'
 import { MyDashboardStats } from './dashboard-stats'
@@ -24,29 +25,28 @@ export function MyDashboardPageShell({
 }: MyDashboardPageShellProps) {
   return (
     <PageShell>
-      <DataSection
-        loading={loading}
-        error={error}
-        onRetry={() => void refresh()}
-        contentClassName="space-y-6"
-      >
-        <MyDashboardStats
-          loading={loading}
-          accountData={accountData}
-          usageStats={usageStats}
-          resourceConsumption={resourceConsumption}
-          performance={performance}
-        />
-        <MyConsumptionCharts
-          loading={loading}
-          consumptionDistribution={consumptionDistribution}
-          consumptionTrend={consumptionTrend}
-          callDistribution={callDistribution}
-          callRanking={callRanking}
-          distributionTotal={distributionTotal}
-          trendTotal={trendTotal}
-          callTotal={callTotal}
-        />
+      <PageHeader title="我的看板" />
+
+      <DataSection loading={loading} error={error} onRetry={() => void refresh()}>
+        <div className="space-y-6">
+          <MyDashboardStats
+            loading={loading}
+            accountData={accountData}
+            usageStats={usageStats}
+            resourceConsumption={resourceConsumption}
+            performance={performance}
+          />
+          <MyConsumptionCharts
+            loading={loading}
+            consumptionDistribution={consumptionDistribution}
+            consumptionTrend={consumptionTrend}
+            callDistribution={callDistribution}
+            callRanking={callRanking}
+            distributionTotal={distributionTotal}
+            trendTotal={trendTotal}
+            callTotal={callTotal}
+          />
+        </div>
       </DataSection>
     </PageShell>
   )

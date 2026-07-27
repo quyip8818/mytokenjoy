@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { ArrowRight, CheckCircle2, Settings2 } from 'lucide-react'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { useDataSourcePage } from '@/features/org'
@@ -44,6 +45,8 @@ export function DataSourcePageShell({
 }: DataSourcePageShellProps) {
   return (
     <PageShell>
+      <PageHeader title="数据源" />
+
       <DataSection
         loading={loading}
         error={error}

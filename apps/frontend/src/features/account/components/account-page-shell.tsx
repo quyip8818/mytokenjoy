@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { PageShell } from '@/components/layout/page-shell'
 import { AvatarPicker } from '@/components/ui/avatar-picker'
 import {
   AlertDialog,
@@ -36,7 +35,7 @@ export function AccountPageShell(props: AccountPageState) {
   }
 
   return (
-    <PageShell description={<h1 className="text-sm font-semibold">账户设置</h1>}>
+    <div className="space-y-6">
       <div className="mx-auto w-full max-w-xl space-y-8">
         {/* Profile Card */}
         <section className="rounded-xl border border-border bg-card shadow-sm">
@@ -212,7 +211,7 @@ export function AccountPageShell(props: AccountPageState) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </PageShell>
+    </div>
   )
 }
 

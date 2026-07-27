@@ -1,7 +1,10 @@
 import { Bell, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/layout/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog'
 import type { useBudgetAlertRulesPage } from '@/features/budget'
 import { AlertRuleDialog } from './alert-rule-dialog'
@@ -41,17 +44,27 @@ export function BudgetAlertsPageShell({
   const hasRules = allRules.length > 0
 
   return (
-    <PageShell
-      actions={
-        <Button size="sm" className="gap-1.5" onClick={openCreate}>
-          <Plus className="size-3.5" />
-          创建规则
-        </Button>
-      }
-    >
+    <PageShell>
+      <PageHeader
+        title="预警规则"
+        description="设置预警阈值，在预算即将超支时及时通知相关负责人"
+        actions={
+          <Button size="sm" className="gap-1.5" onClick={openCreate}>
+            <Plus className="size-3.5" />
+            创建规则
+          </Button>
+        }
+      />
+
       <DataSection loading={loading} error={error} onRetry={() => void refresh()}>
         {!hasRules ? (
-          <EmptyState onCreate={openCreate} />
+          <EmptyState
+            icon={Bell}
+            title="尚未配置预警规则"
+            description="设置预警阈值，在预算即将超支时及时通知相关负责人"
+            actionLabel="创建第一条规则"
+            onAction={openCreate}
+          />
         ) : (
           <div className="space-y-5">
             <BudgetAlertsStats stats={stats} />
@@ -63,17 +76,22 @@ export function BudgetAlertsPageShell({
               search={search}
               onSearchChange={setSearch}
             />
-            <BudgetAlertsTable
-              rules={rules}
-              projects={projects}
-              roles={roles}
-              onToggle={(rule) => void handleToggle(rule)}
-              onEdit={openEdit}
-              onDelete={setDeleteTarget}
-            />
+            <Card className="border-border shadow-xs">
+              <CardContent className="px-5 pt-5 pb-4">
+                <BudgetAlertsTable
+                  rules={rules}
+                  projects={projects}
+                  roles={roles}
+                  onToggle={(rule) => void handleToggle(rule)}
+                  onEdit={openEdit}
+                  onDelete={setDeleteTarget}
+                />
+              </CardContent>
+            </Card>
           </div>
         )}
       </DataSection>
+
       <AlertRuleDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
@@ -102,25 +120,5 @@ export function BudgetAlertsPageShell({
         onClose={() => setDeleteTarget(null)}
       />
     </PageShell>
-  )
-}
-
-function EmptyState({ onCreate }: { onCreate: () => void }) {
-  return (
-    <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-border py-16">
-      <span className="flex size-12 items-center justify-center rounded-xl bg-primary/8 text-primary">
-        <Bell className="size-6" strokeWidth={1.5} />
-      </span>
-      <div className="text-center">
-        <p className="text-sm font-medium text-foreground">尚未配置预警规则</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          设置预警阈值，在预算即将超支时及时通知相关负责人
-        </p>
-      </div>
-      <Button size="sm" className="gap-1.5" onClick={onCreate}>
-        <Plus className="size-3.5" />
-        创建第一条规则
-      </Button>
-    </div>
   )
 }

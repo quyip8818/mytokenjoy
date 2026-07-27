@@ -64,7 +64,7 @@ assertRegisteredPagesImportFeatureHook(getRouteLazyImportPaths(), 'ROUTE_DEFINIT
 
 const pageShellExemptPaths = new Set(['routes/auth/login.tsx'])
 const routeHookSpreadExemptPaths = new Set(['routes/auth/login.tsx'])
-const pageShellWrapperPattern = /\b(PageShell|FilteredPageShell|[A-Z]\w*PageShell)\b/
+const pageShellWrapperPattern = /\b(PageShell|[A-Z]\w*PageShell)\b/
 const routeHookSpreadPattern = /\{\.\.\.use\w+\(\)\}/
 const crossFeatureLibImportPattern = /from ['"]@\/features\/([^/'"]+)\/lib\//
 const crossFeatureComponentImportPattern = /from ['"]@\/features\/([^/'"]+)\/components\//

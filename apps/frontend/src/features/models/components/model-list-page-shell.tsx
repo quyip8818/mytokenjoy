@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/layout/page-header'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { listEmpty } from '@/lib/list-empty'
 import { PermissionGate } from '@/features/session'
@@ -53,8 +54,6 @@ export function ModelListPageShell({
       error={error}
       onRetry={refresh}
       skeletonColumns={isSelfHosted ? 7 : 4}
-      className="border-0 shadow-none"
-      contentClassName="p-0"
       empty={listEmpty(loading, models, {
         icon: Box,
         title: '暂无模型',
@@ -80,8 +79,9 @@ export function ModelListPageShell({
   if (!isSelfHosted) {
     return (
       <PageShell>
+        <PageHeader title="模型列表" />
         <Card className="min-h-[360px] border-border shadow-xs">
-          <CardContent className="px-5 pt-4 pb-4">{tableContent}</CardContent>
+          <CardContent className="px-5 pt-5 pb-4">{tableContent}</CardContent>
         </Card>
       </PageShell>
     )
@@ -89,21 +89,24 @@ export function ModelListPageShell({
 
   // Self-hosted version: stats + tabs + add button
   return (
-    <PageShell
-      actions={
-        <PermissionGate write permission={PERMISSION.MODEL_MANAGE}>
-          <Button
-            id={modelCta.id}
-            size="sm"
-            variant="brand"
-            className={modelCta.className}
-            onClick={openCreate}
-          >
-            添加模型
-          </Button>
-        </PermissionGate>
-      }
-    >
+    <PageShell>
+      <PageHeader
+        title="模型列表"
+        actions={
+          <PermissionGate write permission={PERMISSION.MODEL_MANAGE}>
+            <Button
+              id={modelCta.id}
+              size="sm"
+              variant="brand"
+              className={modelCta.className}
+              onClick={openCreate}
+            >
+              添加模型
+            </Button>
+          </PermissionGate>
+        }
+      />
+
       {/* Stats bar */}
       {!loading && models.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
@@ -115,7 +118,7 @@ export function ModelListPageShell({
 
       <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)}>
         <Card className="min-h-[360px] border-border shadow-xs">
-          <CardContent className="px-5 pt-4 pb-4">
+          <CardContent className="px-5 pt-5 pb-4">
             <TabsList variant="line" className="mb-4">
               <TabsTrigger value="all">全部</TabsTrigger>
               <TabsTrigger value="custom">自定义</TabsTrigger>

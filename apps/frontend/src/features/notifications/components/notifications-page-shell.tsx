@@ -1,10 +1,14 @@
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
-import { PageShell } from '@/components/layout/page-shell'
+import { PageLoading } from '@/components/ui/page-loading'
 import type { useNotificationsPage } from '@/features/notifications'
 
 type NotificationsPageShellProps = ReturnType<typeof useNotificationsPage>
 
+/**
+ * Notification preferences panel.
+ * Rendered as a tab inside SettingsPageShell — does NOT wrap itself in PageShell.
+ */
 export function NotificationsPageShell({
   categories,
   channels,
@@ -16,22 +20,18 @@ export function NotificationsPageShell({
   resetPreferences,
 }: NotificationsPageShellProps) {
   if (loading) {
-    return (
-      <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-        加载中...
-      </div>
-    )
+    return <PageLoading />
   }
 
   return (
-    <PageShell
-      description={<h1 className="text-sm font-semibold">通知偏好</h1>}
-      actions={
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold">通知偏好</h2>
         <Button variant="outline" size="sm" onClick={resetPreferences} disabled={saving}>
           恢复默认
         </Button>
-      }
-    >
+      </div>
+
       <div className="rounded-lg border border-border">
         {/* Header */}
         <div className="grid grid-cols-[1fr_80px_80px_80px] items-center gap-2 border-b border-border bg-muted/50 px-4 py-3">
@@ -74,6 +74,6 @@ export function NotificationsPageShell({
       <p className="text-xs text-muted-foreground">
         未配置的渠道由管理员启用后才可选择。站内信始终可用。
       </p>
-    </PageShell>
+    </div>
   )
 }

@@ -1,5 +1,6 @@
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/layout/page-header'
 import type { useBillingPage } from '@/features/billing'
 import { useSession } from '@/features/session'
 import { walletBillingCurrency } from '../lib/selectors'
@@ -22,36 +23,28 @@ export function BillingPageShell({
   const canRecharge = companyType !== 'trial' && companyType !== 'demo'
 
   return (
-    <PageShell
-      description={
-        <div>
-          <h1 className="text-xl font-semibold">钱包管理</h1>
-          <p className="mt-1 text-sm text-muted-foreground">账户余额与充值管理</p>
+    <PageShell>
+      <PageHeader title="钱包管理" description="账户余额与充值管理" />
+
+      <BillingStats wallet={wallet} loading={loading} />
+
+      <DataSection loading={loading} error={error} onRetry={() => void refresh()}>
+        <div className="space-y-6">
+          {canRecharge ? (
+            <RechargePanel
+              currency={walletBillingCurrency(wallet)}
+              rechargePending={rechargePending}
+              onRecharge={handleRecharge}
+            />
+          ) : (
+            <div className="rounded-lg border border-border bg-card p-5">
+              <p className="text-sm text-muted-foreground">
+                试用账户不支持充值，升级为正式版后可使用充值功能。
+              </p>
+            </div>
+          )}
+          <RechargeRecordsTable records={topUpRecords} />
         </div>
-      }
-      stats={<BillingStats wallet={wallet} loading={loading} />}
-    >
-      <DataSection
-        loading={loading}
-        error={error}
-        onRetry={() => void refresh()}
-        contentClassName="space-y-6 p-0 pt-0"
-        className="border-0 shadow-none"
-      >
-        {canRecharge ? (
-          <RechargePanel
-            currency={walletBillingCurrency(wallet)}
-            rechargePending={rechargePending}
-            onRecharge={handleRecharge}
-          />
-        ) : (
-          <div className="rounded-lg border border-border bg-card p-5">
-            <p className="text-sm text-muted-foreground">
-              试用账户不支持充值，升级为正式版后可使用充值功能。
-            </p>
-          </div>
-        )}
-        <RechargeRecordsTable records={topUpRecords} />
       </DataSection>
     </PageShell>
   )
