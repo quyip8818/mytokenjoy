@@ -108,11 +108,12 @@ export const ROUTE_DEFINITIONS: RouteDefinition[] = [
   },
 ]
 
-export const NAV_ROUTES = ROUTE_DEFINITIONS.filter((r) => r.navGroup)
+const NAV_ROUTES = ROUTE_DEFINITIONS.filter((r) => r.navGroup)
 
 export interface NavGroupEntry {
   group: string
   items: RouteDefinition[]
+  collapsed?: boolean
 }
 
 export const NAV_GROUP_LAYOUT: NavGroupEntry[] = (() => {
@@ -120,10 +121,16 @@ export const NAV_GROUP_LAYOUT: NavGroupEntry[] = (() => {
   for (const def of NAV_ROUTES) {
     let group = groups.find((g) => g.group === def.navGroup)
     if (!group) {
-      group = { group: def.navGroup!, items: [] }
+      // ponytail: "系统设置" 默认折叠，其余展开
+      group = { group: def.navGroup!, items: [], collapsed: def.navGroup === '系统设置' }
       groups.push(group)
     }
     group.items.push(def)
   }
   return groups
 })()
+
+/** path → label 映射，供 Header 显示页面标题 */
+export const ROUTE_TITLES: Record<string, string> = Object.fromEntries(
+  ROUTE_DEFINITIONS.map((r) => [r.path, r.label]),
+)
