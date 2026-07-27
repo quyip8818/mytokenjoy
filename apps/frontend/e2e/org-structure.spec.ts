@@ -414,3 +414,40 @@ test.describe('组织架构 - API 数据校验', () => {
     expect(updateResponse.data.alias).toBe(target.alias + '改')
   })
 })
+
+test.describe('组织架构 - 激活邀请 Banner', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/org/structure')
+    await expect(page.getByRole('banner').getByRole('heading', { name: '组织架构' })).toBeVisible()
+  })
+
+  test('有 pending 成员时 banner 可见，点击发送后进入倒计时', async ({ page }) => {
+    const banner = page.getByText('名成员尚未激活')
+    const hasBanner = await banner.isVisible({ timeout: 3_000 }).catch(() => false)
+    if (!hasBanner) {
+      test.skip(true, '当前无待激活成员，banner 不显示')
+      return
+    }
+
+    const sendBtn = page.getByRole('button', { name: '发送激活邀请' })
+    await expect(sendBtn).toBeEnabled()
+    await sendBtn.click()
+
+    // 点击后按钮应显示倒计时秒数（如 "90s"）
+    await expect(page.getByRole('button', { name: /\d+s/ })).toBeVisible({ timeout: 5_000 })
+    // 按钮 disabled
+    await expect(page.getByRole('button', { name: /\d+s/ })).toBeDisabled()
+  })
+
+  test('dismiss banner 后当前页面不再显示', async ({ page }) => {
+    const banner = page.getByText('名成员尚未激活')
+    const hasBanner = await banner.isVisible({ timeout: 3_000 }).catch(() => false)
+    if (!hasBanner) {
+      test.skip(true, '当前无待激活成员，banner 不显示')
+      return
+    }
+
+    await page.getByRole('button', { name: '关闭' }).click()
+    await expect(banner).toBeHidden()
+  })
+})

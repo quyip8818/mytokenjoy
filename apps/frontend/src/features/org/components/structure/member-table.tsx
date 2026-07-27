@@ -52,11 +52,6 @@ interface MemberTableProps {
   onRowSelectionChange: (selection: RowSelectionState) => void
 }
 
-function maskPhone(phone: string): string {
-  if (phone.length >= 7) return phone.slice(0, 3) + '****' + phone.slice(-4)
-  return phone || '—'
-}
-
 const statusConfig: Record<string, { label: string; className: string }> = {
   active: { label: '已激活', className: 'bg-emerald-50 text-emerald-700' },
   inactive: { label: '已停用', className: 'bg-slate-100 text-slate-600' },
@@ -134,19 +129,19 @@ export function MemberTable({
         ),
         size: 40,
       }),
-      columnHelper.accessor('alias', {
+      columnHelper.accessor('name', {
         header: '姓名',
-        cell: (info) => <span className="font-medium text-foreground">{info.getValue()}</span>,
-      }),
-      columnHelper.accessor('departmentName', { header: '部门' }),
-      columnHelper.accessor('phone', {
-        header: '手机号',
         cell: (info) => (
-          <span className="tabular-nums text-muted-foreground">
-            {maskPhone(info.getValue() ?? '')}
-          </span>
+          <span className="font-medium text-foreground">{info.getValue() || '—'}</span>
         ),
       }),
+      columnHelper.accessor('alias', {
+        header: '昵称',
+        cell: (info) => (
+          <span className="text-muted-foreground">{info.getValue() || '—'}</span>
+        ),
+      }),
+      columnHelper.accessor('departmentName', { header: '部门' }),
       columnHelper.accessor('jobTitle', {
         header: '职位',
         cell: (info) => <span className="text-muted-foreground">{info.getValue() || '—'}</span>,
