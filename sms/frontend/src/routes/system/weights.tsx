@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
 import { useApis } from '@/api/use-apis'
 import { DIMENSIONS } from '@/config/enums'
+import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/layout/page-header'
 import type { EvaluationWeight } from '@/api/evaluations'
 
 const DIMENSION_DESC: Record<string, string> = {
@@ -61,15 +63,11 @@ export default function WeightsPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="mx-auto max-w-2xl rounded-lg border bg-white p-6">
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <h1 className="text-lg font-semibold">绩效评估权重配置</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              配置五个评估维度在综合分中的权重占比，合计必须等于 100%
-            </p>
-          </div>
+    <PageShell>
+      <PageHeader
+        title="绩效评估权重配置"
+        description="配置五个评估维度在综合分中的权重占比，合计必须等于 100%"
+        actions={
           <button
             onClick={handleSave}
             disabled={saving || !isValid}
@@ -77,7 +75,10 @@ export default function WeightsPage() {
           >
             {saving ? '保存中...' : '保存配置'}
           </button>
-        </div>
+        }
+      />
+
+      <div className="mx-auto max-w-2xl rounded-lg border bg-white p-6">
 
         {loading ? (
           <div className="py-8 text-center text-muted-foreground">加载中...</div>
@@ -125,6 +126,6 @@ export default function WeightsPage() {
           当前合计：{totalWeight}%{isValid ? ' ✓ 可保存' : ' （需调整至 100% 才能保存）'}
         </div>
       </div>
-    </div>
+    </PageShell>
   )
 }

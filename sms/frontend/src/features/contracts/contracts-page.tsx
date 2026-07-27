@@ -7,6 +7,8 @@ import { useSupplierOptions } from '@/features/suppliers'
 import { useApis } from '@/api/use-apis'
 import { CONTRACT_STATUS } from '@/config/enums'
 import { StatusBadge, Field, Pagination } from '@/components/ui'
+import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/layout/page-header'
 import type { Contract, ContractDetail, ContractAttachment } from '@/api/contracts'
 
 function daysUntil(endDate?: string): number | null {
@@ -161,9 +163,22 @@ export function ContractsPage() {
   const totalPages = Math.ceil((data?.total ?? 0) / filter.pageSize)
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <PageShell>
+      <PageHeader
+        title="合同管理"
+        actions={
+          canEdit ? (
+            <button
+              onClick={openCreate}
+              className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              <Plus className="h-4 w-4" /> 新建合同
+            </button>
+          ) : undefined
+        }
+      />
+
+      <div className="flex items-center gap-2">
           <input
             className="h-9 w-48 rounded-md border px-3 text-sm"
             placeholder="合同编号 / 标题"
@@ -194,15 +209,6 @@ export function ContractsPage() {
               </option>
             ))}
           </select>
-        </div>
-        {canEdit && (
-          <button
-            onClick={openCreate}
-            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus className="h-4 w-4" /> 新建合同
-          </button>
-        )}
       </div>
 
       <div className="rounded-lg border bg-white">
@@ -512,6 +518,6 @@ export function ContractsPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }

@@ -7,6 +7,8 @@ import { useSupplierOptions } from '@/features/suppliers'
 import { useApis } from '@/api/use-apis'
 import { ORDER_STATUS } from '@/config/enums'
 import { StatusBadge, Field, Pagination } from '@/components/ui'
+import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/layout/page-header'
 import type { PurchaseOrder } from '@/api/orders'
 
 export function OrdersPage() {
@@ -106,9 +108,22 @@ export function OrdersPage() {
   const totalPages = Math.ceil((data?.total ?? 0) / filter.pageSize)
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <PageShell>
+      <PageHeader
+        title="采购订单"
+        actions={
+          canEdit ? (
+            <button
+              onClick={openCreate}
+              className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              <Plus className="h-4 w-4" /> 新建订单
+            </button>
+          ) : undefined
+        }
+      />
+
+      <div className="flex items-center gap-2">
           <input
             className="h-9 w-44 rounded-md border px-3 text-sm"
             placeholder="订单编号"
@@ -139,15 +154,6 @@ export function OrdersPage() {
               </option>
             ))}
           </select>
-        </div>
-        {canEdit && (
-          <button
-            onClick={openCreate}
-            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus className="h-4 w-4" /> 新建订单
-          </button>
-        )}
       </div>
 
       <div className="rounded-lg border bg-white">
@@ -308,6 +314,6 @@ export function OrdersPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }

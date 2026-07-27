@@ -6,6 +6,8 @@ import { useSession } from '@/features/session'
 import { useApis } from '@/api/use-apis'
 import { MODEL_STATUS, MODEL_TYPES } from '@/config/enums'
 import { Badge, Field } from '@/components/ui'
+import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/layout/page-header'
 import type { AiModel } from '@/api/models'
 
 function ConfirmDialog({
@@ -129,17 +131,12 @@ export function ModelsPage() {
   const typeFilters = ['全部', ...MODEL_TYPES]
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="rounded-lg border bg-gradient-to-r from-blue-50 to-purple-50 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold">AI 模型目录</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              从 NewAPI 同步 · 共 {data?.total ?? 0} 个模型
-            </p>
-          </div>
-          {canEdit && (
+    <PageShell>
+      <PageHeader
+        title="AI 模型目录"
+        description={`从 NewAPI 同步 · 共 ${data?.total ?? 0} 个模型`}
+        actions={
+          canEdit ? (
             <button
               onClick={handleSync}
               disabled={syncing}
@@ -148,9 +145,9 @@ export function ModelsPage() {
               <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
               {syncing ? '同步中...' : '同步模型'}
             </button>
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
 
       {/* Filters */}
       <div className="space-y-3 rounded-lg border bg-white p-4">
@@ -338,6 +335,6 @@ export function ModelsPage() {
         onConfirm={handleConfirm}
         onCancel={() => setConfirmAction(null)}
       />
-    </div>
+    </PageShell>
   )
 }

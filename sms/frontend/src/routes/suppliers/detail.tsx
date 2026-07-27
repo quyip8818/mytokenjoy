@@ -7,6 +7,7 @@ import { useSession } from '@/features/session'
 import { useApis } from '@/api/use-apis'
 import { SUPPLIER_STATUS, CONTRACT_STATUS, ORDER_STATUS, MODEL_STATUS } from '@/config/enums'
 import { StatusBadge } from '@/components/ui'
+import { PageShell } from '@/components/layout/page-shell'
 import type { SupplierContact } from '@/api/suppliers'
 
 function daysUntil(endDate?: string): number | null {
@@ -111,7 +112,7 @@ export default function SupplierDetailPage() {
   ]
 
   return (
-    <div className="space-y-4">
+    <PageShell>
       <Link
         to="/suppliers"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
@@ -486,6 +487,6 @@ export default function SupplierDetailPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }

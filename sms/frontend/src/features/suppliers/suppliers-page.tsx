@@ -7,6 +7,8 @@ import { useSession } from '@/features/session'
 import { useApis } from '@/api/use-apis'
 import { SUPPLIER_STATUS, CATEGORIES } from '@/config/enums'
 import { StatusBadge, Field, Pagination } from '@/components/ui'
+import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/layout/page-header'
 import type { Supplier } from '@/api/suppliers'
 
 export function SuppliersPage() {
@@ -88,9 +90,22 @@ export function SuppliersPage() {
   const totalPages = Math.ceil((data?.total ?? 0) / filter.pageSize)
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <PageShell>
+      <PageHeader
+        title="供应商管理"
+        actions={
+          canEdit ? (
+            <button
+              onClick={openCreate}
+              className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              <Plus className="h-4 w-4" /> 新建供应商
+            </button>
+          ) : undefined
+        }
+      />
+
+      <div className="flex items-center gap-2">
           <input
             className="h-9 w-48 rounded-md border px-3 text-sm"
             placeholder="名称 / 编码"
@@ -121,15 +136,6 @@ export function SuppliersPage() {
               </option>
             ))}
           </select>
-        </div>
-        {canEdit && (
-          <button
-            onClick={openCreate}
-            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus className="h-4 w-4" /> 新建供应商
-          </button>
-        )}
       </div>
 
       <div className="rounded-lg border bg-white">
@@ -295,6 +301,6 @@ export function SuppliersPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }

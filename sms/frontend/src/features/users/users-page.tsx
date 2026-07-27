@@ -4,6 +4,8 @@ import { toast } from 'sonner'
 import { useInjectedQuery } from '@/features/query'
 import { useApis } from '@/api/use-apis'
 import { Badge, Field } from '@/components/ui'
+import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/layout/page-header'
 import type { User } from '@/api/auth'
 import type { Role } from '@/api/users'
 
@@ -120,21 +122,25 @@ export function UsersPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <input
-          className="h-9 w-56 rounded-md border px-3 text-sm"
-          placeholder="用户名 / 姓名"
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-        />
-        <button
-          onClick={openCreate}
-          className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
-        >
-          <Plus className="h-4 w-4" /> 新建用户
-        </button>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="用户管理"
+        actions={
+          <button
+            onClick={openCreate}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
+          >
+            <Plus className="h-4 w-4" /> 新建用户
+          </button>
+        }
+      />
+
+      <input
+        className="h-9 w-56 rounded-md border px-3 text-sm"
+        placeholder="用户名 / 姓名"
+        value={keyword}
+        onChange={(e) => setKeyword(e.target.value)}
+      />
 
       <div className="rounded-lg border bg-white">
         <table className="w-full text-sm">
@@ -278,6 +284,6 @@ export function UsersPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }

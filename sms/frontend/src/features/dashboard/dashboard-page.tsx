@@ -1,6 +1,8 @@
 import { useInjectedQuery, queryKeys } from '@/features/query'
 import { ORDER_STATUS } from '@/config/enums'
 import { Badge } from '@/components/ui'
+import { PageShell } from '@/components/layout/page-shell'
+import { PageHeader } from '@/components/layout/page-header'
 
 export function DashboardPage() {
   const { data: cards } = useInjectedQuery({
@@ -28,11 +30,13 @@ export function DashboardPage() {
   ]
 
   return (
-    <div className="space-y-6">
+    <PageShell>
+      <PageHeader title="数据看板" description={`覆盖 ${statCards[0].value} 家供应商 · ${statCards[2].value} 个模型`} />
+
       {/* 统计卡片 */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {statCards.map((card) => (
-          <div key={card.label} className="rounded-lg border bg-white p-5">
+          <div key={card.label} className="rounded-lg border bg-white p-5 shadow-sm">
             <div className="flex items-center gap-3">
               <div
                 className={`h-10 w-10 rounded-lg ${card.color} flex items-center justify-center`}
@@ -48,9 +52,9 @@ export function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* 即将到期合同 */}
-        <div className="rounded-lg border bg-white p-5">
+        <div className="rounded-lg border bg-white p-5 shadow-sm">
           <h2 className="mb-3 text-sm font-semibold">30 天内到期合同</h2>
           {!expiring || expiring.length === 0 ? (
             <div className="py-6 text-center text-sm text-muted-foreground">暂无即将到期的合同</div>
@@ -73,7 +77,7 @@ export function DashboardPage() {
         </div>
 
         {/* 最近订单 */}
-        <div className="rounded-lg border bg-white p-5">
+        <div className="rounded-lg border bg-white p-5 shadow-sm">
           <h2 className="mb-3 text-sm font-semibold">最近订单</h2>
           {!recentOrders || recentOrders.length === 0 ? (
             <div className="py-6 text-center text-sm text-muted-foreground">暂无订单</div>
@@ -108,7 +112,7 @@ export function DashboardPage() {
 
       {/* 图表区 */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-lg border bg-white p-5">
+        <div className="rounded-lg border bg-white p-5 shadow-sm">
           <h2 className="mb-3 text-sm font-semibold">评估等级分布</h2>
           {charts?.gradeDistribution && charts.gradeDistribution.length > 0 ? (
             <div className="flex h-32 items-end gap-3">
@@ -138,7 +142,7 @@ export function DashboardPage() {
           )}
         </div>
 
-        <div className="rounded-lg border bg-white p-5">
+        <div className="rounded-lg border bg-white p-5 shadow-sm">
           <h2 className="mb-3 text-sm font-semibold">各供应商模型数量</h2>
           {charts?.modelCountBySupplier && charts.modelCountBySupplier.length > 0 ? (
             <div className="space-y-2">
@@ -163,6 +167,6 @@ export function DashboardPage() {
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   )
 }
