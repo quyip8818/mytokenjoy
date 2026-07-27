@@ -5,7 +5,7 @@ import { useInjectedApis } from '@/api/use-apis'
 import type { Platform } from '@/api/types'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 
-export type DataSourceWizardPhase = 'loading' | 'select' | 'steps' | 'connected'
+export type DataSourceWizardPhase = 'loading' | 'select' | 'steps' | 'connected' | 'csv-import'
 
 export function useDataSourcePage(injectedApis?: AppApis) {
   const apis = useInjectedApis(injectedApis)
@@ -76,6 +76,7 @@ export function useDataSourcePage(injectedApis?: AppApis) {
 
   const goToSelect = () => setUserPhase('select')
   const goToPreviousStep = (step: number) => setCurrentStep(step)
+  const goToCsvImport = () => setUserPhase('csv-import')
 
   return {
     phase,
@@ -88,11 +89,13 @@ export function useDataSourcePage(injectedApis?: AppApis) {
     refresh,
     dataSourceApi: apis.dataSourceApi,
     syncApi: apis.syncApi,
+    memberApi: apis.memberApi,
     handlePlatformSelected,
     completeStep,
     handleWizardComplete,
     handleReconfigure,
     goToSelect,
     goToPreviousStep,
+    goToCsvImport,
   }
 }

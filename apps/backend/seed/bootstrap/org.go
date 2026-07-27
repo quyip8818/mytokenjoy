@@ -9,11 +9,17 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/grants"
+	"github.com/tokenjoy/backend/seed/contract"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func insertRootOrg(ctx context.Context, exec TableWriter, companyID uuid.UUID, appCfg config.Config, cfg Config) error {
-	rootID := deterministicOrgRootID(companyID)
+	// Demo/minimal modes provide their own full org tree via snapshot — skip bootstrap root.
+	if appCfg.BootstrapIsDemo() || appCfg.BootstrapIsMinimal() {
+		return nil
+	}
+
+	rootID := contract.IDDept1
 	pathLabel := strings.ReplaceAll(rootID.String(), "-", "_")
 	if _, err := exec.Exec(ctx, `
 		INSERT INTO org_nodes (id, company_id, name, parent_id, path, type, sort_order)
@@ -23,7 +29,7 @@ func insertRootOrg(ctx context.Context, exec TableWriter, companyID uuid.UUID, a
 		return fmt.Errorf("insert root org node: %w", err)
 	}
 
-	// Only create admin in prod mode. Demo/minimal modes have their own member data.
+	// Only create admin in prod mode.
 	if appCfg.BootstrapIsProd() && cfg.Admin.Email != "" {
 		if err := insertAdminMember(ctx, exec, companyID, rootID, cfg); err != nil {
 			return err
@@ -82,10 +88,6 @@ func insertAdminMember(ctx context.Context, exec TableWriter, companyID, deptID 
 	}
 
 	return nil
-}
-
-func deterministicOrgRootID(companyID uuid.UUID) uuid.UUID {
-	return uuid.NewSHA1(companyID, []byte("org-root"))
 }
 
 func deterministicAdminUserID(companyID uuid.UUID) uuid.UUID {

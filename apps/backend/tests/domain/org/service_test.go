@@ -42,7 +42,7 @@ func TestRemoveBaseMemberRoleReturns400(t *testing.T) {
 	}
 }
 
-func TestBatchImportUnknownDepartment(t *testing.T) {
+func TestBatchImportUnknownDepartmentAutoCreates(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
 	result, err := svc.BatchImport(testutil.Ctx(), []types.BatchImportRow{
@@ -51,11 +51,8 @@ func TestBatchImportUnknownDepartment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Imported != 0 {
-		t.Fatalf("expected 0 imported, got %d", result.Imported)
-	}
-	if len(result.Failures) != 1 {
-		t.Fatalf("expected 1 failure, got %d", len(result.Failures))
+	if result.Imported != 1 {
+		t.Fatalf("expected 1 imported (auto-create dept), got %d, failures: %v", result.Imported, result.Failures)
 	}
 }
 

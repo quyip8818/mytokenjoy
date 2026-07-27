@@ -28,17 +28,6 @@ export function useStructurePage(injectedApis?: AppApis) {
   const [transferDeptId, setTransferDeptId] = useState('')
   const { confirmState, setConfirmState } = useStructureConfirmState()
 
-  const memberQueryParams = useMemo(
-    () => ({
-      page,
-      pageSize,
-      keyword: searchKeyword || undefined,
-      departmentId: selectedDept?.id,
-      status: 'active,pending',
-    }),
-    [page, pageSize, searchKeyword, selectedDept?.id],
-  )
-
   const {
     data: departments = [],
     loading: departmentsLoading,
@@ -49,6 +38,18 @@ export function useStructurePage(injectedApis?: AppApis) {
     queryKey: queryKeys.org.departmentTree(),
     queryFn: (api) => api.departmentApi.getTree(),
   })
+
+  const memberQueryParams = useMemo(
+    () => ({
+      page,
+      pageSize,
+      keyword: searchKeyword || undefined,
+      // "全部成员"（selectedDept=undefined）等价于选中根节点，传根节点 ID 保证结果一致
+      departmentId: selectedDept?.id ?? departments[0]?.id,
+      status: 'active,pending',
+    }),
+    [page, pageSize, searchKeyword, selectedDept?.id, departments],
+  )
 
   const {
     data: membersResult,

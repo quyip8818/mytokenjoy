@@ -5,12 +5,15 @@ set -euo pipefail
 # shellcheck source=../lib/common.sh
 source "$(cd "$(dirname "$0")" && pwd)/../lib/common.sh"
 
-# Ensure child processes are killed on exit (prevents orphaned port listeners).
+# Ensure the entire process tree is killed on exit (prevents orphaned port listeners).
 cleanup() {
+  # Kill direct children recursively.
   pkill -P $$ 2>/dev/null || true
-  # Give children a moment to exit, then force-kill stragglers.
-  sleep 0.5
+  sleep 0.3
   pkill -9 -P $$ 2>/dev/null || true
+  # Fallback: kill anything still on backend/frontend ports.
+  lsof -ti :8010 | xargs kill -9 2>/dev/null || true
+  lsof -ti :9191 | xargs kill -9 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
 

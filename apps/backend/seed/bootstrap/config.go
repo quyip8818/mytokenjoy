@@ -44,7 +44,7 @@ type ModelConfig struct {
 func DefaultConfig() Config {
 	return Config{
 		Version: 1,
-		Company: CompanyConfig{Name: "My Company"},
+		Company: CompanyConfig{Name: "总公司"},
 		Billing: BillingConfig{
 			Currency:     "CNY",
 			QuotaPerUnit: 500_000,

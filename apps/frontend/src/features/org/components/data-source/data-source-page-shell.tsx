@@ -8,6 +8,7 @@ import type { useDataSourcePage } from '@/features/org'
 import { PLATFORM_LABELS } from '@/features/org'
 import { Stepper } from './stepper'
 import { PlatformSelect } from './platform-select'
+import { CsvImport } from './csv-import'
 import { PLATFORM_ICON_META } from './platform-meta'
 import { StepCredentials } from './step-credentials'
 import { StepFieldMapping } from './step-field-mapping'
@@ -32,12 +33,14 @@ export function DataSourcePageShell({
   refresh,
   dataSourceApi,
   syncApi,
+  memberApi,
   handlePlatformSelected,
   completeStep,
   handleWizardComplete,
   handleReconfigure,
   goToSelect,
   goToPreviousStep,
+  goToCsvImport,
 }: DataSourcePageShellProps) {
   return (
     <PageShell>
@@ -48,7 +51,13 @@ export function DataSourcePageShell({
         className="border-0 bg-transparent py-0 shadow-none ring-0"
         contentClassName="p-0"
       >
-        {phase === 'connected' && status?.connected && platform ? (
+        {phase === 'csv-import' ? (
+          <div className="rounded-xl border border-border bg-card px-6 py-10 shadow-xs">
+            <div className="mx-auto max-w-3xl">
+              <CsvImport onImport={(rows) => memberApi.batchImport(rows)} onBack={goToSelect} />
+            </div>
+          </div>
+        ) : phase === 'connected' && status?.connected && platform ? (
           <ConnectedCard
             platform={platform}
             lastImport={status.lastImport}
@@ -57,7 +66,7 @@ export function DataSourcePageShell({
         ) : phase === 'select' ? (
           <div className="rounded-xl border border-border bg-card px-6 py-10 shadow-xs">
             <div className="mx-auto max-w-2xl">
-              <PlatformSelect onSelect={handlePlatformSelected} />
+              <PlatformSelect onSelect={handlePlatformSelected} onCsvImport={goToCsvImport} />
             </div>
           </div>
         ) : (

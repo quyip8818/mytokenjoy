@@ -17,35 +17,31 @@ type orgNodeRoutingSeed struct {
 func orgNodeRoutingByID() map[uuid.UUID]orgNodeRoutingSeed {
 	return map[uuid.UUID]orgNodeRoutingSeed{
 		contract.IDDept1: {
-			allowedModelIDs: []uuid.UUID{
-				contract.IDModel1, contract.IDModel11,
-			},
+			allowedModelIDs: []uuid.UUID{contract.IDModelTest},
 		},
 		contract.IDDept2: {
-			allowedModelIDs: []uuid.UUID{
-				contract.IDModel1, contract.IDModel11,
-			},
+			allowedModelIDs: []uuid.UUID{contract.IDModelTest},
 		},
 		contract.IDDept3: {
-			allowedModelIDs: []uuid.UUID{contract.IDModel1, contract.IDModel11},
+			allowedModelIDs: []uuid.UUID{contract.IDModelTest},
 			inherited:       true,
 		},
 		contract.IDDept6: {
-			allowedModelIDs: []uuid.UUID{contract.IDModel1, contract.IDModel11},
+			allowedModelIDs: []uuid.UUID{contract.IDModelTest},
 		},
 		contract.IDDept4: {
-			allowedModelIDs: []uuid.UUID{contract.IDModel1, contract.IDModel11},
+			allowedModelIDs: []uuid.UUID{contract.IDModelTest},
 			inherited:       true,
 		},
 		contract.IDDept5: {
-			allowedModelIDs: []uuid.UUID{contract.IDModel11},
+			allowedModelIDs: []uuid.UUID{contract.IDModelTest},
 			inherited:       true,
 		},
 		contract.IDDept7: {
-			allowedModelIDs: []uuid.UUID{contract.IDModel1, contract.IDModel11},
+			allowedModelIDs: []uuid.UUID{contract.IDModelTest},
 		},
 		contract.IDDept8: {
-			allowedModelIDs: []uuid.UUID{contract.IDModel11},
+			allowedModelIDs: []uuid.UUID{contract.IDModelTest},
 			inherited:       true,
 		},
 	}

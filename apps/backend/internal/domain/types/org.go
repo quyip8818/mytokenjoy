@@ -65,6 +65,10 @@ type BatchImportRow struct {
 	Phone          string `json:"phone"`
 	Email          string `json:"email"`
 	DepartmentName string `json:"departmentName"`
+	EmployeeId     string `json:"employeeId"`
+	Alias          string `json:"alias"`
+	JobTitle       string `json:"jobTitle"`
+	HireDate       string `json:"hireDate"`
 }
 
 type MemberBatchImportResult struct {

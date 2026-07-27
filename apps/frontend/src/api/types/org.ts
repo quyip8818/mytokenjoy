@@ -141,6 +141,10 @@ export interface BatchImportRow {
   phone: string
   email: string
   departmentName: string
+  employeeId: string
+  alias: string
+  jobTitle: string
+  hireDate: string
 }
 
 export interface MemberBatchImportResult {

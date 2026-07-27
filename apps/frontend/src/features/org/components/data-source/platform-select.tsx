@@ -3,7 +3,7 @@ import type { Platform } from '@/api/types'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { CheckIcon, MessageSquare, Building2, Users } from 'lucide-react'
+import { CheckIcon, MessageSquare, Building2, Users, FileSpreadsheet } from 'lucide-react'
 
 const platforms: {
   id: Platform
@@ -41,9 +41,10 @@ const platforms: {
 
 interface PlatformSelectProps {
   onSelect: (platform: Platform) => void
+  onCsvImport?: () => void
 }
 
-export function PlatformSelect({ onSelect }: PlatformSelectProps) {
+export function PlatformSelect({ onSelect, onCsvImport }: PlatformSelectProps) {
   const [selected, setSelected] = useState<Platform | null>(null)
 
   return (
@@ -123,6 +124,16 @@ export function PlatformSelect({ onSelect }: PlatformSelectProps) {
         </Button>
         {!selected && <p className="text-xs text-muted-foreground">请先选择一个平台</p>}
       </div>
+
+      {onCsvImport && (
+        <div className="flex flex-col items-center gap-3 border-t border-border pt-6">
+          <p className="text-xs text-muted-foreground">没有第三方平台？也可以通过 CSV 文件批量导入成员</p>
+          <Button variant="outline" size="sm" onClick={onCsvImport}>
+            <FileSpreadsheet className="size-3.5" />
+            CSV 批量导入
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

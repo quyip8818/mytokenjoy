@@ -158,3 +158,8 @@ func departmentsToOrgNodes(departments []types.Department) []types.OrgNode {
 	}
 	return result
 }
+
+// DepartmentsToOrgNodes converts a department tree to an OrgNode tree (exported).
+func DepartmentsToOrgNodes(departments []types.Department) []types.OrgNode {
+	return departmentsToOrgNodes(departments)
+}
