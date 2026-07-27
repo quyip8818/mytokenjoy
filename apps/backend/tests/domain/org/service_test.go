@@ -21,7 +21,7 @@ func TestDeletePresetRoleReturns400(t *testing.T) {
 func TestListMembersPagination(t *testing.T) {
 	t.Parallel()
 	svc := newTestOrgService(t)
-	page, err := svc.ListMembers(testutil.Ctx(), uuid.Nil, "", false, 1, 20)
+	page, err := svc.ListMembers(testutil.Ctx(), uuid.Nil, "", false, "", 1, 20)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestAddRoleMember(t *testing.T) {
 	if err := svc.AddRoleMember(ctx, role.ID, contract.IDMember3); err != nil {
 		t.Fatal(err)
 	}
-	page, err := svc.ListMembers(ctx, uuid.Nil, "", false, 1, 200)
+	page, err := svc.ListMembers(ctx, uuid.Nil, "", false, "", 1, 200)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestRemoveRoleMemberSuccess(t *testing.T) {
 	if err := svc.RemoveRoleMember(ctx, role.ID, contract.IDMember3); err != nil {
 		t.Fatal(err)
 	}
-	page, err := svc.ListMembers(ctx, uuid.Nil, "", false, 1, 200)
+	page, err := svc.ListMembers(ctx, uuid.Nil, "", false, "", 1, 200)
 	if err != nil {
 		t.Fatal(err)
 	}

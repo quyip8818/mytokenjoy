@@ -31,6 +31,7 @@ func (s *LocalService) DeleteMembers(ctx context.Context, ids []uuid.UUID, curre
 			idSet[id] = struct{}{}
 		}
 
+		// Disable associated keys for all deleted/disabled members.
 		for i := range keys {
 			if keys[i].MemberID != nil {
 				if _, ok := idSet[*keys[i].MemberID]; ok {
@@ -40,20 +41,29 @@ func (s *LocalService) DeleteMembers(ctx context.Context, ids []uuid.UUID, curre
 			}
 		}
 
-		filtered := make([]types.Member, 0, len(members)-len(ids))
+		// pending → hard delete (physical remove); others → soft delete (set disabled).
+		result := make([]types.Member, 0, len(members))
 		for _, m := range members {
 			if _, ok := idSet[m.ID]; !ok {
-				filtered = append(filtered, m)
+				result = append(result, m)
+				continue
 			}
+			if m.Status == types.MemberStatusPending {
+				// Hard delete: don't include in result.
+				continue
+			}
+			// Soft delete: mark as disabled, keep record.
+			m.Status = types.MemberStatusDisabled
+			result = append(result, m)
 		}
 
 		if err := st.Keys().SetPlatformKeys(ctx, keys); err != nil {
 			return err
 		}
-		if err := st.Org().SetMembers(ctx, filtered); err != nil {
+		if err := st.Org().SetMembers(ctx, result); err != nil {
 			return err
 		}
-		if err := persistRecalculatedMemberCounts(ctx, st, filtered); err != nil {
+		if err := persistRecalculatedMemberCounts(ctx, st, result); err != nil {
 			return err
 		}
 		return core.BumpAuthzRevisionStore(ctx, st)

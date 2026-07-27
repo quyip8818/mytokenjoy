@@ -13,11 +13,11 @@ import (
 	httpapi "github.com/tokenjoy/backend/internal/http"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/integration/platform"
+	smsintegration "github.com/tokenjoy/backend/internal/integration/sms"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/internal/worker/pricingsync"
 	"github.com/tokenjoy/backend/internal/worker/smssync"
-	smsintegration "github.com/tokenjoy/backend/internal/integration/sms"
 )
 
 func openStore(ctx context.Context, cfg config.Config) (store.Store, error) {
@@ -162,4 +162,3 @@ func startSMSSyncWorker(ctx context.Context, cfg config.Config, adminPort adminp
 	go w.Run(ctx)
 	slog.Info("sms sync worker started", "interval", interval, "url", cfg.SMSAPIBaseURL)
 }
-

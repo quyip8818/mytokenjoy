@@ -133,7 +133,7 @@ func TestSyncSoftDeletesBelowThreshold(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, member := range members {
-		if member.ID == memberID && member.Status != "inactive" {
+		if member.ID == memberID && member.Status != "disabled" {
 			t.Fatalf("expected soft-deleted member, got status %s", member.Status)
 		}
 	}

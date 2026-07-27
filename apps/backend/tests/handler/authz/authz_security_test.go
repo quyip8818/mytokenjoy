@@ -74,7 +74,7 @@ func TestDisabledMemberSessionRejected(t *testing.T) {
 	disableRec := testhttp.ServeAuthz(
 		t, router, http.MethodPut, "/api/org/members/status",
 		testhttp.AdminCookie(t),
-		`{"ids":["`+contract.IDMemberPure.String()+`"],"status":"inactive"}`,
+		`{"ids":["`+contract.IDMemberPure.String()+`"],"status":"disabled"}`,
 		nil,
 	)
 	if disableRec.Code != http.StatusNoContent && disableRec.Code != http.StatusOK {

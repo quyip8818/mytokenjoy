@@ -34,6 +34,7 @@ export function useStructurePage(injectedApis?: AppApis) {
       pageSize,
       keyword: searchKeyword || undefined,
       departmentId: selectedDept?.id,
+      status: 'active,pending',
     }),
     [page, pageSize, searchKeyword, selectedDept?.id],
   )
@@ -148,15 +149,15 @@ export function useStructurePage(injectedApis?: AppApis) {
     }
   }
 
-  const handleStatusChange = (ids: string[], status: 'active' | 'inactive') => {
+  const handleStatusChange = (ids: string[], status: 'active' | 'disabled') => {
     setConfirmState({
       open: true,
-      title: status === 'inactive' ? '停用成员' : '启用成员',
+      title: status === 'disabled' ? '停用成员' : '启用成员',
       desc:
-        status === 'inactive'
+        status === 'disabled'
           ? '停用后该成员的 Platform Key 将同步失效'
           : `确定启用选中的 ${ids.length} 名成员？`,
-      variant: status === 'inactive' ? 'danger' : 'primary',
+      variant: status === 'disabled' ? 'danger' : 'primary',
       onConfirm: async () => {
         await apis.memberApi.updateStatus(ids, status)
         setRowSelection({})

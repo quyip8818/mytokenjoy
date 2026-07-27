@@ -46,7 +46,7 @@ interface MemberTableProps {
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
   onEdit: (member: Member) => void
-  onStatusChange: (ids: string[], status: 'active' | 'inactive') => void
+  onStatusChange: (ids: string[], status: 'active' | 'disabled') => void
   onDelete: (ids: string[]) => void
   rowSelection: RowSelectionState
   onRowSelectionChange: (selection: RowSelectionState) => void
@@ -54,7 +54,7 @@ interface MemberTableProps {
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   active: { label: '已激活', className: 'bg-emerald-50 text-emerald-700' },
-  inactive: { label: '已停用', className: 'bg-slate-100 text-slate-600' },
+  disabled: { label: '已停用', className: 'bg-slate-100 text-slate-600' },
   pending: { label: '待激活', className: 'bg-amber-50 text-amber-700' },
 }
 
@@ -137,9 +137,7 @@ export function MemberTable({
       }),
       columnHelper.accessor('alias', {
         header: '昵称',
-        cell: (info) => (
-          <span className="text-muted-foreground">{info.getValue() || '—'}</span>
-        ),
+        cell: (info) => <span className="text-muted-foreground">{info.getValue() || '—'}</span>,
       }),
       columnHelper.accessor('departmentName', { header: '部门' }),
       columnHelper.accessor('jobTitle', {
@@ -224,11 +222,12 @@ export function MemberTable({
                   {member.status === 'pending' && (
                     <DropdownMenuItem onClick={handleResendInvite}>重新发送邀请</DropdownMenuItem>
                   )}
-                  {member.status === 'active' ? (
-                    <DropdownMenuItem onClick={() => onStatusChange([member.id], 'inactive')}>
+                  {member.status === 'active' && (
+                    <DropdownMenuItem onClick={() => onStatusChange([member.id], 'disabled')}>
                       停用
                     </DropdownMenuItem>
-                  ) : (
+                  )}
+                  {member.status === 'disabled' && (
                     <DropdownMenuItem onClick={() => onStatusChange([member.id], 'active')}>
                       启用
                     </DropdownMenuItem>

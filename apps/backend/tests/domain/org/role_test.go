@@ -155,7 +155,7 @@ func TestAddRoleMemberRejectsProtectedPresetRole(t *testing.T) {
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	members, err := svc.ListMembers(ctx, uuid.Nil, "", false, 1, 10)
+	members, err := svc.ListMembers(ctx, uuid.Nil, "", false, "", 1, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +184,7 @@ func TestAddRoleMemberAllowsCustomRole(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	members, err := svc.ListMembers(ctx, uuid.Nil, "", false, 1, 10)
+	members, err := svc.ListMembers(ctx, uuid.Nil, "", false, "", 1, 10)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -287,8 +287,12 @@ func (s *LocalService) UpdateMemberStatus(ctx context.Context, ids []uuid.UUID, 
 			if _, ok := idSet[members[i].ID]; !ok {
 				continue
 			}
+			// pending 成员不允许手动激活，必须通过注册流程
+			if members[i].Status == types.MemberStatusPending && status == types.MemberStatusActive {
+				return domain.BadRequest("待激活用户需完成注册后自动激活，不可手动启用")
+			}
 			members[i].Status = status
-			if status == "inactive" {
+			if status == types.MemberStatusDisabled {
 				for j := range keys {
 					if keys[j].MemberID != nil && *keys[j].MemberID == members[i].ID {
 						keys[j].Status = "disabled"

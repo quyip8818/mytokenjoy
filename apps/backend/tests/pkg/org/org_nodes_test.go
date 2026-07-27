@@ -30,8 +30,8 @@ func TestRecalcOrgNodeMemberCounts_ExcludesInactive(t *testing.T) {
 
 	members := []types.Member{
 		{ID: orgM1, DepartmentID: orgDept1, Status: types.MemberStatusActive},
-		{ID: orgM2, DepartmentID: orgDept1, Status: types.MemberStatusInactive},
-		{ID: orgM3, DepartmentID: orgDept1, Status: types.MemberStatusInactive},
+		{ID: orgM2, DepartmentID: orgDept1, Status: types.MemberStatusDisabled},
+		{ID: orgM3, DepartmentID: orgDept1, Status: types.MemberStatusDisabled},
 		{ID: orgM4, DepartmentID: orgDept2, Status: types.MemberStatusActive},
 		{ID: orgM5, DepartmentID: orgDept2, Status: types.MemberStatusActive},
 		{ID: orgM6, DepartmentID: orgDept2, Status: types.MemberStatusPending},
@@ -60,8 +60,8 @@ func TestRecalcOrgNodeMemberCounts_AllInactiveGivesZero(t *testing.T) {
 	}
 
 	members := []types.Member{
-		{ID: orgM1, DepartmentID: orgDept1, Status: types.MemberStatusInactive},
-		{ID: orgM2, DepartmentID: orgDept1, Status: types.MemberStatusInactive},
+		{ID: orgM1, DepartmentID: orgDept1, Status: types.MemberStatusDisabled},
+		{ID: orgM2, DepartmentID: orgDept1, Status: types.MemberStatusDisabled},
 	}
 
 	result := pkgorg.RecalcOrgNodeMemberCounts(nodes, members)
@@ -84,7 +84,7 @@ func TestRecalcOrgNodeMemberCounts_NestedExcludesInactive(t *testing.T) {
 
 	members := []types.Member{
 		{ID: orgM1, DepartmentID: orgChild, Status: types.MemberStatusActive},
-		{ID: orgM2, DepartmentID: orgChild, Status: types.MemberStatusInactive},
+		{ID: orgM2, DepartmentID: orgChild, Status: types.MemberStatusDisabled},
 		{ID: orgM3, DepartmentID: orgParent, Status: types.MemberStatusActive},
 	}
 

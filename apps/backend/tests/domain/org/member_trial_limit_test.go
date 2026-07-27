@@ -32,7 +32,7 @@ func TestTrialMemberLimitBlocks(t *testing.T) {
 
 	// Seed: the default company already has members from bootstrap.
 	// Count existing members to calibrate.
-	page, err := svc.ListMembers(ctx, uuid.Nil, "", false, 1, 1000)
+	page, err := svc.ListMembers(ctx, uuid.Nil, "", false, "", 1, 1000)
 	if err != nil {
 		t.Fatal(err)
 	}

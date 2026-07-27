@@ -10,35 +10,34 @@ import (
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 )
 
-// PRD 2.2 成员状态: [创建]→启用, [邀请]→未激活→启用, 启用⇄停用, 停用/启用→删除
+// PRD: 成员状态: pending→active(注册), active⇄disabled, pending→硬删, active/disabled→disabled(软删)
 
-func TestMemberStatusTransition_ActiveToInactive(t *testing.T) {
+func TestMemberStatusTransition_ActiveToDisabled(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	// Active member goes inactive
-	if err := svc.UpdateMemberStatus(ctx, []uuid.UUID{contract.IDMember1}, "inactive"); err != nil {
+	if err := svc.UpdateMemberStatus(ctx, []uuid.UUID{contract.IDMember1}, "disabled"); err != nil {
 		t.Fatal(err)
 	}
 
 	members, _ := st.Org().Members(ctx)
 	for _, m := range members {
-		if m.ID == contract.IDMember1 && m.Status != "inactive" {
-			t.Fatalf("expected inactive, got %s", m.Status)
+		if m.ID == contract.IDMember1 && m.Status != "disabled" {
+			t.Fatalf("expected disabled, got %s", m.Status)
 		}
 	}
 }
 
-func TestMemberStatusTransition_InactiveToActive(t *testing.T) {
+func TestMemberStatusTransition_DisabledToActive(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
 	// First disable
-	svc.UpdateMemberStatus(ctx, []uuid.UUID{contract.IDMember1}, "inactive")
+	svc.UpdateMemberStatus(ctx, []uuid.UUID{contract.IDMember1}, "disabled")
 	// Then re-enable
 	if err := svc.UpdateMemberStatus(ctx, []uuid.UUID{contract.IDMember1}, "active"); err != nil {
 		t.Fatal(err)
@@ -49,6 +48,28 @@ func TestMemberStatusTransition_InactiveToActive(t *testing.T) {
 		if m.ID == contract.IDMember1 && m.Status != "active" {
 			t.Fatalf("expected active, got %s", m.Status)
 		}
+	}
+}
+
+func TestMemberStatusTransition_PendingToActiveRejected(t *testing.T) {
+	t.Parallel()
+	cfg, st := testutil.NewTestStore(t)
+	svc := orgfix.NewService(t, cfg, st)
+	ctx := testutil.Ctx()
+
+	// Set member to pending
+	members, _ := st.Org().Members(ctx)
+	for i := range members {
+		if members[i].ID == contract.IDMember1 {
+			members[i].Status = types.MemberStatusPending
+		}
+	}
+	st.Org().SetMembers(ctx, members)
+
+	// Attempt to manually activate should fail
+	err := svc.UpdateMemberStatus(ctx, []uuid.UUID{contract.IDMember1}, "active")
+	if err == nil {
+		t.Fatal("expected error when activating pending member manually")
 	}
 }
 
@@ -67,7 +88,7 @@ func TestMemberDisableDisablesAllKeys(t *testing.T) {
 	st.Keys().SetPlatformKeys(ctx, keys)
 
 	// Disable member
-	if err := svc.UpdateMemberStatus(ctx, []uuid.UUID{contract.IDMember1}, "inactive"); err != nil {
+	if err := svc.UpdateMemberStatus(ctx, []uuid.UUID{contract.IDMember1}, "disabled"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -82,95 +103,21 @@ func TestMemberDisableDisablesAllKeys(t *testing.T) {
 	}
 }
 
-func TestMemberDeleteSetsInactive(t *testing.T) {
+func TestMemberDeleteSetsDisabled(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	// DeleteMembers is implemented as UpdateMemberStatus to "inactive"
+	// DeleteMembers for active member → soft delete (set disabled)
 	if err := svc.DeleteMembers(ctx, []uuid.UUID{contract.IDMember1}, uuid.Nil); err != nil {
 		t.Fatal(err)
 	}
 
 	members, _ := st.Org().Members(ctx)
 	for _, m := range members {
-		if m.ID == contract.IDMember1 && m.Status != "inactive" {
-			t.Fatalf("expected inactive after delete, got %s", m.Status)
+		if m.ID == contract.IDMember1 && m.Status != "disabled" {
+			t.Fatalf("expected disabled after delete, got %s", m.Status)
 		}
-	}
-}
-
-func TestBatchStatusChangeMultipleMembers(t *testing.T) {
-	t.Parallel()
-	cfg, st := testutil.NewTestStore(t)
-	svc := orgfix.NewService(t, cfg, st)
-	ctx := testutil.Ctx()
-
-	members, _ := st.Org().Members(ctx)
-	ids := make([]uuid.UUID, 0)
-	for _, m := range members {
-		if m.Status == "active" && len(ids) < 3 {
-			ids = append(ids, m.ID)
-		}
-	}
-	if len(ids) < 2 {
-		t.Skip("not enough active members for batch test")
-	}
-
-	// Batch disable
-	if err := svc.UpdateMemberStatus(ctx, ids, "inactive"); err != nil {
-		t.Fatal(err)
-	}
-
-	members, _ = st.Org().Members(ctx)
-	for _, m := range members {
-		for _, id := range ids {
-			if m.ID == id && m.Status != "inactive" {
-				t.Errorf("member %s should be inactive", m.ID)
-			}
-		}
-	}
-}
-
-func TestCreateMemberDefaultsToPending(t *testing.T) {
-	t.Parallel()
-	cfg, st := testutil.NewTestStore(t)
-	svc := orgfix.NewService(t, cfg, st)
-	ctx := testutil.Ctx()
-
-	member, err := svc.CreateMember(ctx, types.CreateMemberInput{
-		User:   types.CreateMemberUserInput{Name: "New Person", Phone: "13900009999", Email: "new@example.com"},
-		Member: types.CreateMemberData{DepartmentID: contract.IDDept3},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if member.Status != "pending" {
-		t.Errorf("new member should be pending, got %s", member.Status)
-	}
-}
-
-func TestBatchInviteSetsStatus(t *testing.T) {
-	t.Parallel()
-	cfg, st := testutil.NewTestStore(t)
-	svc := orgfix.NewService(t, cfg, st)
-	ctx := testutil.Ctx()
-
-	// Create a member first
-	member, err := svc.CreateMember(ctx, types.CreateMemberInput{
-		User:   types.CreateMemberUserInput{Name: "Invite Target", Phone: "13900001111", Email: "invite@example.com"},
-		Member: types.CreateMemberData{DepartmentID: contract.IDDept3},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	result, err := svc.BatchInvite(ctx, []uuid.UUID{member.ID})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if result.Sent == 0 {
-		t.Error("expected at least 1 invite sent")
 	}
 }

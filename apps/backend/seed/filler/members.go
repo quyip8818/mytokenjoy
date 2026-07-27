@@ -55,7 +55,7 @@ func anchorMembers() []types.Member {
 		},
 		{
 			ID: contract.IDMember5, CompanyID: contract.DefaultCompanyID, Alias: "钱七", Phone: "13612340000", Email: "qianqi@example.com",
-			DepartmentID: contract.IDDept4, DepartmentName: "前端组", Status: "inactive",
+			DepartmentID: contract.IDDept4, DepartmentName: "前端组", Status: "disabled",
 			Roles: []string{permission.RoleMember}, Source: "imported",
 		},
 		{
@@ -89,7 +89,7 @@ func anchorMembers() []types.Member {
 func pickStatus(index int) string {
 	mod := index % 100
 	if mod < 7 {
-		return "inactive"
+		return "disabled"
 	}
 	if mod < 15 {
 		return "pending"

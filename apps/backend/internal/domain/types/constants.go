@@ -25,7 +25,7 @@ const (
 	SyncResultFailure = "failure"
 
 	MemberStatusActive   = "active"
-	MemberStatusInactive = "inactive"
+	MemberStatusDisabled = "disabled"
 	MemberStatusPending  = "pending"
 )
 

@@ -42,7 +42,7 @@ func (s *Service) applySyncDiff(ctx context.Context, platform types.Platform, di
 				if members[i].ID != removed.ID {
 					continue
 				}
-				members[i].Status = types.MemberStatusInactive
+				members[i].Status = types.MemberStatusDisabled
 				result.SuccessMembers++
 				membersDeactivated = true
 			}

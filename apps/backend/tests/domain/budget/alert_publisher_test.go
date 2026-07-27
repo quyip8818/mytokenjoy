@@ -17,7 +17,7 @@ func TestIndexMembersByRole(t *testing.T) {
 	members := []types.Member{
 		{ID: m1, Status: "active", Roles: []string{"super_admin", "org_admin"}},
 		{ID: m2, Status: "active", Roles: []string{"org_admin"}},
-		{ID: m3, Status: "inactive", Roles: []string{"super_admin"}},
+		{ID: m3, Status: "disabled", Roles: []string{"super_admin"}},
 		{ID: m4, Status: "active", Roles: []string{}},
 	}
 	result := budget.IndexMembersByRole(members)

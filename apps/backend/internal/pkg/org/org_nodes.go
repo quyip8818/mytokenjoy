@@ -105,7 +105,7 @@ func HasDirectChildOrgNodes(nodes []types.OrgNode, id uuid.UUID) bool {
 func RecalcOrgNodeMemberCounts(nodes []types.OrgNode, members []types.Member) []types.OrgNode {
 	directCounts := make(map[uuid.UUID]int)
 	for _, member := range members {
-		if member.Status == types.MemberStatusInactive {
+		if member.Status == types.MemberStatusDisabled {
 			continue
 		}
 		directCounts[member.DepartmentID]++

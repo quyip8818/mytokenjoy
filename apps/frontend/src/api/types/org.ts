@@ -72,7 +72,7 @@ export interface Department {
   managerId?: string
 }
 
-export type MemberStatus = 'active' | 'inactive' | 'pending'
+export type MemberStatus = 'active' | 'disabled' | 'pending'
 
 export type MemberSource =
   | 'manual'

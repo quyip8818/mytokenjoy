@@ -10,7 +10,7 @@ import (
 	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
 )
 
-func (s *LocalService) ListMembers(ctx context.Context, departmentID uuid.UUID, keyword string, directOnly bool, page, pageSize int) (types.MemberPageResult, error) {
+func (s *LocalService) ListMembers(ctx context.Context, departmentID uuid.UUID, keyword string, directOnly bool, status string, page, pageSize int) (types.MemberPageResult, error) {
 	items, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
 		return types.MemberPageResult{}, err
@@ -21,6 +21,19 @@ func (s *LocalService) ListMembers(ctx context.Context, departmentID uuid.UUID, 
 			return types.MemberPageResult{}, err
 		}
 		items = pkgorg.FilterMembersByDepartment(items, departments, departmentID, directOnly)
+	}
+	if status != "" {
+		allowed := make(map[string]struct{})
+		for _, s := range strings.Split(status, ",") {
+			allowed[s] = struct{}{}
+		}
+		filtered := make([]types.Member, 0, len(items))
+		for _, m := range items {
+			if _, ok := allowed[m.Status]; ok {
+				filtered = append(filtered, m)
+			}
+		}
+		items = filtered
 	}
 	// Count pending before keyword filtering so count is always accurate.
 	pendingCount := 0

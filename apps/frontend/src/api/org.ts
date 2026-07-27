@@ -95,6 +95,7 @@ export const memberApi = {
     page: number
     pageSize: number
     keyword?: string
+    status?: string
   }) => {
     return request<MemberPaginated>(`/org/members${buildQuery(params)}`)
   },
@@ -118,7 +119,7 @@ export const memberApi = {
       method: 'DELETE',
       body: JSON.stringify({ ids }),
     }),
-  updateStatus: (ids: string[], status: 'active' | 'inactive') =>
+  updateStatus: (ids: string[], status: 'active' | 'disabled') =>
     request<void>('/org/members/status', {
       method: 'PUT',
       body: JSON.stringify({ ids, status }),

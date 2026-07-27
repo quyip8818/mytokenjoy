@@ -25,15 +25,15 @@ func NewAdminPortTarget(port adminport.Port, modelStore ModelStore) *AdminPortTa
 
 func (t *AdminPortTarget) UpsertChannel(ctx context.Context, ch sms.CatalogChannel) error {
 	_, err := t.port.UpsertChannel(ctx, adminport.UpsertChannelInput{
-		Type:    ch.Type,
-		Name:    ch.Name,
-		Key:     ch.Key,
-		Status:  1, // enabled
-		Group:   ch.Group,
-		BaseURL: ch.BaseURL,
-		Models:  strings.Join(ch.Models, ","),
+		Type:     ch.Type,
+		Name:     ch.Name,
+		Key:      ch.Key,
+		Status:   1, // enabled
+		Group:    ch.Group,
+		BaseURL:  ch.BaseURL,
+		Models:   strings.Join(ch.Models, ","),
 		Priority: ch.Priority,
-		Weight:  1,
+		Weight:   1,
 	})
 	return err
 }

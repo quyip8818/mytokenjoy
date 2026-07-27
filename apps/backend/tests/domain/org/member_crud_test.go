@@ -28,7 +28,7 @@ func TestCreateMemberPersists(t *testing.T) {
 		t.Fatal("expected member id")
 	}
 
-	page, err := svc.ListMembers(ctx, contract.IDDept5, "", true, 1, 200)
+	page, err := svc.ListMembers(ctx, contract.IDDept5, "", true, "", 1, 200)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,8 +80,8 @@ func TestDeleteMembersDisablesKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, member := range members {
-		if member.ID == contract.IDMember1 && member.Status != "inactive" {
-			t.Fatalf("expected inactive status, got %s", member.Status)
+		if member.ID == contract.IDMember1 && member.Status != "disabled" {
+			t.Fatalf("expected disabled status, got %s", member.Status)
 		}
 	}
 
@@ -102,7 +102,7 @@ func TestUpdateMemberStatusDisablesKeys(t *testing.T) {
 	svc := orgfix.NewService(t, cfg, st)
 	ctx := testutil.Ctx()
 
-	if err := svc.UpdateMemberStatus(testutil.Ctx(), []uuid.UUID{contract.IDMember1}, "inactive"); err != nil {
+	if err := svc.UpdateMemberStatus(testutil.Ctx(), []uuid.UUID{contract.IDMember1}, "disabled"); err != nil {
 		t.Fatal(err)
 	}
 	keys, err := st.Keys().PlatformKeys(ctx)
@@ -121,11 +121,11 @@ func TestListMembersDirectOnly(t *testing.T) {
 	svc := newTestOrgService(t)
 	ctx := testutil.Ctx()
 
-	allPage, err := svc.ListMembers(ctx, contract.IDDept2, "", false, 1, 200)
+	allPage, err := svc.ListMembers(ctx, contract.IDDept2, "", false, "", 1, 200)
 	if err != nil {
 		t.Fatal(err)
 	}
-	directPage, err := svc.ListMembers(ctx, contract.IDDept2, "", true, 1, 200)
+	directPage, err := svc.ListMembers(ctx, contract.IDDept2, "", true, "", 1, 200)
 	if err != nil {
 		t.Fatal(err)
 	}

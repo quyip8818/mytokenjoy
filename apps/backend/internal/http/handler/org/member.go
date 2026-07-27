@@ -18,7 +18,7 @@ func (h *Handler) MembersList(w http.ResponseWriter, r *http.Request) {
 	directOnly := query.Get("directOnly") == "true"
 	departmentID, _ := uuid.Parse(query.Get("departmentId"))
 	result, err := h.service.ListMembers(r.Context(),
-		departmentID, query.Get("keyword"), directOnly, page, pageSize,
+		departmentID, query.Get("keyword"), directOnly, query.Get("status"), page, pageSize,
 	)
 	httputil.WriteJSON(w, http.StatusOK, result, err)
 }

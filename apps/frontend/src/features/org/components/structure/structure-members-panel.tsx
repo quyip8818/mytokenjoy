@@ -21,7 +21,7 @@ interface StructureMembersPanelProps {
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
   onEdit: (member: Member) => void
-  onStatusChange: (ids: string[], status: 'active' | 'inactive') => void
+  onStatusChange: (ids: string[], status: 'active' | 'disabled') => void
   onDelete: (ids: string[]) => void
   onRowSelectionChange: (selection: RowSelectionState) => void
   onTransfer: () => void
@@ -95,7 +95,7 @@ export function StructureMembersPanel({
         count={selectedIds.length}
         onTransfer={onTransfer}
         onEnable={() => onStatusChange(selectedIds, 'active')}
-        onDisable={() => onStatusChange(selectedIds, 'inactive')}
+        onDisable={() => onStatusChange(selectedIds, 'disabled')}
         onDelete={() => onDelete(selectedIds)}
         onClear={onClearSelection}
       />
