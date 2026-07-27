@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router'
+import { useParams, Link } from '@tanstack/react-router'
 import { ArrowLeft, Plus, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useInjectedQuery, queryKeys } from '@/features/query'
@@ -27,7 +27,7 @@ function formatAmount(amount?: number): string {
 }
 
 export default function SupplierDetailPage() {
-  const { id } = useParams()
+  const { id } = useParams({ strict: false })
   const supplierId = Number(id)
   const apis = useApis()
   const { user } = useSession()

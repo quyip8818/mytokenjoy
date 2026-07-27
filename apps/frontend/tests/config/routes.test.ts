@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  APP_ROUTES,
   NAV_GROUP_LAYOUT,
   ROUTE_DEFINITIONS,
   ROUTE_META,
@@ -24,14 +23,8 @@ describe('routes config', () => {
     }
   })
 
-  it('does not register home in APP_ROUTES', () => {
-    expect(APP_ROUTES.some((entry) => entry.path === ROUTES.home)).toBe(false)
-  })
-
-  it('derives ROUTE_META and APP_ROUTES from ROUTE_DEFINITIONS', () => {
+  it('derives ROUTE_META from ROUTE_DEFINITIONS', () => {
     expect(ROUTE_DEFINITIONS.length).toBe(ROUTE_META.length)
-    // APP_ROUTES includes hidden routes not in ROUTE_DEFINITIONS
-    expect(APP_ROUTES.length).toBeGreaterThanOrEqual(ROUTE_DEFINITIONS.length)
   })
 
   it('covers every ROUTE_META path in navigation groups', () => {

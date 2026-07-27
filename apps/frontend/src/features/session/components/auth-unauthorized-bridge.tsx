@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate } from '@tanstack/react-router'
 import { apiEvents } from '@/api/api-events'
 import { LOGIN_PATH } from '@/config/auth'
 
@@ -8,7 +8,7 @@ export function AuthUnauthorizedBridge() {
 
   useEffect(() => {
     return apiEvents.on('unauthorized', () => {
-      navigate(LOGIN_PATH, { replace: true })
+      navigate({ to: LOGIN_PATH, replace: true })
     })
   }, [navigate])
 

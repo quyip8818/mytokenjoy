@@ -1,14 +1,14 @@
-import { Navigate } from 'react-router'
-import { EmptyState } from '@/components/ui/empty-state'
+/* eslint-disable react-refresh/only-export-components */
+import { createRoute, Navigate } from '@tanstack/react-router'
 import { useSession } from '@/features/session'
 import { getDefaultHomePath } from '@/lib/permissions'
+import { EmptyState } from '@/components/ui/empty-state'
+import { authLayoutRoute } from '../auth-layout'
 
-export function HomeRedirect() {
+function HomeRedirect() {
   const { permissions, loading } = useSession()
 
-  if (loading) {
-    return null
-  }
+  if (loading) return null
 
   if (permissions.length === 0) {
     return (
@@ -33,3 +33,9 @@ export function HomeRedirect() {
 
   return <Navigate to={homePath} replace />
 }
+
+export const homeRoute = createRoute({
+  getParentRoute: () => authLayoutRoute,
+  path: '/',
+  component: HomeRedirect,
+})

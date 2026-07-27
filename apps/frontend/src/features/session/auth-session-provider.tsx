@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { useLocation } from 'react-router'
+import { useRouterState } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import { defaultApis } from '@/api/app-apis'
@@ -18,8 +18,8 @@ interface AuthSessionProviderProps {
 }
 
 export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessionProviderProps) {
-  const location = useLocation()
-  const isLoginPage = location.pathname === LOGIN_PATH
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const isLoginPage = pathname === LOGIN_PATH
 
   const query = useInjectedQuery({
     injectedApis: apis,

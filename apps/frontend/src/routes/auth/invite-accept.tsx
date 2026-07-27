@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router'
+import { useNavigate, useSearch } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,9 +10,8 @@ import { useSession } from '@/features/session'
 
 export default function InviteAcceptPage() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const { code: inviteCode = '' } = useSearch({ strict: false })
   const { refreshSession } = useSession()
-  const inviteCode = searchParams.get('code') ?? ''
 
   const [alias, setAlias] = useState('')
   const [password, setPassword] = useState('')
@@ -56,7 +55,7 @@ export default function InviteAcceptPage() {
       try {
         await authApi.acceptInvite(inviteCode, alias.trim(), password.trim())
         await refreshSession()
-        navigate(ROUTES.home, { replace: true })
+        navigate({ to: ROUTES.home, replace: true })
       } catch (err) {
         const message = err instanceof ApiError ? err.message : '激活失败'
         setError(message)

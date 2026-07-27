@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate } from '@tanstack/react-router'
 import { Archive, CircleDot, Filter, Inbox } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -64,7 +64,7 @@ export function NotificationCenter() {
     (notification: NotificationItem) => {
       if (!notification.readAt) markRead(notification.id)
       const url = getActionUrl(notification)
-      if (url) navigate(url)
+      if (url) navigate({ to: url })
     },
     [markRead, navigate],
   )
@@ -78,7 +78,7 @@ export function NotificationCenter() {
             variant="ghost"
             size="sm"
             className="text-xs text-muted-foreground"
-            onClick={() => navigate('/me/settings?tab=notifications')}
+            onClick={() => navigate({ to: '/me/settings', search: { tab: 'notifications' } })}
           >
             通知偏好设置
           </Button>

@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router'
+import { useNavigate } from '@tanstack/react-router'
 import { useSession } from '@/features/session'
 import { ROUTES } from '@/config/routes'
 import { AuthPopup, FakeDashboard } from '@/features/auth'
@@ -9,7 +9,7 @@ export default function LoginPage() {
 
   const handleSuccess = async () => {
     await refreshSession()
-    navigate(ROUTES.home, { replace: true })
+    navigate({ to: ROUTES.home, replace: true })
   }
 
   return (

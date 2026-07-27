@@ -1,8 +1,6 @@
-import { ROUTES } from '@/config/routes'
 import type { ReactNode } from 'react'
 import { vi } from 'vitest'
 import { render, renderHook, type RenderOptions } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
 import type { AppApis } from '@/api/app-apis'
 import { defaultApis } from '@/api/app-apis'
 import { ApiProvider } from '@/api/context'
@@ -103,6 +101,11 @@ export interface TestWrapperOptions {
   initialEntries?: string[]
 }
 
+/**
+ * Creates a synchronous test wrapper with all providers EXCEPT the router.
+ * Use this for components/hooks that don't depend on routing.
+ * For routing-dependent tests, create a dedicated router in the test file.
+ */
 export function createTestWrapper(options: TestWrapperOptions = {}) {
   const permissions = options.permissions ?? ALL_PERMISSIONS
   const readOnly = options.readOnly ?? false
@@ -118,19 +121,17 @@ export function createTestWrapper(options: TestWrapperOptions = {}) {
 
   return function TestWrapper({ children }: { children: ReactNode }) {
     return (
-      <MemoryRouter initialEntries={options.initialEntries ?? [ROUTES.orgStructure]}>
-        <QueryProvider client={queryClient}>
-          <ApiProvider apis={apis}>
-            <TestSessionProvider
-              permissions={permissions}
-              readOnly={readOnly}
-              companyType={companyType}
-            >
-              <WorkflowProvider>{children}</WorkflowProvider>
-            </TestSessionProvider>
-          </ApiProvider>
-        </QueryProvider>
-      </MemoryRouter>
+      <QueryProvider client={queryClient}>
+        <ApiProvider apis={apis}>
+          <TestSessionProvider
+            permissions={permissions}
+            readOnly={readOnly}
+            companyType={companyType}
+          >
+            <WorkflowProvider>{children}</WorkflowProvider>
+          </TestSessionProvider>
+        </ApiProvider>
+      </QueryProvider>
     )
   }
 }

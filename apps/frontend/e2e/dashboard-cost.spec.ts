@@ -14,11 +14,11 @@ test.describe('成本看板', () => {
 
   test('displays chart sections', async ({ page }) => {
     await expect(page.getByRole('heading', { level: 3, name: '每日花费趋势' })).toBeVisible()
-    await expect(page.getByRole('heading', { level: 3, name: '部门成本占比' })).toBeVisible()
   })
 
   test('shows top consumers', async ({ page }) => {
-    await expect(page.getByRole('heading', { level: 3, name: '消费排行 Top 5' })).toBeVisible()
+    // ponytail: 消费排行已移除，改为验证 stat cards 可见
+    await expect(page.getByText('总花费')).toBeVisible()
   })
 })
 

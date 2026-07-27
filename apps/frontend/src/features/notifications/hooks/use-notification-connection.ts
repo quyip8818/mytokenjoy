@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { API_BASE_PATH } from '@/config/app'
@@ -79,7 +79,7 @@ export function useNotificationConnection() {
             ...(actionUrl && {
               action: {
                 label: '查看',
-                onClick: () => navigateRef.current(actionUrl),
+                onClick: () => navigateRef.current({ to: actionUrl }),
               },
             }),
           })

@@ -1,7 +1,7 @@
 import { Progress } from '@/components/ui/progress'
 import { getBudgetProgressClass, getBudgetProgressTone } from '@/features/budget'
 import { cn } from '@/lib/utils'
-import { Link } from 'react-router'
+import { Link } from '@tanstack/react-router'
 import { ArrowRight } from 'lucide-react'
 import { formatMoney } from '@/lib/quota-display'
 

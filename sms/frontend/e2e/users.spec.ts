@@ -36,7 +36,7 @@ test.describe('用户管理页面', () => {
     await page.goto('/system/users')
     await page.getByRole('button', { name: /新建用户/ }).click()
     await page.getByRole('button', { name: '保存' }).click()
-    await expect(page.locator('text=用户名和姓名不能为空')).toBeVisible({ timeout: 3000 })
+    await expect(page.getByText('用户名和姓名不能为空').first()).toBeVisible({ timeout: 3000 })
   })
 
   test('新建用户成功', async ({ authedPage: page }) => {
@@ -49,7 +49,7 @@ test.describe('用户管理页面', () => {
     await page.locator('input[type="password"]').fill('password123')
 
     await page.getByRole('button', { name: '保存' }).click()
-    await expect(page.locator('text=创建成功')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('创建成功').first()).toBeVisible({ timeout: 5000 })
     await expect(page.getByRole('cell', { name: username })).toBeVisible()
   })
 

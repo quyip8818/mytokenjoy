@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { NavLink, useLocation } from 'react-router'
+import { Link, useRouterState } from '@tanstack/react-router'
 import { ChevronDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NAV_GROUP_LAYOUT, type NavGroupEntry, type RouteDefinition } from '@/config/routes'
@@ -72,18 +72,18 @@ function useGroupCollapse(navGroups: NavGroupEntry[], currentPath: string) {
 interface SidebarNavItemProps {
   item: RouteDefinition
   sidebarCollapsed: boolean
+  pathname: string
 }
 
-function SidebarNavItem({ item, sidebarCollapsed }: SidebarNavItemProps) {
-  const location = useLocation()
-  const isActive = location.pathname === item.path
+function SidebarNavItem({ item, sidebarCollapsed, pathname }: SidebarNavItemProps) {
+  const isActive = pathname === item.path
   const Icon = item.icon
 
   if (sidebarCollapsed) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <NavLink
+          <Link
             to={item.path}
             aria-label={item.label}
             className={cn(
@@ -94,7 +94,7 @@ function SidebarNavItem({ item, sidebarCollapsed }: SidebarNavItemProps) {
             )}
           >
             <Icon className="size-[18px]" strokeWidth={1.75} />
-          </NavLink>
+          </Link>
         </TooltipTrigger>
         <TooltipContent side="right" sideOffset={8}>
           {item.label}
@@ -104,7 +104,7 @@ function SidebarNavItem({ item, sidebarCollapsed }: SidebarNavItemProps) {
   }
 
   return (
-    <NavLink
+    <Link
       to={item.path}
       className={cn(
         'group/nav relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-150',
@@ -118,7 +118,7 @@ function SidebarNavItem({ item, sidebarCollapsed }: SidebarNavItemProps) {
         strokeWidth={isActive ? 1.75 : 1.5}
       />
       <span className="flex-1 truncate">{item.label}</span>
-    </NavLink>
+    </Link>
   )
 }
 
@@ -129,14 +129,15 @@ interface SidebarGroupProps {
   groupCollapsed: boolean
   sidebarCollapsed: boolean
   onToggleGroup: () => void
+  pathname: string
 }
 
-function SidebarGroup({ group, groupCollapsed, sidebarCollapsed, onToggleGroup }: SidebarGroupProps) {
+function SidebarGroup({ group, groupCollapsed, sidebarCollapsed, onToggleGroup, pathname }: SidebarGroupProps) {
   if (sidebarCollapsed) {
     return (
       <div className="space-y-0.5">
         {group.items.map((item) => (
-          <SidebarNavItem key={item.path} item={item} sidebarCollapsed />
+          <SidebarNavItem key={item.path} item={item} sidebarCollapsed pathname={pathname} />
         ))}
       </div>
     )
@@ -161,7 +162,7 @@ function SidebarGroup({ group, groupCollapsed, sidebarCollapsed, onToggleGroup }
       {!groupCollapsed && (
         <div className="ml-2 space-y-px">
           {group.items.map((item) => (
-            <SidebarNavItem key={item.path} item={item} sidebarCollapsed={false} />
+            <SidebarNavItem key={item.path} item={item} sidebarCollapsed={false} pathname={pathname} />
           ))}
         </div>
       )}
@@ -221,7 +222,7 @@ function SidebarHeader({ collapsed, onToggle }: SidebarHeaderProps) {
 export function Sidebar() {
   const role = useSession((s) => s.user?.role)
   const { collapsed, toggleCollapsed } = useSidebarLayout()
-  const location = useLocation()
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
 
   const visibleGroups = useMemo(() => {
     return NAV_GROUP_LAYOUT.map((group) => ({
@@ -232,7 +233,7 @@ export function Sidebar() {
     })).filter((g) => g.items.length > 0)
   }, [role])
 
-  const { isGroupCollapsed, toggle } = useGroupCollapse(visibleGroups, location.pathname)
+  const { isGroupCollapsed, toggle } = useGroupCollapse(visibleGroups, pathname)
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -260,6 +261,7 @@ export function Sidebar() {
                 groupCollapsed={isGroupCollapsed(group)}
                 sidebarCollapsed={collapsed}
                 onToggleGroup={() => toggle(group.group)}
+                pathname={pathname}
               />
             </div>
           ))}

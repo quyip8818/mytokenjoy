@@ -1,14 +1,28 @@
-import { useUrlTab } from '@/hooks/use-url-tab'
+import { useCallback } from 'react'
+import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useAccountPage } from './use-account-page'
 import { useLoginActivityPage } from './use-login-activity-page'
 import { useNotificationsPage } from '@/features/notifications'
 
 export type SettingsTab = 'account' | 'security' | 'notifications'
 
-const SETTINGS_TABS = ['account', 'security', 'notifications'] as const
-
 export function useSettingsPage() {
-  const [activeTab, setActiveTab] = useUrlTab<SettingsTab>(SETTINGS_TABS, 'account')
+  const { tab } = useSearch({ strict: false }) as { tab?: SettingsTab }
+  const navigate = useNavigate()
+
+  const activeTab: SettingsTab = tab ?? 'account'
+
+  const setActiveTab = useCallback(
+    (newTab: SettingsTab) => {
+      void navigate({
+        to: '/me/settings',
+        search: { tab: newTab },
+        replace: true,
+      })
+    },
+    [navigate],
+  )
+
   const accountPage = useAccountPage()
   const loginActivityPage = useLoginActivityPage()
   const notificationsPage = useNotificationsPage()

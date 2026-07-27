@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link } from '@tanstack/react-router'
 import { Plus, Trash2, Pencil, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import { useFilteredQuery, useInjectedMutation, queryKeys } from '@/features/query'

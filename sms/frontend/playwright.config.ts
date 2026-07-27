@@ -12,4 +12,25 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [{ name: 'chromium', use: { browserName: 'chromium' } }],
+  webServer: [
+    {
+      command: 'make seed && make run',
+      cwd: '../backend',
+      url: 'http://127.0.0.1:8020/api/health',
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+      env: {
+        DATABASE_URL:
+          'postgres://tokenjoy:tokenjoy@127.0.0.1:5510/sms?sslmode=disable',
+        JWT_SECRET: 'e2e-sms-jwt-secret',
+        PORT: '8020',
+      },
+    },
+    {
+      command: 'pnpm dev',
+      url: 'http://localhost:5174',
+      reuseExistingServer: !process.env.CI,
+      timeout: 30_000,
+    },
+  ],
 })

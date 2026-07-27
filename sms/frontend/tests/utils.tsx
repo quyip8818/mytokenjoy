@@ -1,7 +1,13 @@
-import type { ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
 import { vi } from 'vitest'
 import { render, renderHook, type RenderOptions } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  RouterProvider,
+} from '@tanstack/react-router'
 import type { AppApis } from '@/api/app-apis'
 import { defaultApis } from '@/api/app-apis'
 import { ApiProvider } from '@/api/context'
@@ -42,14 +48,28 @@ export interface TestWrapperOptions {
 export function createTestWrapper(options: TestWrapperOptions = {}) {
   const apis = options.apis ?? createMockApis()
 
-  return function TestWrapper({ children }: { children: ReactNode }) {
-    return (
-      <MemoryRouter initialEntries={options.initialEntries ?? ['/']}>
+  let slotContent: ReactNode = null
+
+  const rootRoute = createRootRoute({
+    component: () => {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const [content] = useState(() => slotContent)
+      return (
         <QueryProvider>
-          <ApiProvider apis={apis}>{children}</ApiProvider>
+          <ApiProvider apis={apis}>{content}</ApiProvider>
         </QueryProvider>
-      </MemoryRouter>
-    )
+      )
+    },
+  })
+  const catchAll = createRoute({ getParentRoute: () => rootRoute, path: '$' })
+  const index = createRoute({ getParentRoute: () => rootRoute, path: '/' })
+  const routeTree = rootRoute.addChildren([index, catchAll])
+  const history = createMemoryHistory({ initialEntries: options.initialEntries ?? ['/'] })
+  const router = createRouter({ routeTree, history })
+
+  return function TestWrapper({ children }: { children: ReactNode }) {
+    slotContent = children
+    return <RouterProvider router={router} />
   }
 }
 

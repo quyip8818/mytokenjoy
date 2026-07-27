@@ -1,4 +1,4 @@
-import { Link } from 'react-router'
+import { Link } from '@tanstack/react-router'
 import { ArrowRight, CheckCircle2, Settings2 } from 'lucide-react'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'

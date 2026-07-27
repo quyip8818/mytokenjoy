@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate } from '@tanstack/react-router'
 import { Archive, ArrowUpRight, Bell } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -37,7 +37,7 @@ function NotificationItemRow({
   const handleClick = () => {
     if (isUnread) onRead(notification.id)
     const url = getActionUrl(notification)
-    if (url) navigate(url)
+    if (url) navigate({ to: url })
   }
 
   return (
@@ -170,7 +170,7 @@ export function NotificationInbox() {
             className="absolute right-2 h-6 w-6 text-muted-foreground hover:text-foreground"
             onClick={() => {
               setOpen(false)
-              navigate('/notifications')
+              navigate({ to: '/notifications' })
             }}
             title="查看全部通知"
           >
@@ -202,7 +202,7 @@ export function NotificationInbox() {
             className="flex w-full items-center justify-center py-2.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             onClick={() => {
               setOpen(false)
-              navigate('/notifications')
+              navigate({ to: '/notifications' })
             }}
           >
             查看全部通知 →

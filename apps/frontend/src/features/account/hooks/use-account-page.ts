@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useApis } from '@/api/use-apis'
 import { ApiError } from '@/api/client'
@@ -136,7 +136,7 @@ export function useAccountPage() {
   // --- Logout ---
   const logout = useCallback(async () => {
     await authApi.logout()
-    navigate('/login', { replace: true })
+    navigate({ to: '/login', replace: true })
   }, [authApi, navigate])
 
   return {

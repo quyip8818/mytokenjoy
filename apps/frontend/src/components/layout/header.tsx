@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from 'react-router'
+import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { ROUTE_TITLES } from '@/config/nav'
 import { useSession } from '@/features/session'
 import { UserAvatar } from '@/components/ui/user-avatar'
@@ -32,7 +32,7 @@ function HeaderUserChip() {
       type="button"
       className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 transition-colors hover:bg-muted"
       aria-label="账户设置"
-      onClick={() => navigate('/me/settings')}
+      onClick={() => navigate({ to: '/me/settings', search: { tab: 'account' } })}
     >
       <UserAvatar avatar={member?.avatar} fallback={displayName} size={24} />
       <span className="text-sm text-foreground">{displayName}</span>
@@ -41,8 +41,8 @@ function HeaderUserChip() {
 }
 
 export function Header() {
-  const location = useLocation()
-  const title = ROUTE_TITLES[location.pathname] || '控制台'
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const title = ROUTE_TITLES[pathname] || '控制台'
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-8">

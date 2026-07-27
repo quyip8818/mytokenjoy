@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { NavLink, useLocation } from 'react-router'
+import { Link, useRouterState } from '@tanstack/react-router'
 import { ChevronDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getVisibleNavGroups, type NavGroup, type NavItem } from '@/config/nav'
@@ -76,18 +76,18 @@ interface SidebarNavItemProps {
   item: NavItem
   sidebarCollapsed: boolean
   badge: number
+  pathname: string
 }
 
-function SidebarNavItem({ item, sidebarCollapsed, badge }: SidebarNavItemProps) {
-  const location = useLocation()
-  const isActive = location.pathname === item.path
+function SidebarNavItem({ item, sidebarCollapsed, badge, pathname }: SidebarNavItemProps) {
+  const isActive = pathname === item.path
   const Icon = item.icon
 
   if (sidebarCollapsed) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <NavLink
+          <Link
             to={item.path}
             aria-label={item.label}
             className={cn(
@@ -101,7 +101,7 @@ function SidebarNavItem({ item, sidebarCollapsed, badge }: SidebarNavItemProps) 
             {badge > 0 && (
               <span className="absolute top-0.5 right-0.5 size-2 rounded-full bg-primary ring-2 ring-sidebar" />
             )}
-          </NavLink>
+          </Link>
         </TooltipTrigger>
         <TooltipContent side="right" sideOffset={8}>
           {item.label}
@@ -112,7 +112,7 @@ function SidebarNavItem({ item, sidebarCollapsed, badge }: SidebarNavItemProps) 
   }
 
   return (
-    <NavLink
+    <Link
       to={item.path}
       className={cn(
         'group/nav relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-150',
@@ -131,7 +131,7 @@ function SidebarNavItem({ item, sidebarCollapsed, badge }: SidebarNavItemProps) 
           {badge}
         </span>
       )}
-    </NavLink>
+    </Link>
   )
 }
 
@@ -143,6 +143,7 @@ interface SidebarGroupProps {
   sidebarCollapsed: boolean
   onToggleGroup: () => void
   getBadge: (badgeKey?: string) => number
+  pathname: string
 }
 
 function SidebarGroup({
@@ -151,6 +152,7 @@ function SidebarGroup({
   sidebarCollapsed,
   onToggleGroup,
   getBadge,
+  pathname,
 }: SidebarGroupProps) {
   if (sidebarCollapsed) {
     return (
@@ -161,6 +163,7 @@ function SidebarGroup({
             item={item}
             sidebarCollapsed
             badge={getBadge(item.badgeKey)}
+            pathname={pathname}
           />
         ))}
       </div>
@@ -191,6 +194,7 @@ function SidebarGroup({
               item={item}
               sidebarCollapsed={false}
               badge={getBadge(item.badgeKey)}
+              pathname={pathname}
             />
           ))}
         </div>
@@ -255,8 +259,8 @@ export function Sidebar() {
   const navGroups = useMemo(() => getVisibleNavGroups(permissions), [permissions])
   const { data: approvalPendingCount = 0 } = useApprovalPendingCountQuery({ poll: true })
   const { collapsed, toggleCollapsed } = useSidebarLayout()
-  const location = useLocation()
-  const { isGroupCollapsed, toggle } = useGroupCollapse(navGroups, location.pathname)
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const { isGroupCollapsed, toggle } = useGroupCollapse(navGroups, pathname)
 
   const getBadge = (badgeKey?: string) => {
     if (badgeKey === 'approvalPending' && approvalPendingCount > 0) {
@@ -293,6 +297,7 @@ export function Sidebar() {
                 sidebarCollapsed={collapsed}
                 onToggleGroup={() => toggle(group.group)}
                 getBadge={getBadge}
+                pathname={pathname}
               />
             </div>
           ))}

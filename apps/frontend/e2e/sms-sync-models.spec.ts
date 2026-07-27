@@ -3,8 +3,8 @@ import { expect, test } from '@playwright/test'
 test.describe('TokenJoy 模型列表 - SMS 同步数据展示', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/models/list')
-    // Wait for the model list to load
-    await expect(page.getByRole('heading', { name: /模型/ })).toBeVisible({ timeout: 10000 })
+    // Wait for the model list to load (scoped to main to avoid Header duplicate)
+    await expect(page.getByRole('main').getByRole('heading', { name: /模型/ })).toBeVisible({ timeout: 10000 })
   })
 
   test('model list page loads with table', async ({ page }) => {

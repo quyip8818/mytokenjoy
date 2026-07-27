@@ -1,29 +1,24 @@
 import { useCallback } from 'react'
-import { useSearchParams } from 'react-router'
-
-const DEPT_PARAM = 'dept'
+import { useNavigate, useRouterState } from '@tanstack/react-router'
 
 export function useDeptSelection() {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const search = useRouterState({ select: (s) => s.location.search }) as { dept?: string }
+  const navigate = useNavigate()
 
-  const selectedDeptId = searchParams.get(DEPT_PARAM)
+  const selectedDeptId = search.dept ?? null
 
   const setSelectedDeptId = useCallback(
     (deptId: string | null) => {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev)
-          if (deptId) {
-            next.set(DEPT_PARAM, deptId)
-          } else {
-            next.delete(DEPT_PARAM)
-          }
-          return next
-        },
-        { replace: true },
-      )
+      void navigate({
+        to: '.',
+        search: (prev: Record<string, string | undefined>) => ({
+          ...prev,
+          dept: deptId || undefined,
+        }),
+        replace: true,
+      })
     },
-    [setSearchParams],
+    [navigate],
   )
 
   return { selectedDeptId, setSelectedDeptId }

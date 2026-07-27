@@ -1,5 +1,5 @@
 import { LogOut } from 'lucide-react'
-import { useLocation } from 'react-router'
+import { useRouterState } from '@tanstack/react-router'
 import { ROUTE_TITLES } from '@/config/routes'
 import { useSession } from '@/features/session'
 import { useApis } from '@/api/use-apis'
@@ -7,8 +7,8 @@ import { useApis } from '@/api/use-apis'
 export function Header() {
   const { user, logout } = useSession()
   const { authApi } = useApis()
-  const location = useLocation()
-  const title = ROUTE_TITLES[location.pathname] || '控制台'
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const title = ROUTE_TITLES[pathname] || '控制台'
 
   const handleLogout = async () => {
     try {

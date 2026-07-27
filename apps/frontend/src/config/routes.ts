@@ -292,20 +292,6 @@ export function routePermissions(path: RoutePath): PermissionKey[] {
   return [...getRouteMeta(path).requiredPermissions]
 }
 
-export interface AppRouteEntry {
-  path: RoutePath
-  lazy: () => Promise<LazyPageModule>
-}
-
-export const APP_ROUTES: AppRouteEntry[] = [
-  ...ROUTE_DEFINITIONS.map(({ path, lazy }) => ({
-    path: path as RoutePath,
-    lazy,
-  })),
-  // Hidden routes (not in nav, accessible via direct navigation)
-  { path: '/notifications' as RoutePath, lazy: () => import('@/routes/notifications/index') },
-]
-
 const LAZY_IMPORT_PATTERN = /import\(['"](@\/routes\/[^'"]+)['"]\)/
 
 export function validateRouteDefinitions(): void {
@@ -339,6 +325,4 @@ export function getRouteLazyImportPaths(): string[] {
   })
 }
 
-export function toRouterPath(route: RoutePath): string {
-  return route === ROUTES.home ? '' : route.slice(1)
-}
+

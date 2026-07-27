@@ -1,181 +1,114 @@
-# 阿里云部署方案
+# 阿里云部署方案（方案 A：ECS + Docker Compose + ACR）
 
-三个平台部署到一台 ECS，Nginx 反代，Docker Compose 编排所有服务。
+所有服务容器化，CI 构建镜像推到阿里云 ACR，ECS 上只需 `docker compose pull && up -d`。
 
-| 域名 | 服务 | 内容 |
+| 域名 | 服务 | 镜像 |
 |------|------|------|
-| www.tokenjoy.me | web | 静态官网（Vite 构建产物） |
-| app.tokenjoy.me | apps frontend + backend + newapi | 客户侧平台 |
-| sms.tokenjoy.me | sms frontend + backend + newapi-sms | 内部供应商管理 |
+| www.tokenjoy.me | web 静态官网 | `tokenjoy-web` |
+| app.tokenjoy.me | apps 前端 + 后端 + newapi | `tokenjoy-apps-frontend` / `tokenjoy-apps-backend` / `tokenjoy-newapi` |
+| sms.tokenjoy.me | sms 前端 + 后端 + newapi-sms | `tokenjoy-sms-frontend` / `tokenjoy-sms-backend` / `calciumion/new-api` |
+
+## 架构图
+
+```
+GitHub Push (main)
+  │
+  ▼
+GitHub Actions CI
+  ├─ 构建 6 个镜像（多阶段 Dockerfile）
+  └─ 推送到阿里云 ACR
+  │
+  ▼
+ECS (docker compose pull && up -d)
+  │
+  ▼
+Nginx (容器, 80/443)
+  ├─ www.tokenjoy.me  → tokenjoy-web:80
+  ├─ app.tokenjoy.me  → tokenjoy-apps-frontend:80 (/api → apps-backend:8010)
+  └─ sms.tokenjoy.me  → tokenjoy-sms-frontend:80 (/api → sms-backend:8020)
+
+内部网络:
+  - postgres:17 (或阿里云 RDS)
+  - redis:7
+  - newapi-apps:3000
+  - newapi-sms:3000
+  - apps-backend:8010
+  - sms-backend:8020
+```
 
 ## 前置条件
 
-- 阿里云 ECS（建议 2C4G+），装 Docker + Docker Compose
-- 域名解析：三条 A 记录指向 ECS 公网 IP
-- SSL 证书（可用阿里云免费证书或 Let's Encrypt）
-- 阿里云容器镜像服务 ACR（可选，也可用 GitHub Container Registry）
+- 阿里云 ECS（2C4G+），安装 Docker + Docker Compose
+- 阿里云 ACR 个人版实例（免费，3 个命名空间）
+- 域名解析：三条 A 记录 → ECS 公网 IP
+- SSL 证书（阿里云免费证书或 Let's Encrypt）
 
-## 架构
-
-```
-Internet
-  │
-  ▼
-Nginx (80/443)
-  ├─ www.tokenjoy.me  → 静态文件 /srv/web/dist
-  ├─ app.tokenjoy.me  → apps-frontend:80 (静态) + /api → apps-backend:8010
-  └─ sms.tokenjoy.me  → sms-frontend:80 (静态) + /api → sms-backend:8020
-
-Docker Compose (内部网络):
-  - postgres:17
-  - redis:7
-  - newapi-apps (端口 3010)
-  - newapi-sms (端口 3020)
-  - apps-backend (端口 8010)
-  - sms-backend (端口 8020)
-```
-
-## 目录结构（服务器侧）
+## 服务器目录结构
 
 ```
 /opt/tokenjoy/
 ├── docker-compose.prod.yml
-├── nginx/
-│   ├── nginx.conf
-│   └── ssl/              # 证书文件
-├── web-dist/             # www.tokenjoy.me 静态资源
-├── apps-frontend-dist/   # app.tokenjoy.me 静态资源
-├── sms-frontend-dist/    # sms.tokenjoy.me 静态资源
+├── nginx.conf
+├── ssl/                  # 证书
 ├── .env                  # 生产环境变量
-└── deploy.sh            # 一键部署脚本
+└── postgres-init/        # 数据库初始化脚本
 ```
 
-## 1. 生产 Docker Compose
+极简——服务器上没有源码、没有 Node/Go 环境，只有配置文件和 Docker。
 
-```yaml
-# docker-compose.prod.yml
-services:
-  postgres:
-    image: postgres:17-alpine
-    restart: always
-    environment:
-      POSTGRES_USER: ${PG_USER}
-      POSTGRES_PASSWORD: ${PG_PASSWORD}
-      POSTGRES_DB: tokenjoy
-    volumes:
-      - pg_data:/var/lib/postgresql/data
-      - ./scripts/postgres-init:/docker-entrypoint-initdb.d:ro
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${PG_USER}']
-      interval: 10s
-      timeout: 5s
-      retries: 5
+---
 
-  redis:
-    image: redis:7-alpine
-    restart: always
-    command: redis-server --requirepass ${REDIS_PASSWORD}
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
-      interval: 10s
-      timeout: 5s
-      retries: 5
+## 1. Dockerfile 清单
 
-  newapi-apps:
-    build:
-      context: ./apps/newapi
-      dockerfile: Dockerfile
-    restart: always
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
-    environment:
-      SQL_DSN: postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/newapi?sslmode=disable
-      LOG_SQL_DSN: postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/logs?sslmode=disable&search_path=newapi
-      REDIS_CONN_STRING: redis://:${REDIS_PASSWORD}@redis:6379/0
-      SESSION_SECRET: ${NEWAPI_SESSION_SECRET}
-      SYNC_FREQUENCY: 60
-      MANAGEMENT_WEBHOOK_URL: http://apps-backend:8010/api/internal/webhooks/newapi-log
-      MANAGEMENT_WEBHOOK_SECRET: ${WEBHOOK_SECRET}
-
-  newapi-sms:
-    image: calciumion/new-api:latest
-    restart: always
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
-    environment:
-      SQL_DSN: postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/sms_newapi?sslmode=disable
-      LOG_SQL_DSN: postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/sms_logs?sslmode=disable&search_path=newapi
-      REDIS_CONN_STRING: redis://:${REDIS_PASSWORD}@redis:6379/1
-      SESSION_SECRET: ${SMS_NEWAPI_SESSION_SECRET}
-      SYNC_FREQUENCY: 60
-
-  apps-backend:
-    build:
-      context: ./apps/backend
-      dockerfile: Dockerfile
-    restart: always
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
-      newapi-apps: { condition: service_started }
-    ports:
-      - '127.0.0.1:8010:8010'
-    environment:
-      PORT: '8010'
-      DATABASE_URL: postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/tokenjoy?sslmode=disable
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/2
-      SESSION_SECRET: ${SESSION_SECRET}
-      DEPLOY_ENV: production
-      SUPPORT_SAAS: ${SUPPORT_SAAS:-false}
-      NEWAPI_BASE_URL: http://newapi-apps:3000
-      NEWAPI_ADMIN_TOKEN: ${NEWAPI_ADMIN_TOKEN}
-      WEBHOOK_SECRET: ${WEBHOOK_SECRET}
-
-  sms-backend:
-    build:
-      context: ./sms/backend
-      dockerfile: Dockerfile
-    restart: always
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
-      newapi-sms: { condition: service_started }
-    ports:
-      - '127.0.0.1:8020:8020'
-    environment:
-      PORT: '8020'
-      DATABASE_URL: postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/sms?sslmode=disable
-      SESSION_SECRET: ${SMS_SESSION_SECRET}
-
-  nginx:
-    image: nginx:alpine
-    restart: always
-    ports:
-      - '80:80'
-      - '443:443'
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-      - ./web-dist:/srv/web:ro
-      - ./apps-frontend-dist:/srv/apps-frontend:ro
-      - ./sms-frontend-dist:/srv/sms-frontend:ro
-    depends_on:
-      - apps-backend
-      - sms-backend
-
-volumes:
-  pg_data:
-  redis_data:
-```
-
-## 2. Dockerfile — apps/backend
+### apps/frontend/Dockerfile
 
 ```dockerfile
-# apps/backend/Dockerfile
+FROM node:24-alpine AS builder
+RUN corepack enable pnpm
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/frontend/package.json apps/frontend/
+COPY packages/ packages/
+RUN pnpm install --frozen-lockfile --filter @tokenjoy/frontend...
+COPY apps/frontend/ apps/frontend/
+RUN pnpm -F @tokenjoy/frontend build
+
+FROM nginx:alpine
+COPY --from=builder /app/apps/frontend/dist /usr/share/nginx/html
+COPY apps/frontend/nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+```
+
+### apps/frontend/nginx.conf (容器内)
+
+```nginx
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location /api/ {
+        proxy_pass http://apps-backend:8010;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~* \.(js|css|png|jpg|svg|woff2?)$ {
+        expires 7d;
+        add_header Cache-Control "public, immutable";
+    }
+}
+```
+
+### apps/backend/Dockerfile
+
+```dockerfile
 FROM golang:1.25-alpine AS builder
 RUN apk add --no-cache git ca-certificates
 WORKDIR /build
@@ -191,10 +124,55 @@ EXPOSE 8010
 ENTRYPOINT ["server"]
 ```
 
-## 3. Dockerfile — sms/backend
+### sms/frontend/Dockerfile
 
 ```dockerfile
-# sms/backend/Dockerfile
+FROM node:24-alpine AS builder
+RUN corepack enable pnpm
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY sms/frontend/package.json sms/frontend/
+COPY packages/ packages/
+RUN pnpm install --frozen-lockfile --filter @sms/frontend...
+COPY sms/frontend/ sms/frontend/
+RUN pnpm -F @sms/frontend build
+
+FROM nginx:alpine
+COPY --from=builder /app/sms/frontend/dist /usr/share/nginx/html
+COPY sms/frontend/nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+```
+
+### sms/frontend/nginx.conf (容器内)
+
+```nginx
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location /api/ {
+        proxy_pass http://sms-backend:8020;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~* \.(js|css|png|jpg|svg|woff2?)$ {
+        expires 7d;
+        add_header Cache-Control "public, immutable";
+    }
+}
+```
+
+### sms/backend/Dockerfile
+
+```dockerfile
 FROM golang:1.23-alpine AS builder
 RUN apk add --no-cache git ca-certificates
 WORKDIR /build
@@ -210,10 +188,164 @@ EXPOSE 8020
 ENTRYPOINT ["server"]
 ```
 
-## 4. Nginx 配置
+### web/Dockerfile
+
+```dockerfile
+FROM node:24-alpine AS builder
+RUN corepack enable pnpm
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY web/package.json web/
+COPY packages/ packages/
+RUN pnpm install --frozen-lockfile --filter @tokenjoy/web...
+COPY web/ web/
+RUN pnpm -F @tokenjoy/web build
+
+FROM nginx:alpine
+COPY --from=builder /app/web/dist /usr/share/nginx/html
+RUN echo 'server { listen 80; root /usr/share/nginx/html; index index.html; location / { try_files $uri $uri/ /index.html; } location ~* \.(js|css|png|jpg|svg|woff2?)$ { expires 30d; add_header Cache-Control "public, immutable"; } }' > /etc/nginx/conf.d/default.conf
+EXPOSE 80
+```
+
+### apps/newapi/Dockerfile
+
+已有，不需要修改。
+
+---
+
+## 2. 生产 Docker Compose
+
+```yaml
+# docker-compose.prod.yml
+# 放在 ECS /opt/tokenjoy/ 下
+
+x-restart: &restart
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    <<: *restart
+    environment:
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: tokenjoy
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${PG_USER}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    <<: *restart
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  newapi-apps:
+    image: ${ACR_REGISTRY}/tokenjoy-newapi:${IMAGE_TAG:-latest}
+    <<: *restart
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      SQL_DSN: postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/newapi?sslmode=disable
+      LOG_SQL_DSN: postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/logs?sslmode=disable&search_path=newapi
+      REDIS_CONN_STRING: redis://:${REDIS_PASSWORD}@redis:6379/0
+      SESSION_SECRET: ${NEWAPI_SESSION_SECRET}
+      SYNC_FREQUENCY: 60
+      MANAGEMENT_WEBHOOK_URL: http://apps-backend:8010/api/internal/webhooks/newapi-log
+      MANAGEMENT_WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+
+  newapi-sms:
+    image: calciumion/new-api:latest
+    <<: *restart
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      SQL_DSN: postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/sms_newapi?sslmode=disable
+      LOG_SQL_DSN: postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/sms_logs?sslmode=disable&search_path=newapi
+      REDIS_CONN_STRING: redis://:${REDIS_PASSWORD}@redis:6379/1
+      SESSION_SECRET: ${SMS_NEWAPI_SESSION_SECRET}
+      SYNC_FREQUENCY: 60
+
+  apps-backend:
+    image: ${ACR_REGISTRY}/tokenjoy-apps-backend:${IMAGE_TAG:-latest}
+    <<: *restart
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      newapi-apps: { condition: service_started }
+    environment:
+      PORT: '8010'
+      DATABASE_URL: postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/tokenjoy?sslmode=disable
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/2
+      SESSION_SECRET: ${SESSION_SECRET}
+      DEPLOY_ENV: production
+      SUPPORT_SAAS: ${SUPPORT_SAAS:-false}
+      NEWAPI_BASE_URL: http://newapi-apps:3000
+      NEWAPI_ADMIN_TOKEN: ${NEWAPI_ADMIN_TOKEN}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+
+  sms-backend:
+    image: ${ACR_REGISTRY}/tokenjoy-sms-backend:${IMAGE_TAG:-latest}
+    <<: *restart
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      PORT: '8020'
+      DATABASE_URL: postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/sms?sslmode=disable
+      SESSION_SECRET: ${SMS_SESSION_SECRET}
+
+  apps-frontend:
+    image: ${ACR_REGISTRY}/tokenjoy-apps-frontend:${IMAGE_TAG:-latest}
+    <<: *restart
+    depends_on: [apps-backend]
+
+  sms-frontend:
+    image: ${ACR_REGISTRY}/tokenjoy-sms-frontend:${IMAGE_TAG:-latest}
+    <<: *restart
+    depends_on: [sms-backend]
+
+  web:
+    image: ${ACR_REGISTRY}/tokenjoy-web:${IMAGE_TAG:-latest}
+    <<: *restart
+
+  nginx:
+    image: nginx:alpine
+    <<: *restart
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - apps-frontend
+      - sms-frontend
+      - web
+
+volumes:
+  pg_data:
+  redis_data:
+```
+
+---
+
+## 3. Nginx 入口配置
 
 ```nginx
-# nginx/nginx.conf
+# nginx.conf — 放在 ECS /opt/tokenjoy/nginx.conf
 worker_processes auto;
 events { worker_connections 1024; }
 
@@ -224,89 +356,52 @@ http {
     gzip          on;
     gzip_types    text/plain text/css application/json application/javascript text/xml;
 
-    # --- www.tokenjoy.me (静态官网) ---
+    # www.tokenjoy.me
     server {
         listen 443 ssl;
         server_name www.tokenjoy.me;
-
         ssl_certificate     /etc/nginx/ssl/www.tokenjoy.me.pem;
         ssl_certificate_key /etc/nginx/ssl/www.tokenjoy.me.key;
 
-        root /srv/web;
-        index index.html;
-
         location / {
-            try_files $uri $uri/ /index.html;
-        }
-
-        location ~* \.(js|css|png|jpg|svg|woff2?)$ {
-            expires 30d;
-            add_header Cache-Control "public, immutable";
+            proxy_pass http://web:80;
+            proxy_set_header Host $host;
         }
     }
 
-    # --- app.tokenjoy.me (客户侧平台) ---
+    # app.tokenjoy.me
     server {
         listen 443 ssl;
         server_name app.tokenjoy.me;
-
         ssl_certificate     /etc/nginx/ssl/app.tokenjoy.me.pem;
         ssl_certificate_key /etc/nginx/ssl/app.tokenjoy.me.key;
 
-        # 前端静态资源
-        root /srv/apps-frontend;
-        index index.html;
-
-        # API 反代到 apps-backend
-        location /api/ {
-            proxy_pass http://apps-backend:8010;
+        location / {
+            proxy_pass http://apps-frontend:80;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
         }
-
-        # SPA 路由回退
-        location / {
-            try_files $uri $uri/ /index.html;
-        }
-
-        location ~* \.(js|css|png|jpg|svg|woff2?)$ {
-            expires 7d;
-            add_header Cache-Control "public, immutable";
-        }
     }
 
-    # --- sms.tokenjoy.me (内部管理) ---
+    # sms.tokenjoy.me
     server {
         listen 443 ssl;
         server_name sms.tokenjoy.me;
-
         ssl_certificate     /etc/nginx/ssl/sms.tokenjoy.me.pem;
         ssl_certificate_key /etc/nginx/ssl/sms.tokenjoy.me.key;
 
-        root /srv/sms-frontend;
-        index index.html;
-
-        location /api/ {
-            proxy_pass http://sms-backend:8020;
+        location / {
+            proxy_pass http://sms-frontend:80;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
         }
-
-        location / {
-            try_files $uri $uri/ /index.html;
-        }
-
-        location ~* \.(js|css|png|jpg|svg|woff2?)$ {
-            expires 7d;
-            add_header Cache-Control "public, immutable";
-        }
     }
 
-    # HTTP → HTTPS 重定向
+    # HTTP → HTTPS
     server {
         listen 80;
         server_name www.tokenjoy.me app.tokenjoy.me sms.tokenjoy.me;
@@ -315,165 +410,186 @@ http {
 }
 ```
 
-## 5. 环境变量模板
+注意：入口 Nginx 只做 SSL 终止 + 域名路由，API 反代由各前端容器内的 nginx 完成。
+
+---
+
+## 4. 环境变量
 
 ```bash
-# .env.example
+# .env（放在 ECS /opt/tokenjoy/.env）
+ACR_REGISTRY=registry.cn-hangzhou.aliyuncs.com/tokenjoy
+IMAGE_TAG=latest
+
 PG_USER=tokenjoy
 PG_PASSWORD=<强密码>
 REDIS_PASSWORD=<强密码>
-SESSION_SECRET=<随机 32 字符>
-SMS_SESSION_SECRET=<随机 32 字符>
-NEWAPI_SESSION_SECRET=<随机 32 字符>
-SMS_NEWAPI_SESSION_SECRET=<随机 32 字符>
-NEWAPI_ADMIN_TOKEN=<newapi 管理 token>
-WEBHOOK_SECRET=<webhook 签名密钥>
+
+SESSION_SECRET=<随机32字符>
+SMS_SESSION_SECRET=<随机32字符>
+NEWAPI_SESSION_SECRET=<随机32字符>
+SMS_NEWAPI_SESSION_SECRET=<随机32字符>
+NEWAPI_ADMIN_TOKEN=<newapi管理token>
+WEBHOOK_SECRET=<webhook签名密钥>
 SUPPORT_SAAS=false
 ```
 
-## 6. 一键部署脚本
+---
 
-```bash
-#!/usr/bin/env bash
-# deploy.sh — 本地执行，构建并部署到阿里云 ECS
-set -euo pipefail
-
-# ========== 配置 ==========
-SERVER_USER="root"
-SERVER_HOST="你的ECS公网IP"
-DEPLOY_DIR="/opt/tokenjoy"
-SSH_KEY="${SSH_KEY:-~/.ssh/id_rsa}"
-SSH="ssh -i ${SSH_KEY} ${SERVER_USER}@${SERVER_HOST}"
-SCP="scp -i ${SSH_KEY}"
-
-echo "=== 1. 安装依赖 ==="
-pnpm install --frozen-lockfile
-
-echo "=== 2. 构建前端 (web) ==="
-pnpm -F @tokenjoy/web build
-
-echo "=== 3. 构建前端 (apps) ==="
-pnpm -F @tokenjoy/frontend build
-
-echo "=== 4. 构建前端 (sms) ==="
-pnpm -F @sms/frontend build
-
-echo "=== 5. 打包前端产物 ==="
-tar -czf /tmp/web-dist.tar.gz -C web/dist .
-tar -czf /tmp/apps-frontend-dist.tar.gz -C apps/frontend/dist .
-tar -czf /tmp/sms-frontend-dist.tar.gz -C sms/frontend/dist .
-
-echo "=== 6. 同步后端源码到服务器 ==="
-# 同步需要构建 Docker 镜像的文件
-rsync -avz --delete \
-  -e "ssh -i ${SSH_KEY}" \
-  --include='apps/backend/***' \
-  --include='apps/newapi/***' \
-  --include='sms/backend/***' \
-  --include='scripts/postgres-init/***' \
-  --include='docker-compose.prod.yml' \
-  --include='nginx/***' \
-  --include='.env' \
-  --exclude='*' \
-  ./ "${SERVER_USER}@${SERVER_HOST}:${DEPLOY_DIR}/"
-
-echo "=== 7. 上传前端产物 ==="
-${SCP} /tmp/web-dist.tar.gz "${SERVER_USER}@${SERVER_HOST}:/tmp/"
-${SCP} /tmp/apps-frontend-dist.tar.gz "${SERVER_USER}@${SERVER_HOST}:/tmp/"
-${SCP} /tmp/sms-frontend-dist.tar.gz "${SERVER_USER}@${SERVER_HOST}:/tmp/"
-
-${SSH} <<'REMOTE'
-set -euo pipefail
-DEPLOY_DIR="/opt/tokenjoy"
-
-# 解压前端产物
-rm -rf ${DEPLOY_DIR}/web-dist && mkdir -p ${DEPLOY_DIR}/web-dist
-tar -xzf /tmp/web-dist.tar.gz -C ${DEPLOY_DIR}/web-dist
-
-rm -rf ${DEPLOY_DIR}/apps-frontend-dist && mkdir -p ${DEPLOY_DIR}/apps-frontend-dist
-tar -xzf /tmp/apps-frontend-dist.tar.gz -C ${DEPLOY_DIR}/apps-frontend-dist
-
-rm -rf ${DEPLOY_DIR}/sms-frontend-dist && mkdir -p ${DEPLOY_DIR}/sms-frontend-dist
-tar -xzf /tmp/sms-frontend-dist.tar.gz -C ${DEPLOY_DIR}/sms-frontend-dist
-
-# 重建容器
-cd ${DEPLOY_DIR}
-docker compose -f docker-compose.prod.yml build --parallel
-docker compose -f docker-compose.prod.yml up -d --remove-orphans
-
-# 等待健康检查
-echo "等待服务启动..."
-sleep 10
-docker compose -f docker-compose.prod.yml ps
-
-# 清理
-rm -f /tmp/web-dist.tar.gz /tmp/apps-frontend-dist.tar.gz /tmp/sms-frontend-dist.tar.gz
-REMOTE
-
-echo "=== 部署完成 ==="
-echo "  www.tokenjoy.me → web 官网"
-echo "  app.tokenjoy.me → apps 客户平台"
-echo "  sms.tokenjoy.me → sms 内部管理"
-```
-
-## 7. 首次服务器初始化
-
-首次部署前在 ECS 上执行：
-
-```bash
-# 安装 Docker
-curl -fsSL https://get.docker.com | sh
-systemctl enable --now docker
-
-# 创建部署目录
-mkdir -p /opt/tokenjoy/nginx/ssl
-
-# 上传 .env（从 .env.example 改好密码后上传）
-# 上传 SSL 证书到 /opt/tokenjoy/nginx/ssl/
-```
-
-## 8. 后续自动化（可选）
-
-把 `deploy.sh` 接入 GitHub Actions：
+## 5. GitHub Actions CI/CD
 
 ```yaml
 # .github/workflows/deploy.yml
-name: Deploy
+name: Build & Deploy
+
 on:
   push:
     branches: [main]
 
+env:
+  ACR_REGISTRY: registry.cn-hangzhou.aliyuncs.com/tokenjoy
+  IMAGE_TAG: ${{ github.sha }}
+
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm -F @tokenjoy/web build
-      - run: pnpm -F @tokenjoy/frontend build
-      - run: pnpm -F @sms/frontend build
-      - name: Deploy to server
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+
+      - name: Login to ACR
+        run: echo "${{ secrets.ACR_PASSWORD }}" | docker login $ACR_REGISTRY -u ${{ secrets.ACR_USERNAME }} --password-stdin
+
+      - name: Build & push images
         run: |
-          mkdir -p ~/.ssh
-          echo "${SSH_PRIVATE_KEY}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          export SSH_KEY=~/.ssh/deploy_key
-          export SERVER_HOST
-          bash deploy.sh
+          # apps-frontend
+          docker build -f apps/frontend/Dockerfile -t $ACR_REGISTRY/tokenjoy-apps-frontend:$IMAGE_TAG .
+          docker push $ACR_REGISTRY/tokenjoy-apps-frontend:$IMAGE_TAG
+          docker tag $ACR_REGISTRY/tokenjoy-apps-frontend:$IMAGE_TAG $ACR_REGISTRY/tokenjoy-apps-frontend:latest
+          docker push $ACR_REGISTRY/tokenjoy-apps-frontend:latest
+
+          # apps-backend
+          docker build -f apps/backend/Dockerfile -t $ACR_REGISTRY/tokenjoy-apps-backend:$IMAGE_TAG apps/backend
+          docker push $ACR_REGISTRY/tokenjoy-apps-backend:$IMAGE_TAG
+          docker tag $ACR_REGISTRY/tokenjoy-apps-backend:$IMAGE_TAG $ACR_REGISTRY/tokenjoy-apps-backend:latest
+          docker push $ACR_REGISTRY/tokenjoy-apps-backend:latest
+
+          # newapi (apps fork)
+          docker build -f apps/newapi/Dockerfile -t $ACR_REGISTRY/tokenjoy-newapi:$IMAGE_TAG apps/newapi
+          docker push $ACR_REGISTRY/tokenjoy-newapi:$IMAGE_TAG
+          docker tag $ACR_REGISTRY/tokenjoy-newapi:$IMAGE_TAG $ACR_REGISTRY/tokenjoy-newapi:latest
+          docker push $ACR_REGISTRY/tokenjoy-newapi:latest
+
+          # sms-frontend
+          docker build -f sms/frontend/Dockerfile -t $ACR_REGISTRY/tokenjoy-sms-frontend:$IMAGE_TAG .
+          docker push $ACR_REGISTRY/tokenjoy-sms-frontend:$IMAGE_TAG
+          docker tag $ACR_REGISTRY/tokenjoy-sms-frontend:$IMAGE_TAG $ACR_REGISTRY/tokenjoy-sms-frontend:latest
+          docker push $ACR_REGISTRY/tokenjoy-sms-frontend:latest
+
+          # sms-backend
+          docker build -f sms/backend/Dockerfile -t $ACR_REGISTRY/tokenjoy-sms-backend:$IMAGE_TAG sms/backend
+          docker push $ACR_REGISTRY/tokenjoy-sms-backend:$IMAGE_TAG
+          docker tag $ACR_REGISTRY/tokenjoy-sms-backend:$IMAGE_TAG $ACR_REGISTRY/tokenjoy-sms-backend:latest
+          docker push $ACR_REGISTRY/tokenjoy-sms-backend:latest
+
+          # web
+          docker build -f web/Dockerfile -t $ACR_REGISTRY/tokenjoy-web:$IMAGE_TAG .
+          docker push $ACR_REGISTRY/tokenjoy-web:$IMAGE_TAG
+          docker tag $ACR_REGISTRY/tokenjoy-web:$IMAGE_TAG $ACR_REGISTRY/tokenjoy-web:latest
+          docker push $ACR_REGISTRY/tokenjoy-web:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to ECS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/tokenjoy
+            echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ secrets.ACR_REGISTRY }} -u ${{ secrets.ACR_USERNAME }} --password-stdin
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker image prune -f
 ```
 
-## 注意事项
+---
 
-1. **数据库备份**：生产环境请配置 pg_dump 定期备份到 OSS
-2. **SSL 续期**：如用 Let's Encrypt，建议装 certbot + cron 自动续期
-3. **防火墙**：ECS 安全组只开放 80/443，SSH 限制 IP
-4. **日志**：docker compose logs 查看，建议对接阿里云 SLS
-5. **监控**：接入阿里云云监控，设置 CPU/内存/磁盘告警
+## 6. 手动部署脚本（备用）
+
+```bash
+#!/usr/bin/env bash
+# deploy.sh — 在本地手动触发部署（CI 挂了时用）
+set -euo pipefail
+
+SERVER="root@你的ECS公网IP"
+SSH_KEY="${SSH_KEY:-~/.ssh/id_rsa}"
+
+ssh -i "${SSH_KEY}" "${SERVER}" << 'EOF'
+cd /opt/tokenjoy
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d --remove-orphans
+docker image prune -f
+echo "✓ 部署完成"
+EOF
+```
+
+就这么短。所有构建逻辑都在 CI 里完成了。
+
+---
+
+## 7. 首次初始化
+
+```bash
+# 1. ECS 安装 Docker
+curl -fsSL https://get.docker.com | sh
+systemctl enable --now docker
+
+# 2. 创建部署目录
+mkdir -p /opt/tokenjoy/ssl
+
+# 3. 上传配置文件（本地执行）
+scp docker-compose.prod.yml nginx.conf .env root@ECS_IP:/opt/tokenjoy/
+scp -r scripts/postgres-init root@ECS_IP:/opt/tokenjoy/postgres-init/
+scp ssl/*.pem ssl/*.key root@ECS_IP:/opt/tokenjoy/ssl/
+
+# 4. 登录 ACR
+docker login registry.cn-hangzhou.aliyuncs.com
+
+# 5. 拉起服务
+cd /opt/tokenjoy
+docker compose -f docker-compose.prod.yml up -d
+```
+
+---
+
+## 8. 日常操作
+
+```bash
+# 查看状态
+docker compose -f docker-compose.prod.yml ps
+
+# 查看日志
+docker compose -f docker-compose.prod.yml logs -f apps-backend
+
+# 回滚到上一个版本
+# 修改 .env 中 IMAGE_TAG=<旧的 git sha>
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+
+# 数据库备份
+docker compose -f docker-compose.prod.yml exec postgres pg_dump -U tokenjoy tokenjoy > backup.sql
+```
+
+---
+
+## 9. 升级路径
+
+| 触发条件 | 操作 |
+|----------|------|
+| 内存紧张 | PG/Redis 外移到阿里云 RDS/Redis，删 compose 里的 postgres/redis 服务 |
+| 需要自动扩缩 | 迁移到 SAE，镜像不变 |
+| 需要零停机部署 | 前面加 ALB + 两台 ECS 蓝绿切换 |
+| 想更懒 | 加 Watchtower 容器，自动拉最新镜像 |

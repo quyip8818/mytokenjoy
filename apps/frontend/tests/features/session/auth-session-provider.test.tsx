@@ -1,13 +1,20 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { useEffect, useRef } from 'react'
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  RouterProvider,
+} from '@tanstack/react-router'
 import type { AppApis } from '@/api/app-apis'
 import { ApiProvider } from '@/api/context'
 import { QueryProvider, createTestQueryClient } from '@/features/query'
-import { AuthSessionProvider, SessionGate, useSession } from '@/features/session'
+import { AuthSessionProvider, useSession } from '@/features/session'
+import { ApiError } from '@/api/client'
 import { LOGIN_PATH } from '@/config/auth'
 import { createMockApis, createMockSession } from '@tests/utils'
-import { ApiError } from '@/api/client'
 
 function SessionErrorProbe() {
   const { sessionError } = useSession()
@@ -17,15 +24,36 @@ function SessionErrorProbe() {
   return null
 }
 
+/**
+ * Minimal inline equivalent of the old SessionGate for testing.
+ * Redirects to login on 401 via window.location.replace (same as auth-layout).
+ */
+function TestAuthGate({ children }: { children: React.ReactNode }) {
+  const { sessionError, loading } = useSession()
+  const hasRedirected = useRef(false)
+  const isUnauthorized = sessionError instanceof ApiError && sessionError.status === 401
+
+  useEffect(() => {
+    if (isUnauthorized && !hasRedirected.current) {
+      hasRedirected.current = true
+      window.location.replace(LOGIN_PATH)
+    }
+  }, [isUnauthorized])
+
+  if (loading) return null
+  if (isUnauthorized) return null
+  return <>{children}</>
+}
+
 function renderAuthSession(
   overrides: Partial<AppApis['sessionApi']>,
-  options?: { withSessionGate?: boolean },
+  options?: { withAuthGate?: boolean },
 ) {
   const apis = createMockApis({ sessionApi: overrides })
-  const content = options?.withSessionGate ? (
-    <SessionGate>
+  const content = options?.withAuthGate ? (
+    <TestAuthGate>
       <div data-testid="child">app</div>
-    </SessionGate>
+    </TestAuthGate>
   ) : (
     <>
       <SessionErrorProbe />
@@ -33,21 +61,34 @@ function renderAuthSession(
     </>
   )
 
-  return render(
-    <MemoryRouter initialEntries={['/']}>
+  const rootRoute = createRootRoute({
+    component: () => (
       <QueryProvider client={createTestQueryClient()}>
         <ApiProvider apis={apis}>
-          <Routes>
-            <Route path={LOGIN_PATH.slice(1)} element={<div data-testid="login">login</div>} />
-            <Route
-              path="*"
-              element={<AuthSessionProvider apis={apis}>{content}</AuthSessionProvider>}
-            />
-          </Routes>
+          <AuthSessionProvider apis={apis}>{content}</AuthSessionProvider>
         </ApiProvider>
       </QueryProvider>
-    </MemoryRouter>,
-  )
+    ),
+  })
+  const loginRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: LOGIN_PATH,
+    component: () => <div data-testid="login">login</div>,
+  })
+  const indexRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/',
+  })
+  const catchAll = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '$',
+  })
+
+  const routeTree = rootRoute.addChildren([loginRoute, indexRoute, catchAll])
+  const history = createMemoryHistory({ initialEntries: ['/'] })
+  const router = createRouter({ routeTree, history })
+
+  return render(<RouterProvider router={router} />)
 }
 
 describe('AuthSessionProvider', () => {
@@ -70,7 +111,7 @@ describe('AuthSessionProvider', () => {
       {
         getCurrent: vi.fn().mockRejectedValue(new ApiError(401, 'Unauthorized')),
       },
-      { withSessionGate: true },
+      { withAuthGate: true },
     )
 
     await waitFor(() => {
@@ -82,7 +123,7 @@ describe('AuthSessionProvider', () => {
     vi.unstubAllGlobals()
   })
 
-  it('exposes 401 sessionError without SessionGate', async () => {
+  it('exposes 401 sessionError without auth gate', async () => {
     renderAuthSession({
       getCurrent: vi.fn().mockRejectedValue(new ApiError(401, 'Unauthorized')),
     })

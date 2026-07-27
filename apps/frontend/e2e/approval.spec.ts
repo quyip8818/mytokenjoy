@@ -25,6 +25,6 @@ test.describe('审批中心', () => {
   })
 
   test('shows approval list heading', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: '审批列表' })).toBeVisible()
+    await expect(page.getByRole('main').getByRole('heading', { name: '审批中心' })).toBeVisible()
   })
 })

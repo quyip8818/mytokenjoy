@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { useApis } from '@/api/use-apis'
 import { useSession } from '@/features/session'
@@ -19,7 +19,7 @@ export default function LoginPage() {
       const res = await authApi.login({ username, password })
       localStorage.setItem('sms_access_token', res.accessToken)
       setUser(res.user)
-      navigate('/dashboard', { replace: true })
+      navigate({ to: '/dashboard', replace: true })
     } catch (err: any) {
       toast.error(err.message || '登录失败')
     } finally {
