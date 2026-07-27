@@ -17,13 +17,7 @@ export function useNotificationInbox() {
 
   const queryKey = ['notifications', 'inbox', tab, category, status]
 
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-  } = useInfiniteQuery({
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
     queryKey,
     queryFn: async ({ pageParam }) => {
       const params: NotificationListParams = {

@@ -90,7 +90,10 @@ export function NotificationCenter() {
           <TabsList className="mb-4">
             <TabsTrigger value="inbox" className="gap-1.5">
               <Inbox className="h-3.5 w-3.5" />
-              收件箱{unreadCount > 0 && <span className="ml-1 text-xs text-blue-600">●{unreadCount}</span>}
+              收件箱
+              {unreadCount > 0 && (
+                <span className="ml-1 text-xs text-blue-600">●{unreadCount}</span>
+              )}
             </TabsTrigger>
             <TabsTrigger value="archived" className="gap-1.5">
               <Archive className="h-3.5 w-3.5" />
@@ -134,12 +137,22 @@ export function NotificationCenter() {
           {tab === 'inbox' && (
             <div className="flex items-center gap-1.5">
               {unreadCount > 0 && (
-                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => markAllRead()}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => markAllRead()}
+                >
                   <Check className="mr-1 h-3 w-3" />
                   全部已读
                 </Button>
               )}
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => archiveAll()}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => archiveAll()}
+              >
                 <Archive className="mr-1 h-3 w-3" />
                 全部归档
               </Button>

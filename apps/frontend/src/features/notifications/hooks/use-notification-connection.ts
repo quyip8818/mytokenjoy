@@ -44,7 +44,9 @@ export function useNotificationConnection() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const navigateRef = useRef(navigate)
-  useEffect(() => { navigateRef.current = navigate })
+  useEffect(() => {
+    navigateRef.current = navigate
+  })
   const eventSourceRef = useRef<EventSource | null>(null)
 
   useEffect(() => {

@@ -84,8 +84,8 @@ low:       In-App
 
 - **SSE 连接** — `NotificationProvider` 在用户登录后建立到 `/api/notifications/stream` 的 EventSource
 - **收到通知** — invalidate TanStack Query 缓存 + toast 提示（同 groupKey 10s 防刷屏）
-- **Popover** — Header 中的 Bell icon，显示最近 8 条（分组后），hover 可快捷归档
-- **通知中心** — `/notifications` 独立页面，支持 Tabs（收件箱/已归档）、分类筛选、cursor 分页、归档/删除/撤销
+- **Popover** — Header 中的 Bell icon（带边框 + 未读数字 badge），显示最近 8 条（分组后），hover 时时间戳替换为归档按钮
+- **通知中心** — `/notifications` 独立页面，支持 Tabs（收件箱/已归档）、分类筛选、cursor 分页、归档/删除/撤销、全部已读
 - **actionUrl** — 前端 `getActionUrl(notification)` 根据 event_type + payload 拼接跳转路由
 - **降级** — 后端无 in_app channel 时（`capabilities` 返回无 in_app），所有通知走 toast
 

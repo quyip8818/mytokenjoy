@@ -281,7 +281,7 @@ features/notifications/
 
 ### 7.2 入口组件
 
-- `NotificationInbox`（Popover）：放在 Header，显示最近 8 条（分组后）
+- `NotificationInbox`（Popover）：放在 Header，Bell 带边框（与 company/user chip 视觉对齐），未读时右上角蓝色数字 badge
 - `NotificationCenter`（页面）：`/notifications` 路由，Tabs + 筛选 + 无限滚动
 
 ### 7.3 actionUrl 映射
@@ -332,15 +332,26 @@ switch (notification.eventType) {
 | system_maintenance | `Settings` | `text-slate-500` |
 | overrun | `AlertTriangle` | `text-rose-500` |
 
-### 9.2 状态视觉
+### 9.2 铃铛按钮
+
+| 元素 | 规格 |
+|------|------|
+| 按钮尺寸 | h-9 w-9 (36px)，`rounded-md border border-border` |
+| 铃铛图标 | 18px，无未读时 `text-foreground/60`，有未读时 `text-foreground` |
+| 未读 badge | `absolute -right-1 -top-1`，蓝色圆形（bg-primary），白字数字，>99 显示 "99+" |
+| Tooltip | hover 显示 "N 条未读通知" 或 "通知"，Popover 打开时自动隐藏 |
+| Popover header | 居中标题"通知"，无操作按钮（全部已读等操作在 /notifications 页面） |
+
+### 9.3 通知列表项状态
 
 | 状态 | 样式 |
 |------|------|
-| 未读 | `border-l-2 border-blue-500` + `bg-blue-50/40` + `font-medium` |
+| 未读 | `border-l-[3px] border-l-primary` + `bg-accent/40` + `font-medium` |
 | 已读 | 无边框 + 透明背景 + `font-normal text-muted-foreground` |
-| hover | `bg-muted/60` + 浮出操作按钮 |
+| hover | `bg-muted/60` + 时间戳隐藏 → 归档按钮替换显示 |
+| 分组 badge | 圆形 pill（`rounded-full bg-muted`），显示数字（无 × 前缀） |
 
-### 9.3 尺寸
+### 9.4 尺寸
 
 | 元素 | 规格 |
 |------|------|
