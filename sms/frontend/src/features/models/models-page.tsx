@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RefreshCw, Pencil } from 'lucide-react'
+import { RefreshCw, Pencil, Trash2, Power } from 'lucide-react'
 import { toast } from 'sonner'
 import { useFilteredQuery, queryKeys } from '@/features/query'
 import { useSession } from '@/features/session'
@@ -7,6 +7,43 @@ import { useApis } from '@/api/use-apis'
 import { MODEL_STATUS, MODEL_TYPES } from '@/config/enums'
 import { Badge, Field } from '@/components/ui'
 import type { AiModel } from '@/api/models'
+
+function ConfirmDialog({
+  open,
+  title,
+  message,
+  confirmLabel,
+  variant,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean
+  title: string
+  message: string
+  confirmLabel: string
+  variant?: 'danger' | 'warning'
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  if (!open) return null
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onCancel}>
+      <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-base font-semibold">{title}</h3>
+        <p className="mt-2 text-sm text-muted-foreground">{message}</p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={onCancel} className="rounded-md border px-4 py-2 text-sm">取消</button>
+          <button
+            onClick={onConfirm}
+            className={`rounded-md px-4 py-2 text-sm font-medium text-white ${variant === 'danger' ? 'bg-red-600 hover:bg-red-700' : 'bg-amber-600 hover:bg-amber-700'}`}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function ModelsPage() {
   const { user } = useSession()
@@ -25,13 +62,15 @@ export function ModelsPage() {
   const [priceForm, setPriceForm] = useState({ inputPrice: '', outputPrice: '', discount: '' })
   const [saving, setSaving] = useState(false)
 
+  // 二次确认状态
+  const [confirmAction, setConfirmAction] = useState<{ type: 'delete' | 'toggle'; model: AiModel } | null>(null)
+
   const handleSync = async () => {
     setSyncing(true)
     try {
       const result = await apis.newapiApi.pull()
       toast.success(`同步完成：${result.channelsSynced} 个渠道，${result.modelsCreated} 个模型`)
       refresh()
-      search({})
     } catch (e: any) {
       toast.error(`同步失败：${e.message}`)
     } finally {
@@ -65,6 +104,25 @@ export function ModelsPage() {
       toast.error(e.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleConfirm = async () => {
+    if (!confirmAction) return
+    const { type, model } = confirmAction
+    setConfirmAction(null)
+    try {
+      if (type === 'delete') {
+        await apis.modelsApi.delete(model.id)
+        toast.success(`已删除「${model.modelName}」`)
+      } else {
+        const newStatus = model.status === 'available' ? 'deprecated' : 'available'
+        await apis.modelsApi.update(model.id, { status: newStatus })
+        toast.success(newStatus === 'deprecated' ? `已禁用「${model.modelName}」` : `已启用「${model.modelName}」`)
+      }
+      refresh()
+    } catch (e: any) {
+      toast.error(e.message)
     }
   }
 
@@ -133,7 +191,7 @@ export function ModelsPage() {
           </thead>
           <tbody>
             {data?.items.map((m) => (
-              <tr key={m.id} className="border-b last:border-0 hover:bg-muted/20">
+              <tr key={m.id} className={`border-b last:border-0 hover:bg-muted/20 ${m.status === 'deprecated' ? 'opacity-50' : ''}`}>
                 <td className="px-4 py-3">
                   <div className="font-medium">{m.modelName}</div>
                   {m.modelId && (
@@ -161,13 +219,29 @@ export function ModelsPage() {
                 </td>
                 {canEdit && (
                   <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => openPricing(m)}
-                      className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                      title="编辑售价"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="inline-flex items-center gap-1">
+                      <button
+                        onClick={() => openPricing(m)}
+                        className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        title="编辑售价"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setConfirmAction({ type: 'toggle', model: m })}
+                        className={`rounded p-1.5 hover:bg-muted ${m.status === 'available' ? 'text-amber-500 hover:text-amber-600' : 'text-green-500 hover:text-green-600'}`}
+                        title={m.status === 'available' ? '禁用' : '启用'}
+                      >
+                        <Power className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setConfirmAction({ type: 'delete', model: m })}
+                        className="rounded p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                        title="删除"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </td>
                 )}
               </tr>
@@ -198,11 +272,9 @@ export function ModelsPage() {
               {editing.modelName}
               {editing.modelId && <span className="ml-1 font-mono">({editing.modelId})</span>}
             </p>
-
             <div className="mb-4 rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
               成本价：输入 ¥{editing.costInput ?? '—'} / 输出 ¥{editing.costOutput ?? '—'} (每百万 tokens)
             </div>
-
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <Field label="售价 · 输入 (¥/M tokens)">
@@ -237,12 +309,7 @@ export function ModelsPage() {
               </Field>
             </div>
             <div className="mt-6 flex justify-end gap-2">
-              <button
-                onClick={() => setDialogOpen(false)}
-                className="rounded-md border px-4 py-2 text-sm"
-              >
-                取消
-              </button>
+              <button onClick={() => setDialogOpen(false)} className="rounded-md border px-4 py-2 text-sm">取消</button>
               <button
                 onClick={handleSavePricing}
                 disabled={saving}
@@ -254,6 +321,23 @@ export function ModelsPage() {
           </div>
         </div>
       )}
+
+      {/* 二次确认弹窗 */}
+      <ConfirmDialog
+        open={!!confirmAction}
+        title={confirmAction?.type === 'delete' ? '确认删除' : confirmAction?.model.status === 'available' ? '确认禁用' : '确认启用'}
+        message={
+          confirmAction?.type === 'delete'
+            ? `确定删除模型「${confirmAction.model.modelName}」吗？此操作不可撤销。`
+            : confirmAction?.model.status === 'available'
+              ? `确定禁用模型「${confirmAction?.model.modelName}」吗？禁用后用户将无法使用该模型。`
+              : `确定启用模型「${confirmAction?.model.modelName}」吗？`
+        }
+        confirmLabel={confirmAction?.type === 'delete' ? '删除' : confirmAction?.model.status === 'available' ? '禁用' : '启用'}
+        variant={confirmAction?.type === 'delete' ? 'danger' : 'warning'}
+        onConfirm={handleConfirm}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   )
 }
