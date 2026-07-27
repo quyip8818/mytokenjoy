@@ -52,21 +52,26 @@ type SupplierContact struct {
 }
 
 type AiModel struct {
-	ID            uuid.UUID `json:"id"            db:"id"`
-	SupplierID    uuid.UUID `json:"supplierId"    db:"supplier_id"`
-	ModelName     string    `json:"modelName"     db:"model_name"`
-	ModelID       *string   `json:"modelId"       db:"model_id"`
-	ModelType     *string   `json:"modelType"     db:"model_type"`
-	ContextLength *int      `json:"contextLength" db:"context_length"`
-	InputPrice    *float64  `json:"inputPrice"    db:"input_price"`
-	OutputPrice   *float64  `json:"outputPrice"   db:"output_price"`
-	Discount      *float64  `json:"discount"      db:"discount"`
-	Status        string    `json:"status"        db:"status"`
-	Description   *string   `json:"description"   db:"description"`
-	CreatedAt     time.Time `json:"createdAt"     db:"created_at"`
-	UpdatedAt     time.Time `json:"updatedAt"     db:"updated_at"`
+	ID            uuid.UUID  `json:"id"            db:"id"`
+	SupplierID    *uuid.UUID `json:"supplierId"    db:"supplier_id"`
+	ChannelID     *uuid.UUID `json:"channelId"     db:"channel_id"`
+	ModelName     string     `json:"modelName"     db:"model_name"`
+	ModelID       *string    `json:"modelId"       db:"model_id"`
+	ModelType     *string    `json:"modelType"     db:"model_type"`
+	ContextLength *int       `json:"contextLength" db:"context_length"`
+	CostInput     *float64   `json:"costInput"     db:"cost_input"`
+	CostOutput    *float64   `json:"costOutput"    db:"cost_output"`
+	InputPrice    *float64   `json:"inputPrice"    db:"input_price"`
+	OutputPrice   *float64   `json:"outputPrice"   db:"output_price"`
+	Discount      *float64   `json:"discount"      db:"discount"`
+	Status        string     `json:"status"        db:"status"`
+	Source        string     `json:"source"        db:"source"`
+	Description   *string    `json:"description"   db:"description"`
+	CreatedAt     time.Time  `json:"createdAt"     db:"created_at"`
+	UpdatedAt     time.Time  `json:"updatedAt"     db:"updated_at"`
 	// JOIN 字段
 	SupplierName *string `json:"supplierName,omitempty" db:"supplier_name"`
+	ChannelName  *string `json:"channelName,omitempty"  db:"channel_name"`
 }
 
 type Contract struct {

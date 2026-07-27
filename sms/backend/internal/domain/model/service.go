@@ -21,13 +21,13 @@ type ListFilter struct {
 	Page       int
 	PageSize   int
 	Keyword    string
-	SupplierID uuid.UUID
+	SupplierID *uuid.UUID
 	ModelType  string
 	Status     string
 }
 
 type CreateInput struct {
-	SupplierID    uuid.UUID `json:"supplierId"`
+	SupplierID    *uuid.UUID `json:"supplierId"`
 	ModelName     string    `json:"modelName"`
 	ModelID       *string   `json:"modelId"`
 	ModelType     *string   `json:"modelType"`
@@ -72,7 +72,7 @@ func (s *Service) Get(ctx context.Context, id uuid.UUID) (*types.AiModel, error)
 }
 
 func (s *Service) Create(ctx context.Context, input CreateInput) (*types.AiModel, error) {
-	if input.ModelName == "" || input.SupplierID == uuid.Nil {
+	if input.ModelName == "" {
 		return nil, fmt.Errorf("%w: 模型名称和供应商不能为空", types.ErrValidation)
 	}
 	if input.Status == "" {
@@ -101,7 +101,7 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*types.AiModel
 }
 
 func (s *Service) Update(ctx context.Context, id uuid.UUID, input UpdateInput) (*types.AiModel, error) {
-	if input.ModelName == "" || input.SupplierID == uuid.Nil {
+	if input.ModelName == "" {
 		return nil, fmt.Errorf("%w: 模型名称和供应商不能为空", types.ErrValidation)
 	}
 	if input.Status != "" && !types.IsValidStatus(input.Status, types.ModelStatuses) {

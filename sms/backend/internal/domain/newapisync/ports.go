@@ -12,6 +12,8 @@ type AdminPort interface {
 	ListCurrentRatios(ctx context.Context) (map[string]ModelPricing, error)
 	// ListModels 读取 NewAPI 的所有模型（从 ModelRatio keys）
 	ListModels(ctx context.Context) ([]NewAPIModel, error)
+	// ListChannels 从 NewAPI 拉取所有渠道
+	ListChannels(ctx context.Context) ([]Channel, error)
 }
 
 // NewAPIModel 表示 NewAPI 中的一个模型

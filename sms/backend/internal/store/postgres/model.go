@@ -21,7 +21,7 @@ func (s *Store) ListModels(ctx context.Context, f model.ListFilter) (*types.Page
 		args = append(args, "%"+f.Keyword+"%")
 		idx++
 	}
-	if f.SupplierID != uuid.Nil {
+	if f.SupplierID != nil && *f.SupplierID != uuid.Nil {
 		conditions = append(conditions, fmt.Sprintf("m.supplier_id = $%d", idx))
 		args = append(args, f.SupplierID)
 		idx++
@@ -51,9 +51,12 @@ func (s *Store) ListModels(ctx context.Context, f model.ListFilter) (*types.Page
 	offset := (f.Page - 1) * f.PageSize
 	query := fmt.Sprintf(
 		`SELECT m.id, m.supplier_id, m.model_name, m.model_id, m.model_type, m.context_length,
-		        m.input_price, m.output_price, m.discount, m.status, m.description,
-		        m.created_at, m.updated_at, sup.name as supplier_name
-		 FROM models m LEFT JOIN suppliers sup ON sup.id = m.supplier_id
+		        m.cost_input, m.cost_output, m.input_price, m.output_price, m.discount,
+		        m.status, m.source, m.description, m.created_at, m.updated_at,
+		        sup.name as supplier_name, ch.name as channel_name
+		 FROM models m
+		 LEFT JOIN suppliers sup ON sup.id = m.supplier_id
+		 LEFT JOIN channels ch ON ch.id = m.channel_id
 		 %s ORDER BY m.created_at DESC LIMIT $%d OFFSET $%d`,
 		where, idx, idx+1,
 	)
@@ -69,8 +72,9 @@ func (s *Store) ListModels(ctx context.Context, f model.ListFilter) (*types.Page
 	for rows.Next() {
 		var m types.AiModel
 		if err := rows.Scan(&m.ID, &m.SupplierID, &m.ModelName, &m.ModelID, &m.ModelType, &m.ContextLength,
-			&m.InputPrice, &m.OutputPrice, &m.Discount, &m.Status, &m.Description,
-			&m.CreatedAt, &m.UpdatedAt, &m.SupplierName); err != nil {
+			&m.CostInput, &m.CostOutput, &m.InputPrice, &m.OutputPrice, &m.Discount,
+			&m.Status, &m.Source, &m.Description, &m.CreatedAt, &m.UpdatedAt,
+			&m.SupplierName, &m.ChannelName); err != nil {
 			return nil, err
 		}
 		items = append(items, m)
@@ -85,13 +89,17 @@ func (s *Store) GetModel(ctx context.Context, id uuid.UUID) (*types.AiModel, err
 	var m types.AiModel
 	err := s.pool.QueryRow(ctx,
 		`SELECT m.id, m.supplier_id, m.model_name, m.model_id, m.model_type, m.context_length,
-		        m.input_price, m.output_price, m.discount, m.status, m.description,
-		        m.created_at, m.updated_at, sup.name as supplier_name
-		 FROM models m LEFT JOIN suppliers sup ON sup.id = m.supplier_id
+		        m.cost_input, m.cost_output, m.input_price, m.output_price, m.discount,
+		        m.status, m.source, m.description, m.created_at, m.updated_at,
+		        sup.name as supplier_name, ch.name as channel_name
+		 FROM models m
+		 LEFT JOIN suppliers sup ON sup.id = m.supplier_id
+		 LEFT JOIN channels ch ON ch.id = m.channel_id
 		 WHERE m.id = $1`, id,
 	).Scan(&m.ID, &m.SupplierID, &m.ModelName, &m.ModelID, &m.ModelType, &m.ContextLength,
-		&m.InputPrice, &m.OutputPrice, &m.Discount, &m.Status, &m.Description,
-		&m.CreatedAt, &m.UpdatedAt, &m.SupplierName)
+		&m.CostInput, &m.CostOutput, &m.InputPrice, &m.OutputPrice, &m.Discount,
+		&m.Status, &m.Source, &m.Description, &m.CreatedAt, &m.UpdatedAt,
+		&m.SupplierName, &m.ChannelName)
 	return &m, store.WrapNotFound(err)
 }
 

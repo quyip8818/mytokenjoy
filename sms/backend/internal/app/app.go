@@ -58,7 +58,8 @@ func New(cfg config.Config, logger *slog.Logger) (*App, error) {
 			newapiPool = naPool
 			tokenStore := newapiclient.NewTokenStore(naPool, cfg.NewAPIAdminUserID)
 			client := newapiclient.NewClient(cfg.NewAPIBaseURL, tokenStore)
-			syncService = newapisyncsvc.NewService(client, modelService, logger)
+			tokenStore.SetBaseURL(cfg.NewAPIBaseURL)
+			syncService = newapisyncsvc.NewServiceWithPullStore(client, modelService, pg, logger)
 			modelService.SetSyncer(syncService)
 			logger.Info("newapi sync enabled", "baseURL", cfg.NewAPIBaseURL)
 		}

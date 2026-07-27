@@ -37,22 +37,29 @@ func NewClientForTest(baseURL, staticToken string) *Client {
 	}
 }
 
-// optionsResponse 是 GET /api/option/ 的响应结构
-type optionsResponse struct {
-	Data map[string]string `json:"data"`
+// optionEntry 是标准版 NewAPI /api/option/ 返回的数组元素
+type optionEntry struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
-// GetOptions 读取 NewAPI 全部 options（包含 ModelRatio、CompletionRatio 等 JSON map）
+// GetOptions 读取 NewAPI 全部 options
 func (c *Client) GetOptions(ctx context.Context) (map[string]string, error) {
 	body, err := c.doWithRetry(ctx, http.MethodGet, "/api/option/", nil)
 	if err != nil {
 		return nil, err
 	}
-	var resp optionsResponse
+	var resp struct {
+		Data []optionEntry `json:"data"`
+	}
 	if err := json.Unmarshal(body, &resp); err != nil {
 		return nil, fmt.Errorf("parse options response: %w", err)
 	}
-	return resp.Data, nil
+	result := make(map[string]string, len(resp.Data))
+	for _, entry := range resp.Data {
+		result[entry.Key] = entry.Value
+	}
+	return result, nil
 }
 
 // PutOption 写入单个 option key-value
@@ -201,4 +208,48 @@ func parseJSONMap(s string) map[string]float64 {
 	}
 	_ = json.Unmarshal([]byte(s), &m)
 	return m
+}
+
+// channelListResponse 是 GET /api/channel/ 的响应结构
+type channelListResponse struct {
+	Data struct {
+		Items []struct {
+			ID       int    `json:"id"`
+			Name     string `json:"name"`
+			Type     int    `json:"type"`
+			Status   int    `json:"status"`
+			Models   string `json:"models"`
+			BaseURL  string `json:"base_url"`
+			Priority int    `json:"priority"`
+			Weight   int    `json:"weight"`
+		} `json:"items"`
+	} `json:"data"`
+}
+
+// ListChannels 从 NewAPI 拉取所有渠道
+func (c *Client) ListChannels(ctx context.Context) ([]newapisync.Channel, error) {
+	body, err := c.doWithRetry(ctx, http.MethodGet, "/api/channel/?p=0&page_size=100", nil)
+	if err != nil {
+		return nil, fmt.Errorf("list channels: %w", err)
+	}
+
+	var resp channelListResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, fmt.Errorf("parse channel response: %w", err)
+	}
+
+	channels := make([]newapisync.Channel, 0, len(resp.Data.Items))
+	for _, item := range resp.Data.Items {
+		channels = append(channels, newapisync.Channel{
+			ID:       item.ID,
+			Name:     item.Name,
+			Type:     item.Type,
+			Status:   item.Status,
+			Models:   item.Models,
+			BaseURL:  item.BaseURL,
+			Priority: item.Priority,
+			Weight:   item.Weight,
+		})
+	}
+	return channels, nil
 }

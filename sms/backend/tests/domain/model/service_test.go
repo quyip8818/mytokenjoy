@@ -116,7 +116,7 @@ func TestCreate_Success(t *testing.T) {
 	t.Parallel()
 	svc := newService()
 	m, err := svc.Create(context.Background(), model.CreateInput{
-		SupplierID: testSupplierID, ModelName: "GPT-4",
+		SupplierID: &testSupplierID, ModelName: "GPT-4",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -136,7 +136,7 @@ func TestCreate_ValidationError(t *testing.T) {
 		name  string
 		input model.CreateInput
 	}{
-		{"empty name", model.CreateInput{SupplierID: testSupplierID}},
+		{"empty name", model.CreateInput{SupplierID: &testSupplierID}},
 		{"empty supplier", model.CreateInput{ModelName: "X"}},
 	}
 	for _, tc := range cases {
@@ -153,7 +153,7 @@ func TestCreate_InvalidStatus(t *testing.T) {
 	t.Parallel()
 	svc := newService()
 	_, err := svc.Create(context.Background(), model.CreateInput{
-		SupplierID: testSupplierID, ModelName: "X", Status: "bad",
+		SupplierID: &testSupplierID, ModelName: "X", Status: "bad",
 	})
 	if err == nil {
 		t.Fatal("expected validation error for invalid status")
@@ -164,10 +164,10 @@ func TestUpdate_Success(t *testing.T) {
 	t.Parallel()
 	svc := newService()
 	created, _ := svc.Create(context.Background(), model.CreateInput{
-		SupplierID: testSupplierID, ModelName: "Claude",
+		SupplierID: &testSupplierID, ModelName: "Claude",
 	})
 	updated, err := svc.Update(context.Background(), created.ID, model.UpdateInput{
-		SupplierID: testSupplierID, ModelName: "Claude-3", Status: "deprecated",
+		SupplierID: &testSupplierID, ModelName: "Claude-3", Status: "deprecated",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -184,10 +184,10 @@ func TestUpdate_InvalidStatus(t *testing.T) {
 	t.Parallel()
 	svc := newService()
 	created, _ := svc.Create(context.Background(), model.CreateInput{
-		SupplierID: testSupplierID, ModelName: "X",
+		SupplierID: &testSupplierID, ModelName: "X",
 	})
 	_, err := svc.Update(context.Background(), created.ID, model.UpdateInput{
-		SupplierID: testSupplierID, ModelName: "X", Status: "invalid",
+		SupplierID: &testSupplierID, ModelName: "X", Status: "invalid",
 	})
 	if err == nil {
 		t.Fatal("expected validation error")
@@ -198,7 +198,7 @@ func TestDelete(t *testing.T) {
 	t.Parallel()
 	svc := newService()
 	created, _ := svc.Create(context.Background(), model.CreateInput{
-		SupplierID: testSupplierID, ModelName: "ToDelete",
+		SupplierID: &testSupplierID, ModelName: "ToDelete",
 	})
 	if err := svc.Delete(context.Background(), created.ID); err != nil {
 		t.Fatal(err)
@@ -227,7 +227,7 @@ func TestCreate_TriggersSyncWhenModelIDAndPrice(t *testing.T) {
 	t.Parallel()
 	svc, ms := newServiceWithSyncer()
 	_, err := svc.Create(context.Background(), model.CreateInput{
-		SupplierID:  testSupplierID,
+		SupplierID:  &testSupplierID,
 		ModelName:   "GPT-4o",
 		ModelID:     ptr("gpt-4o"),
 		InputPrice:  ptr(60.0),
@@ -253,7 +253,7 @@ func TestCreate_NoSyncWithoutModelID(t *testing.T) {
 	t.Parallel()
 	svc, ms := newServiceWithSyncer()
 	_, err := svc.Create(context.Background(), model.CreateInput{
-		SupplierID:  testSupplierID,
+		SupplierID:  &testSupplierID,
 		ModelName:   "NoID",
 		InputPrice:  ptr(60.0),
 		OutputPrice: ptr(120.0),
@@ -271,7 +271,7 @@ func TestCreate_NoSyncWithZeroPrice(t *testing.T) {
 	t.Parallel()
 	svc, ms := newServiceWithSyncer()
 	_, err := svc.Create(context.Background(), model.CreateInput{
-		SupplierID: testSupplierID,
+		SupplierID: &testSupplierID,
 		ModelName:  "ZeroPrice",
 		ModelID:    ptr("zero-model"),
 		// no InputPrice set (nil)
@@ -289,14 +289,14 @@ func TestUpdate_TriggersSync(t *testing.T) {
 	t.Parallel()
 	svc, ms := newServiceWithSyncer()
 	created, _ := svc.Create(context.Background(), model.CreateInput{
-		SupplierID: testSupplierID,
+		SupplierID: &testSupplierID,
 		ModelName:  "Claude",
 	})
 	// clear create calls (no model_id, so should be 0 anyway)
 	ms.calls = nil
 
 	_, err := svc.Update(context.Background(), created.ID, model.UpdateInput{
-		SupplierID:  testSupplierID,
+		SupplierID:  &testSupplierID,
 		ModelName:   "Claude",
 		ModelID:     ptr("claude-3-5"),
 		InputPrice:  ptr(45.0),

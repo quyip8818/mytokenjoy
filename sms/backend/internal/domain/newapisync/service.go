@@ -14,13 +14,18 @@ type ModelLister interface {
 
 // Service 负责 SMS 与 NewAPI 之间的定价同步
 type Service struct {
-	admin  AdminPort
-	models ModelLister
-	logger *slog.Logger
+	admin     AdminPort
+	models    ModelLister
+	pullStore PullStore
+	logger    *slog.Logger
 }
 
 func NewService(admin AdminPort, models ModelLister, logger *slog.Logger) *Service {
 	return &Service{admin: admin, models: models, logger: logger}
+}
+
+func NewServiceWithPullStore(admin AdminPort, models ModelLister, pullStore PullStore, logger *slog.Logger) *Service {
+	return &Service{admin: admin, models: models, pullStore: pullStore, logger: logger}
 }
 
 // SyncStatus 表示本地 vs NewAPI 的对比结果

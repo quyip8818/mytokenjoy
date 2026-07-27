@@ -35,7 +35,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 		Page:       helpers.QueryInt(r, "page", 1),
 		PageSize:   helpers.QueryInt(r, "pageSize", 10),
 		Keyword:    r.URL.Query().Get("keyword"),
-		SupplierID: helpers.QueryUUID(r, "supplierId"),
+		SupplierID: func() *uuid.UUID { id := helpers.QueryUUID(r, "supplierId"); if id == uuid.Nil { return nil }; return &id }(),
 		ModelType:  r.URL.Query().Get("modelType"),
 		Status:     r.URL.Query().Get("status"),
 	}
