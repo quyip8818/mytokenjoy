@@ -106,36 +106,36 @@ export function SuppliersPage() {
       />
 
       <div className="flex items-center gap-2">
-          <input
-            className="h-9 w-48 rounded-md border px-3 text-sm"
-            placeholder="名称 / 编码"
-            value={filter.keyword}
-            onChange={(e) => search({ keyword: e.target.value })}
-          />
-          <select
-            className="h-9 rounded-md border px-2 text-sm"
-            value={filter.status}
-            onChange={(e) => search({ status: e.target.value })}
-          >
-            <option value="">全部状态</option>
-            {Object.entries(SUPPLIER_STATUS).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v.label}
-              </option>
-            ))}
-          </select>
-          <select
-            className="h-9 rounded-md border px-2 text-sm"
-            value={filter.category}
-            onChange={(e) => search({ category: e.target.value })}
-          >
-            <option value="">全部分类</option>
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+        <input
+          className="h-9 w-48 rounded-md border px-3 text-sm"
+          placeholder="名称 / 编码"
+          value={filter.keyword}
+          onChange={(e) => search({ keyword: e.target.value })}
+        />
+        <select
+          className="h-9 rounded-md border px-2 text-sm"
+          value={filter.status}
+          onChange={(e) => search({ status: e.target.value })}
+        >
+          <option value="">全部状态</option>
+          {Object.entries(SUPPLIER_STATUS).map(([k, v]) => (
+            <option key={k} value={k}>
+              {v.label}
+            </option>
+          ))}
+        </select>
+        <select
+          className="h-9 rounded-md border px-2 text-sm"
+          value={filter.category}
+          onChange={(e) => search({ category: e.target.value })}
+        >
+          <option value="">全部分类</option>
+          {CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="rounded-lg border bg-white">

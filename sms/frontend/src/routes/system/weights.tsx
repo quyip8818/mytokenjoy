@@ -79,7 +79,6 @@ export default function WeightsPage() {
       />
 
       <div className="mx-auto max-w-2xl rounded-lg border bg-white p-6">
-
         {loading ? (
           <div className="py-8 text-center text-muted-foreground">加载中...</div>
         ) : (

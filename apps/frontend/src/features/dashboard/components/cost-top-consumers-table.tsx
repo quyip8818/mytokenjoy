@@ -17,11 +17,7 @@ interface CostTopConsumersTableProps {
 
 export function CostTopConsumersTable({ topConsumers, loading }: CostTopConsumersTableProps) {
   return (
-    <DataSection
-      loading={loading}
-      skeletonColumns={6}
-      className="border-border shadow-xs"
-    >
+    <DataSection loading={loading} skeletonColumns={6} className="border-border shadow-xs">
       <Table>
         <TableHeader>
           <TableRow className="border-border/50 hover:bg-transparent">

@@ -148,24 +148,24 @@ export function EvaluationsPage() {
       />
 
       <div className="flex items-center gap-2">
-          <select
-            className="h-9 rounded-md border px-2 text-sm"
-            value={filter.supplierId}
-            onChange={(e) => search({ supplierId: Number(e.target.value) })}
-          >
-            <option value={0}>全部供应商</option>
-            {suppliers.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-          <input
-            className="h-9 w-40 rounded-md border px-3 text-sm"
-            placeholder="评估周期 如 2026-Q3"
-            value={filter.period}
-            onChange={(e) => search({ period: e.target.value })}
-          />
+        <select
+          className="h-9 rounded-md border px-2 text-sm"
+          value={filter.supplierId}
+          onChange={(e) => search({ supplierId: Number(e.target.value) })}
+        >
+          <option value={0}>全部供应商</option>
+          {suppliers.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+        <input
+          className="h-9 w-40 rounded-md border px-3 text-sm"
+          placeholder="评估周期 如 2026-Q3"
+          value={filter.period}
+          onChange={(e) => search({ period: e.target.value })}
+        />
       </div>
 
       <div className="rounded-lg border bg-white">

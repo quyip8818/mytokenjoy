@@ -22,11 +22,7 @@ export function DeptComparisonTable({
   onSelectDept,
 }: DeptComparisonTableProps) {
   return (
-    <DataSection
-      loading={loading}
-      skeletonColumns={5}
-      className="border-border shadow-xs"
-    >
+    <DataSection loading={loading} skeletonColumns={5} className="border-border shadow-xs">
       <Table>
         <TableHeader>
           <TableRow className="border-border/50 hover:bg-transparent">

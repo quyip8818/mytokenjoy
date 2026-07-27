@@ -124,36 +124,36 @@ export function OrdersPage() {
       />
 
       <div className="flex items-center gap-2">
-          <input
-            className="h-9 w-44 rounded-md border px-3 text-sm"
-            placeholder="订单编号"
-            value={filter.keyword}
-            onChange={(e) => search({ keyword: e.target.value })}
-          />
-          <select
-            className="h-9 rounded-md border px-2 text-sm"
-            value={filter.supplierId}
-            onChange={(e) => search({ supplierId: Number(e.target.value) })}
-          >
-            <option value={0}>全部供应商</option>
-            {suppliers.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-          <select
-            className="h-9 rounded-md border px-2 text-sm"
-            value={filter.status}
-            onChange={(e) => search({ status: e.target.value })}
-          >
-            <option value="">全部状态</option>
-            {Object.entries(ORDER_STATUS).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v.label}
-              </option>
-            ))}
-          </select>
+        <input
+          className="h-9 w-44 rounded-md border px-3 text-sm"
+          placeholder="订单编号"
+          value={filter.keyword}
+          onChange={(e) => search({ keyword: e.target.value })}
+        />
+        <select
+          className="h-9 rounded-md border px-2 text-sm"
+          value={filter.supplierId}
+          onChange={(e) => search({ supplierId: Number(e.target.value) })}
+        >
+          <option value={0}>全部供应商</option>
+          {suppliers.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+        <select
+          className="h-9 rounded-md border px-2 text-sm"
+          value={filter.status}
+          onChange={(e) => search({ status: e.target.value })}
+        >
+          <option value="">全部状态</option>
+          {Object.entries(ORDER_STATUS).map(([k, v]) => (
+            <option key={k} value={k}>
+              {v.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="rounded-lg border bg-white">

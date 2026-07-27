@@ -31,7 +31,10 @@ export function DashboardPage() {
 
   return (
     <PageShell>
-      <PageHeader title="数据看板" description={`覆盖 ${statCards[0].value} 家供应商 · ${statCards[2].value} 个模型`} />
+      <PageHeader
+        title="数据看板"
+        description={`覆盖 ${statCards[0].value} 家供应商 · ${statCards[2].value} 个模型`}
+      />
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">

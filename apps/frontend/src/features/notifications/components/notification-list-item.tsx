@@ -83,7 +83,9 @@ export function NotificationListItem({
                         <Check className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom" className="text-xs">标记已读</TooltipContent>
+                    <TooltipContent side="bottom" className="text-xs">
+                      标记已读
+                    </TooltipContent>
                   </Tooltip>
                 )}
                 {tab === 'inbox' ? (
@@ -100,7 +102,9 @@ export function NotificationListItem({
                         <Archive className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom" className="text-xs">归档</TooltipContent>
+                    <TooltipContent side="bottom" className="text-xs">
+                      归档
+                    </TooltipContent>
                   </Tooltip>
                 ) : (
                   <Tooltip>
@@ -116,7 +120,9 @@ export function NotificationListItem({
                         <ArchiveRestore className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom" className="text-xs">恢复</TooltipContent>
+                    <TooltipContent side="bottom" className="text-xs">
+                      恢复
+                    </TooltipContent>
                   </Tooltip>
                 )}
                 <Tooltip>
@@ -132,7 +138,9 @@ export function NotificationListItem({
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">删除</TooltipContent>
+                  <TooltipContent side="bottom" className="text-xs">
+                    删除
+                  </TooltipContent>
                 </Tooltip>
               </div>
             </TooltipProvider>

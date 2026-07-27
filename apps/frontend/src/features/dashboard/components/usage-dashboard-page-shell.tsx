@@ -19,20 +19,12 @@ export function UsageDashboardPageShell({ pageData, onSelectDept }: UsageDashboa
 
   return (
     <div className="space-y-6">
-      <DataSection
-        loading={loading}
-        skeletonColumns={6}
-        className="border-border shadow-xs"
-      >
+      <DataSection loading={loading} skeletonColumns={6} className="border-border shadow-xs">
         <DepartmentUsageTable departmentUsage={departmentUsage} onSelectDept={onSelectDept} />
       </DataSection>
 
       <div className="grid grid-cols-[5fr_3fr] gap-6">
-        <DataSection
-          loading={loading}
-          skeletonColumns={1}
-          className="border-border shadow-xs"
-        >
+        <DataSection loading={loading} skeletonColumns={1} className="border-border shadow-xs">
           <UsageModelChart modelUsage={modelUsage} />
         </DataSection>
 

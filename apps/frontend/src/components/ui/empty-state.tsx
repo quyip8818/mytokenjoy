@@ -28,12 +28,7 @@ export function EmptyState({
 }: EmptyStateProps) {
   if (variant === 'minimal') {
     return (
-      <div
-        className={cn(
-          'flex h-full flex-col items-center justify-center gap-2 p-8',
-          className,
-        )}
-      >
+      <div className={cn('flex h-full flex-col items-center justify-center gap-2 p-8', className)}>
         <Icon className="size-8 text-muted-foreground/40" strokeWidth={1.5} />
         <p className="text-sm text-muted-foreground">{title}</p>
       </div>

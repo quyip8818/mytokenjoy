@@ -39,15 +39,21 @@ export function BudgetPageShell({
   getAllDeptMembers,
   searchMembers,
 }: BudgetPageShellProps) {
-  const breadcrumb = activeProject && selectedNode
-    ? [selectedNode.name, activeProject.name]
-    : selectedNode
-      ? [selectedNode.name]
-      : undefined
+  const breadcrumb =
+    activeProject && selectedNode
+      ? [selectedNode.name, activeProject.name]
+      : selectedNode
+        ? [selectedNode.name]
+        : undefined
 
   return (
     <PageShell className="flex min-h-0 flex-1 flex-col">
-      <DataSection loading={loading} error={error} onRetry={() => void refresh()} loadingVariant="spinner">
+      <DataSection
+        loading={loading}
+        error={error}
+        onRetry={() => void refresh()}
+        loadingVariant="spinner"
+      >
         <SplitPanel
           master={
             <BudgetTreePanel tree={tree} selectedId={selectedTeamId} onSelect={handleSelectTeam} />

@@ -55,10 +55,7 @@ export function OperationsLogPageShell({
         onKeywordChange={setKeyword}
         onExport={handleExport}
       >
-        <OperationsLogFilters
-          actionFilter={actionFilter}
-          onActionFilterChange={setActionFilter}
-        />
+        <OperationsLogFilters actionFilter={actionFilter} onActionFilterChange={setActionFilter} />
       </AuditListToolbar>
 
       <OperationsTimelineChart

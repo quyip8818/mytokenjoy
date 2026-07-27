@@ -132,7 +132,13 @@ interface SidebarGroupProps {
   pathname: string
 }
 
-function SidebarGroup({ group, groupCollapsed, sidebarCollapsed, onToggleGroup, pathname }: SidebarGroupProps) {
+function SidebarGroup({
+  group,
+  groupCollapsed,
+  sidebarCollapsed,
+  onToggleGroup,
+  pathname,
+}: SidebarGroupProps) {
   if (sidebarCollapsed) {
     return (
       <div className="space-y-0.5">
@@ -162,7 +168,12 @@ function SidebarGroup({ group, groupCollapsed, sidebarCollapsed, onToggleGroup, 
       {!groupCollapsed && (
         <div className="ml-2 space-y-px">
           {group.items.map((item) => (
-            <SidebarNavItem key={item.path} item={item} sidebarCollapsed={false} pathname={pathname} />
+            <SidebarNavItem
+              key={item.path}
+              item={item}
+              sidebarCollapsed={false}
+              pathname={pathname}
+            />
           ))}
         </div>
       )}

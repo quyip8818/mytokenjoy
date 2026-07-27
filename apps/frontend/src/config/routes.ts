@@ -324,5 +324,3 @@ export function getRouteLazyImportPaths(): string[] {
     return match[1]
   })
 }
-
-
