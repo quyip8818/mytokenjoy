@@ -101,30 +101,49 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*types.AiModel
 }
 
 func (s *Service) Update(ctx context.Context, id uuid.UUID, input UpdateInput) (*types.AiModel, error) {
-	if input.ModelName == "" {
-		return nil, fmt.Errorf("%w: 模型名称和供应商不能为空", types.ErrValidation)
-	}
 	if input.Status != "" && !types.IsValidStatus(input.Status, types.ModelStatuses) {
 		return nil, fmt.Errorf("%w: 无效的模型状态", types.ErrValidation)
 	}
-	m := &types.AiModel{
-		SupplierID:    input.SupplierID,
-		ModelName:     input.ModelName,
-		ModelID:       input.ModelID,
-		ModelType:     input.ModelType,
-		ContextLength: input.ContextLength,
-		InputPrice:    input.InputPrice,
-		OutputPrice:   input.OutputPrice,
-		Discount:      input.Discount,
-		Status:        input.Status,
-		Description:   input.Description,
-	}
-	if err := s.store.UpdateModel(ctx, id, m); err != nil {
+	// Read existing model, then merge non-zero input fields
+	existing, err := s.store.GetModel(ctx, id)
+	if err != nil {
 		return nil, err
 	}
-	m.ID = id
-	s.triggerSync(m)
-	return m, nil
+	if input.SupplierID != nil {
+		existing.SupplierID = input.SupplierID
+	}
+	if input.ModelName != "" {
+		existing.ModelName = input.ModelName
+	}
+	if input.ModelID != nil {
+		existing.ModelID = input.ModelID
+	}
+	if input.ModelType != nil {
+		existing.ModelType = input.ModelType
+	}
+	if input.ContextLength != nil {
+		existing.ContextLength = input.ContextLength
+	}
+	if input.InputPrice != nil {
+		existing.InputPrice = input.InputPrice
+	}
+	if input.OutputPrice != nil {
+		existing.OutputPrice = input.OutputPrice
+	}
+	if input.Discount != nil {
+		existing.Discount = input.Discount
+	}
+	if input.Status != "" {
+		existing.Status = input.Status
+	}
+	if input.Description != nil {
+		existing.Description = input.Description
+	}
+	if err := s.store.UpdateModel(ctx, id, existing); err != nil {
+		return nil, err
+	}
+	s.triggerSync(existing)
+	return existing, nil
 }
 
 func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {

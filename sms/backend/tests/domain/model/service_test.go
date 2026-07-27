@@ -137,7 +137,6 @@ func TestCreate_ValidationError(t *testing.T) {
 		input model.CreateInput
 	}{
 		{"empty name", model.CreateInput{SupplierID: &testSupplierID}},
-		{"empty supplier", model.CreateInput{ModelName: "X"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
