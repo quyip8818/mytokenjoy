@@ -32,12 +32,18 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	filter := modelsvc.ListFilter{
-		Page:       helpers.QueryInt(r, "page", 1),
-		PageSize:   helpers.QueryInt(r, "pageSize", 10),
-		Keyword:    r.URL.Query().Get("keyword"),
-		SupplierID: func() *uuid.UUID { id := helpers.QueryUUID(r, "supplierId"); if id == uuid.Nil { return nil }; return &id }(),
-		ModelType:  r.URL.Query().Get("modelType"),
-		Status:     r.URL.Query().Get("status"),
+		Page:     helpers.QueryInt(r, "page", 1),
+		PageSize: helpers.QueryInt(r, "pageSize", 10),
+		Keyword:  r.URL.Query().Get("keyword"),
+		SupplierID: func() *uuid.UUID {
+			id := helpers.QueryUUID(r, "supplierId")
+			if id == uuid.Nil {
+				return nil
+			}
+			return &id
+		}(),
+		ModelType: r.URL.Query().Get("modelType"),
+		Status:    r.URL.Query().Get("status"),
 	}
 	result, err := h.svc.List(r.Context(), filter)
 	if err != nil {

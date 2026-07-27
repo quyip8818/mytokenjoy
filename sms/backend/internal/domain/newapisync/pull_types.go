@@ -8,7 +8,7 @@ type Channel struct {
 	Name     string `json:"name"`
 	Type     int    `json:"type"`
 	Status   int    `json:"status"`
-	Models   string `json:"models"`   // 逗号分隔的模型列表
+	Models   string `json:"models"` // 逗号分隔的模型列表
 	BaseURL  string `json:"base_url"`
 	Priority int    `json:"priority"`
 	Weight   int    `json:"weight"`

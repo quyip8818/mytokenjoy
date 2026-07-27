@@ -45,10 +45,6 @@ func (m *mockAdmin) UpsertModelRatio(_ context.Context, modelID string, inputPri
 }
 
 func (m *mockAdmin) ListModels(_ context.Context) ([]newapisync.NewAPIModel, error) {
-
-func (m *mockAdmin) ListChannels(_ context.Context) ([]newapisync.Channel, error) {
-	return nil, nil
-}
 	var models []newapisync.NewAPIModel
 	for id, p := range m.ratios {
 		models = append(models, newapisync.NewAPIModel{
@@ -60,6 +56,10 @@ func (m *mockAdmin) ListChannels(_ context.Context) ([]newapisync.Channel, error
 		})
 	}
 	return models, nil
+}
+
+func (m *mockAdmin) ListChannels(_ context.Context) ([]newapisync.Channel, error) {
+	return nil, nil
 }
 
 // --- mock model lister ---

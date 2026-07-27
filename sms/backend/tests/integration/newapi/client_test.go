@@ -30,7 +30,7 @@ func TestClient_ListCurrentRatios(t *testing.T) {
 			"data": []map[string]string{{
 				"ModelRatio":      string(mr),
 				"CompletionRatio": string(cr),
-			},
+			}},
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
@@ -137,7 +137,7 @@ func TestClient_SyncPricing_SkipsZeroInputPrice(t *testing.T) {
 	var putCalled bool
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			resp := map[string]any{"data": []map[string]string{{}}
+			resp := map[string]any{"data": []map[string]string{{}}}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(resp)
 			return
@@ -180,7 +180,7 @@ func TestClient_UpsertModelRatio(t *testing.T) {
 			resp := map[string]any{"data": []map[string]string{{
 				"ModelRatio":      `{"other": 10}`,
 				"CompletionRatio": `{"other": 1}`,
-			}}
+			}}}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(resp)
 			return

@@ -28,15 +28,15 @@ type ListFilter struct {
 
 type CreateInput struct {
 	SupplierID    *uuid.UUID `json:"supplierId"`
-	ModelName     string    `json:"modelName"`
-	ModelID       *string   `json:"modelId"`
-	ModelType     *string   `json:"modelType"`
-	ContextLength *int      `json:"contextLength"`
-	InputPrice    *float64  `json:"inputPrice"`
-	OutputPrice   *float64  `json:"outputPrice"`
-	Discount      *float64  `json:"discount"`
-	Status        string    `json:"status"`
-	Description   *string   `json:"description"`
+	ModelName     string     `json:"modelName"`
+	ModelID       *string    `json:"modelId"`
+	ModelType     *string    `json:"modelType"`
+	ContextLength *int       `json:"contextLength"`
+	InputPrice    *float64   `json:"inputPrice"`
+	OutputPrice   *float64   `json:"outputPrice"`
+	Discount      *float64   `json:"discount"`
+	Status        string     `json:"status"`
+	Description   *string    `json:"description"`
 }
 
 type UpdateInput = CreateInput

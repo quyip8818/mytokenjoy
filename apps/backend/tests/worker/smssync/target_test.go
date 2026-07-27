@@ -30,9 +30,16 @@ func newMemModelStore() *memModelStore {
 
 func (m *memModelStore) DisableStaleFromSMS(_ context.Context, activeIDs []string) (int, error) {
 	active := make(map[string]bool, len(activeIDs))
-	for _, id := range activeIDs { active[id] = true }
+	for _, id := range activeIDs {
+		active[id] = true
+	}
 	var count int
-	for k := range m.models { if !active[k] { delete(m.models, k); count++ } }
+	for k := range m.models {
+		if !active[k] {
+			delete(m.models, k)
+			count++
+		}
+	}
 	return count, nil
 }
 

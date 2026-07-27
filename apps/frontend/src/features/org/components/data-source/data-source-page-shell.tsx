@@ -51,8 +51,6 @@ export function DataSourcePageShell({
         loading={loading}
         error={error}
         onRetry={() => void refresh()}
-        className="border-0 bg-transparent py-0 shadow-none ring-0"
-        contentClassName="p-0"
       >
         {phase === 'csv-import' ? (
           <div className="rounded-xl border border-border bg-card px-6 py-10 shadow-xs">

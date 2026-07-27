@@ -147,7 +147,7 @@ export function CsvImport({ onImport, onBack }: CsvImportProps) {
         )
       }
       onBack()
-    } catch (err) {
+    } catch {
       toast.error('导入失败，请重试')
     } finally {
       setImporting(false)
