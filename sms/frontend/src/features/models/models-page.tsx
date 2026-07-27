@@ -29,12 +29,20 @@ function ConfirmDialog({
 }) {
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onCancel}>
-      <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-base font-semibold">{title}</h3>
         <p className="mt-2 text-sm text-muted-foreground">{message}</p>
         <div className="mt-5 flex justify-end gap-2">
-          <button onClick={onCancel} className="rounded-md border px-4 py-2 text-sm">取消</button>
+          <button onClick={onCancel} className="rounded-md border px-4 py-2 text-sm">
+            取消
+          </button>
           <button
             onClick={onConfirm}
             className={`rounded-md px-4 py-2 text-sm font-medium text-white ${variant === 'danger' ? 'bg-red-600 hover:bg-red-700' : 'bg-amber-600 hover:bg-amber-700'}`}
@@ -65,7 +73,10 @@ export function ModelsPage() {
   const [saving, setSaving] = useState(false)
 
   // 二次确认状态
-  const [confirmAction, setConfirmAction] = useState<{ type: 'delete' | 'toggle'; model: AiModel } | null>(null)
+  const [confirmAction, setConfirmAction] = useState<{
+    type: 'delete' | 'toggle'
+    model: AiModel
+  } | null>(null)
 
   const handleSync = async () => {
     setSyncing(true)
@@ -120,7 +131,11 @@ export function ModelsPage() {
       } else {
         const newStatus = model.status === 'available' ? 'deprecated' : 'available'
         await apis.modelsApi.update(model.id, { status: newStatus })
-        toast.success(newStatus === 'deprecated' ? `已禁用「${model.modelName}」` : `已启用「${model.modelName}」`)
+        toast.success(
+          newStatus === 'deprecated'
+            ? `已禁用「${model.modelName}」`
+            : `已启用「${model.modelName}」`,
+        )
       }
       refresh()
     } catch (e: any) {
@@ -188,22 +203,25 @@ export function ModelsPage() {
           </thead>
           <tbody>
             {data?.items.map((m) => (
-              <tr key={m.id} className={`border-b last:border-0 hover:bg-muted/20 ${m.status === 'deprecated' ? 'opacity-50' : ''}`}>
+              <tr
+                key={m.id}
+                className={`border-b last:border-0 hover:bg-muted/20 ${m.status === 'deprecated' ? 'opacity-50' : ''}`}
+              >
                 <td className="px-4 py-3">
                   <div className="font-medium">{m.modelName}</div>
                   {m.modelId && (
                     <div className="font-mono text-[11px] text-muted-foreground">{m.modelId}</div>
                   )}
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {m.channelName ?? '—'}
-                </td>
+                <td className="px-4 py-3 text-muted-foreground">{m.channelName ?? '—'}</td>
                 <td className="px-4 py-3 text-right font-mono text-xs text-muted-foreground">
-                  {m.costInput != null ? `¥${m.costInput}` : '—'} / {m.costOutput != null ? `¥${m.costOutput}` : '—'}
+                  {m.costInput != null ? `¥${m.costInput}` : '—'} /{' '}
+                  {m.costOutput != null ? `¥${m.costOutput}` : '—'}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <span className="font-mono text-xs font-medium">
-                    {m.inputPrice != null ? `¥${m.inputPrice}` : '—'} / {m.outputPrice != null ? `¥${m.outputPrice}` : '—'}
+                    {m.inputPrice != null ? `¥${m.inputPrice}` : '—'} /{' '}
+                    {m.outputPrice != null ? `¥${m.outputPrice}` : '—'}
                   </span>
                   {m.discount != null && m.discount > 0 && (
                     <span className="ml-1 text-[10px] text-green-600">-{m.discount}%</span>
@@ -270,7 +288,8 @@ export function ModelsPage() {
               {editing.modelId && <span className="ml-1 font-mono">({editing.modelId})</span>}
             </p>
             <div className="mb-4 rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-              成本价：输入 ¥{editing.costInput ?? '—'} / 输出 ¥{editing.costOutput ?? '—'} (每百万 tokens)
+              成本价：输入 ¥{editing.costInput ?? '—'} / 输出 ¥{editing.costOutput ?? '—'} (每百万
+              tokens)
             </div>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
@@ -306,7 +325,12 @@ export function ModelsPage() {
               </Field>
             </div>
             <div className="mt-6 flex justify-end gap-2">
-              <button onClick={() => setDialogOpen(false)} className="rounded-md border px-4 py-2 text-sm">取消</button>
+              <button
+                onClick={() => setDialogOpen(false)}
+                className="rounded-md border px-4 py-2 text-sm"
+              >
+                取消
+              </button>
               <button
                 onClick={handleSavePricing}
                 disabled={saving}
@@ -322,7 +346,13 @@ export function ModelsPage() {
       {/* 二次确认弹窗 */}
       <ConfirmDialog
         open={!!confirmAction}
-        title={confirmAction?.type === 'delete' ? '确认删除' : confirmAction?.model.status === 'available' ? '确认禁用' : '确认启用'}
+        title={
+          confirmAction?.type === 'delete'
+            ? '确认删除'
+            : confirmAction?.model.status === 'available'
+              ? '确认禁用'
+              : '确认启用'
+        }
         message={
           confirmAction?.type === 'delete'
             ? `确定删除模型「${confirmAction.model.modelName}」吗？此操作不可撤销。`
@@ -330,7 +360,13 @@ export function ModelsPage() {
               ? `确定禁用模型「${confirmAction?.model.modelName}」吗？禁用后用户将无法使用该模型。`
               : `确定启用模型「${confirmAction?.model.modelName}」吗？`
         }
-        confirmLabel={confirmAction?.type === 'delete' ? '删除' : confirmAction?.model.status === 'available' ? '禁用' : '启用'}
+        confirmLabel={
+          confirmAction?.type === 'delete'
+            ? '删除'
+            : confirmAction?.model.status === 'available'
+              ? '禁用'
+              : '启用'
+        }
         variant={confirmAction?.type === 'delete' ? 'danger' : 'warning'}
         onConfirm={handleConfirm}
         onCancel={() => setConfirmAction(null)}

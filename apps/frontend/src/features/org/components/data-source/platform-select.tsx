@@ -127,7 +127,9 @@ export function PlatformSelect({ onSelect, onCsvImport }: PlatformSelectProps) {
 
       {onCsvImport && (
         <div className="flex flex-col items-center gap-3 border-t border-border pt-6">
-          <p className="text-xs text-muted-foreground">没有第三方平台？也可以通过 CSV 文件批量导入成员</p>
+          <p className="text-xs text-muted-foreground">
+            没有第三方平台？也可以通过 CSV 文件批量导入成员
+          </p>
           <Button variant="outline" size="sm" onClick={onCsvImport}>
             <FileSpreadsheet className="size-3.5" />
             CSV 批量导入

@@ -71,12 +71,19 @@ export function CsvImport({ onImport, onBack }: CsvImportProps) {
     return lines.slice(1).map((line) => {
       const cells = line.split(',').map((c) => c.trim())
       const row: BatchImportRow = {
-        name: '', phone: '', email: '', departmentName: '',
-        employeeId: '', alias: '', jobTitle: '', hireDate: '',
+        name: '',
+        phone: '',
+        email: '',
+        departmentName: '',
+        employeeId: '',
+        alias: '',
+        jobTitle: '',
+        hireDate: '',
       }
       for (const col of CSV_COLUMNS) {
         const idx = colIndex[col.key]
-        if (idx !== undefined) (row as unknown as Record<string, string>)[col.key] = cells[idx] ?? ''
+        if (idx !== undefined)
+          (row as unknown as Record<string, string>)[col.key] = cells[idx] ?? ''
       }
       return row
     })
@@ -142,7 +149,10 @@ export function CsvImport({ onImport, onBack }: CsvImportProps) {
       } else {
         toast.success(`导入 ${result.imported} 名成员`)
         toast.warning(
-          `${result.failures.length} 行导入失败：${result.failures.map((f) => f.row > 0 ? `第${f.row}行: ${f.reason}` : f.reason).slice(0, 3).join('；')}`,
+          `${result.failures.length} 行导入失败：${result.failures
+            .map((f) => (f.row > 0 ? `第${f.row}行: ${f.reason}` : f.reason))
+            .slice(0, 3)
+            .join('；')}`,
           { duration: 8000 },
         )
       }
@@ -237,10 +247,16 @@ export function CsvImport({ onImport, onBack }: CsvImportProps) {
               <table className="w-full text-xs">
                 <thead className="bg-muted/50">
                   <tr>
-                    <th className="whitespace-nowrap px-3 py-2 text-left font-medium text-muted-foreground">#</th>
+                    <th className="whitespace-nowrap px-3 py-2 text-left font-medium text-muted-foreground">
+                      #
+                    </th>
                     {CSV_COLUMNS.map((c) => (
-                      <th key={c.key} className="whitespace-nowrap px-3 py-2 text-left font-medium text-muted-foreground">
-                        {c.label}{c.required && <span className="text-destructive">*</span>}
+                      <th
+                        key={c.key}
+                        className="whitespace-nowrap px-3 py-2 text-left font-medium text-muted-foreground"
+                      >
+                        {c.label}
+                        {c.required && <span className="text-destructive">*</span>}
                       </th>
                     ))}
                   </tr>
@@ -250,7 +266,9 @@ export function CsvImport({ onImport, onBack }: CsvImportProps) {
                     <tr key={i} className="border-t border-border">
                       <td className="px-3 py-1.5 text-muted-foreground">{i + 1}</td>
                       {CSV_COLUMNS.map((c) => (
-                        <td key={c.key} className="px-3 py-1.5">{(row as unknown as Record<string, string>)[c.key] || '-'}</td>
+                        <td key={c.key} className="px-3 py-1.5">
+                          {(row as unknown as Record<string, string>)[c.key] || '-'}
+                        </td>
                       ))}
                     </tr>
                   ))}
@@ -265,10 +283,22 @@ export function CsvImport({ onImport, onBack }: CsvImportProps) {
           </div>
 
           <div className="flex justify-end gap-3">
-            <Button variant="outline" size="sm" onClick={() => { setRows([]); setFileName(null); setValidationErrors([]) }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setRows([])
+                setFileName(null)
+                setValidationErrors([])
+              }}
+            >
               重新选择
             </Button>
-            <Button size="sm" disabled={validationErrors.length > 0 || importing} onClick={handleImport}>
+            <Button
+              size="sm"
+              disabled={validationErrors.length > 0 || importing}
+              onClick={handleImport}
+            >
               {importing ? '导入中...' : `确认导入 ${rows.length} 名成员`}
             </Button>
           </div>

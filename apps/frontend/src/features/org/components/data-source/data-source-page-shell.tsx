@@ -47,11 +47,7 @@ export function DataSourcePageShell({
     <PageShell>
       <PageHeader title="数据源" />
 
-      <DataSection
-        loading={loading}
-        error={error}
-        onRetry={() => void refresh()}
-      >
+      <DataSection loading={loading} error={error} onRetry={() => void refresh()}>
         {phase === 'csv-import' ? (
           <div className="rounded-xl border border-border bg-card px-6 py-10 shadow-xs">
             <div className="mx-auto max-w-3xl">
