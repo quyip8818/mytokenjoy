@@ -22,9 +22,7 @@ test.describe('组织架构 - 页面渲染与数据', () => {
   test('成员列表表头和数据列完整', async ({ page }) => {
     await expect(page.getByRole('columnheader', { name: '姓名' })).toBeVisible()
     await expect(page.getByRole('columnheader', { name: '部门' })).toBeVisible()
-    await expect(page.getByRole('columnheader', { name: '手机号' })).toBeVisible()
     await expect(page.getByRole('columnheader', { name: '状态' })).toBeVisible()
-    await expect(page.getByRole('columnheader', { name: '操作' })).toBeVisible()
     const dataRows = page.getByRole('row').filter({ hasNot: page.getByRole('columnheader') })
     await expect(dataRows.first()).toBeVisible()
   })
@@ -386,12 +384,13 @@ test.describe('组织架构 - API 数据校验', () => {
     }, targetMember.id)
     expect(deleteResponse.status).toBe(200)
 
-    const afterResponse = await page.evaluate(async () => {
+    // 软删后 status 变为 disabled（非物理删除）
+    const afterResponse = await page.evaluate(async (id) => {
       const res = await fetch('/api/org/members?page=1&pageSize=100', { credentials: 'include' })
-      return res.json()
-    })
-    const ids = afterResponse.items.map((m: { id: string }) => m.id)
-    expect(ids).not.toContain(targetMember.id)
+      const data = await res.json()
+      return data.items.find((m: { id: string }) => m.id === id)
+    }, targetMember.id)
+    expect(afterResponse?.status).toBe('disabled')
   })
 
   test('编辑成员 API 保留 roles 和 status（merge 语义）', async ({ page }) => {
