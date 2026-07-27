@@ -14,6 +14,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/integration/platform"
 	smsintegration "github.com/tokenjoy/backend/internal/integration/sms"
+	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/internal/worker/pricingsync"
@@ -159,6 +160,8 @@ func startSMSSyncWorker(ctx context.Context, cfg config.Config, adminPort adminp
 	// ponytail: ModelStore now uses real repo — writes to models table with source="sms"
 	target := smssync.NewAdminPortTarget(adminPort, smssync.NewRepoModelStore(st.Models()))
 	w := smssync.NewWithInterval(client, target, interval)
-	go w.Run(ctx)
+	// Worker needs company context for model upsert
+	workerCtx := ctxcompany.With(ctx, ctxcompany.Info{CompanyID: cfg.LocalCompanyID})
+	go w.Run(workerCtx)
 	slog.Info("sms sync worker started", "interval", interval, "url", cfg.SMSAPIBaseURL)
 }
