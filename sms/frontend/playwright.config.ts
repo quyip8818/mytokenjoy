@@ -20,8 +20,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
       env: {
-        DATABASE_URL:
-          'postgres://tokenjoy:tokenjoy@127.0.0.1:5510/sms?sslmode=disable',
+        DATABASE_URL: 'postgres://tokenjoy:tokenjoy@127.0.0.1:5510/sms?sslmode=disable',
         JWT_SECRET: 'e2e-sms-jwt-secret',
         PORT: '8020',
       },
