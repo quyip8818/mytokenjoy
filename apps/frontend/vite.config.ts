@@ -36,6 +36,7 @@ export const baseViteConfig: UserConfig = {
     },
   },
   server: {
+    port: 9191,
     proxy: apiProxy,
   },
   preview: {

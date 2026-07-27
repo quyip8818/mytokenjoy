@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+export PATH="${ROOT}/node_modules/.bin:${PATH}"
 # shellcheck source=lib/db-reset.sh
 source "${ROOT}/scripts/lib/db-reset.sh"
 
@@ -10,6 +11,9 @@ COMPOSE=(docker compose -f "${ROOT}/docker-compose.yml")
 cmd_start() {
   cleanup() { pkill -P $$ 2>/dev/null || true; sleep 0.5; pkill -9 -P $$ 2>/dev/null || true; }
   trap cleanup EXIT INT TERM
+
+  # Kill stale processes from previous runs
+  lsof -ti :8020 2>/dev/null | xargs kill -9 2>/dev/null || true
 
   "${COMPOSE[@]}" up postgres redis newapi-sms -d --wait
 

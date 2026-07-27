@@ -12,7 +12,7 @@ import (
 
 // HTTPConfig holds HTTP server settings.
 type HTTPConfig struct {
-	Port              string `env:"PORT" envDefault:"8080"`
+	Port              string `env:"PORT" envDefault:"8010"`
 	CORSOrigins       string `env:"CORS_ORIGINS" envDefault:"http://localhost:5173,http://localhost:5175"`
 	RequestTimeoutSec int    `env:"REQUEST_TIMEOUT_SEC" envDefault:"30"`
 	AccessLogSlowMs   int    `env:"ACCESS_LOG_SLOW_THRESHOLD_MS" envDefault:"5000"`
