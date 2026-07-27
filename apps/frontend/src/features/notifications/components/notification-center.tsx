@@ -78,7 +78,7 @@ export function NotificationCenter() {
             variant="ghost"
             size="sm"
             className="text-xs text-muted-foreground"
-            onClick={() => navigate('/me/settings')}
+            onClick={() => navigate('/me/settings?tab=notifications')}
           >
             通知偏好设置
           </Button>
