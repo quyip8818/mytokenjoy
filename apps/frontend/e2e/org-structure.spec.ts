@@ -121,6 +121,7 @@ test.describe('组织架构 - 成员搜索', () => {
 
 test.describe('组织架构 - 成员 CRUD', () => {
   test.describe.configure({ mode: 'serial' })
+
   test.beforeEach(async ({ page }) => {
     await page.goto('/org/structure')
     await expect(page.getByRole('banner').getByRole('heading', { name: '组织架构' })).toBeVisible()
@@ -139,7 +140,9 @@ test.describe('组织架构 - 成员 CRUD', () => {
     // Fill email (type="email" input)
     await dialog.locator('input[type="email"]').fill(`auto-${Date.now()}@test.com`)
     // Fill required employee_id (工号)
-    await dialog.getByRole('textbox', { name: '员工工号' }).fill(`EMP${Date.now().toString().slice(-6)}`)
+    await dialog
+      .getByRole('textbox', { name: '员工工号' })
+      .fill(`EMP${Date.now().toString().slice(-6)}`)
     // Select department via combobox
     await dialog.getByRole('combobox').click()
     await page.getByRole('option', { name: /总公司/ }).click()
@@ -156,6 +159,16 @@ test.describe('组织架构 - 成员 CRUD', () => {
     }, uniqueName)
     expect(members.items.length).toBeGreaterThan(0)
     expect(members.items[0].alias).toBe(uniqueName)
+
+    // ponytail: teardown 在 page context 里做（有 cookie），globalTeardown drop 库兜底
+    await page.evaluate(async (id) => {
+      await fetch('/api/org/members', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [id] }),
+      })
+    }, members.items[0].id)
   })
 
   test('编辑成员：修改姓名后列表更新', async ({ page }) => {

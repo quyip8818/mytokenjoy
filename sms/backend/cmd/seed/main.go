@@ -22,6 +22,11 @@ func main() {
 
 	ctx := context.Background()
 
+	// 重置 schema（项目未上线，直接重建）
+	if _, err := pool.Exec(ctx, "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"); err != nil {
+		log.Fatal("reset schema:", err)
+	}
+
 	// 应用 schema
 	schema, err := os.ReadFile("schema.sql")
 	if err != nil {

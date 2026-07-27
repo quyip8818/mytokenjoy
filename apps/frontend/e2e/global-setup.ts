@@ -1,23 +1,19 @@
 import { chromium } from '@playwright/test'
-
-const BASE_URL = 'http://127.0.0.1:4173'
+import { E2E_BASE_URL } from './e2e-db'
 
 async function loginAndSave(email: string, password: string, savePath: string) {
   const browser = await chromium.launch()
   const context = await browser.newContext()
   const page = await context.newPage()
 
-  // Use API login (faster than UI)
-  const response = await page.request.post(`${BASE_URL}/api/auth/login`, {
+  const response = await page.request.post(`${E2E_BASE_URL}/api/auth/login`, {
     data: { email, password },
   })
   if (!response.ok()) {
     throw new Error(`Login failed for ${email}: ${response.status()}`)
   }
 
-  // Navigate to trigger cookie attachment to browser context
-  await page.goto(BASE_URL)
-
+  await page.goto(E2E_BASE_URL)
   await context.storageState({ path: savePath })
   await browser.close()
 }

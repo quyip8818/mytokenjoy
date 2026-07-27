@@ -1,4 +1,5 @@
 import type { APIRequestContext, Page } from '@playwright/test'
+import { E2E_BASE_URL } from '../e2e-db'
 
 const DEMO_EMAIL = 'admin@example.com'
 const DEMO_PASSWORD = 'demo1234'
@@ -23,11 +24,9 @@ async function postLogin(
 }
 
 export async function loginAsAdmin(page: Page): Promise<void> {
-  const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:4173'
-  await postLogin(page.request, baseURL, DEMO_EMAIL, DEMO_PASSWORD)
+  await postLogin(page.request, E2E_BASE_URL, DEMO_EMAIL, DEMO_PASSWORD)
 }
 
 export async function loginAsMember(page: Page): Promise<void> {
-  const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:4173'
-  await postLogin(page.request, baseURL, MEMBER_EMAIL, DEMO_PASSWORD)
+  await postLogin(page.request, E2E_BASE_URL, MEMBER_EMAIL, DEMO_PASSWORD)
 }

@@ -1,14 +1,16 @@
 import { expect, test } from '@playwright/test'
+import { E2E_HOST, E2E_SMS_PORT } from './e2e-db'
 
-const SMS_BASE_URL = process.env.SMS_API_URL || 'http://127.0.0.1:8020'
-const TOKENJOY_BASE_URL = process.env.TOKENJOY_API_URL || 'http://127.0.0.1:8010'
+const SMS_BASE_URL = process.env.SMS_API_URL || `http://${E2E_HOST}:${E2E_SMS_PORT}`
 
 // Test OAuth client credentials (seeded in SMS DB)
 const CLIENT_ID = 'tokenjoy-sync'
 const CLIENT_SECRET = 'e2e-test-secret'
 
 // Helper: check if SMS is reachable before running SMS-dependent tests
-async function isSMSReachable(request: any): Promise<boolean> {
+async function isSMSReachable(request: {
+  fetch: (url: string, opts?: object) => Promise<{ status: () => number }>
+}): Promise<boolean> {
   try {
     const res = await request.fetch(`${SMS_BASE_URL}/`, { timeout: 3000 })
     return res.status() < 500
@@ -98,6 +100,7 @@ test.describe('SMS Sync API - Catalog', () => {
     }
   })
 
+  // eslint-disable-next-line no-empty-pattern
   test.beforeEach(async ({}, testInfo) => {
     if (!smsAvailable) {
       testInfo.skip(true, 'SMS backend not running at ' + SMS_BASE_URL)

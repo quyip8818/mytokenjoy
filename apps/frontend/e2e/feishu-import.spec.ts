@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { E2E_BASE_URL } from './e2e-db'
 
 // Feishu import tests require data source to be connected.
 // In a fresh demo without feishu credentials, these tests will be skipped.
@@ -8,10 +9,10 @@ test.describe('飞书数据导入', () => {
   test.beforeAll(async ({ browser }) => {
     const context = await browser.newContext({
       storageState: '.auth/admin.json',
-      baseURL: 'http://127.0.0.1:4173',
+      baseURL: E2E_BASE_URL,
     })
     const page = await context.newPage()
-    await page.goto('http://127.0.0.1:4173/')
+    await page.goto(E2E_BASE_URL + '/')
     const status = await page.evaluate(async () => {
       const res = await fetch('/api/org/data-source/status', { credentials: 'include' })
       return res.json()
