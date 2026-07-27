@@ -77,13 +77,16 @@ low:       In-App
 ┌─────────────────────────────────────────────────┐
 │  NotificationProvider (SSE 连接管理)             │
 │  ├─ NotificationInbox (Bell + Popover)          │
+│  ├─ NotificationCenter (/notifications 页面)    │
 │  └─ useNotify() hook (toast fallback)           │
 └─────────────────────────────────────────────────┘
 ```
 
 - **SSE 连接** — `NotificationProvider` 在用户登录后建立到 `/api/notifications/stream` 的 EventSource
-- **收到通知** — invalidate TanStack Query 缓存 + toast 提示
-- **Inbox** — Header 中的 Bell icon，Popover 展示通知列表，支持标记已读
+- **收到通知** — invalidate TanStack Query 缓存 + toast 提示（同 groupKey 10s 防刷屏）
+- **Popover** — Header 中的 Bell icon，显示最近 8 条（分组后），hover 可快捷归档
+- **通知中心** — `/notifications` 独立页面，支持 Tabs（收件箱/已归档）、分类筛选、cursor 分页、归档/删除/撤销
+- **actionUrl** — 前端 `getActionUrl(notification)` 根据 event_type + payload 拼接跳转路由
 - **降级** — 后端无 in_app channel 时（`capabilities` 返回无 in_app），所有通知走 toast
 
 ## 后端文件结构
@@ -126,31 +129,43 @@ internal/
 ```
 src/
 ├── api/
-│   ├── notification.ts          # API client
-│   └── types/notification.ts    # DTO types
+│   ├── notifications.ts             # API client (all endpoints)
+│   └── types/notification.ts        # DTO types
 ├── features/notifications/
+│   ├── components/
+│   │   ├── notification-center.tsx      # /notifications 页面主体
+│   │   ├── notification-list-item.tsx   # 单条通知组件
+│   │   └── notification-empty-state.tsx # 空状态
 │   ├── hooks/
 │   │   ├── use-notification-connection.ts  # SSE EventSource
-│   │   ├── use-notifications.ts            # 列表 + 未读数 query
-│   │   ├── use-notify.ts                   # 统一入口 (toast fallback)
-│   │   └── use-notification-capabilities.ts
+│   │   ├── use-notifications.ts            # Popover 列表 + 未读数
+│   │   ├── use-notification-inbox.ts       # 通知中心页面数据
+│   │   └── use-notify.ts                   # toast fallback
+│   ├── lib/
+│   │   ├── category-config.ts         # 类别→图标/颜色映射
+│   │   ├── format-time.ts            # 相对时间格式化
+│   │   └── get-action-url.ts         # event_type+payload→路由
 │   ├── notification-provider.tsx
-│   └── index.ts
+│   └── index.ts                       # Barrel export
 ├── components/layout/
-│   └── notification-inbox.tsx   # Bell icon + Popover
-└── routes/member/
-    ├── notifications.tsx        # 偏好设置页
-    └── hooks/use-notifications-page.ts
+│   └── notification-inbox.tsx         # Bell icon + Popover
+└── routes/notifications/
+    └── index.tsx                       # 通知中心页面路由
 ```
 
 ## API 端点
 
 | Method | Path                                   | 描述               |
 | ------ | -------------------------------------- | ------------------ |
-| GET    | `/api/notifications`                   | 通知列表（分页）   |
+| GET    | `/api/notifications`                   | 通知列表（cursor 分页 + 分组） |
 | GET    | `/api/notifications/unread-count`      | 未读数量           |
 | PATCH  | `/api/notifications/:id/read`          | 标记已读           |
 | POST   | `/api/notifications/read-all`          | 全部已读           |
+| POST   | `/api/notifications/:id/archive`       | 归档               |
+| POST   | `/api/notifications/archive-all`       | 批量归档           |
+| POST   | `/api/notifications/:id/unarchive`     | 取消归档           |
+| POST   | `/api/notifications/:id/delete`        | 软删除             |
+| POST   | `/api/notifications/:id/undelete`      | 撤销删除           |
 | GET    | `/api/notifications/capabilities`      | 已配置渠道查询     |
 | GET    | `/api/notifications/stream`            | SSE 实时推送       |
 | GET    | `/api/notifications/preferences`       | 获取偏好           |
@@ -184,8 +199,12 @@ TWILIO_FROM_NUMBER=
 ```sql
 -- 通知日志（兼 In-App Inbox 存储）
 notification_log (
-  id, company_id, channel, event_type, recipient, user_id,
-  title, body, payload, status, error, created_at, read_at
+  id, company_id, channel, event_type, user_id,
+  title, body, payload JSONB,
+  send_ok BOOLEAN DEFAULT true, error,
+  category, group_key,
+  status DEFAULT 'active',  -- active / archived / deleted
+  created_at, read_at, updated_at
 )
 
 -- 用户偏好矩阵
@@ -195,6 +214,8 @@ notification_preferences (
   UNIQUE(company_id, user_id, category, channel)
 )
 ```
+
+详细字段说明见 [notification-center-design.md](./notification-center-design.md)。
 
 ## 扩展新渠道
 
