@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { Archive, Bell } from 'lucide-react'
+import { Archive, ArrowUpRight, Bell } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
@@ -162,8 +162,20 @@ export function NotificationInbox() {
       </TooltipProvider>
 
       <PopoverContent className="w-[360px] p-0" align="end">
-        <div className="flex items-center justify-center border-b border-border px-3 py-2.5">
+        <div className="relative flex items-center justify-center border-b border-border px-3 py-2.5">
           <span className="text-sm font-semibold">通知</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-2 h-6 w-6 text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              setOpen(false)
+              navigate('/notifications')
+            }}
+            title="查看全部通知"
+          >
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </Button>
         </div>
 
         <ScrollArea className="max-h-[400px]">
