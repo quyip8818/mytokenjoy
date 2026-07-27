@@ -5,7 +5,7 @@ import "github.com/google/uuid"
 const modelSelectColumns = `
 	model_id, company_id, provider, type, name, description, endpoint,
 	api_key, endpoint_model_name,
-	max_context, max_tokens, enabled, capabilities`
+	max_context, max_tokens, enabled, capabilities, source`
 
 type modelCatalog struct {
 	db                dbQuerier

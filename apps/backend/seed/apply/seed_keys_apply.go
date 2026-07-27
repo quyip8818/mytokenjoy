@@ -86,16 +86,20 @@ func insertSeedModels(ctx context.Context, exec TableWriter, tid uuid.UUID, mode
 		if capabilities == nil {
 			capabilities = []string{}
 		}
+		source := model.Source
+		if source == "" {
+			source = "manual"
+		}
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO models (
 				model_id, company_id, provider, type, name, description, endpoint,
-				max_context, enabled, capabilities
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+				max_context, enabled, capabilities, source
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 			ON CONFLICT (model_id) DO NOTHING
 		`, model.ID, companyID, model.Provider, model.Type, model.Name,
 			model.Description, model.Endpoint,
 			model.MaxContext, model.Enabled,
-			capabilities); err != nil {
+			capabilities, source); err != nil {
 			return err
 		}
 	}

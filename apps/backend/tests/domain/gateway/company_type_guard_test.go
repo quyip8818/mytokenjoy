@@ -57,31 +57,31 @@ func TestGatewayRejectsTestModelForStandardCompany(t *testing.T) {
 	}
 }
 
-func TestGatewayRejectsRealModelForTrialCompany(t *testing.T) {
+func TestGatewayAllowsRealModelForTrialCompany(t *testing.T) {
 	t.Parallel()
 	sc := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{Budget: 1000})
 	setCompanyType(t, sc.Store, store.CompanyTypeTrial)
 
-	// deepseek-v4-pro is in the key's allowlist, so the rejection comes from companyType guard.
+	// trial accounts can use real models (subject to routing rules, not company type).
 	req := gatewaytf.GatewayRequestWithModel(sc.FullKey, "deepseek-v4-pro")
 	rec := httptest.NewRecorder()
 	sc.Gateway.ServeHTTP(rec, req)
-	if rec.Code != 403 {
-		t.Fatalf("expected real model rejected for trial, got %d", rec.Code)
+	if rec.Code == 403 {
+		t.Fatalf("expected real model allowed for trial, got 403 body=%s", rec.Body.String())
 	}
 }
 
-func TestGatewayRejectsRealModelForDemoCompany(t *testing.T) {
+func TestGatewayAllowsRealModelForDemoCompany(t *testing.T) {
 	t.Parallel()
 	sc := gatewaytf.BuildGatewayScenario(t, gatewaytf.GatewayScenarioOpts{Budget: 1000})
 	setCompanyType(t, sc.Store, store.CompanyTypeDemo)
 
-	// deepseek-v4-pro is in the key's allowlist, so the rejection comes from companyType guard.
+	// demo accounts can use real models (subject to routing rules, not company type).
 	req := gatewaytf.GatewayRequestWithModel(sc.FullKey, "deepseek-v4-pro")
 	rec := httptest.NewRecorder()
 	sc.Gateway.ServeHTTP(rec, req)
-	if rec.Code != 403 {
-		t.Fatalf("expected real model rejected for demo, got %d", rec.Code)
+	if rec.Code == 403 {
+		t.Fatalf("expected real model allowed for demo, got 403 body=%s", rec.Body.String())
 	}
 }
 

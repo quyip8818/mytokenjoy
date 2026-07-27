@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/domain"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
@@ -15,7 +14,10 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
-func TestCreatePlatformKeyTrialRejectsRealModel(t *testing.T) {
+// Trial/demo accounts can now create keys with real models (subject to routing rules).
+// The old restriction ("试用账户只能使用 test-model") has been removed per model-allocation-design.
+
+func TestCreatePlatformKeyTrialAllowsRealModel(t *testing.T) {
 	t.Parallel()
 	svc, _, _ := newKeysServiceWithNewAPI(t)
 
@@ -33,10 +35,12 @@ func TestCreatePlatformKeyTrialRejectsRealModel(t *testing.T) {
 		Budget:         1000,
 		ModelWhitelist: []uuid.UUID{contract.IDModel1}, // deepseek-v4-pro — real model
 	})
-	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
+	if err != nil {
+		t.Fatalf("expected trial key with real model to succeed, got %v", err)
+	}
 }
 
-func TestCreatePlatformKeyDemoRejectsRealModel(t *testing.T) {
+func TestCreatePlatformKeyDemoAllowsRealModel(t *testing.T) {
 	t.Parallel()
 	svc, _, _ := newKeysServiceWithNewAPI(t)
 
@@ -54,7 +58,9 @@ func TestCreatePlatformKeyDemoRejectsRealModel(t *testing.T) {
 		Budget:         1000,
 		ModelWhitelist: []uuid.UUID{contract.IDModel1},
 	})
-	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
+	if err != nil {
+		t.Fatalf("expected demo key with real model to succeed, got %v", err)
+	}
 }
 
 func TestCreatePlatformKeyStandardAllowsRealModel(t *testing.T) {
@@ -75,44 +81,19 @@ func TestCreatePlatformKeyStandardAllowsRealModel(t *testing.T) {
 	}
 }
 
-func TestCreatePlatformKeyTrialRejectsMixedWhitelist(t *testing.T) {
+func TestCreatePlatformKeyRejectsUnknownModel(t *testing.T) {
 	t.Parallel()
 	svc, _, _ := newKeysServiceWithNewAPI(t)
 
-	ctx := domaincompany.WithContext(testutil.Ctx(), ctxcompany.Info{
-		CompanyID: contract.DefaultCompanyID,
-		Type:      store.CompanyTypeTrial,
-		Status:    store.CompanyStatusActive,
-	})
-
 	memberID := contract.IDMember1
-	_, err := svc.CreatePlatformKey(ctx, types.CreatePlatformKeyInput{
-		Name:           "trial-mixed",
-		Scope:          types.PlatformKeyScopeMember,
-		MemberID:       &memberID,
-		Budget:         1000,
-		ModelWhitelist: []uuid.UUID{contract.IDModelTest, contract.IDModel1}, // mix of test + real
-	})
-	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
-}
-
-func TestCreatePlatformKeyTrialRejectsUnknownModel(t *testing.T) {
-	t.Parallel()
-	svc, _, _ := newKeysServiceWithNewAPI(t)
-
-	ctx := domaincompany.WithContext(testutil.Ctx(), ctxcompany.Info{
-		CompanyID: contract.DefaultCompanyID,
-		Type:      store.CompanyTypeTrial,
-		Status:    store.CompanyStatusActive,
-	})
-
-	memberID := contract.IDMember1
-	_, err := svc.CreatePlatformKey(ctx, types.CreatePlatformKeyInput{
-		Name:           "trial-unknown",
+	_, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
+		Name:           "unknown-model",
 		Scope:          types.PlatformKeyScopeMember,
 		MemberID:       &memberID,
 		Budget:         1000,
 		ModelWhitelist: []uuid.UUID{uuid.MustParse("00000000-0000-7000-0000-ffffffffffff")},
 	})
-	testutil.AssertDomainStatus(t, err, domain.StatusUnprocessable)
+	if err == nil {
+		t.Fatal("expected unknown model to be rejected")
+	}
 }

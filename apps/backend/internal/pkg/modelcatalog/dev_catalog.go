@@ -1,21 +1,25 @@
 package modelcatalog
 
-import (
-	"strings"
-
-	"github.com/tokenjoy/backend/internal/domain/types"
-)
+import "github.com/tokenjoy/backend/internal/domain/types"
 
 // TestCallType is the local ingest mock call type.
 const TestCallType = "test-model"
 
-// IsTestModel returns true if the model type starts with "test-".
+// SourceTest marks models injected by seed for full-path testing.
+const SourceTest = "test"
+
+// IsTestModel returns true if the model's source is "test".
 func IsTestModel(m types.ModelInfo) bool {
-	return strings.HasPrefix(m.Type, "test-")
+	return m.Source == SourceTest
 }
 
-// IsTestOnlyCallType is Gateway-blocked outside DEPLOY_ENV=local and
-// allowlist-exempt when local routes are enabled.
-func IsTestOnlyCallType(callType string) bool {
-	return strings.HasPrefix(callType, "test-")
+// FilterVisible returns only non-test models (source != "test").
+func FilterVisible(models []types.ModelInfo) []types.ModelInfo {
+	out := make([]types.ModelInfo, 0, len(models))
+	for i := range models {
+		if !IsTestModel(models[i]) {
+			out = append(out, models[i])
+		}
+	}
+	return out
 }

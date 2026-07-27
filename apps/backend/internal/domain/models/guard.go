@@ -48,7 +48,8 @@ func (s *service) validateWritableModelIDs(ctx context.Context, ids []uuid.UUID)
 	if err != nil {
 		return err
 	}
-	if err := modelcatalog.ValidateWritableIDs(catalog, ids); err != nil {
+	// Filter out test models — they must not appear in routing rules or allowlists.
+	if err := modelcatalog.ValidateWritableIDs(modelcatalog.FilterVisible(catalog), ids); err != nil {
 		if errors.Is(err, modelcatalog.ErrUnknownModelID) {
 			return domain.Validation("unknown model id")
 		}

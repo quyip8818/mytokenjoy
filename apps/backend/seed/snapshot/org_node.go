@@ -18,7 +18,7 @@ func orgNodeRoutingByID() map[uuid.UUID]orgNodeRoutingSeed {
 	return map[uuid.UUID]orgNodeRoutingSeed{
 		contract.IDDept1: {
 			allowedModelIDs: []uuid.UUID{
-				contract.IDModel1, contract.IDModel11, contract.IDModelTest,
+				contract.IDModel1, contract.IDModel11,
 			},
 		},
 		contract.IDDept2: {
@@ -27,7 +27,7 @@ func orgNodeRoutingByID() map[uuid.UUID]orgNodeRoutingSeed {
 			},
 		},
 		contract.IDDept3: {
-			allowedModelIDs: []uuid.UUID{contract.IDModel1, contract.IDModel11, contract.IDModelTest},
+			allowedModelIDs: []uuid.UUID{contract.IDModel1, contract.IDModel11},
 			inherited:       true,
 		},
 		contract.IDDept6: {

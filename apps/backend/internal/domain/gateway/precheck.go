@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
-	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -23,14 +22,15 @@ type Prechecker interface {
 // PrecheckOpts controls optional gateway precheck skips.
 type PrecheckOpts struct {
 	SkipModelCheck     bool // /v1/models listing
-	SkipModelAllowlist bool // modelcatalog.IsTestOnlyCallType when allowDev
+	SkipModelAllowlist bool // test model (source=="test") — not in allowlist, skip check
 }
 
-// PrecheckForRequest builds precheck options from the gateway request context.
-func PrecheckForRequest(path, model string) PrecheckOpts {
+// BuildPrecheckOpts builds precheck options from request context.
+// isTestModel should be resolved by the caller via catalog source lookup.
+func BuildPrecheckOpts(path string, isTestModel bool) PrecheckOpts {
 	return PrecheckOpts{
 		SkipModelCheck:     path == "/v1/models",
-		SkipModelAllowlist: modelcatalog.IsTestOnlyCallType(model),
+		SkipModelAllowlist: isTestModel,
 	}
 }
 

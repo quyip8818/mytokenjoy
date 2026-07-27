@@ -46,14 +46,15 @@ type GatewayService interface {
 }
 
 type gatewayService struct {
-	precheck    Prechecker
-	proxy       *httputil.ReverseProxy
-	rateLimiter ratelimit.Limiter
-	rlRate      int
-	rlBurst     int
-	rlDryRun    bool
-	logger      *slog.Logger
-	metrics     Recorder
+	precheck       Prechecker
+	proxy          *httputil.ReverseProxy
+	rateLimiter    ratelimit.Limiter
+	rlRate         int
+	rlBurst        int
+	rlDryRun       bool
+	logger         *slog.Logger
+	metrics        Recorder
+	testModelTypes map[string]bool // call types where source=="test"
 }
 
 func NewGatewayService(cfg config.Config, precheck Prechecker, limiter ratelimit.Limiter, logger *slog.Logger, metrics Recorder) (GatewayService, error) {
@@ -86,14 +87,15 @@ func NewGatewayService(cfg config.Config, precheck Prechecker, limiter ratelimit
 		metrics = NoopRecorder()
 	}
 	return &gatewayService{
-		precheck:    precheck,
-		proxy:       proxy,
-		rateLimiter: limiter,
-		rlRate:      cfg.RateLimitV1Rate,
-		rlBurst:     cfg.RateLimitV1Burst,
-		rlDryRun:    cfg.RateLimitDryRun,
-		logger:      logger,
-		metrics:     metrics,
+		precheck:       precheck,
+		proxy:          proxy,
+		rateLimiter:    limiter,
+		rlRate:         cfg.RateLimitV1Rate,
+		rlBurst:        cfg.RateLimitV1Burst,
+		rlDryRun:       cfg.RateLimitDryRun,
+		logger:         logger,
+		metrics:        metrics,
+		testModelTypes: map[string]bool{modelcatalog.TestCallType: true},
 	}, nil
 }
 
@@ -125,7 +127,7 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "read request body", http.StatusForbidden)
 		return
 	}
-	opts := PrecheckForRequest(r.URL.Path, model)
+	opts := BuildPrecheckOpts(r.URL.Path, g.isTestModel(model))
 	start := time.Now()
 	result, err := g.precheck.Run(r.Context(), keyHash, model, opts)
 	g.metrics.RecordPrecheckDuration(time.Since(start))
@@ -135,19 +137,12 @@ func (g *gatewayService) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
-	// Post-precheck company type guards:
-	// 1. test-model only available for demo/trial/testing accounts
-	if modelcatalog.IsTestOnlyCallType(model) && !isTestModelAllowed(result.CompanyType) {
+	// Post-precheck company type guard:
+	// test model (source=="test") only available for demo/trial/testing accounts.
+	if g.isTestModel(model) && !isTestModelAllowed(result.CompanyType) {
 		g.metrics.RecordRejected()
 		logGatewayRejection(r.URL.Path, model, "test-model not available for this account type")
 		http.Error(w, "test-model not available for this account type", http.StatusForbidden)
-		return
-	}
-	// 2. trial/demo accounts can only use test-model
-	if isTrialOrDemo(result.CompanyType) && !modelcatalog.IsTestOnlyCallType(model) {
-		g.metrics.RecordRejected()
-		logGatewayRejection(r.URL.Path, model, "trial/demo accounts can only use test-model")
-		http.Error(w, "trial/demo accounts can only use test-model", http.StatusForbidden)
 		return
 	}
 	g.metrics.RecordAllowed()
@@ -283,8 +278,9 @@ func isTestModelAllowed(companyType string) bool {
 	}
 }
 
-func isTrialOrDemo(companyType string) bool {
-	return companyType == store.CompanyTypeTrial || companyType == store.CompanyTypeDemo
+// isTestModel checks whether callType is a test model via the in-memory type set.
+func (g *gatewayService) isTestModel(callType string) bool {
+	return g.testModelTypes[callType]
 }
 
 var _ GatewayService = (*gatewayService)(nil)

@@ -56,7 +56,11 @@ func NewService(cfg config.Config, st Store, client adminport.Port, cacheInvalid
 }
 
 func (s *service) ListModels(ctx context.Context) ([]types.ModelInfo, error) {
-	return s.store.Models().Models(ctx)
+	all, err := s.store.Models().Models(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return modelcatalog.FilterVisible(all), nil
 }
 
 func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput) (types.ModelInfo, error) {
@@ -258,14 +262,16 @@ func (s *service) ResolveRouting(ctx context.Context, deptID uuid.UUID) (types.R
 	if err != nil {
 		return types.ResolvedWhitelist{}, err
 	}
+	// Exclude test models from routing resolution — they are gateway-implicit only.
+	visibleModels := modelcatalog.FilterVisible(models)
 	rule := common.GetRoutingRuleForDept(deptID, rules, departments)
 	if rule == nil {
-		allowedIDs := modelcatalog.EnabledModelIDs(models)
+		allowedIDs := modelcatalog.EnabledModelIDs(visibleModels)
 		return types.ResolvedWhitelist{
 			Inherited:       false,
 			AllowedModelIDs: allowedIDs,
-			AllowedModels:   modelcatalog.EnrichRefs(models, allowedIDs),
-			ParentCount:     len(models),
+			AllowedModels:   modelcatalog.EnrichRefs(visibleModels, allowedIDs),
+			ParentCount:     len(visibleModels),
 		}, nil
 	}
 	parentID := common.GetParentDeptID(rule.NodeID, departments)
@@ -278,11 +284,11 @@ func (s *service) ResolveRouting(ctx context.Context, deptID uuid.UUID) (types.R
 			}
 		}
 	}
-	allowedModelIDs := common.ResolveDeptAllowedModelIDs(deptID, departments, rules, models)
+	allowedModelIDs := common.ResolveDeptAllowedModelIDs(deptID, departments, rules, visibleModels)
 	return types.ResolvedWhitelist{
 		Inherited:       rule.Inherited,
 		AllowedModelIDs: allowedModelIDs,
-		AllowedModels:   modelcatalog.EnrichRefs(models, allowedModelIDs),
+		AllowedModels:   modelcatalog.EnrichRefs(visibleModels, allowedModelIDs),
 		ParentCount:     parentCount,
 	}, nil
 }
@@ -371,9 +377,10 @@ func (s *service) ListModelsWithPricing(ctx context.Context) ([]types.ModelInfoW
 		return nil, err
 	}
 
-	result := make([]types.ModelInfoWithPricing, len(models))
-	for i := range models {
-		result[i] = types.ModelInfoWithPricing{ModelInfo: models[i]}
+	visible := modelcatalog.FilterVisible(models)
+	result := make([]types.ModelInfoWithPricing, len(visible))
+	for i := range visible {
+		result[i] = types.ModelInfoWithPricing{ModelInfo: visible[i]}
 	}
 
 	// best-effort: NewAPI 不可达时仍返回模型列表，价格为 0

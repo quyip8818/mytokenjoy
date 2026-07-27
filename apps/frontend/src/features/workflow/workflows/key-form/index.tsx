@@ -35,11 +35,10 @@ export function KeyFormWorkflow({
 }: KeyFormWorkflowProps) {
   const apis = useInjectedApis(injectedApis)
   const { closeAll } = useWorkflow()
-  const { memberId, companyType } = useSession()
+  const { memberId } = useSession()
   const { billingCurrency } = useBillingExchange()
   const currencyLabel = currencySymbol(billingCurrency)
   const { resolveAllowedModelIds: resolveAllModels } = useMemberWhitelist()
-  const isTrialOrDemo = companyType === 'trial' || companyType === 'demo'
 
   const isCreate = entry.id === 'key-create'
   const key =
@@ -101,9 +100,6 @@ export function KeyFormWorkflow({
     const resolve = async () => {
       const allModels = await apis.modelApi.list()
       const enabled = allModels.filter((m) => m.enabled)
-      if (isTrialOrDemo) {
-        return enabled.filter((m) => m.type.startsWith('test-'))
-      }
       const allowedIds = await resolveAllModels()
       if (!allowedIds) return enabled
       const allowed = new Set(allowedIds)
@@ -115,7 +111,7 @@ export function KeyFormWorkflow({
     return () => {
       cancelled = true
     }
-  }, [isTrialOrDemo, resolveAllModels, apis.modelApi])
+  }, [resolveAllModels, apis.modelApi])
 
   const {
     budgetSummary,
