@@ -23,7 +23,6 @@ export function DeptComparisonTable({
 }: DeptComparisonTableProps) {
   return (
     <DataSection
-      title="子部门费用对比"
       loading={loading}
       skeletonColumns={5}
       className="border-border shadow-xs"

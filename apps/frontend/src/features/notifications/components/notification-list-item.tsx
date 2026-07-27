@@ -1,5 +1,7 @@
 import { Archive, ArchiveRestore, Check, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 import { CATEGORY_MAP } from '../lib/category-config'
 import { formatTimeAgo } from '../lib/format-time'
 import type { NotificationItem } from '@/api/types'
@@ -31,9 +33,10 @@ export function NotificationListItem({
 
   return (
     <div
-      className={`group relative flex cursor-pointer items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/60 ${
-        isUnread ? 'border-l-2 border-l-blue-500 bg-blue-50/40 dark:bg-blue-950/15' : ''
-      }`}
+      className={cn(
+        'group flex cursor-pointer items-start gap-3 px-4 py-3.5 transition-colors hover:bg-muted/50',
+        isUnread && 'border-l-[3px] border-l-primary bg-accent/40',
+      )}
       onClick={onClick}
       role="button"
       tabIndex={0}
@@ -41,88 +44,103 @@ export function NotificationListItem({
         if (e.key === 'Enter') onClick()
       }}
     >
-      {/* Category icon */}
-      {Icon && <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${color}`} />}
+      {Icon && <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', color)} />}
 
-      {/* Content */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <span
-            className={`truncate text-sm ${isUnread ? 'font-medium text-foreground' : 'font-normal text-muted-foreground'}`}
+            className={cn(
+              'truncate text-sm',
+              isUnread ? 'font-medium text-foreground' : 'font-normal text-muted-foreground',
+            )}
           >
             {notification.title}
           </span>
           <div className="flex shrink-0 items-center gap-1.5">
             {notification.groupCount && notification.groupCount > 1 && (
-              <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-[10px] font-medium tabular-nums text-muted-foreground">
                 {notification.groupCount}
               </span>
             )}
-            <span className="text-xs text-muted-foreground">
+            {/* Time: default visible, hidden on hover */}
+            <span className="text-xs text-muted-foreground group-hover:hidden">
               {formatTimeAgo(notification.createdAt)}
             </span>
+            {/* Actions: visible on hover, replace time */}
+            <TooltipProvider delayDuration={200}>
+              <div className="hidden items-center gap-1 group-hover:flex">
+                {tab === 'inbox' && isUnread && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onMarkRead()
+                        }}
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs">标记已读</TooltipContent>
+                  </Tooltip>
+                )}
+                {tab === 'inbox' ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onArchive()
+                        }}
+                      >
+                        <Archive className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs">归档</TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onUnarchive()
+                        }}
+                      >
+                        <ArchiveRestore className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs">恢复</TooltipContent>
+                  </Tooltip>
+                )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="icon-sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onDelete()
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">删除</TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
           </div>
         </div>
         {notification.body && (
           <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{notification.body}</p>
         )}
-      </div>
-
-      {/* Action buttons (visible on hover, always visible on touch) */}
-      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 md:opacity-0">
-        {tab === 'inbox' && isUnread && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6"
-            onClick={(e) => {
-              e.stopPropagation()
-              onMarkRead()
-            }}
-            title="标记已读"
-          >
-            <Check className="h-3.5 w-3.5" />
-          </Button>
-        )}
-        {tab === 'inbox' ? (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6"
-            onClick={(e) => {
-              e.stopPropagation()
-              onArchive()
-            }}
-            title="归档"
-          >
-            <Archive className="h-3.5 w-3.5" />
-          </Button>
-        ) : (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6"
-            onClick={(e) => {
-              e.stopPropagation()
-              onUnarchive()
-            }}
-            title="恢复"
-          >
-            <ArchiveRestore className="h-3.5 w-3.5" />
-          </Button>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 text-destructive hover:bg-destructive/10"
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete()
-          }}
-          title="删除"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
       </div>
     </div>
   )

@@ -33,8 +33,6 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	session.Get("/", h.List)
 	session.Get("/unread-count", h.UnreadCount)
 	session.Patch("/{id}/read", h.MarkRead)
-	session.Post("/read-all", h.MarkAllRead)
-	session.Post("/archive-all", h.ArchiveAll)
 	session.Post("/{id}/archive", h.Archive)
 	session.Post("/{id}/unarchive", h.Unarchive)
 	session.Post("/{id}/delete", h.SoftDelete)

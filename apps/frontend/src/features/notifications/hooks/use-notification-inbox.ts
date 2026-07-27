@@ -45,11 +45,6 @@ export function useNotificationInbox() {
     onSuccess: invalidate,
   })
 
-  const markAllReadMutation = useMutation({
-    mutationFn: () => notificationApi.markAllRead(),
-    onSuccess: invalidate,
-  })
-
   const archiveMutation = useMutation({
     mutationFn: (id: string) => notificationApi.archive(id),
     onSuccess: invalidate,
@@ -57,11 +52,6 @@ export function useNotificationInbox() {
 
   const unarchiveMutation = useMutation({
     mutationFn: (id: string) => notificationApi.unarchive(id),
-    onSuccess: invalidate,
-  })
-
-  const archiveAllMutation = useMutation({
-    mutationFn: () => notificationApi.archiveAll(category || undefined),
     onSuccess: invalidate,
   })
 
@@ -97,10 +87,8 @@ export function useNotificationInbox() {
     // Actions
     fetchNextPage,
     markRead: markReadMutation.mutate,
-    markAllRead: markAllReadMutation.mutate,
     archive: archiveMutation.mutate,
     unarchive: unarchiveMutation.mutate,
-    archiveAll: archiveAllMutation.mutate,
     deleteNotification: deleteMutation.mutate,
   }
 }

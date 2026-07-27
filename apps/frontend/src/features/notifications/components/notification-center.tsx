@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
-import { Archive, Check, Filter, Inbox } from 'lucide-react'
+import { Archive, CircleDot, Filter, Inbox } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -35,10 +35,8 @@ export function NotificationCenter() {
     isFetchingNextPage,
     fetchNextPage,
     markRead,
-    markAllRead,
     archive,
     unarchive,
-    archiveAll,
     deleteNotification,
   } = useNotificationInbox()
 
@@ -87,15 +85,17 @@ export function NotificationCenter() {
         }
       />
 
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-3xl space-y-4">
         {/* Tabs */}
         <Tabs value={tab} onValueChange={(v) => setTab(v as 'inbox' | 'archived')}>
-          <TabsList className="mb-4">
+          <TabsList>
             <TabsTrigger value="inbox" className="gap-1.5">
               <Inbox className="h-3.5 w-3.5" />
               收件箱
               {unreadCount > 0 && (
-                <span className="ml-1 text-xs text-blue-600">●{unreadCount}</span>
+                <span className="ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium tabular-nums text-primary-foreground">
+                  {unreadCount}
+                </span>
               )}
             </TabsTrigger>
             <TabsTrigger value="archived" className="gap-1.5">
@@ -105,61 +105,35 @@ export function NotificationCenter() {
           </TabsList>
         </Tabs>
 
-        {/* Toolbar */}
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger className="h-8 w-[130px] text-xs">
-                <Filter className="mr-1 h-3 w-3" />
-                <SelectValue placeholder="全部类别" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">全部类别</SelectItem>
-                {ALL_CATEGORIES.map((c) => (
-                  <SelectItem key={c.key} value={c.key}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {tab === 'inbox' && (
-              <Select value={status} onValueChange={(v) => setStatus(v as '' | 'unread' | 'read')}>
-                <SelectTrigger className="h-8 w-[100px] text-xs">
-                  <SelectValue placeholder="全部状态" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">全部</SelectItem>
-                  <SelectItem value="unread">未读</SelectItem>
-                  <SelectItem value="read">已读</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-          </div>
+        {/* Filters */}
+        <div className="flex items-center gap-2">
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger className="h-9 w-[160px] border-border bg-card text-sm shadow-sm">
+              <Filter className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+              <SelectValue placeholder="全部类别" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">全部类别</SelectItem>
+              {ALL_CATEGORIES.map((c) => (
+                <SelectItem key={c.key} value={c.key}>
+                  {c.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           {tab === 'inbox' && (
-            <div className="flex items-center gap-1.5">
-              {unreadCount > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={() => markAllRead()}
-                >
-                  <Check className="mr-1 h-3 w-3" />
-                  全部已读
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => archiveAll()}
-              >
-                <Archive className="mr-1 h-3 w-3" />
-                全部归档
-              </Button>
-            </div>
+            <Select value={status} onValueChange={(v) => setStatus(v as '' | 'unread' | 'read')}>
+              <SelectTrigger className="h-9 w-[160px] border-border bg-card text-sm shadow-sm">
+                <CircleDot className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+                <SelectValue placeholder="全部状态" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">全部状态</SelectItem>
+                <SelectItem value="unread">未读</SelectItem>
+                <SelectItem value="read">已读</SelectItem>
+              </SelectContent>
+            </Select>
           )}
         </div>
 
@@ -171,7 +145,7 @@ export function NotificationCenter() {
         ) : items.length === 0 ? (
           <NotificationEmptyState tab={tab} hasFilter={!!category || !!status} />
         ) : (
-          <div className="divide-y divide-border rounded-lg border border-border">
+          <div className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
             {items.map((item) => (
               <NotificationListItem
                 key={item.id}
@@ -188,9 +162,9 @@ export function NotificationCenter() {
         )}
 
         {/* Infinite scroll sentinel */}
-        <div ref={sentinelRef} className="h-8" />
+        <div ref={sentinelRef} className="h-4" />
         {isFetchingNextPage && (
-          <div className="py-4 text-center text-xs text-muted-foreground">加载更多...</div>
+          <div className="py-3 text-center text-xs text-muted-foreground">加载更多...</div>
         )}
       </div>
     </PageShell>

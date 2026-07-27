@@ -20,7 +20,6 @@ export function UsageDashboardPageShell({ pageData, onSelectDept }: UsageDashboa
   return (
     <div className="space-y-6">
       <DataSection
-        title="团队用量与配额"
         loading={loading}
         skeletonColumns={6}
         className="border-border shadow-xs"
@@ -30,7 +29,6 @@ export function UsageDashboardPageShell({ pageData, onSelectDept }: UsageDashboa
 
       <div className="grid grid-cols-[5fr_3fr] gap-6">
         <DataSection
-          title="模型费用分布"
           loading={loading}
           skeletonColumns={1}
           className="border-border shadow-xs"

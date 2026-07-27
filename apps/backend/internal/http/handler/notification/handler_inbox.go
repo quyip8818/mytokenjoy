@@ -146,19 +146,6 @@ func (h *Handler) MarkRead(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteVoid(w, err)
 }
 
-// --- Mark all read ---
-
-func (h *Handler) MarkAllRead(w http.ResponseWriter, r *http.Request) {
-	sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context())
-	if !ok {
-		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
-		return
-	}
-
-	err := h.notifRepo.MarkAllRead(r.Context(), sessionCtx.Member.ID)
-	httputil.WriteVoid(w, err)
-}
-
 // --- Archive ---
 
 func (h *Handler) Archive(w http.ResponseWriter, r *http.Request) {
@@ -194,20 +181,6 @@ func (h *Handler) Unarchive(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.notifRepo.Unarchive(r.Context(), id)
-	httputil.WriteVoid(w, err)
-}
-
-// --- Archive all (respects category filter) ---
-
-func (h *Handler) ArchiveAll(w http.ResponseWriter, r *http.Request) {
-	sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context())
-	if !ok {
-		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
-		return
-	}
-
-	category := r.URL.Query().Get("category")
-	err := h.notifRepo.ArchiveAll(r.Context(), sessionCtx.Member.ID, category)
 	httputil.WriteVoid(w, err)
 }
 

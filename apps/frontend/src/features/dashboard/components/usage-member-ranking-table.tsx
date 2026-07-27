@@ -15,11 +15,8 @@ interface UsageMemberRankingTableProps {
 }
 
 export function UsageMemberRankingTable({ topConsumers, loading }: UsageMemberRankingTableProps) {
-  const title = topConsumers.length > 0 ? `成员消耗排行 Top ${topConsumers.length}` : '成员消耗排行'
-
   return (
     <DataSection
-      title={title}
       loading={loading}
       skeletonColumns={4}
       className="border-border shadow-xs"

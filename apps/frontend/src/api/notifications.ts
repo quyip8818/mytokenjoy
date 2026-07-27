@@ -16,14 +16,9 @@ export const notificationApi = {
 
   markRead: (id: string) => request<void>(`/notifications/${id}/read`, { method: 'PATCH' }),
 
-  markAllRead: () => request<void>('/notifications/read-all', { method: 'POST' }),
-
   archive: (id: string) => request<void>(`/notifications/${id}/archive`, { method: 'POST' }),
 
   unarchive: (id: string) => request<void>(`/notifications/${id}/unarchive`, { method: 'POST' }),
-
-  archiveAll: (category?: string) =>
-    request<void>(`/notifications/archive-all${buildQuery({ category })}`, { method: 'POST' }),
 
   softDelete: (id: string) => request<void>(`/notifications/${id}/delete`, { method: 'POST' }),
 

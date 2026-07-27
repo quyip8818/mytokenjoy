@@ -48,12 +48,6 @@ describe('notificationApi', () => {
     expect(mockRequest).toHaveBeenCalledWith('/notifications/ntf-123/read', { method: 'PATCH' })
   })
 
-  it('markAllRead calls POST', async () => {
-    mockRequest.mockResolvedValue(undefined)
-    await notificationApi.markAllRead()
-    expect(mockRequest).toHaveBeenCalledWith('/notifications/read-all', { method: 'POST' })
-  })
-
   it('getCapabilities calls correct endpoint', async () => {
     const caps = {
       channels: ['in_app'],

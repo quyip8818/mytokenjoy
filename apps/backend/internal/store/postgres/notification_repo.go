@@ -241,17 +241,6 @@ func (r *notificationRepo) MarkRead(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
-func (r *notificationRepo) MarkAllRead(ctx context.Context, userID uuid.UUID) error {
-	companyID := store.CompanyID(ctx)
-	now := time.Now()
-	_, err := r.db.Exec(ctx, `
-		UPDATE notification_log SET read_at = $1, updated_at = $2
-		WHERE company_id = $3 AND user_id = $4 AND channel = 'in_app'
-		  AND read_at IS NULL AND status = 'active'
-	`, now, now, companyID, userID)
-	return err
-}
-
 func (r *notificationRepo) Archive(ctx context.Context, id uuid.UUID) error {
 	companyID := store.CompanyID(ctx)
 	_, err := r.db.Exec(ctx, `
@@ -269,24 +258,6 @@ func (r *notificationRepo) Unarchive(ctx context.Context, id uuid.UUID) error {
 		WHERE id = $1 AND company_id = $2 AND channel = 'in_app'
 		  AND status = 'archived'
 	`, id, companyID)
-	return err
-}
-
-func (r *notificationRepo) ArchiveAll(ctx context.Context, userID uuid.UUID, category string) error {
-	companyID := store.CompanyID(ctx)
-	if category != "" {
-		_, err := r.db.Exec(ctx, `
-			UPDATE notification_log SET status = 'archived', updated_at = NOW()
-			WHERE company_id = $1 AND user_id = $2 AND channel = 'in_app'
-			  AND category = $3 AND status = 'active'
-		`, companyID, userID, category)
-		return err
-	}
-	_, err := r.db.Exec(ctx, `
-		UPDATE notification_log SET status = 'archived', updated_at = NOW()
-		WHERE company_id = $1 AND user_id = $2 AND channel = 'in_app'
-		  AND status = 'active'
-	`, companyID, userID)
 	return err
 }
 
