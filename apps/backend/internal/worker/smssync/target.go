@@ -11,6 +11,7 @@ import (
 // ModelStore abstracts the local model persistence for SMS-synced models.
 type ModelStore interface {
 	UpsertFromSMS(ctx context.Context, model sms.CatalogModel) error
+	DisableStaleFromSMS(ctx context.Context, activeModelIDs []string) (int, error)
 }
 
 // AdminPortTarget adapts adminport.Port + ModelStore into the SyncTarget interface.
@@ -48,4 +49,8 @@ func (t *AdminPortTarget) UpsertModel(ctx context.Context, model sms.CatalogMode
 
 func (t *AdminPortTarget) RebuildAbilities(ctx context.Context) error {
 	return t.port.RebuildAbilities(ctx)
+}
+
+func (t *AdminPortTarget) DisableStaleModels(ctx context.Context, activeModelIDs []string) (int, error) {
+	return t.modelStore.DisableStaleFromSMS(ctx, activeModelIDs)
 }

@@ -19,3 +19,7 @@ func NewRepoModelStore(repo store.ModelsRepository) *RepoModelStore {
 func (s *RepoModelStore) UpsertFromSMS(ctx context.Context, model sms.CatalogModel) error {
 	return s.repo.UpsertFromSMS(ctx, model.ModelID, model.DisplayName, model.Provider, model.CallType)
 }
+
+func (s *RepoModelStore) DisableStaleFromSMS(ctx context.Context, activeModelIDs []string) (int, error) {
+	return s.repo.DisableStaleFromSMS(ctx, activeModelIDs)
+}

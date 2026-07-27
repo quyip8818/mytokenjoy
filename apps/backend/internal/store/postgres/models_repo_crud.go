@@ -188,3 +188,25 @@ func (r *pgModelsRepo) UpsertFromSMS(ctx context.Context, modelType, name, provi
 }
 
 var _ store.ModelsRepository = (*pgModelsRepo)(nil)
+
+func (r *pgModelsRepo) DisableStaleFromSMS(ctx context.Context, activeModelIDs []string) (int, error) {
+	companyID := store.CompanyID(ctx)
+	if len(activeModelIDs) == 0 {
+		ct, err := r.db.Exec(ctx, `
+			UPDATE models SET enabled = false
+			WHERE company_id = $1 AND source = 'sms' AND enabled = true
+		`, companyID)
+		if err != nil {
+			return 0, err
+		}
+		return int(ct.RowsAffected()), nil
+	}
+	ct, err := r.db.Exec(ctx, `
+		UPDATE models SET enabled = false
+		WHERE company_id = $1 AND source = 'sms' AND enabled = true AND type != ALL($2)
+	`, companyID, activeModelIDs)
+	if err != nil {
+		return 0, err
+	}
+	return int(ct.RowsAffected()), nil
+}

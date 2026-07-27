@@ -22,6 +22,7 @@ type SyncTarget interface {
 	UpsertModelRatio(ctx context.Context, modelID string, inputPrice, outputPrice float64) error
 	UpsertModel(ctx context.Context, model sms.CatalogModel) error
 	RebuildAbilities(ctx context.Context) error
+	DisableStaleModels(ctx context.Context, activeModelIDs []string) (int, error)
 }
 
 // Worker periodically syncs data from SMS to the local system.
@@ -101,10 +102,21 @@ func (w *Worker) Execute(ctx context.Context) error {
 		}
 	}
 
+	// Disable models no longer in catalog
+	activeIDs := make([]string, 0, len(catalog.Models))
+	for _, m := range catalog.Models {
+		activeIDs = append(activeIDs, m.ModelID)
+	}
+	disabled, err := w.target.DisableStaleModels(ctx, activeIDs)
+	if err != nil {
+		slog.Error("smssync: disable stale models failed", "error", err)
+	}
+
 	slog.Info("smssync: cycle complete",
 		"channels", fmt.Sprintf("%d ok / %d fail", channelOK, channelFail),
 		"pricing", fmt.Sprintf("%d ok / %d fail", pricingOK, pricingFail),
 		"models", fmt.Sprintf("%d ok / %d fail", modelOK, modelFail),
+		"disabled", disabled,
 	)
 	return nil
 }

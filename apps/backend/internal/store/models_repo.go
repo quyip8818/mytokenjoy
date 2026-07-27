@@ -17,5 +17,6 @@ type ModelsRepository interface {
 	UpdateModel(ctx context.Context, model types.ModelInfo) error
 	DeleteModel(ctx context.Context, modelID uuid.UUID) error
 	UpsertFromSMS(ctx context.Context, modelType, name, provider, callType string) error
+	DisableStaleFromSMS(ctx context.Context, activeModelIDs []string) (int, error)
 	Allowlist() ModelAllowlistRepository
 }

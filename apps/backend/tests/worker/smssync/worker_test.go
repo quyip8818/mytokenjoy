@@ -55,6 +55,11 @@ func (m *mockSyncTarget) RebuildAbilities(_ context.Context) error {
 	return nil
 }
 
+func (m *mockSyncTarget) DisableStaleModels(_ context.Context, activeIDs []string) (int, error) {
+	m.calls = append(m.calls, syncCall{"DisableStaleModels", activeIDs})
+	return 0, nil
+}
+
 // --- tests ---
 
 func TestSyncWorker_Execute_FullSync(t *testing.T) {
@@ -78,8 +83,8 @@ func TestSyncWorker_Execute_FullSync(t *testing.T) {
 	}
 
 	// Should have called: UpsertChannel, RebuildAbilities, UpsertModelRatio, UpsertModel
-	if len(target.calls) != 4 {
-		t.Fatalf("expected 4 calls, got %d: %+v", len(target.calls), target.calls)
+	if len(target.calls) != 5 {
+		t.Fatalf("expected 5 calls, got %d: %+v", len(target.calls), target.calls)
 	}
 	if target.calls[0].method != "UpsertChannel" {
 		t.Fatalf("expected first call UpsertChannel, got %s", target.calls[0].method)

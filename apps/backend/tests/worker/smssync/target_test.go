@@ -28,6 +28,14 @@ func newMemModelStore() *memModelStore {
 	return &memModelStore{models: make(map[string]storedModel)}
 }
 
+func (m *memModelStore) DisableStaleFromSMS(_ context.Context, activeIDs []string) (int, error) {
+	active := make(map[string]bool, len(activeIDs))
+	for _, id := range activeIDs { active[id] = true }
+	var count int
+	for k := range m.models { if !active[k] { delete(m.models, k); count++ } }
+	return count, nil
+}
+
 func (m *memModelStore) UpsertFromSMS(_ context.Context, model sms.CatalogModel) error {
 	m.models[model.ModelID] = storedModel{
 		ModelID:     model.ModelID,
