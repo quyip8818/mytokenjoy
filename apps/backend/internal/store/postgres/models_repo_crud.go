@@ -193,8 +193,8 @@ func (r *pgModelsRepo) DisableStaleFromSMS(ctx context.Context, activeModelIDs [
 	companyID := store.CompanyID(ctx)
 	if len(activeModelIDs) == 0 {
 		ct, err := r.db.Exec(ctx, `
-			UPDATE models SET enabled = false
-			WHERE company_id = $1 AND source = 'sms' AND enabled = true
+			DELETE FROM models
+			WHERE company_id = $1 AND source = 'sms'
 		`, companyID)
 		if err != nil {
 			return 0, err
@@ -202,8 +202,8 @@ func (r *pgModelsRepo) DisableStaleFromSMS(ctx context.Context, activeModelIDs [
 		return int(ct.RowsAffected()), nil
 	}
 	ct, err := r.db.Exec(ctx, `
-		UPDATE models SET enabled = false
-		WHERE company_id = $1 AND source = 'sms' AND enabled = true AND type != ALL($2)
+		DELETE FROM models
+		WHERE company_id = $1 AND source = 'sms' AND type != ALL($2)
 	`, companyID, activeModelIDs)
 	if err != nil {
 		return 0, err
