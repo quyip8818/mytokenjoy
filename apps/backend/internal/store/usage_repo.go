@@ -21,10 +21,15 @@ type UsageRepository interface {
 
 type NotificationRepository interface {
 	Append(ctx context.Context, entry types.NotificationLogEntry) error
-	List(ctx context.Context, userID uuid.UUID, limit, offset int) ([]types.NotificationLogEntry, error)
+	List(ctx context.Context, filter types.NotificationListFilter) (types.NotificationListResult, error)
 	GetUnreadCount(ctx context.Context, userID uuid.UUID) (int, error)
 	MarkRead(ctx context.Context, id uuid.UUID) error
 	MarkAllRead(ctx context.Context, userID uuid.UUID) error
+	Archive(ctx context.Context, id uuid.UUID) error
+	Unarchive(ctx context.Context, id uuid.UUID) error
+	ArchiveAll(ctx context.Context, userID uuid.UUID, category string) error
+	SoftDelete(ctx context.Context, id uuid.UUID) error
+	Undelete(ctx context.Context, id uuid.UUID) error
 	// Admin queries
 	ListLog(ctx context.Context, filter types.NotificationLogFilter) ([]types.NotificationLogEntry, error)
 	Stats(ctx context.Context) ([]types.NotificationStatRow, error)

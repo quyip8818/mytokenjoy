@@ -555,18 +555,22 @@ CREATE TABLE IF NOT EXISTS scheduler_locks (
 );
 
 CREATE TABLE IF NOT EXISTS notification_log (
-    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
-    channel    TEXT NOT NULL,
-    event_type TEXT NOT NULL,
-    user_id    UUID,
-    title      TEXT NOT NULL DEFAULT '',
-    body       TEXT NOT NULL DEFAULT '',
-    payload    JSONB NOT NULL,
-    status     TEXT NOT NULL DEFAULT 'sent',
-    error      TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    read_at    TIMESTAMPTZ
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id   UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    channel      TEXT NOT NULL,
+    event_type   TEXT NOT NULL,
+    user_id      UUID,
+    title        TEXT NOT NULL DEFAULT '',
+    body         TEXT NOT NULL DEFAULT '',
+    payload      JSONB NOT NULL,
+    send_ok      BOOLEAN NOT NULL DEFAULT true,
+    error        TEXT,
+    category     TEXT NOT NULL DEFAULT '',
+    group_key    TEXT NOT NULL DEFAULT '',
+    status       TEXT NOT NULL DEFAULT 'active',
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    read_at      TIMESTAMPTZ,
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_notification_log_company_time
@@ -575,8 +579,25 @@ CREATE INDEX IF NOT EXISTS idx_notification_log_company_time
 CREATE INDEX IF NOT EXISTS idx_notification_log_user
     ON notification_log (company_id, user_id, created_at DESC);
 
+-- Inbox query index (active only)
+CREATE INDEX IF NOT EXISTS idx_notification_log_inbox
+    ON notification_log (company_id, user_id, created_at DESC)
+    WHERE status = 'active';
+
+-- Category filter index
+CREATE INDEX IF NOT EXISTS idx_notification_log_category
+    ON notification_log (company_id, user_id, category, created_at DESC)
+    WHERE status = 'active';
+
+-- Group aggregation index
+CREATE INDEX IF NOT EXISTS idx_notification_log_group
+    ON notification_log (company_id, user_id, group_key, created_at DESC)
+    WHERE group_key != '' AND status = 'active';
+
+-- Unread count index
 CREATE INDEX IF NOT EXISTS idx_notification_log_unread
-    ON notification_log (company_id, user_id) WHERE read_at IS NULL;
+    ON notification_log (company_id, user_id)
+    WHERE read_at IS NULL AND status = 'active';
 
 -- Notification preferences: per-user per-category per-channel toggle
 CREATE TABLE IF NOT EXISTS notification_preferences (

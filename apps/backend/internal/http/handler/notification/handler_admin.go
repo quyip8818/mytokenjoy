@@ -22,7 +22,7 @@ type adminLogEntryResponse struct {
 	UserID    uuid.UUID `json:"userId"`
 	Title     string    `json:"title"`
 	Body      string    `json:"body"`
-	Status    string    `json:"status"`
+	SendOK    bool      `json:"sendOk"`
 	Error     string    `json:"error,omitempty"`
 	CreatedAt string    `json:"createdAt"`
 	ReadAt    *string   `json:"readAt,omitempty"`
@@ -31,8 +31,11 @@ type adminLogEntryResponse struct {
 func (h *Handler) AdminLog(w http.ResponseWriter, r *http.Request) {
 	filter := types.NotificationLogFilter{
 		Channel:   r.URL.Query().Get("channel"),
-		Status:    r.URL.Query().Get("status"),
 		EventType: r.URL.Query().Get("eventType"),
+	}
+	if v := r.URL.Query().Get("sendOk"); v != "" {
+		b := v == "true"
+		filter.SendOK = &b
 	}
 	filter.Limit, _ = strconv.Atoi(r.URL.Query().Get("limit"))
 	filter.Offset, _ = strconv.Atoi(r.URL.Query().Get("offset"))
@@ -52,7 +55,7 @@ func (h *Handler) AdminLog(w http.ResponseWriter, r *http.Request) {
 			UserID:    e.UserID,
 			Title:     e.Title,
 			Body:      e.Body,
-			Status:    e.Status,
+			SendOK:    e.SendOK,
 			Error:     e.Error,
 			CreatedAt: e.CreatedAt.Format(time.RFC3339),
 		}
@@ -69,7 +72,7 @@ func (h *Handler) AdminLog(w http.ResponseWriter, r *http.Request) {
 
 type adminStatResponse struct {
 	Channel string `json:"channel"`
-	Status  string `json:"status"`
+	SendOK  bool   `json:"sendOk"`
 	Count   int    `json:"count"`
 }
 
@@ -84,7 +87,7 @@ func (h *Handler) AdminStats(w http.ResponseWriter, r *http.Request) {
 	for i, s := range stats {
 		items[i] = adminStatResponse{
 			Channel: s.Channel,
-			Status:  s.Status,
+			SendOK:  s.SendOK,
 			Count:   s.Count,
 		}
 	}

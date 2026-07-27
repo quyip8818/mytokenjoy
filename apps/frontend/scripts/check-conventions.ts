@@ -101,7 +101,7 @@ const registeredAdminPages = new Set(
 )
 
 const routesDir = join(srcRoot, 'routes')
-const orphanSkipPrefixes = ['routes/auth/']
+const orphanSkipPrefixes = ['routes/auth/', 'routes/notifications/']
 
 walkFiles(routesDir, (filePath) => {
   if (!filePath.endsWith('.tsx')) return

@@ -55,16 +55,16 @@ export const NOTIFICATION_EVENT = {
 
 export type NotificationEventType = (typeof NOTIFICATION_EVENT)[keyof typeof NOTIFICATION_EVENT]
 
-// --- Status ---
+// --- Lifecycle Status ---
 
-export const NOTIFICATION_STATUS = {
-  PENDING: 'pending',
-  SENT: 'sent',
-  FAILED: 'failed',
-  READ: 'read',
+export const NOTIFICATION_LIFECYCLE = {
+  ACTIVE: 'active',
+  ARCHIVED: 'archived',
+  DELETED: 'deleted',
 } as const
 
-export type NotificationStatus = (typeof NOTIFICATION_STATUS)[keyof typeof NOTIFICATION_STATUS]
+export type NotificationLifecycle =
+  (typeof NOTIFICATION_LIFECYCLE)[keyof typeof NOTIFICATION_LIFECYCLE]
 
 // --- Notification Event (trigger payload) ---
 
@@ -110,12 +110,16 @@ export interface NotificationItem {
   id: string
   eventType: string
   channel: string
+  category: string
   title: string
   body: string
-  status: NotificationStatus
+  payload: Record<string, unknown>
+  groupKey?: string
+  groupCount?: number
+  status: NotificationLifecycle
   createdAt: string // ISO 8601
   readAt?: string | null
-  payload?: Record<string, unknown>
+  updatedAt: string // ISO 8601
 }
 
 // --- Capabilities response ---

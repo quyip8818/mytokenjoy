@@ -25,8 +25,8 @@ describe('notificationApi', () => {
 
   it('list calls /notifications with query params', async () => {
     mockRequest.mockResolvedValue([])
-    await notificationApi.list({ limit: 10, offset: 5 })
-    expect(mockRequest).toHaveBeenCalledWith('/notifications?limit=10&offset=5')
+    await notificationApi.list({ limit: 10, category: 'budget_alert' })
+    expect(mockRequest).toHaveBeenCalledWith('/notifications?limit=10&category=budget_alert')
   })
 
   it('list calls /notifications without params', async () => {

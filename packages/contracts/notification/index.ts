@@ -3,7 +3,7 @@ export {
   NOTIFICATION_PRIORITY,
   NOTIFICATION_CATEGORY,
   NOTIFICATION_EVENT,
-  NOTIFICATION_STATUS,
+  NOTIFICATION_LIFECYCLE,
   PRIORITY_FALLBACK_CHAIN,
   CATEGORY_DEFAULT_CHANNELS,
 } from './types'
@@ -13,7 +13,7 @@ export type {
   NotificationPriority,
   NotificationCategory,
   NotificationEventType,
-  NotificationStatus,
+  NotificationLifecycle,
   NotificationEvent,
   NotificationMetadata,
   NotificationPreferenceEntry,

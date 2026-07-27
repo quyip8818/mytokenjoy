@@ -109,8 +109,10 @@ const (
 // EventCategory maps an event type to its category.
 func EventCategory(eventType string) string {
 	switch eventType {
-	case EventSyncThresholdExceeded, EventOverrunBlocked, EventOverdraftExpanded, EventBudgetAlertReached:
+	case EventSyncThresholdExceeded, EventBudgetAlertReached:
 		return CategoryBudgetAlert
+	case EventOverrunBlocked, EventOverdraftExpanded:
+		return CategoryOverrun
 	case EventKeyExpired, EventKeyExpiringSoon:
 		return CategoryKeyExpiration
 	case EventUsageWeeklyReport:
@@ -123,15 +125,6 @@ func EventCategory(eventType string) string {
 		return CategoryBudgetAlert // safe default
 	}
 }
-
-// --- Status ---
-
-const (
-	StatusPending = "pending"
-	StatusSent    = "sent"
-	StatusFailed  = "failed"
-	StatusRead    = "read"
-)
 
 // --- NotificationEvent (trigger payload, channel-agnostic) ---
 

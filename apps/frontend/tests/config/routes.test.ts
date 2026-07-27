@@ -30,7 +30,8 @@ describe('routes config', () => {
 
   it('derives ROUTE_META and APP_ROUTES from ROUTE_DEFINITIONS', () => {
     expect(ROUTE_DEFINITIONS.length).toBe(ROUTE_META.length)
-    expect(ROUTE_DEFINITIONS.length).toBe(APP_ROUTES.length)
+    // APP_ROUTES includes hidden routes not in ROUTE_DEFINITIONS
+    expect(APP_ROUTES.length).toBeGreaterThanOrEqual(ROUTE_DEFINITIONS.length)
   })
 
   it('covers every ROUTE_META path in navigation groups', () => {

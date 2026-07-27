@@ -26,12 +26,15 @@ func (r *Renderer) Render(event domainnotification.Event) domainnotification.Ren
 		body = extractString(event.Payload, "message")
 	}
 
-	// Include eventType in the payload for downstream channels
-	enrichedPayload := make(map[string]any, len(event.Payload)+1)
+	// Include eventType + metadata in the payload for downstream channels
+	enrichedPayload := make(map[string]any, len(event.Payload)+4)
 	for k, v := range event.Payload {
 		enrichedPayload[k] = v
 	}
 	enrichedPayload["eventType"] = event.EventType
+	// ponytail: internal metadata for InAppChannel extraction, stripped before DB persist
+	enrichedPayload["_groupKey"] = event.Metadata.GroupKey
+	enrichedPayload["_category"] = event.ResolvedCategory()
 
 	return domainnotification.RenderedMessage{
 		Title:   title,

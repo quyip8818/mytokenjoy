@@ -2,12 +2,18 @@ import { useInjectedQuery } from '@/features/query'
 import type { NotificationItem, NotificationUnreadCount } from '@/api/types'
 import type { AppApis } from '@/api/app-apis'
 
+/**
+ * Fetches recent notifications for the bell popover (simple flat list, latest 8).
+ */
 export function useNotifications(injectedApis?: AppApis) {
   return useInjectedQuery<NotificationItem[]>({
     injectedApis,
-    queryKey: ['notifications'],
-    queryFn: (apis) => apis.notificationApi.list({ limit: 50 }),
-    refetchInterval: 60_000, // poll every 60s as backup to SSE
+    queryKey: ['notifications', 'popover'],
+    queryFn: async (apis) => {
+      const res = await apis.notificationApi.list({ limit: 8, grouped: true })
+      return res.items
+    },
+    refetchInterval: 60_000,
   })
 }
 

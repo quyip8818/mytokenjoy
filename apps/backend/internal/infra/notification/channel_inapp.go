@@ -33,7 +33,19 @@ func (c *InAppChannel) Name() string { return domainnotification.ChannelInApp }
 func (c *InAppChannel) IsConfigured() bool { return true }
 
 func (c *InAppChannel) Send(ctx context.Context, recipientID uuid.UUID, msg domainnotification.RenderedMessage) error {
-	payload, err := json.Marshal(msg.Payload)
+	groupKey := extractString(msg.Payload, "_groupKey")
+	category := extractString(msg.Payload, "_category")
+
+	// Strip internal metadata fields before persisting payload
+	cleanPayload := make(map[string]any, len(msg.Payload))
+	for k, v := range msg.Payload {
+		if k == "_groupKey" || k == "_category" {
+			continue
+		}
+		cleanPayload[k] = v
+	}
+
+	payload, err := json.Marshal(cleanPayload)
 	if err != nil {
 		payload = []byte("{}")
 	}
@@ -46,7 +58,9 @@ func (c *InAppChannel) Send(ctx context.Context, recipientID uuid.UUID, msg doma
 		Title:     msg.Title,
 		Body:      msg.Body,
 		Payload:   payload,
-		Status:    types.NotificationStatusSent,
+		SendOK:    true,
+		Category:  category,
+		GroupKey:  groupKey,
 	}
 
 	if err := c.store.Notification().Append(ctx, entry); err != nil {
@@ -60,6 +74,9 @@ func (c *InAppChannel) Send(ctx context.Context, recipientID uuid.UUID, msg doma
 			EventType: entry.EventType,
 			Title:     msg.Title,
 			Body:      msg.Body,
+			GroupKey:  groupKey,
+			Category:  category,
+			Payload:   payload,
 		})
 	}
 

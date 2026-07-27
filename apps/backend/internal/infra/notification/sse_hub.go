@@ -1,16 +1,20 @@
 package notification
 
 import (
+	"encoding/json"
 	"sync"
 
 	"github.com/google/uuid"
 )
 
 type SSEEvent struct {
-	ID        string `json:"id"`
-	EventType string `json:"eventType"`
-	Title     string `json:"title"`
-	Body      string `json:"body"`
+	ID        string          `json:"id"`
+	EventType string          `json:"eventType"`
+	Title     string          `json:"title"`
+	Body      string          `json:"body"`
+	GroupKey  string          `json:"groupKey,omitempty"`
+	Category  string          `json:"category,omitempty"`
+	Payload   json.RawMessage `json:"payload,omitempty"`
 }
 
 // SSEHub manages per-user SSE connections for real-time notification push.

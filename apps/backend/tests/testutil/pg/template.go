@@ -14,7 +14,7 @@ import (
 
 const (
 	templateDBName      = "test_template_db"
-	testTemplateVersion = 44 // bump when schema/seed changes
+	testTemplateVersion = 46 // bump when schema/seed changes
 )
 
 var (

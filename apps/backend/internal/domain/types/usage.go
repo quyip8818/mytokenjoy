@@ -50,11 +50,6 @@ const (
 	NotificationChannelSMS     = "sms"
 	NotificationChannelInApp   = "in_app"
 
-	NotificationStatusPending = "pending"
-	NotificationStatusSent    = "sent"
-	NotificationStatusFailed  = "failed"
-	NotificationStatusRead    = "read"
-
 	NotificationEventSyncThreshold      = "sync_threshold_exceeded"
 	NotificationEventOverrunBlocked     = "overrun_blocked"
 	NotificationEventOverdraftExpanded  = "overdraft_expanded"
@@ -152,17 +147,41 @@ type UsageSummaryTotals struct {
 func (t UsageSummaryTotals) Spend() float64 { return t.Cost }
 
 type NotificationLogEntry struct {
-	ID        uuid.UUID
-	Channel   string
-	EventType string
-	UserID    uuid.UUID
-	Title     string
-	Body      string
-	Payload   []byte
-	Status    string
-	Error     string
-	CreatedAt time.Time
-	ReadAt    *time.Time
+	ID         uuid.UUID
+	Channel    string
+	EventType  string
+	UserID     uuid.UUID
+	Title      string
+	Body       string
+	Payload    []byte
+	SendOK     bool // true = delivered, false = failed
+	Error      string
+	Category   string
+	GroupKey   string
+	GroupCount int    // populated only for grouped queries
+	Status     string // active / archived / deleted
+	CreatedAt  time.Time
+	ReadAt     *time.Time
+	UpdatedAt  time.Time
+}
+
+// NotificationListFilter is the query filter for the inbox list endpoint.
+type NotificationListFilter struct {
+	UserID   uuid.UUID
+	Category string
+	Status   string // "unread" | "read" | ""(all)
+	Archived bool
+	Grouped  bool
+	GroupKey string
+	Cursor   *time.Time
+	Limit    int
+}
+
+// NotificationListResult wraps a page of notifications with cursor info.
+type NotificationListResult struct {
+	Items      []NotificationLogEntry
+	NextCursor *time.Time
+	HasMore    bool
 }
 
 type Notification struct {
@@ -179,7 +198,7 @@ type NotificationPreferenceEntry struct {
 
 type NotificationLogFilter struct {
 	Channel   string
-	Status    string
+	SendOK    *bool // nil = all, true = success only, false = failed only
 	EventType string
 	Limit     int
 	Offset    int
@@ -187,6 +206,6 @@ type NotificationLogFilter struct {
 
 type NotificationStatRow struct {
 	Channel string
-	Status  string
+	SendOK  bool
 	Count   int
 }

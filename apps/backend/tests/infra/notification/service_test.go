@@ -17,6 +17,8 @@ func TestNotifierWritesLogEntry(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	svc := notification.NewService(cfg, st, logger)
 
+	logsBefore := testutil.NotificationLogs(st)
+
 	if err := svc.Send(testutil.Ctx(), types.Notification{
 		EventType: types.NotificationEventSyncThreshold,
 		Payload:   map[string]any{"detail": "test"},
@@ -24,12 +26,14 @@ func TestNotifierWritesLogEntry(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	logs := testutil.NotificationLogs(st)
-	if len(logs) != 1 {
-		t.Fatalf("expected 1 notification log, got %d", len(logs))
+	logsAfter := testutil.NotificationLogs(st)
+	if len(logsAfter) != len(logsBefore)+1 {
+		t.Fatalf("expected +1 notification log, before=%d after=%d", len(logsBefore), len(logsAfter))
 	}
-	if logs[0].EventType != types.NotificationEventSyncThreshold {
-		t.Fatalf("unexpected event type %s", logs[0].EventType)
+	// The new entry should be the last one (ordered by created_at).
+	newest := logsAfter[len(logsAfter)-1]
+	if newest.EventType != types.NotificationEventSyncThreshold {
+		t.Fatalf("unexpected event type %s", newest.EventType)
 	}
 }
 
@@ -41,6 +45,8 @@ func TestWebhookNotTriggeredByFallbackChain(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	svc := notification.NewService(cfg, st, logger)
 
+	logsBefore := testutil.NotificationLogs(st)
+
 	err := svc.Send(testutil.Ctx(), types.Notification{
 		EventType: types.NotificationEventOverrunBlocked,
 		Payload:   map[string]any{"scope": "member"},
@@ -51,11 +57,12 @@ func TestWebhookNotTriggeredByFallbackChain(t *testing.T) {
 
 	// New dispatch behavior: normal priority only uses in_app channel.
 	// Webhook is registered but not in the fallback chain, so it's never called.
-	logs := testutil.NotificationLogs(st)
-	if len(logs) != 1 {
-		t.Fatalf("expected 1 notification log (in_app), got %d", len(logs))
+	logsAfter := testutil.NotificationLogs(st)
+	if len(logsAfter) != len(logsBefore)+1 {
+		t.Fatalf("expected +1 notification log, before=%d after=%d", len(logsBefore), len(logsAfter))
 	}
-	if logs[0].Channel != types.NotificationChannelInApp {
-		t.Fatalf("expected channel in_app, got %s", logs[0].Channel)
+	newest := logsAfter[len(logsAfter)-1]
+	if newest.Channel != types.NotificationChannelInApp {
+		t.Fatalf("expected channel in_app, got %s", newest.Channel)
 	}
 }

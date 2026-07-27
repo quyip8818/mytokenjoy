@@ -106,7 +106,7 @@ func TestEventCategoryMapping(t *testing.T) {
 		expected  string
 	}{
 		{notification.EventBudgetAlertReached, notification.CategoryBudgetAlert},
-		{notification.EventOverrunBlocked, notification.CategoryBudgetAlert},
+		{notification.EventOverrunBlocked, notification.CategoryOverrun},
 		{notification.EventKeyExpired, notification.CategoryKeyExpiration},
 		{notification.EventKeyExpiringSoon, notification.CategoryKeyExpiration},
 		{notification.EventUsageWeeklyReport, notification.CategoryUsageReport},

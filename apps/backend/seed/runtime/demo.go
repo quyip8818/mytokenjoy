@@ -18,5 +18,8 @@ func ApplyDemo(ctx context.Context, st store.Store, cfg config.Config) error {
 	if err := ApplyUsageLedger(ctx, st, cfg); err != nil {
 		return fmt.Errorf("apply usage ledger: %w", err)
 	}
+	if err := ApplyNotifications(ctx, st); err != nil {
+		return fmt.Errorf("apply notifications: %w", err)
+	}
 	return nil
 }

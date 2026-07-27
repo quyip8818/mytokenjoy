@@ -219,7 +219,7 @@ func (s *Service) recordFailure(ctx context.Context, channelName string, event d
 		Title:     msg.Title,
 		Body:      msg.Body,
 		Payload:   payload,
-		Status:    types.NotificationStatusFailed,
+		SendOK:    false,
 		Error:     deliveryErr.Error(),
 	}
 	_ = s.store.Notification().Append(ctx, entry)
