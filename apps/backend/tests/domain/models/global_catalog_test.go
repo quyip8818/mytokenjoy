@@ -13,10 +13,10 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
 
-// TestSyncFromSMS_DeactivatesStaleModels verifies the global catalog sync:
-// 1. Insert SMS models → they appear in ListModels
+// TestSyncFromPlatform_DeactivatesStaleModels verifies the global catalog sync:
+// 1. Insert platform models → they appear in ListModels
 // 2. Sync again with a smaller set → removed models become inactive (not in ListModels)
-func TestSyncFromSMS_DeactivatesStaleModels(t *testing.T) {
+func TestSyncFromPlatform_DeactivatesStaleModels(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
@@ -25,7 +25,7 @@ func TestSyncFromSMS_DeactivatesStaleModels(t *testing.T) {
 	globalID := cfg.TokenJoyCompanyID
 
 	// Sync 3 models.
-	err := repo.SyncFromSMS(ctx, globalID, []types.ModelInfo{
+	err := repo.SyncFromPlatform(ctx, globalID, []types.ModelInfo{
 		{Provider: "openai", Type: "gpt-4o", Name: "GPT-4o"},
 		{Provider: "openai", Type: "gpt-4o-mini", Name: "GPT-4o Mini"},
 		{Provider: "anthropic", Type: "claude-sonnet", Name: "Claude Sonnet"},
@@ -39,18 +39,18 @@ func TestSyncFromSMS_DeactivatesStaleModels(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	smsCount := 0
+	platformCount := 0
 	for _, m := range all {
-		if m.Source == "sms" && m.Active {
-			smsCount++
+		if m.Source == "platform" && m.Active {
+			platformCount++
 		}
 	}
-	if smsCount != 3 {
-		t.Fatalf("expected 3 active SMS models, got %d", smsCount)
+	if platformCount != 3 {
+		t.Fatalf("expected 3 active platform models, got %d", platformCount)
 	}
 
 	// Sync again with only 2 models (claude-sonnet removed).
-	err = repo.SyncFromSMS(ctx, globalID, []types.ModelInfo{
+	err = repo.SyncFromPlatform(ctx, globalID, []types.ModelInfo{
 		{Provider: "openai", Type: "gpt-4o", Name: "GPT-4o"},
 		{Provider: "openai", Type: "gpt-4o-mini", Name: "GPT-4o Mini"},
 	})
@@ -66,7 +66,7 @@ func TestSyncFromSMS_DeactivatesStaleModels(t *testing.T) {
 	activeCount := 0
 	var inactiveModel *types.ModelInfo
 	for i, m := range all {
-		if m.Source != "sms" {
+		if m.Source != "platform" {
 			continue
 		}
 		if m.Active {
@@ -76,7 +76,7 @@ func TestSyncFromSMS_DeactivatesStaleModels(t *testing.T) {
 		}
 	}
 	if activeCount != 2 {
-		t.Fatalf("expected 2 active SMS models after second sync, got %d", activeCount)
+		t.Fatalf("expected 2 active platform models after second sync, got %d", activeCount)
 	}
 	if inactiveModel == nil || inactiveModel.Type != "claude-sonnet" {
 		t.Fatalf("expected claude-sonnet to be inactive, got %+v", inactiveModel)
@@ -84,7 +84,7 @@ func TestSyncFromSMS_DeactivatesStaleModels(t *testing.T) {
 }
 
 // TestToggleModel_RejectsEnablingGloballyInactiveModel verifies that ToggleModel
-// refuses to enable a model whose global row is inactive (SMS-delisted).
+// refuses to enable a model whose global row is inactive (platform-delisted).
 func TestToggleModel_RejectsEnablingGloballyInactiveModel(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
@@ -93,8 +93,8 @@ func TestToggleModel_RejectsEnablingGloballyInactiveModel(t *testing.T) {
 
 	globalID := cfg.TokenJoyCompanyID
 
-	// Insert a global SMS model, then deactivate it (simulating SMS delist).
-	err := st.Models().SyncFromSMS(ctx, globalID, []types.ModelInfo{
+	// Insert a global platform model, then deactivate it (simulating platform delist).
+	err := st.Models().SyncFromPlatform(ctx, globalID, []types.ModelInfo{
 		{Provider: "openai", Type: "toggle-reject-test", Name: "Toggle Reject"},
 	})
 	if err != nil {
@@ -102,7 +102,7 @@ func TestToggleModel_RejectsEnablingGloballyInactiveModel(t *testing.T) {
 	}
 
 	// Sync with empty list → deactivates it.
-	err = st.Models().SyncFromSMS(ctx, globalID, nil)
+	err = st.Models().SyncFromPlatform(ctx, globalID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

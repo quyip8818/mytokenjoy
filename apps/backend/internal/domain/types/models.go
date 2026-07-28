@@ -25,7 +25,7 @@ type ModelInfo struct {
 	MaxTokens         int       `json:"maxTokens"`
 	Active            bool      `json:"active"`
 	Capabilities      []string  `json:"capabilities"`
-	Source            string    `json:"source"` // "manual" | "sms" | "seed"
+	Source            string    `json:"source"` // "manual" | "platform" | "seed"
 }
 
 func (m ModelInfo) IsCustom() bool {

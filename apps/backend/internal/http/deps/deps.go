@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	domainapproval "github.com/tokenjoy/backend/internal/domain/approval"
 	domainaudit "github.com/tokenjoy/backend/internal/domain/audit"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
@@ -32,6 +33,7 @@ type Deps struct {
 	Config              config.Config
 	Logger              *slog.Logger
 	Store               store.Store
+	AdminPort           adminport.Port
 	AuthzSvc            authz.Service
 	Credentials         credentials.Service
 	SessionToken        sessiontoken.Issuer

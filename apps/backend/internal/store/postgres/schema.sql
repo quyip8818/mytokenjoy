@@ -160,7 +160,7 @@ CREATE TABLE IF NOT EXISTS models (
     active       BOOLEAN NOT NULL DEFAULT TRUE,
     capabilities TEXT[] NOT NULL DEFAULT '{}',
     source       TEXT NOT NULL DEFAULT 'manual',
-    sms_synced_at TIMESTAMPTZ,
+    catalog_synced_at TIMESTAMPTZ,
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (company_id, provider, type)
 );

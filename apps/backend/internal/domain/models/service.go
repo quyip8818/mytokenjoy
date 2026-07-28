@@ -211,7 +211,7 @@ func (s *service) ToggleModel(ctx context.Context, id uuid.UUID, enabled bool) e
 	// Global (builtin) model: create a tenant-level override copy with the desired enabled state.
 	// DedupeEffective will pick the tenant copy over the global one.
 	if model.CompanyID == s.cfg.TokenJoyCompanyID {
-		// Cannot enable a globally inactive (SMS-delisted) model.
+		// Cannot enable a globally inactive (platform-delisted) model.
 		if enabled && !model.Active {
 			return domain.Validation("model has been delisted and cannot be enabled")
 		}

@@ -16,7 +16,7 @@ var (
 func TestIsTestModel(t *testing.T) {
 	t.Parallel()
 	testModelInfo := types.ModelInfo{ID: devModel1, Type: "test-model", Source: modelcatalog.SourceTest, Active: true}
-	prodModelInfo := types.ModelInfo{ID: devModel100, Type: "gpt-4o", Source: "sms", Active: true}
+	prodModelInfo := types.ModelInfo{ID: devModel100, Type: "gpt-4o", Source: "platform", Active: true}
 	if !modelcatalog.IsTestModel(testModelInfo) {
 		t.Fatal("expected test model")
 	}
@@ -29,7 +29,7 @@ func TestFilterVisible(t *testing.T) {
 	t.Parallel()
 	catalog := []types.ModelInfo{
 		{ID: devModel1, Type: modelcatalog.TestCallType, Source: modelcatalog.SourceTest, Active: true},
-		{ID: devModel100, Type: "gpt-4o", Source: "sms", Active: true},
+		{ID: devModel100, Type: "gpt-4o", Source: "platform", Active: true},
 	}
 	visible := modelcatalog.FilterVisible(catalog)
 	if len(visible) != 1 {

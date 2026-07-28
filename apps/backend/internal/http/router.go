@@ -23,7 +23,6 @@ import (
 	platformhandler "github.com/tokenjoy/backend/internal/http/handler/platform"
 	registerhandler "github.com/tokenjoy/backend/internal/http/handler/register"
 	sessionhandler "github.com/tokenjoy/backend/internal/http/handler/session"
-	synchandler "github.com/tokenjoy/backend/internal/http/handler/sync"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/http/response"
 	"github.com/tokenjoy/backend/internal/infra/ratelimit"
@@ -110,10 +109,6 @@ func mountAPI(api chi.Router, d httpdeps.Deps) {
 
 	if d.Config.AllowsDevHTTPRoutes() {
 		devhandler.Mount(api, d)
-	}
-
-	if d.Config.SMSSyncEnabled {
-		synchandler.Mount(api, d)
 	}
 }
 

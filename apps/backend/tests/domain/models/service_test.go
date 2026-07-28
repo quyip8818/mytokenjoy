@@ -154,27 +154,45 @@ func TestToggleGlobalModelCreatesOverride(t *testing.T) {
 	if global == nil {
 		t.Fatal("expected builtin model")
 	}
-	wantEnabled := !global.Active
-	err = svc.ToggleModel(testutil.Ctx(), global.ID, wantEnabled)
+
+	// Toggle OFF: should succeed (creates a tenant override with active=false).
+	err = svc.ToggleModel(testutil.Ctx(), global.ID, false)
 	if err != nil {
-		t.Fatalf("toggle global model should succeed via tenant override: %v", err)
+		t.Fatalf("toggle global model OFF should succeed via tenant override: %v", err)
 	}
+
+	// Model should no longer appear in ListModels (active-only).
 	after, err := svc.ListModels(testutil.Ctx())
 	if err != nil {
 		t.Fatal(err)
 	}
-	found := false
 	for _, m := range after {
 		if m.Provider == global.Provider && m.Type == global.Type {
-			if m.Active != wantEnabled {
-				t.Fatalf("expected enabled=%v after toggle, got %v", wantEnabled, m.Active)
+			t.Fatal("disabled model should not appear in active list")
+		}
+	}
+
+	// Toggle back ON: model reappears.
+	err = svc.ToggleModel(testutil.Ctx(), global.ID, true)
+	if err != nil {
+		t.Fatalf("toggle global model ON should succeed: %v", err)
+	}
+	restored, err := svc.ListModels(testutil.Ctx())
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, m := range restored {
+		if m.Provider == global.Provider && m.Type == global.Type {
+			if !m.Active {
+				t.Fatal("expected active=true after re-enable")
 			}
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Fatal("model not found in list after toggle")
+		t.Fatal("model not found in list after re-enable")
 	}
 }
 
@@ -203,8 +221,8 @@ func TestCreateModelAllowsSameTypeDifferentProvider(t *testing.T) {
 	t.Parallel()
 	svc := newModelsService(t)
 
-	// Pick a builtin type that exists in the seed catalog.
-	const builtinType = "deepseek-v4-pro"
+	// Pick a builtin type that exists only as a global model (not as a tenant custom model).
+	const builtinType = "gpt-4o"
 
 	created, err := svc.CreateModel(testutil.Ctx(), types.CreateModelInput{
 		Type: builtinType, InputPrice: 1.0, OutputPrice: 2.0, BaseURL: "http://llm.test",

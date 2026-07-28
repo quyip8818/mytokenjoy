@@ -24,6 +24,11 @@ func NewHandler(p httpdeps.Platform, protected httpdeps.Protected) *Handler {
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
+	// Public read-only — Catalog sync (no auth required)
+	r.Get("/sync/versions", h.CatalogVersions)
+	r.Get("/sync/catalog/models", h.CatalogModels)
+
+	// Platform admin auth
 	r.Post("/auth/login", h.Login)
 	r.Group(func(r chi.Router) {
 		r.Use(httpmiddleware.RequireSession(h.protected))
@@ -36,6 +41,13 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Post("/companies/{id}/adjust", h.AdjustCompany)
 		r.Get("/channels", h.ListChannels)
 		r.Post("/channels", h.CreateChannel)
+		// Model management
+		r.Get("/models", h.ListModels)
+		r.Post("/models", h.CreateModel)
+		r.Put("/models/{id}", h.UpdateModel)
+		r.Delete("/models/{id}", h.DeleteModel)
+		r.Put("/models/{id}/pricing", h.SetModelPricing)
+		r.Post("/catalog/publish", h.PublishCatalog)
 	})
 }
 

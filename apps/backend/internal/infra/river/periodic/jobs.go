@@ -6,7 +6,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 )
 
-// BuildPeriodicJobs returns all periodic jobs for River (watchdog, reconcile, SMS sync).
+// BuildPeriodicJobs returns all periodic jobs for River (watchdog, reconcile, catalog sync).
 func BuildPeriodicJobs(cfg config.Config) []*river.PeriodicJob {
 	if !cfg.RiverEnabled || !cfg.RiverPeriodicEnabled {
 		return nil
@@ -29,11 +29,11 @@ func BuildPeriodicJobs(cfg config.Config) []*river.PeriodicJob {
 			nil,
 		))
 	}
-	if cfg.SMSSyncEnabled {
+	if cfg.CatalogSyncEnabled {
 		periodicJobs = append(periodicJobs, river.NewPeriodicJob(
-			river.PeriodicInterval(cfg.SMSSyncInterval()),
+			river.PeriodicInterval(cfg.CatalogSyncInterval()),
 			func() (river.JobArgs, *river.InsertOpts) {
-				return jobs.SMSSyncArgs{}, nil
+				return jobs.CatalogSyncArgs{}, nil
 			},
 			nil,
 		))

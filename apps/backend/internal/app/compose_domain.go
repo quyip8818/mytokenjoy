@@ -62,6 +62,7 @@ func buildServiceRegistry(cfg config.Config, i infra, logger *slog.Logger, holde
 			Config:              cfg,
 			Logger:              logger,
 			Store:               i.store,
+			AdminPort:           i.adminPort,
 			AuthzSvc:            authzSvc,
 			Credentials:         credSvc,
 			SessionToken:        memberToken,

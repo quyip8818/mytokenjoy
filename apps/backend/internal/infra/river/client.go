@@ -22,7 +22,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/scheduler"
 	"github.com/tokenjoy/backend/internal/integration/newapisync"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/worker/smssync"
+	"github.com/tokenjoy/backend/internal/worker/catalogsync"
 )
 
 type Client struct {
@@ -48,8 +48,8 @@ type Deps struct {
 	Scheduler            *scheduler.Service
 	BulkEnqueuer         *scheduler.BulkEnqueuer
 	NotificationRegistry *notification.Registry
-	SMSSyncExecutor      *smssync.SMSSyncExecutor // nil if SMS sync disabled
-	DisablePeriodic      bool                     // tests: skip periodic registration
+	CatalogSyncExecutor  *catalogsync.Executor // nil if catalog sync disabled
+	DisablePeriodic      bool                  // tests: skip periodic registration
 }
 
 func NewClient(cfg config.Config, pool *pgxpool.Pool, deps Deps, logger *slog.Logger) (*Client, error) {
@@ -90,8 +90,8 @@ func registerWorkers(deps Deps) *river.Workers {
 	if deps.NotificationRegistry != nil {
 		river.AddWorker(workersBundle, workers.NewNotificationDeliveryWorker(deps.NotificationRegistry))
 	}
-	if deps.SMSSyncExecutor != nil {
-		river.AddWorker(workersBundle, workers.NewSMSSyncWorker(deps.SMSSyncExecutor))
+	if deps.CatalogSyncExecutor != nil {
+		river.AddWorker(workersBundle, workers.NewCatalogSyncWorker(deps.CatalogSyncExecutor))
 	}
 	return workersBundle
 }

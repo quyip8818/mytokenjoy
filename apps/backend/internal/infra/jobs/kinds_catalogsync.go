@@ -5,11 +5,11 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 )
 
-type SMSSyncArgs struct{}
+type CatalogSyncArgs struct{}
 
-func (SMSSyncArgs) Kind() string { return KindSMSSync }
+func (CatalogSyncArgs) Kind() string { return KindCatalogSync }
 
-func (SMSSyncArgs) InsertOpts() river.InsertOpts {
+func (CatalogSyncArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{
 		Queue:       config.RiverQueueDefault,
 		MaxAttempts: 3,

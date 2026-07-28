@@ -102,12 +102,10 @@ type PlatformConfig struct {
 	PlatformBootstrapEmail    string `env:"PLATFORM_BOOTSTRAP_EMAIL"`
 	PlatformBootstrapPassword string `env:"PLATFORM_BOOTSTRAP_PASSWORD"`
 
-	// SMS sync (pull model/channel/pricing from SMS system)
-	SMSSyncEnabled     bool   `env:"SMS_SYNC_ENABLED" envDefault:"false"`
-	SMSAPIBaseURL      string `env:"SMS_API_BASE_URL"`
-	SMSClientID        string `env:"SMS_CLIENT_ID"`
-	SMSClientSecret    string `env:"SMS_CLIENT_SECRET"`
-	SMSSyncIntervalSec int    `env:"SMS_SYNC_INTERVAL_SEC" envDefault:"900"`
+	// Catalog sync (pull model/pricing from SaaS platform — local mode only)
+	CatalogSyncEnabled     bool   `env:"CATALOG_SYNC_ENABLED" envDefault:"false"`
+	CatalogSyncURL         string `env:"CATALOG_SYNC_URL"`
+	CatalogSyncIntervalSec int    `env:"CATALOG_SYNC_INTERVAL_SEC" envDefault:"300"`
 }
 
 // IdentityConfig holds authentication, session, and authorization settings.

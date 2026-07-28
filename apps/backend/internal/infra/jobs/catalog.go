@@ -12,5 +12,5 @@ const (
 	KindDashboardReconcile   = "dashboard_reconcile"
 	KindTenantWatchdog       = "tenant_watchdog"
 	KindNotificationDelivery = "notification_delivery"
-	KindSMSSync              = "sms_sync"
+	KindCatalogSync          = "catalog_sync"
 )

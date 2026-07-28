@@ -133,4 +133,5 @@ var ModelTypeToID = map[string]uuid.UUID{
 	"test-model":        IDModelTest,
 	"deepseek-v4-pro":   IDModel1,
 	"deepseek-v4-flash": IDModel11,
+	"gpt-4o":            IDModel10,
 }

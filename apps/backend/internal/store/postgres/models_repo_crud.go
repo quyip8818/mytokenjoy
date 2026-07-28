@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -175,36 +176,43 @@ func (r *pgModelsRepo) DeleteModel(ctx context.Context, modelID uuid.UUID) error
 
 var _ store.ModelsRepository = (*pgModelsRepo)(nil)
 
-func (r *pgModelsRepo) SyncFromSMS(ctx context.Context, companyID uuid.UUID, models []types.ModelInfo) error {
-	// ponytail: use sms_synced_at as the marker — step 1 sets it to NOW(),
-	// step 2 deactivates anything with an older timestamp. No type-list needed.
-	// Upgrade path: if provider+type combos cause issues, switch to (provider,type) pair matching.
+func (r *pgModelsRepo) SyncFromPlatform(ctx context.Context, companyID uuid.UUID, models []types.ModelInfo) error {
+	// ponytail: grab a batch timestamp once, use it for all upserts.
+	// Step 2 deactivates anything with an older timestamp.
+	// Using a SELECT NOW() ensures all upserts share the exact same value,
+	// making the stale-detection deterministic regardless of execution speed.
 
-	// Step 1: Upsert all models from SMS — mark active, update name, bump sms_synced_at.
+	// Step 0: Get a single batch timestamp from the DB.
+	var batchTS time.Time
+	if err := r.db.QueryRow(ctx, `SELECT NOW()`).Scan(&batchTS); err != nil {
+		return fmt.Errorf("sync platform batch ts: %w", err)
+	}
+
+	// Step 1: Upsert all models from platform — mark active, update name, bump catalog_synced_at.
 	for _, m := range models {
 		_, err := r.db.Exec(ctx, `
-			INSERT INTO models (company_id, provider, type, name, source, active, sms_synced_at, updated_at)
-			VALUES ($1, $2, $3, $4, 'sms', TRUE, NOW(), NOW())
+			INSERT INTO models (company_id, provider, type, name, source, active, catalog_synced_at, updated_at)
+			VALUES ($1, $2, $3, $4, 'platform', TRUE, $5, $5)
 			ON CONFLICT (company_id, provider, type) DO UPDATE SET
 				name = EXCLUDED.name,
-				source = 'sms',
+				source = 'platform',
 				active = TRUE,
-				sms_synced_at = NOW(),
-				updated_at = NOW()
-		`, companyID, m.Provider, m.Type, m.Name)
+				catalog_synced_at = $5,
+				updated_at = $5
+		`, companyID, m.Provider, m.Type, m.Name, batchTS)
 		if err != nil {
-			return fmt.Errorf("upsert sms model %s: %w", m.Type, err)
+			return fmt.Errorf("upsert platform model %s: %w", m.Type, err)
 		}
 	}
 
-	// Step 2: Deactivate stale SMS models — those not touched by step 1.
+	// Step 2: Deactivate stale platform models — those not touched by this batch.
 	_, err := r.db.Exec(ctx, `
-		UPDATE models SET active = FALSE, updated_at = NOW()
-		WHERE company_id = $1 AND source = 'sms' AND active = TRUE
-			AND sms_synced_at < NOW() - INTERVAL '10 seconds'
-	`, companyID)
+		UPDATE models SET active = FALSE, updated_at = $2
+		WHERE company_id = $1 AND source = 'platform' AND active = TRUE
+			AND (catalog_synced_at IS NULL OR catalog_synced_at < $2)
+	`, companyID, batchTS)
 	if err != nil {
-		return fmt.Errorf("deactivate stale sms models: %w", err)
+		return fmt.Errorf("deactivate stale platform models: %w", err)
 	}
 	return nil
 }

@@ -2,6 +2,7 @@ package deps
 
 import (
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
@@ -19,10 +20,13 @@ type Public struct {
 
 type Platform struct {
 	Public
-	Sessions   store.SessionRepository
-	CompanySvc domaincompany.Service
-	BillingSvc domainbilling.Service
-	KeysSvc    domainkeys.Service
+	Sessions       store.SessionRepository
+	CompanySvc     domaincompany.Service
+	BillingSvc     domainbilling.Service
+	KeysSvc        domainkeys.Service
+	AdminPort      adminport.Port
+	Models         store.ModelsRepository
+	SystemSettings store.SystemSettingsRepository
 }
 
 func (d Deps) Public() Public {
@@ -37,10 +41,13 @@ func (d Deps) Public() Public {
 func (d Deps) Platform() Platform {
 	pub := d.Public()
 	return Platform{
-		Public:     pub,
-		Sessions:   d.Store.Session(),
-		CompanySvc: d.CompanySvc,
-		BillingSvc: d.BillingSvc,
-		KeysSvc:    d.KeysSvc,
+		Public:         pub,
+		Sessions:       d.Store.Session(),
+		CompanySvc:     d.CompanySvc,
+		BillingSvc:     d.BillingSvc,
+		KeysSvc:        d.KeysSvc,
+		AdminPort:      d.AdminPort,
+		Models:         d.Store.Models(),
+		SystemSettings: d.Store.SystemSettings(),
 	}
 }

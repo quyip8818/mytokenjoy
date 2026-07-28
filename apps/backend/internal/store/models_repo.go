@@ -17,7 +17,7 @@ type ModelsRepository interface {
 	InsertModel(ctx context.Context, model types.ModelInfo) (types.ModelInfo, error)
 	UpdateModel(ctx context.Context, model types.ModelInfo) error
 	DeleteModel(ctx context.Context, modelID uuid.UUID) error
-	// SyncFromSMS atomically upserts source='sms' models and disables stale ones for a company.
-	SyncFromSMS(ctx context.Context, companyID uuid.UUID, models []types.ModelInfo) error
+	// SyncFromPlatform atomically upserts source='platform' models and disables stale ones for a company.
+	SyncFromPlatform(ctx context.Context, companyID uuid.UUID, models []types.ModelInfo) error
 	Allowlist() ModelAllowlistRepository
 }

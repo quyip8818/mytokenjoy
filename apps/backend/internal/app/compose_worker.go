@@ -16,9 +16,9 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	riverinfra "github.com/tokenjoy/backend/internal/infra/river"
 	"github.com/tokenjoy/backend/internal/infra/scheduler"
-	smsintegration "github.com/tokenjoy/backend/internal/integration/sms"
+	catalogintegration "github.com/tokenjoy/backend/internal/integration/catalogsync"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/worker/smssync"
+	"github.com/tokenjoy/backend/internal/worker/catalogsync"
 )
 
 func postgresPool(st store.Store) *pgxpool.Pool {
@@ -67,7 +67,7 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 		Scheduler:            sched,
 		BulkEnqueuer:         bulk,
 		NotificationRegistry: reg.Infra.notificationSvc.Registry(),
-		SMSSyncExecutor:      buildSMSSyncExecutor(cfg, st, reg),
+		CatalogSyncExecutor:  buildCatalogSyncExecutor(cfg, st, reg),
 		DisablePeriodic:      !cfg.RiverPeriodicEnabled,
 	}, logger)
 	if err != nil {
@@ -111,20 +111,17 @@ func (b *backgroundWorkers) stop(ctx context.Context) {
 	}
 }
 
-// buildSMSSyncExecutor constructs the SMS sync executor if enabled, nil otherwise.
-func buildSMSSyncExecutor(cfg config.Config, st store.Store, reg ServiceRegistry) *smssync.SMSSyncExecutor {
-	if !cfg.SMSSyncEnabled {
+// buildCatalogSyncExecutor constructs the catalog sync executor if enabled, nil otherwise.
+func buildCatalogSyncExecutor(cfg config.Config, st store.Store, reg ServiceRegistry) *catalogsync.Executor {
+	if !cfg.CatalogSyncEnabled {
 		return nil
 	}
-	if cfg.SMSAPIBaseURL == "" || cfg.SMSClientID == "" || cfg.SMSClientSecret == "" {
-		slog.Warn("sms sync enabled but config incomplete, skipping River executor")
+	if cfg.CatalogSyncURL == "" {
+		slog.Warn("catalog sync enabled but CATALOG_SYNC_URL empty, skipping")
 		return nil
 	}
-	client := smsintegration.NewClient(smsintegration.Config{
-		BaseURL:      cfg.SMSAPIBaseURL,
-		ClientID:     cfg.SMSClientID,
-		ClientSecret: cfg.SMSClientSecret,
+	client := catalogintegration.NewClient(catalogintegration.Config{
+		BaseURL: cfg.CatalogSyncURL,
 	})
-	target := smssync.NewTarget(reg.Infra.adminPort, st, cfg.TokenJoyCompanyID)
-	return smssync.NewExecutor(client, target, st)
+	return catalogsync.NewExecutor(client, reg.Infra.adminPort, st, cfg.TokenJoyCompanyID)
 }
