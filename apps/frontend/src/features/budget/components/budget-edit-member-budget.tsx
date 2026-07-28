@@ -228,6 +228,9 @@ function MemberBudgetEditDialog({
               className="h-8"
               onClick={handleSaveAverage}
               disabled={savingAverage || !averageDraft.trim()}
+              disabledReason={
+                savingAverage ? '设置中…' : !averageDraft.trim() ? '请先输入人均额度' : undefined
+              }
             >
               {savingAverage ? '设置中…' : '应用到全部'}
             </Button>

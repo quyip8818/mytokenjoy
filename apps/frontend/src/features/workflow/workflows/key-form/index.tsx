@@ -169,6 +169,29 @@ export function KeyFormWorkflow({
     budgetInvalid ||
     (requiresMemberPick && !targetMemberId)
 
+  // ponytail: 优先级从上到下，返回第一个成立的原因
+  const formDisabledReason = submitting
+    ? '请求中…'
+    : !name.trim()
+      ? '请输入 Key 名称'
+      : nameDuplicate
+        ? '已存在同名 Key'
+        : models.length === 0
+          ? '请至少选择一个模型'
+          : budgetInvalid
+            ? '请输入有效额度'
+            : requiresMemberPick && !targetMemberId
+              ? '请先选择绑定成员'
+              : budgetInsufficient
+                ? '额度不足，请先申请追加'
+                : budgetExceedsRemaining
+                  ? '额度不能超过剩余可用'
+                  : projectBudgetExceeds
+                    ? '额度不能超过项目剩余'
+                    : subBudgetExceeds
+                      ? '额度不能超过成员子额度剩余'
+                      : undefined
+
   const handleCreate = async () => {
     if (budgetInsufficient) {
       toast.error(BUDGET_INSUFFICIENT_MESSAGE)
@@ -315,6 +338,7 @@ export function KeyFormWorkflow({
               projectBudgetExceeds ||
               subBudgetExceeds
             }
+            primaryDisabledReason={formDisabledReason}
           />
         ) : (
           <WorkflowPanelFooter
@@ -322,6 +346,7 @@ export function KeyFormWorkflow({
             primaryLabel={submitting ? '保存中...' : '保存'}
             onPrimary={handleSave}
             primaryDisabled={submitting || formInvalid}
+            primaryDisabledReason={formDisabledReason}
           />
         )
       }

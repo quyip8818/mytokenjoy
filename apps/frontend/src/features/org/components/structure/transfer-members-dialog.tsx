@@ -36,6 +36,7 @@ export function TransferMembersDialog({
       title="批量转移部门"
       submitLabel="确定转移"
       submitDisabled={!transferDeptId}
+      submitDisabledReason={!transferDeptId ? '请选择目标部门' : undefined}
       onSubmit={onConfirm}
       className="sm:max-w-sm"
     >

@@ -253,7 +253,13 @@ export function CredentialForm({
 
         {/* Test Connection */}
         <div className="flex items-center gap-3">
-          <Button type="button" variant="outline" onClick={handleTestConnection} disabled={testing}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleTestConnection}
+            disabled={testing}
+            disabledReason={testing ? '测试中…' : undefined}
+          >
             {testing ? '测试中...' : '测试连接'}
           </Button>
           {testMessage && (
@@ -296,7 +302,11 @@ export function CredentialForm({
         )}
 
         {/* Save */}
-        <Button type="submit" disabled={!testSuccess || saving}>
+        <Button
+          type="submit"
+          disabled={!testSuccess || saving}
+          disabledReason={saving ? '保存中…' : !testSuccess ? '请先通过连接测试' : undefined}
+        >
           {saving ? '保存中...' : '保存凭证'}
         </Button>
       </form>

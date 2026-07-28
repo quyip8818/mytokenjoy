@@ -3,6 +3,7 @@ import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
 
 import { cn } from '@/lib/utils'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 const buttonVariants = cva(
   "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap cursor-pointer transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
@@ -42,23 +43,44 @@ const buttonVariants = cva(
   },
 )
 
+/**
+ * ponytail: 最小实现 — disabledReason 仅在 disabled 时生效，自包含 TooltipProvider。
+ * 升级路径 → 支持 side/align 等 tooltip 配置 prop
+ */
 function Button({
   className,
   variant = 'default',
   size = 'default',
   asChild = false,
+  disabledReason,
   ...props
 }: React.ComponentProps<'button'> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
+    /** 当 disabled 时展示的 tooltip 说明原因 */
+    disabledReason?: string
   }) {
   const Comp = asChild ? Slot : 'button'
-  return (
+  const btn = (
     <Comp
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
+  )
+
+  if (!props.disabled || !disabledReason) return btn
+
+  return (
+    <TooltipProvider delayDuration={0}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {/* span 拦截 pointer-events 使 disabled button 能触发 hover */}
+          <span className="inline-flex cursor-not-allowed">{btn}</span>
+        </TooltipTrigger>
+        <TooltipContent>{disabledReason}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
 

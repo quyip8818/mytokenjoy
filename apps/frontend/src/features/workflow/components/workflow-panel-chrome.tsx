@@ -68,11 +68,13 @@ interface WorkflowPanelFooterProps {
   primaryLabel: string
   onPrimary: () => void
   primaryDisabled?: boolean
+  primaryDisabledReason?: string
   secondaryLabel?: string
   onSecondary?: () => void
   destructiveLabel?: string
   onDestructive?: () => void
   destructiveDisabled?: boolean
+  destructiveDisabledReason?: string
 }
 
 export function WorkflowPanelFooter({
@@ -81,11 +83,13 @@ export function WorkflowPanelFooter({
   primaryLabel,
   onPrimary,
   primaryDisabled,
+  primaryDisabledReason,
   secondaryLabel,
   onSecondary,
   destructiveLabel,
   onDestructive,
   destructiveDisabled,
+  destructiveDisabledReason,
 }: WorkflowPanelFooterProps) {
   return (
     <>
@@ -100,11 +104,21 @@ export function WorkflowPanelFooter({
         </Button>
       )}
       {onDestructive && destructiveLabel && (
-        <Button variant="destructive" disabled={destructiveDisabled} onClick={onDestructive}>
+        <Button
+          variant="destructive"
+          disabled={destructiveDisabled}
+          disabledReason={destructiveDisabledReason}
+          onClick={onDestructive}
+        >
           {destructiveLabel}
         </Button>
       )}
-      <Button disabled={primaryDisabled} variant="brand" onClick={onPrimary}>
+      <Button
+        disabled={primaryDisabled}
+        disabledReason={primaryDisabledReason}
+        variant="brand"
+        onClick={onPrimary}
+      >
         {primaryLabel}
       </Button>
     </>

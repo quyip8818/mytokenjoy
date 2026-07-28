@@ -100,6 +100,13 @@ export function RechargePanel({ currency, rechargePending, onRecharge }: Recharg
             <Button
               size="sm"
               disabled={rechargePending || selectedAmount <= 0}
+              disabledReason={
+                rechargePending
+                  ? '充值中，请稍候'
+                  : selectedAmount <= 0
+                    ? '请选择充值金额'
+                    : undefined
+              }
               onClick={() => void onRecharge(selectedAmount)}
             >
               {rechargePending ? '充值中…' : '确认充值'}
@@ -119,11 +126,10 @@ export function RechargePanel({ currency, rechargePending, onRecharge }: Recharg
               onChange={(event) => setRedemptionCode(event.target.value)}
               className="h-9 max-w-sm"
             />
-            <Button size="sm" disabled>
+            <Button size="sm" disabled disabledReason="兑换码能力即将上线">
               兑换额度
             </Button>
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">兑换码能力即将上线</p>
         </div>
       </div>
     </div>

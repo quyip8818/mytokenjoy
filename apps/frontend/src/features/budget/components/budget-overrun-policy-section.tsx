@@ -205,7 +205,13 @@ export function BudgetOverrunPolicySection({ policy, onUpdate }: BudgetOverrunPo
             </div>
 
             <div className="flex items-center gap-2 pt-1">
-              <Button size="sm" className="h-7 text-xs" onClick={handleSave} disabled={saving}>
+              <Button
+                size="sm"
+                className="h-7 text-xs"
+                onClick={handleSave}
+                disabled={saving}
+                disabledReason={saving ? '保存中…' : undefined}
+              >
                 {saving ? '保存中…' : '保存'}
               </Button>
               <Button

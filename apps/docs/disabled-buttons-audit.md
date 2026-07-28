@@ -60,7 +60,7 @@
 
 | 按钮 | 文件 | 禁用条件 | 建议 Tooltip |
 |------|------|----------|-------------|
-| 发送邀请（FormDialog） | `features/org/components/structure/invite-dialog.tsx` | `!value.trim()` | "请输入手机号/邮箱" |
+| 发送邀请（FormDialog） | `features/org/components/structure/member-form-dialog.tsx` | `!value.trim()` | "请输入手机号/邮箱" |
 | 批量转移（FormDialog） | `features/org/components/structure/transfer-members-dialog.tsx` | `!transferDeptId` | "请选择目标部门" |
 | 分页上一页/下一页 | `features/org/components/role-member-table.tsx`、`structure/member-table.tsx` | 边界 | "已是第一页" / "已是最后一页" |
 | 搜索按钮 | `features/org/components/role-member-table.tsx` | `loading` | "搜索中…" |

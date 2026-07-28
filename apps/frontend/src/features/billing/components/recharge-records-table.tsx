@@ -82,10 +82,22 @@ export function RechargeRecordsTable({ records }: RechargeRecordsTableProps) {
             重置
           </Button>
           <div className="ml-auto flex gap-2">
-            <Button variant="ghost" size="sm" className="h-8 text-xs" disabled>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs"
+              disabled
+              disabledReason="批量开票即将上线"
+            >
               批量开票
             </Button>
-            <Button variant="outline" size="sm" className="h-8 text-xs" disabled>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              disabled
+              disabledReason="全部开票即将上线"
+            >
               全部开票
             </Button>
           </div>

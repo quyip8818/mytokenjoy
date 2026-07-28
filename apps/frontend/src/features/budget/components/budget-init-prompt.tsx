@@ -85,7 +85,11 @@ export function BudgetInitPrompt({
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
               取消
             </Button>
-            <Button onClick={handleSave} disabled={saving || !draft.trim()}>
+            <Button
+              onClick={handleSave}
+              disabled={saving || !draft.trim()}
+              disabledReason={saving ? '设置中…' : !draft.trim() ? '请输入总额度' : undefined}
+            >
               {saving ? '设置中…' : '确定'}
             </Button>
           </DialogFooter>

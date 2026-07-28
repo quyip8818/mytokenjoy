@@ -117,12 +117,12 @@ export function PlatformSelect({ onSelect, onCsvImport }: PlatformSelectProps) {
         <Button
           size="lg"
           disabled={!selected}
+          disabledReason={!selected ? '请选择一个平台' : undefined}
           onClick={() => selected && onSelect(selected)}
           className="px-8"
         >
           开始配置
         </Button>
-        {!selected && <p className="text-xs text-muted-foreground">请先选择一个平台</p>}
       </div>
 
       {onCsvImport && (

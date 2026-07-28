@@ -37,6 +37,7 @@ export function ProjectDeleteAction({ projectName, deleting, onDelete }: Project
           className="size-7 text-muted-foreground hover:text-red-600"
           aria-label="删除项目"
           disabled={deleting}
+          disabledReason={deleting ? '删除中…' : undefined}
         >
           <Trash2 className="size-4" />
         </Button>

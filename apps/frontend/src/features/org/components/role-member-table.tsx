@@ -344,7 +344,11 @@ export function AddMemberDialog({
               className="pl-8"
             />
           </div>
-          <Button onClick={handleSearch} disabled={loading}>
+          <Button
+            onClick={handleSearch}
+            disabled={loading}
+            disabledReason={loading ? '搜索中…' : undefined}
+          >
             搜索
           </Button>
         </div>

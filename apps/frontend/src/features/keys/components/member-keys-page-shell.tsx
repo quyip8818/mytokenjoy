@@ -42,6 +42,7 @@ export function MemberKeysPageShell({
               size="sm"
               className={cn('gap-1.5', createKeyCta.className)}
               disabled={budgetSummary !== null && budgetSummary.remaining <= 0}
+              disabledReason="额度不足，请先申请追加"
               onClick={() => openCreateKey()}
             >
               <Plus className="size-3.5" />

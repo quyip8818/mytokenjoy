@@ -230,7 +230,12 @@ export function StepFieldMapping({
               }
             }}
           />
-          <Button variant="outline" onClick={handleTest} disabled={testing || !testKeyword.trim()}>
+          <Button
+            variant="outline"
+            onClick={handleTest}
+            disabled={testing || !testKeyword.trim()}
+            disabledReason={!testKeyword.trim() ? '请输入测试关键字' : undefined}
+          >
             {testing ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
             测试
           </Button>
@@ -282,6 +287,7 @@ export function StepFieldMapping({
         <Button
           onClick={handleSaveAndNext}
           disabled={!testPassed || missingRequired.length > 0 || saving}
+          disabledReason={nextDisabledReason ?? undefined}
         >
           {saving && <Loader2 className="size-4 animate-spin" />}
           下一步

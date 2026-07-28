@@ -57,6 +57,7 @@ export function CallLogsList({ logs, total, page, totalPages, onPageChange }: Ca
             className="size-7"
             aria-label="上一页"
             disabled={page <= 1}
+            disabledReason={page <= 1 ? '已是第一页' : undefined}
             onClick={() => onPageChange(page - 1)}
           >
             <ChevronLeft className="size-4" />
@@ -70,6 +71,7 @@ export function CallLogsList({ logs, total, page, totalPages, onPageChange }: Ca
             className="size-7"
             aria-label="下一页"
             disabled={page >= totalPages}
+            disabledReason={page >= totalPages ? '已是最后一页' : undefined}
             onClick={() => onPageChange(page + 1)}
           >
             <ChevronRight className="size-4" />

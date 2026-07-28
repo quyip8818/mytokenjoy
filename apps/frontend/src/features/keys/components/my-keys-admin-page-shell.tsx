@@ -57,6 +57,7 @@ export function MyKeysAdminPageShell({
                 variant="brand"
                 className={createKeyCta.className}
                 disabled={budgetSummary !== null && budgetSummary.remaining <= 0}
+                disabledReason="额度不足，请先申请追加"
                 onClick={() => openCreateKey()}
               >
                 创建 Key

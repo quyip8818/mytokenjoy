@@ -479,6 +479,13 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
               type="submit"
               className="h-11 text-base font-medium"
               disabled={submitting || !phone.trim() || !password}
+              disabledReason={
+                submitting
+                  ? '请求中…'
+                  : !phone.trim() || !password
+                    ? '请填写手机号和密码'
+                    : undefined
+              }
             >
               {submitting ? '登录中…' : '登录'}
             </Button>
@@ -508,6 +515,7 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
               type="submit"
               className="h-11 text-base font-medium"
               disabled={submitting || !code.trim()}
+              disabledReason={submitting ? '请求中…' : !code.trim() ? '请输入验证码' : undefined}
             >
               {submitting ? '验证中…' : '登录'}
             </Button>
@@ -529,6 +537,9 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
               type="submit"
               className="h-11 text-base font-medium"
               disabled={submitting || !email.trim() || !password}
+              disabledReason={
+                submitting ? '请求中…' : !email.trim() || !password ? '请填写邮箱和密码' : undefined
+              }
             >
               {submitting ? '登录中…' : '登录'}
             </Button>
@@ -559,6 +570,7 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
               type="submit"
               className="h-11 text-base font-medium"
               disabled={submitting || !code.trim()}
+              disabledReason={submitting ? '请求中…' : !code.trim() ? '请输入验证码' : undefined}
             >
               {submitting ? '验证中…' : '登录'}
             </Button>
@@ -602,6 +614,15 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
                 newPassword.length < 8 ||
                 newPassword !== confirmNewPassword
               }
+              disabledReason={
+                submitting
+                  ? '请求中…'
+                  : newPassword.length < 8
+                    ? '密码至少需要 8 位'
+                    : newPassword !== confirmNewPassword
+                      ? '两次密码输入不一致'
+                      : undefined
+              }
             >
               {submitting ? '重置中…' : '重置密码'}
             </Button>
@@ -642,6 +663,15 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
                 !code.trim() ||
                 newPassword.length < 8 ||
                 newPassword !== confirmNewPassword
+              }
+              disabledReason={
+                submitting
+                  ? '请求中…'
+                  : newPassword.length < 8
+                    ? '密码至少需要 8 位'
+                    : newPassword !== confirmNewPassword
+                      ? '两次密码输入不一致'
+                      : undefined
               }
             >
               {submitting ? '重置中…' : '重置密码'}
@@ -690,6 +720,15 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
               disabled={
                 submitting || !code.trim() || password.length < 8 || password !== confirmPassword
               }
+              disabledReason={
+                submitting
+                  ? '请求中…'
+                  : password.length < 8
+                    ? '密码至少需要 8 位'
+                    : password !== confirmPassword
+                      ? '两次密码输入不一致'
+                      : undefined
+              }
             >
               {submitting ? '验证中…' : '下一步'}
             </Button>
@@ -737,6 +776,15 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
               className="h-11 text-base font-medium"
               disabled={
                 submitting || !code.trim() || password.length < 8 || password !== confirmPassword
+              }
+              disabledReason={
+                submitting
+                  ? '请求中…'
+                  : password.length < 8
+                    ? '密码至少需要 8 位'
+                    : password !== confirmPassword
+                      ? '两次密码输入不一致'
+                      : undefined
               }
             >
               {submitting ? '验证中…' : '下一步'}
@@ -821,6 +869,9 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
               type="submit"
               className="h-11 text-base font-medium"
               disabled={submitting || !companyName.trim()}
+              disabledReason={
+                submitting ? '请求中…' : !companyName.trim() ? '请输入企业名称' : undefined
+              }
             >
               {submitting ? '创建中…' : '创建并开始体验'}
             </Button>

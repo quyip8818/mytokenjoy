@@ -45,6 +45,7 @@ export function BudgetMemberPicker({
             !selectedIds.length && 'text-muted-foreground',
           )}
           disabled={disabled || loading}
+          disabledReason={disabled ? '请先选择团队' : undefined}
           aria-label="选择关联成员"
         >
           <Users className="size-4 shrink-0" />

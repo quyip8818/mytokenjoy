@@ -192,7 +192,7 @@ export function StepSyncSchedule({ syncApi, onComplete, onBack }: StepSyncSchedu
           <Button type="button" variant="outline" onClick={onBack}>
             上一步
           </Button>
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" disabled={saving} disabledReason={saving ? '保存中…' : undefined}>
             {saving && <Loader2 className="size-4 animate-spin" />}
             {saving ? '保存中...' : '保存并完成'}
           </Button>

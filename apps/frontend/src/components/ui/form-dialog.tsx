@@ -22,6 +22,7 @@ interface FormDialogProps {
   busy?: boolean
   submitLabel?: string
   submitDisabled?: boolean
+  submitDisabledReason?: string
   cancelLabel?: string
   onSubmit: () => void | Promise<void>
   className?: string
@@ -37,6 +38,7 @@ function FormDialog({
   busy = false,
   submitLabel = '提交',
   submitDisabled = false,
+  submitDisabledReason,
   cancelLabel = '取消',
   onSubmit,
   className,
@@ -66,7 +68,12 @@ function FormDialog({
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={busy}>
             {cancelLabel}
           </Button>
-          <Button size="sm" onClick={() => void onSubmit()} disabled={busy || submitDisabled}>
+          <Button
+            size="sm"
+            onClick={() => void onSubmit()}
+            disabled={busy || submitDisabled}
+            disabledReason={submitDisabledReason}
+          >
             {busy ? (
               <>
                 <Loader2 className="mr-2 size-4 animate-spin" />

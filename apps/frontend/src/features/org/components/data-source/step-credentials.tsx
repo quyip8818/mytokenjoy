@@ -202,7 +202,7 @@ export function StepCredentials({
         {testResult === 'success' ? (
           <Button type="submit">下一步</Button>
         ) : (
-          <Button type="submit" disabled={testing}>
+          <Button type="submit" disabled={testing} disabledReason={testing ? '测试中…' : undefined}>
             {testing && <Loader2 className="size-4 animate-spin" />}
             {testing ? '测试中...' : '测试连接'}
           </Button>
