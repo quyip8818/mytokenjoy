@@ -96,22 +96,31 @@ export function KeyFormWorkflow({
   // Fetch available models for the picker
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([])
   useEffect(() => {
+    // ponytail: memberId 为空时 session 还在加载，跳过避免无效请求被 cancel 浪费时间
+    if (!memberId) return
     let cancelled = false
     const resolve = async () => {
       const allModels = await apis.modelApi.list()
-      const enabled = allModels.filter((m) => m.enabled)
+      const enabled = allModels.filter((m) => m.active)
       const allowedIds = await resolveAllModels()
       if (!allowedIds) return enabled
       const allowed = new Set(allowedIds)
       return enabled.filter((m) => allowed.has(m.modelId))
     }
-    void resolve().then((models) => {
-      if (!cancelled) setAvailableModels(models)
-    })
+    void resolve()
+      .then((models) => {
+        if (!cancelled) setAvailableModels(models)
+      })
+      .catch(() => {
+        // Fallback: show all active models rather than stuck on "加载中"
+        if (!cancelled) {
+          void apis.modelApi.list().then((all) => setAvailableModels(all.filter((m) => m.active)))
+        }
+      })
     return () => {
       cancelled = true
     }
-  }, [resolveAllModels, apis.modelApi])
+  }, [memberId, apis.modelApi, resolveAllModels])
 
   const {
     budgetSummary,

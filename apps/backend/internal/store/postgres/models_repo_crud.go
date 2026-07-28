@@ -58,6 +58,10 @@ func (r *pgModelsRepo) ModelByProviderType(ctx context.Context, provider, modelT
 	return r.modelByCompanyProviderAndType(ctx, r.catalog.globalCompanyID(), provider, modelType)
 }
 
+func (r *pgModelsRepo) GlobalModelByProviderType(ctx context.Context, provider, modelType string) (*types.ModelInfo, error) {
+	return r.modelByCompanyProviderAndType(ctx, r.catalog.globalCompanyID(), provider, modelType)
+}
+
 func (r *pgModelsRepo) ModelByID(ctx context.Context, modelID uuid.UUID) (*types.ModelInfo, error) {
 	companyID := store.CompanyID(ctx)
 	row := r.db.QueryRow(ctx, `
@@ -92,13 +96,13 @@ func (r *pgModelsRepo) InsertModel(ctx context.Context, model types.ModelInfo) (
 		INSERT INTO models (
 			company_id, provider, type, name, description, endpoint,
 			api_key, endpoint_model_name,
-			max_context, max_tokens, enabled, capabilities, updated_at
+			max_context, max_tokens, active, capabilities, updated_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
 		RETURNING model_id
 	`, companyID, model.Provider, model.Type, model.Name,
 		model.Description, model.Endpoint,
 		model.ApiKey, model.EndpointModelName,
-		model.MaxContext, model.MaxTokens, model.Enabled,
+		model.MaxContext, model.MaxTokens, model.Active,
 		capabilities).Scan(&modelID)
 	if err != nil {
 		return types.ModelInfo{}, fmt.Errorf("insert model: %w", err)
@@ -125,14 +129,14 @@ func (r *pgModelsRepo) UpdateModel(ctx context.Context, model types.ModelInfo) e
 			endpoint_model_name = $9,
 			max_context = $10,
 			max_tokens = $11,
-			enabled = $12,
+			active = $12,
 			capabilities = $13,
 			updated_at = NOW()
 		WHERE model_id = $1 AND company_id = $2
 	`, model.ID, companyID, model.Provider, model.Type, model.Name,
 		model.Description, model.Endpoint,
 		model.ApiKey, model.EndpointModelName,
-		model.MaxContext, model.MaxTokens, model.Enabled,
+		model.MaxContext, model.MaxTokens, model.Active,
 		capabilities)
 	if err != nil {
 		return fmt.Errorf("update model %d: %w", model.ID, err)
@@ -171,30 +175,36 @@ func (r *pgModelsRepo) DeleteModel(ctx context.Context, modelID uuid.UUID) error
 
 var _ store.ModelsRepository = (*pgModelsRepo)(nil)
 
-func (r *pgModelsRepo) ReplaceFromSMS(ctx context.Context, companyID uuid.UUID, models []types.ModelInfo) error {
-	// Delete all existing SMS-sourced models for this company.
-	_, err := r.db.Exec(ctx, `DELETE FROM models WHERE company_id = $1 AND source = 'sms'`, companyID)
-	if err != nil {
-		return fmt.Errorf("delete sms models for company %s: %w", companyID, err)
-	}
-	if len(models) == 0 {
-		return nil
-	}
-	// Bulk insert.
+func (r *pgModelsRepo) SyncFromSMS(ctx context.Context, companyID uuid.UUID, models []types.ModelInfo) error {
+	// ponytail: use sms_synced_at as the marker — step 1 sets it to NOW(),
+	// step 2 deactivates anything with an older timestamp. No type-list needed.
+	// Upgrade path: if provider+type combos cause issues, switch to (provider,type) pair matching.
+
+	// Step 1: Upsert all models from SMS — mark active, update name, bump sms_synced_at.
 	for _, m := range models {
 		_, err := r.db.Exec(ctx, `
-			INSERT INTO models (company_id, provider, type, name, source, enabled, sms_synced_at, updated_at)
+			INSERT INTO models (company_id, provider, type, name, source, active, sms_synced_at, updated_at)
 			VALUES ($1, $2, $3, $4, 'sms', TRUE, NOW(), NOW())
 			ON CONFLICT (company_id, provider, type) DO UPDATE SET
 				name = EXCLUDED.name,
 				source = 'sms',
-				enabled = TRUE,
+				active = TRUE,
 				sms_synced_at = NOW(),
 				updated_at = NOW()
 		`, companyID, m.Provider, m.Type, m.Name)
 		if err != nil {
-			return fmt.Errorf("insert sms model %s: %w", m.Type, err)
+			return fmt.Errorf("upsert sms model %s: %w", m.Type, err)
 		}
+	}
+
+	// Step 2: Deactivate stale SMS models — those not touched by step 1.
+	_, err := r.db.Exec(ctx, `
+		UPDATE models SET active = FALSE, updated_at = NOW()
+		WHERE company_id = $1 AND source = 'sms' AND active = TRUE
+			AND sms_synced_at < NOW() - INTERVAL '10 seconds'
+	`, companyID)
+	if err != nil {
+		return fmt.Errorf("deactivate stale sms models: %w", err)
 	}
 	return nil
 }

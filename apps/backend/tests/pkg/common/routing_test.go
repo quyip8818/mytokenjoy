@@ -49,9 +49,9 @@ func TestShrinkChildRoutingRules(t *testing.T) {
 func TestResolveDeptAllowedModelIDs_NoRules(t *testing.T) {
 	t.Parallel()
 	models := []types.ModelInfo{
-		{ID: model1, Type: "gpt-4", Enabled: true},
-		{ID: model2, Type: "disabled", Enabled: false},
-		{ID: model3, Type: "claude", Enabled: true},
+		{ID: model1, Type: "gpt-4", Active: true},
+		{ID: model2, Type: "disabled", Active: false},
+		{ID: model3, Type: "claude", Active: true},
 	}
 	result := common.ResolveDeptAllowedModelIDs(dept1, nil, nil, models)
 	if len(result) != 2 {
@@ -68,9 +68,9 @@ func TestResolveDeptAllowedModelIDs_WithRule(t *testing.T) {
 		{NodeID: dept1, AllowedModelIDs: []uuid.UUID{model1, model3}},
 	}
 	models := []types.ModelInfo{
-		{ID: model1, Type: "gpt-4", Enabled: true},
-		{ID: model3, Type: "claude", Enabled: true},
-		{ID: model4, Type: "other", Enabled: true},
+		{ID: model1, Type: "gpt-4", Active: true},
+		{ID: model3, Type: "claude", Active: true},
+		{ID: model4, Type: "other", Active: true},
 	}
 	result := common.ResolveDeptAllowedModelIDs(dept1, departments, rules, models)
 	if len(result) != 2 {

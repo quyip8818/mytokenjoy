@@ -85,7 +85,7 @@ export function ModelListTable({
             key={model.modelId}
             className={cn(
               'group transition-colors',
-              !model.enabled && 'opacity-45',
+              !model.active && 'opacity-45',
               rowClass(model.modelId),
             )}
           >
@@ -140,10 +140,10 @@ export function ModelListTable({
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-1.5 opacity-70 transition-opacity group-hover:opacity-100">
                   <Switch
-                    checked={model.enabled}
+                    checked={model.active}
                     disabled={togglingIds.has(model.modelId)}
                     onCheckedChange={() => void handleToggle(model)}
-                    aria-label={model.enabled ? '禁用模型' : '启用模型'}
+                    aria-label={model.active ? '禁用模型' : '启用模型'}
                   />
                   {showActions && isCustomModel(model) && (
                     <>

@@ -29,7 +29,7 @@ export function ModelPickerWorkflow({
 
   useEffect(() => {
     apis.modelApi.list().then((list) => {
-      let enabled = list.filter((m) => m.enabled)
+      let enabled = list.filter((m) => m.active)
       if (parentAllowedModelIds?.length) {
         const allowed = new Set(parentAllowedModelIds)
         enabled = enabled.filter((m) => allowed.has(m.modelId))
@@ -86,12 +86,12 @@ export function ModelPickerWorkflow({
                 'flex items-center gap-3 px-4 py-3 cursor-pointer',
                 WORKFLOW_LIST_ITEM_CLASS,
                 pickedIds.includes(m.modelId) && WORKFLOW_LIST_ITEM_SELECTED_CLASS,
-                !m.enabled && 'opacity-50',
+                !m.active && 'opacity-50',
               )}
             >
               <Checkbox
                 checked={pickedIds.includes(m.modelId)}
-                disabled={!m.enabled}
+                disabled={!m.active}
                 onCheckedChange={() => toggle(m.modelId)}
               />
               <div className="flex-1">

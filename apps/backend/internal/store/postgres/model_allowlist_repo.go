@@ -96,7 +96,7 @@ func (r *pgModelAllowlistRepo) IsCallTypeAllowed(ctx context.Context, ownerType 
 			FROM model_allowlist ma
 			JOIN models m ON m.model_id = ma.model_id
 			WHERE ma.company_id = $1 AND ma.owner_type = $2 AND ma.owner_id = $3
-				AND m.type = $4 AND m.enabled = TRUE
+				AND m.type = $4
 		)
 	`, companyID, ownerType, ownerID, callType).Scan(&allowed)
 	return allowed, err

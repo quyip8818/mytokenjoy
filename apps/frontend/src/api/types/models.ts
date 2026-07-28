@@ -15,7 +15,7 @@ export interface ModelInfo {
   outputPrice: number
   maxContext: number
   maxTokens: number
-  enabled: boolean
+  active: boolean
   capabilities: string[]
 }
 
@@ -28,7 +28,7 @@ export interface ModelRef {
   type: string
   name: string
   provider: ProviderType
-  enabled: boolean
+  active: boolean
 }
 
 export interface CreateModelInput {

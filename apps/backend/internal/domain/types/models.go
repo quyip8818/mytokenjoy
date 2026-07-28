@@ -23,7 +23,7 @@ type ModelInfo struct {
 	EndpointModelName *string   `json:"endpointModelName,omitempty"`
 	MaxContext        int       `json:"maxContext"`
 	MaxTokens         int       `json:"maxTokens"`
-	Enabled           bool      `json:"enabled"`
+	Active            bool      `json:"active"`
 	Capabilities      []string  `json:"capabilities"`
 	Source            string    `json:"source"` // "manual" | "sms" | "seed"
 }
@@ -45,7 +45,7 @@ type ModelRef struct {
 	Type     string    `json:"type"`
 	Name     string    `json:"name"`
 	Provider string    `json:"provider"`
-	Enabled  bool      `json:"enabled"`
+	Active   bool      `json:"active"`
 }
 
 type RoutingRule struct {

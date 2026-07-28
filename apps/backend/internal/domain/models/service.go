@@ -60,7 +60,7 @@ func (s *service) ListModels(ctx context.Context) ([]types.ModelInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	return modelcatalog.FilterVisible(all), nil
+	return modelcatalog.FilterActive(modelcatalog.FilterVisible(all)), nil
 }
 
 func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput) (types.ModelInfo, error) {
@@ -97,7 +97,7 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 		EndpointModelName: endpointModelName,
 		MaxContext:        maxContext,
 		MaxTokens:         input.MaxTokens,
-		Enabled:           true,
+		Active:            true,
 		Capabilities:      capabilities,
 	}
 	if err := s.validateModelProviderTypeAvailable(ctx, types.ProviderCustom, input.Type); err != nil {
@@ -211,15 +211,19 @@ func (s *service) ToggleModel(ctx context.Context, id uuid.UUID, enabled bool) e
 	// Global (builtin) model: create a tenant-level override copy with the desired enabled state.
 	// DedupeEffective will pick the tenant copy over the global one.
 	if model.CompanyID == s.cfg.TokenJoyCompanyID {
+		// Cannot enable a globally inactive (SMS-delisted) model.
+		if enabled && !model.Active {
+			return domain.Validation("model has been delisted and cannot be enabled")
+		}
 		override := *model
-		override.Enabled = enabled
+		override.Active = enabled
 		if _, err := s.store.Models().InsertModel(ctx, override); err != nil {
 			// If tenant override already exists (duplicate provider+type), update it instead.
 			existing, findErr := s.store.Models().ModelByProviderType(ctx, model.Provider, model.Type)
 			if findErr != nil || existing == nil {
 				return mapModelPersistError(err)
 			}
-			existing.Enabled = enabled
+			existing.Active = enabled
 			if updateErr := s.store.Models().UpdateModel(ctx, *existing); updateErr != nil {
 				return mapModelPersistError(updateErr)
 			}
@@ -227,7 +231,15 @@ func (s *service) ToggleModel(ctx context.Context, id uuid.UUID, enabled bool) e
 		return nil
 	}
 
-	model.Enabled = enabled
+	// Tenant override path: check the global model's active state before allowing re-enable.
+	if enabled {
+		globalModel, err := s.store.Models().GlobalModelByProviderType(ctx, model.Provider, model.Type)
+		if err == nil && globalModel != nil && !globalModel.Active {
+			return domain.Validation("model has been delisted and cannot be enabled")
+		}
+	}
+
+	model.Active = enabled
 	if err := s.store.Models().UpdateModel(ctx, *model); err != nil {
 		return mapModelPersistError(err)
 	}
@@ -377,10 +389,10 @@ func (s *service) ListModelsWithPricing(ctx context.Context) ([]types.ModelInfoW
 		return nil, err
 	}
 
-	visible := modelcatalog.FilterVisible(models)
-	result := make([]types.ModelInfoWithPricing, len(visible))
-	for i := range visible {
-		result[i] = types.ModelInfoWithPricing{ModelInfo: visible[i]}
+	active := modelcatalog.FilterActive(modelcatalog.FilterVisible(models))
+	result := make([]types.ModelInfoWithPricing, len(active))
+	for i := range active {
+		result[i] = types.ModelInfoWithPricing{ModelInfo: active[i]}
 	}
 
 	// best-effort: NewAPI 不可达时仍返回模型列表，价格为 0

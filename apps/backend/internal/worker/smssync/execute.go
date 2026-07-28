@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"strconv"
 
-	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/integration/sms"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -110,48 +109,17 @@ func (e *SMSSyncExecutor) syncChannels(ctx context.Context) (int, error) {
 	return resp.Version, nil
 }
 
-// syncModels fetches models and replaces per-company + updates global model ratios.
-// Returns the response version.
+// syncModels fetches models and syncs to global company + updates global model ratios.
 func (e *SMSSyncExecutor) syncModels(ctx context.Context) (int, error) {
 	resp, err := e.client.FetchModels(ctx)
 	if err != nil {
 		return 0, err
 	}
-
-	companies := e.listActiveCompanyIDs(ctx)
-	var syncErr error
-
-	for _, companyID := range companies {
-		if err := e.target.ReplaceModels(ctx, companyID, resp.Data); err != nil {
-			slog.Error("smssync: replace models failed", "company", companyID, "error", err)
-			syncErr = err // record but continue
-		}
+	if err := e.target.SyncModels(ctx, resp.Data); err != nil {
+		return 0, fmt.Errorf("sync models: %w", err)
 	}
-
 	if err := e.target.ReplaceModelRatios(ctx, resp.Data); err != nil {
-		slog.Error("smssync: replace model ratios failed", "error", err)
-		syncErr = err
-	}
-
-	// Any failure → don't advance version (caller won't update system_settings).
-	if syncErr != nil {
-		return 0, syncErr
+		return 0, fmt.Errorf("replace model ratios: %w", err)
 	}
 	return resp.Version, nil
-}
-
-// listActiveCompanyIDs returns IDs of all active companies.
-func (e *SMSSyncExecutor) listActiveCompanyIDs(ctx context.Context) []uuid.UUID {
-	all, err := e.store.Company().List(ctx)
-	if err != nil {
-		slog.Error("smssync: list companies", "error", err)
-		return nil
-	}
-	ids := make([]uuid.UUID, 0, len(all))
-	for _, c := range all {
-		if c.Status == store.CompanyStatusActive {
-			ids = append(ids, c.ID)
-		}
-	}
-	return ids
 }

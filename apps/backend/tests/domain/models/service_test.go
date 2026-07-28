@@ -91,7 +91,7 @@ func TestCreateModel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created.Type != "create-model-test" || !created.Enabled {
+	if created.Type != "create-model-test" || !created.Active {
 		t.Fatalf("unexpected model %+v", created)
 	}
 	found := false
@@ -119,7 +119,7 @@ func TestToggleModel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wasEnabled := target.Enabled
+	wasEnabled := target.Active
 	if err := svc.ToggleModel(testutil.Ctx(), target.ID, !wasEnabled); err != nil {
 		t.Fatal(err)
 	}
@@ -128,8 +128,8 @@ func TestToggleModel(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, m := range after {
-		if m.ID == target.ID && m.Enabled == wasEnabled {
-			t.Fatalf("expected enabled=%v, still %v", !wasEnabled, m.Enabled)
+		if m.ID == target.ID && m.Active == wasEnabled {
+			t.Fatalf("expected enabled=%v, still %v", !wasEnabled, m.Active)
 		}
 	}
 }
@@ -154,7 +154,7 @@ func TestToggleGlobalModelCreatesOverride(t *testing.T) {
 	if global == nil {
 		t.Fatal("expected builtin model")
 	}
-	wantEnabled := !global.Enabled
+	wantEnabled := !global.Active
 	err = svc.ToggleModel(testutil.Ctx(), global.ID, wantEnabled)
 	if err != nil {
 		t.Fatalf("toggle global model should succeed via tenant override: %v", err)
@@ -166,8 +166,8 @@ func TestToggleGlobalModelCreatesOverride(t *testing.T) {
 	found := false
 	for _, m := range after {
 		if m.Provider == global.Provider && m.Type == global.Type {
-			if m.Enabled != wantEnabled {
-				t.Fatalf("expected enabled=%v after toggle, got %v", wantEnabled, m.Enabled)
+			if m.Active != wantEnabled {
+				t.Fatalf("expected enabled=%v after toggle, got %v", wantEnabled, m.Active)
 			}
 			found = true
 			break
@@ -375,7 +375,7 @@ func TestToggleGlobalModelTwice(t *testing.T) {
 	}
 	for _, m := range after {
 		if m.Provider == global.Provider && m.Type == global.Type {
-			if !m.Enabled {
+			if !m.Active {
 				t.Fatal("expected model enabled after second toggle")
 			}
 			return

@@ -23,3 +23,14 @@ func FilterVisible(models []types.ModelInfo) []types.ModelInfo {
 	}
 	return out
 }
+
+// FilterActive returns only active models (active == true).
+func FilterActive(models []types.ModelInfo) []types.ModelInfo {
+	out := make([]types.ModelInfo, 0, len(models))
+	for i := range models {
+		if models[i].Active {
+			out = append(out, models[i])
+		}
+	}
+	return out
+}

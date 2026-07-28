@@ -60,8 +60,8 @@ export function useModelListPage(injectedApis?: AppApis) {
 
   const handleToggle = useCallback(
     async (model: ModelInfo) => {
-      await apis.modelApi.toggle(model.modelId, !model.enabled)
-      toast.success(model.enabled ? '模型已禁用' : '模型已启用')
+      await apis.modelApi.toggle(model.modelId, !model.active)
+      toast.success(model.active ? '模型已禁用' : '模型已启用')
       flashRow(model.modelId)
       void refresh()
     },

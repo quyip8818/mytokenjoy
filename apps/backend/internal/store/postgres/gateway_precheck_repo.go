@@ -28,7 +28,7 @@ allowlist AS (
 		ma.owner_id AS platform_key_id,
 		COUNT(*) > 0 AS has_allowlist,
 		COALESCE(
-			array_agg(DISTINCT mdl.type ORDER BY mdl.type) FILTER (WHERE mdl.enabled = TRUE),
+			array_agg(DISTINCT mdl.type ORDER BY mdl.type) FILTER (WHERE mdl.type IS NOT NULL),
 			'{}'
 		) AS allowlist_types
 	FROM model_allowlist ma

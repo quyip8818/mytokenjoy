@@ -54,7 +54,7 @@ func FilterEnabledIDs(catalog []types.ModelInfo, ids []uuid.UUID) []uuid.UUID {
 	out := make([]uuid.UUID, 0, len(ids))
 	for _, mid := range ids {
 		item, ok := byID[mid]
-		if !ok || !item.Enabled {
+		if !ok || !item.Active {
 			continue
 		}
 		out = append(out, mid)
@@ -83,7 +83,7 @@ func IsCallTypeAllowed(catalog []types.ModelInfo, allowedIDs []uuid.UUID, callTy
 	byID := IndexByID(catalog)
 	for _, mid := range allowedIDs {
 		item, ok := byID[mid]
-		if !ok || !item.Enabled {
+		if !ok || !item.Active {
 			continue
 		}
 		if item.Type == callType {
@@ -101,7 +101,7 @@ func ResolveIDForCallType(catalog []types.ModelInfo, allowedIDs []uuid.UUID, cal
 	matches := make([]types.ModelInfo, 0)
 	for _, mid := range allowedIDs {
 		item, ok := byID[mid]
-		if !ok || !item.Enabled || item.Type != callType {
+		if !ok || !item.Active || item.Type != callType {
 			continue
 		}
 		matches = append(matches, item)
@@ -135,7 +135,7 @@ func CallTypesForIDs(catalog []types.ModelInfo, ids []uuid.UUID) []string {
 	out := make([]string, 0, len(ids))
 	for _, mid := range ids {
 		item, ok := byID[mid]
-		if !ok || !item.Enabled {
+		if !ok || !item.Active {
 			continue
 		}
 		if _, ok := seen[item.Type]; ok {
@@ -154,7 +154,7 @@ func ToModelRef(item types.ModelInfo) types.ModelRef {
 		Type:     item.Type,
 		Name:     item.Name,
 		Provider: item.Provider,
-		Enabled:  item.Enabled,
+		Active:   item.Active,
 	}
 }
 
@@ -197,7 +197,7 @@ func ValidateWritableIDs(catalog []types.ModelInfo, ids []uuid.UUID) error {
 		if !ok {
 			return ErrUnknownModelID
 		}
-		if !item.Enabled {
+		if !item.Active {
 			return ErrModelDisabled
 		}
 	}
@@ -207,7 +207,7 @@ func ValidateWritableIDs(catalog []types.ModelInfo, ids []uuid.UUID) error {
 func EnabledModelIDs(catalog []types.ModelInfo) []uuid.UUID {
 	out := make([]uuid.UUID, 0, len(catalog))
 	for _, item := range catalog {
-		if item.Enabled {
+		if item.Active {
 			out = append(out, item.ID)
 		}
 	}

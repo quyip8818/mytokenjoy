@@ -125,6 +125,6 @@ func buildSMSSyncExecutor(cfg config.Config, st store.Store, reg ServiceRegistry
 		ClientID:     cfg.SMSClientID,
 		ClientSecret: cfg.SMSClientSecret,
 	})
-	target := smssync.NewTarget(reg.Infra.adminPort, st)
+	target := smssync.NewTarget(reg.Infra.adminPort, st, cfg.TokenJoyCompanyID)
 	return smssync.NewExecutor(client, target, st)
 }

@@ -157,7 +157,7 @@ CREATE TABLE IF NOT EXISTS models (
     endpoint_model_name TEXT,
     max_context  INT NOT NULL DEFAULT 0,
     max_tokens   INT NOT NULL DEFAULT 0,
-    enabled      BOOLEAN NOT NULL DEFAULT TRUE,
+    active       BOOLEAN NOT NULL DEFAULT TRUE,
     capabilities TEXT[] NOT NULL DEFAULT '{}',
     source       TEXT NOT NULL DEFAULT 'manual',
     sms_synced_at TIMESTAMPTZ,
@@ -338,7 +338,7 @@ CREATE TABLE IF NOT EXISTS model_allowlist (
     owner_id   UUID NOT NULL,
     model_id   UUID NOT NULL,
     PRIMARY KEY (company_id, owner_type, owner_id, model_id),
-    FOREIGN KEY (model_id) REFERENCES models (model_id) ON DELETE CASCADE,
+    FOREIGN KEY (model_id) REFERENCES models (model_id) ON DELETE RESTRICT,
     CONSTRAINT chk_model_allowlist_owner_type
         CHECK (owner_type IN ('platform_key', 'org_node'))
 );

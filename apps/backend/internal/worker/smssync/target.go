@@ -15,18 +15,19 @@ import (
 // SyncTarget abstracts the write operations for SMS sync (NewAPI + local DB).
 type SyncTarget interface {
 	ReplaceChannels(ctx context.Context, channels []sms.CatalogChannel) error
-	ReplaceModels(ctx context.Context, companyID uuid.UUID, models []sms.CatalogModel) error
+	SyncModels(ctx context.Context, models []sms.CatalogModel) error
 	ReplaceModelRatios(ctx context.Context, models []sms.CatalogModel) error
 }
 
 // Target implements SyncTarget using adminport.Port (channels/pricing) and store (models).
 type Target struct {
-	port  adminport.Port
-	store store.Store
+	port            adminport.Port
+	store           store.Store
+	globalCompanyID uuid.UUID
 }
 
-func NewTarget(port adminport.Port, st store.Store) *Target {
-	return &Target{port: port, store: st}
+func NewTarget(port adminport.Port, st store.Store, globalCompanyID uuid.UUID) *Target {
+	return &Target{port: port, store: st, globalCompanyID: globalCompanyID}
 }
 
 // smsChannelPrefix is the naming convention for SMS-managed channels.
@@ -74,20 +75,20 @@ func (t *Target) ReplaceChannels(ctx context.Context, channels []sms.CatalogChan
 	return t.port.RebuildAbilities(ctx)
 }
 
-// ReplaceModels does a per-company DELETE+INSERT for source='sms' models.
-func (t *Target) ReplaceModels(ctx context.Context, companyID uuid.UUID, models []sms.CatalogModel) error {
+// SyncModels writes all SMS models to the global company (diff-disable + upsert).
+func (t *Target) SyncModels(ctx context.Context, models []sms.CatalogModel) error {
 	infos := make([]types.ModelInfo, 0, len(models))
 	for _, m := range models {
 		infos = append(infos, types.ModelInfo{
-			CompanyID: companyID,
+			CompanyID: t.globalCompanyID,
 			Provider:  m.Provider,
 			Type:      m.ModelID,
 			Name:      m.DisplayName,
 			Source:    "sms",
-			Enabled:   true,
+			Active:    true,
 		})
 	}
-	return t.store.Models().ReplaceFromSMS(ctx, companyID, infos)
+	return t.store.Models().SyncFromSMS(ctx, t.globalCompanyID, infos)
 }
 
 // ReplaceModelRatios batch-upserts model pricing into NewAPI (global, not per-company).
