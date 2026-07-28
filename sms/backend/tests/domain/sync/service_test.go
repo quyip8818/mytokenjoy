@@ -46,6 +46,14 @@ func (m *mockModelStore) ListChannelsForSync(_ context.Context) ([]sync.CatalogC
 	}, nil
 }
 
+func (m *mockModelStore) GetPartitionVersions(_ context.Context) (sync.PartitionVersions, error) {
+	return sync.PartitionVersions{Channels: 1, Models: 2, Currencies: 0}, nil
+}
+
+func (m *mockModelStore) GetPartitionVersion(_ context.Context, _ string) (int, error) {
+	return 1, nil
+}
+
 // --- tests ---
 
 func TestGetCatalog_ReturnsModelsAndChannels(t *testing.T) {

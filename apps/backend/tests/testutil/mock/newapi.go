@@ -150,4 +150,12 @@ func (s *StubAdminClient) ManageUser(_ context.Context, _ int64, _ string, _ int
 	return nil
 }
 
+func (s *StubAdminClient) ListChannels(_ context.Context) ([]adminport.ChannelInfo, error) {
+	return nil, nil
+}
+
+func (s *StubAdminClient) DeleteChannel(_ context.Context, _ int) error {
+	return nil
+}
+
 var _ adminport.Port = (*StubAdminClient)(nil)

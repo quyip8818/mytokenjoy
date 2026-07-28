@@ -27,10 +27,10 @@ func TestClient_ListCurrentRatios(t *testing.T) {
 			return
 		}
 		resp := map[string]any{
-			"data": []map[string]string{{
-				"ModelRatio":      string(mr),
-				"CompletionRatio": string(cr),
-			}},
+			"data": []map[string]string{
+				{"key": "ModelRatio", "value": string(mr)},
+				{"key": "CompletionRatio", "value": string(cr)},
+			},
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
@@ -177,10 +177,10 @@ func TestClient_UpsertModelRatio(t *testing.T) {
 	var writtenMR map[string]float64
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			resp := map[string]any{"data": []map[string]string{{
-				"ModelRatio":      `{"other": 10}`,
-				"CompletionRatio": `{"other": 1}`,
-			}}}
+			resp := map[string]any{"data": []map[string]string{
+				{"key": "ModelRatio", "value": `{"other": 10}`},
+				{"key": "CompletionRatio", "value": `{"other": 1}`},
+			}}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(resp)
 			return

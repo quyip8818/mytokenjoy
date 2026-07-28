@@ -129,6 +129,22 @@ func (p *SelfHealingPort) RebuildAbilities(ctx context.Context) error {
 	return err
 }
 
+func (p *SelfHealingPort) ListChannels(ctx context.Context) ([]adminport.ChannelInfo, error) {
+	r, err := p.client.ListChannels(ctx)
+	if p.selfHeal(ctx, err) {
+		return p.client.ListChannels(ctx)
+	}
+	return r, err
+}
+
+func (p *SelfHealingPort) DeleteChannel(ctx context.Context, channelID int) error {
+	err := p.client.DeleteChannel(ctx, channelID)
+	if p.selfHeal(ctx, err) {
+		return p.client.DeleteChannel(ctx, channelID)
+	}
+	return err
+}
+
 func (p *SelfHealingPort) CreateUser(ctx context.Context, req adminport.CreateUserInput) (adminport.UserResult, error) {
 	r, err := p.client.CreateUser(ctx, req)
 	if p.selfHeal(ctx, err) {

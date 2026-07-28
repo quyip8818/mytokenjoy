@@ -22,6 +22,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/scheduler"
 	"github.com/tokenjoy/backend/internal/integration/newapisync"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/worker/smssync"
 )
 
 type Client struct {
@@ -47,15 +48,15 @@ type Deps struct {
 	Scheduler            *scheduler.Service
 	BulkEnqueuer         *scheduler.BulkEnqueuer
 	NotificationRegistry *notification.Registry
-	SMSSyncExecutor      workers.SMSSyncExecutor // nil when SMS sync is disabled
-	DisablePeriodic      bool                    // tests: skip tenant_watchdog periodic registration
+	SMSSyncExecutor      *smssync.SMSSyncExecutor // nil if SMS sync disabled
+	DisablePeriodic      bool                     // tests: skip periodic registration
 }
 
 func NewClient(cfg config.Config, pool *pgxpool.Pool, deps Deps, logger *slog.Logger) (*Client, error) {
 	logger = QuietLogger(logger)
 	var periodicJobs []*river.PeriodicJob
 	if !deps.DisablePeriodic {
-		periodicJobs = periodic.BuildWatchdogJobs(cfg)
+		periodicJobs = periodic.BuildPeriodicJobs(cfg)
 	}
 	inner, err := river.NewClient(riverpgxv5.New(pool), &river.Config{
 		Queues:       queueConfig(cfg),
@@ -90,7 +91,7 @@ func registerWorkers(deps Deps) *river.Workers {
 		river.AddWorker(workersBundle, workers.NewNotificationDeliveryWorker(deps.NotificationRegistry))
 	}
 	if deps.SMSSyncExecutor != nil {
-		river.AddWorker(workersBundle, workers.NewSMSSyncWorker(deps.SMSSyncExecutor, deps.Cfg.LocalCompanyID))
+		river.AddWorker(workersBundle, workers.NewSMSSyncWorker(deps.SMSSyncExecutor))
 	}
 	return workersBundle
 }

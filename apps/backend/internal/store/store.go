@@ -58,6 +58,7 @@ type Store interface {
 	NotificationPreference() NotificationPreferenceRepository
 	Session() SessionRepository
 	Approval() ApprovalRepository
+	SystemSettings() SystemSettingsRepository
 	Logs() LogStore
 	WithTx(ctx context.Context, fn func(Store) error) error
 }

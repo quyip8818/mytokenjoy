@@ -6,7 +6,8 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 )
 
-func BuildWatchdogJobs(cfg config.Config) []*river.PeriodicJob {
+// BuildPeriodicJobs returns all periodic jobs for River (watchdog, reconcile, SMS sync).
+func BuildPeriodicJobs(cfg config.Config) []*river.PeriodicJob {
 	if !cfg.RiverEnabled || !cfg.RiverPeriodicEnabled {
 		return nil
 	}

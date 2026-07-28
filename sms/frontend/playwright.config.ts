@@ -7,7 +7,7 @@ export default defineConfig({
   fullyParallel: false,
   retries: 0,
   use: {
-    baseURL: 'http://localhost:5174',
+    baseURL: 'http://localhost:9100',
     headless: true,
     screenshot: 'only-on-failure',
   },
@@ -27,7 +27,7 @@ export default defineConfig({
     },
     {
       command: 'pnpm dev',
-      url: 'http://localhost:5174',
+      url: 'http://localhost:9100',
       reuseExistingServer: !process.env.CI,
       timeout: 30_000,
     },

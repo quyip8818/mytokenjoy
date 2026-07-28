@@ -122,3 +122,28 @@ func (c *Client) findChannelByName(ctx context.Context, name string) (Channel, e
 func (c *Client) RebuildAbilities(ctx context.Context) error {
 	return c.do(ctx, "POST", "/api/channel/fix", nil, nil)
 }
+
+// ListChannels returns all channels from NewAPI (paginated internally).
+func (c *Client) ListChannels(ctx context.Context) ([]adminport.ChannelInfo, error) {
+	var all []adminport.ChannelInfo
+	for page := channelListFirstPage; page < channelListFirstPage+maxListPages; page++ {
+		path := "/api/channel/?p=" + strconv.Itoa(page) + "&page_size=100"
+		var list listPage[Channel]
+		if err := c.do(ctx, "GET", path, nil, &list); err != nil {
+			return nil, fmt.Errorf("list channels page %d: %w", page, err)
+		}
+		for _, ch := range list.Items {
+			all = append(all, adminport.ChannelInfo{ID: ch.ID, Name: ch.Name})
+		}
+		if !listHasMore(list, page, channelListFirstPage) {
+			break
+		}
+	}
+	return all, nil
+}
+
+// DeleteChannel deletes a channel by ID via DELETE /api/channel/{id}.
+func (c *Client) DeleteChannel(ctx context.Context, channelID int) error {
+	path := "/api/channel/" + strconv.Itoa(channelID)
+	return c.do(ctx, "DELETE", path, nil, nil)
+}

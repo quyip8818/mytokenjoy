@@ -169,44 +169,32 @@ func (r *pgModelsRepo) DeleteModel(ctx context.Context, modelID uuid.UUID) error
 	return nil
 }
 
-func (r *pgModelsRepo) UpsertFromSMS(ctx context.Context, modelType, name, provider, callType string) error {
-	companyID := store.CompanyID(ctx)
-	_, err := r.db.Exec(ctx, `
-		INSERT INTO models (company_id, provider, type, name, source, sms_synced_at, updated_at)
-		VALUES ($1, $2, $3, $4, 'sms', NOW(), NOW())
-		ON CONFLICT (company_id, provider, type) DO UPDATE SET
-			name = EXCLUDED.name,
-			source = 'sms',
-			sms_synced_at = NOW(),
-			updated_at = NOW()
-		WHERE models.source = 'sms'
-	`, companyID, provider, modelType, name)
-	if err != nil {
-		return fmt.Errorf("upsert model from sms %s: %w", modelType, err)
-	}
-	return nil
-}
-
 var _ store.ModelsRepository = (*pgModelsRepo)(nil)
 
-func (r *pgModelsRepo) DisableStaleFromSMS(ctx context.Context, activeModelIDs []string) (int, error) {
-	companyID := store.CompanyID(ctx)
-	if len(activeModelIDs) == 0 {
-		ct, err := r.db.Exec(ctx, `
-			DELETE FROM models
-			WHERE company_id = $1 AND source = 'sms'
-		`, companyID)
-		if err != nil {
-			return 0, err
-		}
-		return int(ct.RowsAffected()), nil
-	}
-	ct, err := r.db.Exec(ctx, `
-		DELETE FROM models
-		WHERE company_id = $1 AND source = 'sms' AND type != ALL($2)
-	`, companyID, activeModelIDs)
+func (r *pgModelsRepo) ReplaceFromSMS(ctx context.Context, companyID uuid.UUID, models []types.ModelInfo) error {
+	// Delete all existing SMS-sourced models for this company.
+	_, err := r.db.Exec(ctx, `DELETE FROM models WHERE company_id = $1 AND source = 'sms'`, companyID)
 	if err != nil {
-		return 0, err
+		return fmt.Errorf("delete sms models for company %s: %w", companyID, err)
 	}
-	return int(ct.RowsAffected()), nil
+	if len(models) == 0 {
+		return nil
+	}
+	// Bulk insert.
+	for _, m := range models {
+		_, err := r.db.Exec(ctx, `
+			INSERT INTO models (company_id, provider, type, name, source, enabled, sms_synced_at, updated_at)
+			VALUES ($1, $2, $3, $4, 'sms', TRUE, NOW(), NOW())
+			ON CONFLICT (company_id, provider, type) DO UPDATE SET
+				name = EXCLUDED.name,
+				source = 'sms',
+				enabled = TRUE,
+				sms_synced_at = NOW(),
+				updated_at = NOW()
+		`, companyID, m.Provider, m.Type, m.Name)
+		if err != nil {
+			return fmt.Errorf("insert sms model %s: %w", m.Type, err)
+		}
+	}
+	return nil
 }

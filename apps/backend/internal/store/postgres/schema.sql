@@ -657,3 +657,9 @@ CREATE INDEX IF NOT EXISTS idx_approval_type_scope    ON approval_requests(compa
 CREATE INDEX IF NOT EXISTS idx_approval_company_status ON approval_requests(company_id, status);
 CREATE INDEX IF NOT EXISTS idx_approval_applicant      ON approval_requests(company_id, applicant_id);
 CREATE INDEX IF NOT EXISTS idx_approval_created_at     ON approval_requests(company_id, created_at DESC);
+
+-- Global: system-level key-value settings (sync versions, feature flags, etc.)
+CREATE TABLE IF NOT EXISTS system_settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);

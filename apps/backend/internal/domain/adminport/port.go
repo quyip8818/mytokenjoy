@@ -13,6 +13,8 @@ type Port interface {
 
 	// --- Channel lifecycle (used by newapisync/provider) ---
 	UpsertChannel(ctx context.Context, req UpsertChannelInput) (ChannelResult, error)
+	ListChannels(ctx context.Context) ([]ChannelInfo, error)
+	DeleteChannel(ctx context.Context, channelID int) error
 	EnsureGroup(ctx context.Context, group, displayName string) error
 	RebuildAbilities(ctx context.Context) error
 

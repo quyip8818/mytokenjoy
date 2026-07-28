@@ -46,12 +46,42 @@ func (s *pgSyncStore) ListModelsForSync(ctx context.Context) ([]sync.CatalogMode
 	return models, rows.Err()
 }
 
-// ListChannelsForSync returns channels configured via the NewAPI sync log table.
-// ponytail: For now returns empty — channels come from NewAPI directly.
-// In future, SMS may track its own channel configs.
+// ListChannelsForSync returns channels for the catalog.
+// ponytail: channels are managed in SMS-NewAPI, not in SMS DB for now.
 func (s *pgSyncStore) ListChannelsForSync(_ context.Context) ([]sync.CatalogChannel, error) {
-	// ponytail: channels are managed in SMS-NewAPI, not in SMS DB.
-	// The catalog exposes models (with pricing) from SMS; channels are
-	// configured separately in the SMS-NewAPI instance and not part of this sync.
 	return []sync.CatalogChannel{}, nil
+}
+
+func (s *pgSyncStore) GetPartitionVersions(ctx context.Context) (sync.PartitionVersions, error) {
+	var v sync.PartitionVersions
+	rows, err := s.db.Query(ctx, `SELECT partition, version FROM sync_versions`)
+	if err != nil {
+		return v, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var partition string
+		var version int
+		if err := rows.Scan(&partition, &version); err != nil {
+			return v, err
+		}
+		switch partition {
+		case "channels":
+			v.Channels = version
+		case "models":
+			v.Models = version
+		case "currencies":
+			v.Currencies = version
+		}
+	}
+	return v, rows.Err()
+}
+
+func (s *pgSyncStore) GetPartitionVersion(ctx context.Context, partition string) (int, error) {
+	var version int
+	err := s.db.QueryRow(ctx, `SELECT version FROM sync_versions WHERE partition = $1`, partition).Scan(&version)
+	if err != nil {
+		return 0, err
+	}
+	return version, nil
 }

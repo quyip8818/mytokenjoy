@@ -180,3 +180,30 @@ CREATE TABLE IF NOT EXISTS oauth_clients (
     scope               TEXT NOT NULL DEFAULT 'sync:read',
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- ====== sync_versions (partition version counter for incremental sync) ======
+CREATE TABLE IF NOT EXISTS sync_versions (
+    partition  TEXT PRIMARY KEY,
+    version    INT NOT NULL DEFAULT 0
+);
+
+-- Initialize partitions
+INSERT INTO sync_versions (partition, version) VALUES
+    ('channels', 0),
+    ('models', 0),
+    ('currencies', 0)
+ON CONFLICT (partition) DO NOTHING;
+
+-- Auto-increment sync version on models changes
+CREATE OR REPLACE FUNCTION bump_sync_version_models()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE sync_versions SET version = version + 1 WHERE partition = 'models';
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_bump_sync_models ON models;
+CREATE TRIGGER trg_bump_sync_models
+    AFTER INSERT OR UPDATE OR DELETE ON models
+    FOR EACH STATEMENT EXECUTE FUNCTION bump_sync_version_models();

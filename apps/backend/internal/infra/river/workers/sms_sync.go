@@ -3,28 +3,21 @@ package workers
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/riverqueue/river"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
+	"github.com/tokenjoy/backend/internal/worker/smssync"
 )
 
-// SMSSyncExecutor abstracts the smssync.Worker.Execute method.
-type SMSSyncExecutor interface {
-	Execute(ctx context.Context) error
-}
-
+// SMSSyncWorker is a thin River adapter that delegates to SMSSyncExecutor.
 type SMSSyncWorker struct {
 	river.WorkerDefaults[jobs.SMSSyncArgs]
-	executor  SMSSyncExecutor
-	companyID uuid.UUID
+	executor *smssync.SMSSyncExecutor
 }
 
-func NewSMSSyncWorker(executor SMSSyncExecutor, companyID uuid.UUID) *SMSSyncWorker {
-	return &SMSSyncWorker{executor: executor, companyID: companyID}
+func NewSMSSyncWorker(executor *smssync.SMSSyncExecutor) *SMSSyncWorker {
+	return &SMSSyncWorker{executor: executor}
 }
 
 func (w *SMSSyncWorker) Work(ctx context.Context, _ *river.Job[jobs.SMSSyncArgs]) error {
-	ctx = ctxcompany.With(ctx, ctxcompany.Info{CompanyID: w.companyID})
 	return w.executor.Execute(ctx)
 }

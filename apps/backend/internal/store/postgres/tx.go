@@ -107,6 +107,10 @@ func (s *txStore) Logs() store.LogStore {
 	return s.parent.Logs()
 }
 
+func (s *txStore) SystemSettings() store.SystemSettingsRepository {
+	return &pgSystemSettingsRepo{db: s.tx}
+}
+
 func (s *txStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	return fn(s)
 }

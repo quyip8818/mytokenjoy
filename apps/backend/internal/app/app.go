@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	"github.com/tokenjoy/backend/internal/config"
@@ -12,13 +11,8 @@ import (
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	httpapi "github.com/tokenjoy/backend/internal/http"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
-	"github.com/tokenjoy/backend/internal/integration/platform"
-	smsintegration "github.com/tokenjoy/backend/internal/integration/sms"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
-	"github.com/tokenjoy/backend/internal/worker/pricingsync"
-	"github.com/tokenjoy/backend/internal/worker/smssync"
 )
 
 func openStore(ctx context.Context, cfg config.Config) (store.Store, error) {
@@ -95,8 +89,6 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 	if !o.skipWorker {
 		bgWorkers.start(workerCtx, cfg)
 		startDeferredWatchdog(workerCtx, cfg, logger, st, holder)
-		startPricingSyncWorker(workerCtx, cfg, registry.Infra.adminPort)
-		startSMSSyncWorker(workerCtx, cfg, registry.Infra.adminPort, st)
 	}
 
 	return &App{
@@ -120,51 +112,4 @@ func (a *App) Close() {
 	for _, closer := range a.closers {
 		closer()
 	}
-}
-
-func startPricingSyncWorker(ctx context.Context, cfg config.Config, adminPort adminport.Port) {
-	if !cfg.PlatformPricingSyncEnabled {
-		return
-	}
-	if cfg.PlatformPricingSyncURL == "" || cfg.PlatformPricingSyncKey == "" {
-		slog.Warn("pricing sync enabled but URL/Key not configured, skipping")
-		return
-	}
-	interval := time.Duration(cfg.PlatformPricingSyncIntervalSec) * time.Second
-	if interval <= 0 {
-		interval = 10 * time.Minute
-	}
-	pc := platform.NewClient(cfg.PlatformPricingSyncURL, cfg.PlatformPricingSyncKey)
-	w := pricingsync.New(pc, adminPort, interval)
-	go w.Run(ctx)
-	slog.Info("pricing sync worker started", "interval", interval)
-}
-
-func startSMSSyncWorker(ctx context.Context, cfg config.Config, adminPort adminport.Port, st store.Store) {
-	if !cfg.SMSSyncEnabled {
-		return
-	}
-	if cfg.SMSAPIBaseURL == "" || cfg.SMSClientID == "" || cfg.SMSClientSecret == "" {
-		slog.Warn("sms sync enabled but config incomplete, skipping")
-		return
-	}
-	// When River periodic jobs are active, SMS sync is handled by River — skip goroutine ticker.
-	if cfg.RiverEnabled && cfg.RiverPeriodicEnabled {
-		slog.Info("sms sync managed by River periodic job", "interval", cfg.SMSSyncInterval(), "url", cfg.SMSAPIBaseURL)
-		return
-	}
-	// Fallback: goroutine+ticker when River is disabled.
-	interval := cfg.SMSSyncInterval()
-	client := smsintegration.NewClient(smsintegration.Config{
-		BaseURL:      cfg.SMSAPIBaseURL,
-		ClientID:     cfg.SMSClientID,
-		ClientSecret: cfg.SMSClientSecret,
-	})
-	// ponytail: ModelStore now uses real repo — writes to models table with source="sms"
-	target := smssync.NewAdminPortTarget(adminPort, smssync.NewRepoModelStore(st.Models()))
-	w := smssync.NewWithInterval(client, target, interval)
-	// Worker needs company context for model upsert
-	workerCtx := ctxcompany.With(ctx, ctxcompany.Info{CompanyID: cfg.LocalCompanyID})
-	go w.Run(workerCtx)
-	slog.Info("sms sync worker started (ticker fallback)", "interval", interval, "url", cfg.SMSAPIBaseURL)
 }
