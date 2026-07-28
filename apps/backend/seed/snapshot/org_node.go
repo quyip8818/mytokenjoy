@@ -15,35 +15,17 @@ type orgNodeRoutingSeed struct {
 }
 
 func orgNodeRoutingByID() map[uuid.UUID]orgNodeRoutingSeed {
+	// ponytail: 所有部门共享同一个可见模型白名单。升级路径：按部门差异化配置。
+	allModels := []uuid.UUID{contract.IDModel1, contract.IDModel11}
 	return map[uuid.UUID]orgNodeRoutingSeed{
-		contract.IDDept1: {
-			allowedModelIDs: []uuid.UUID{contract.IDModelTest},
-		},
-		contract.IDDept2: {
-			allowedModelIDs: []uuid.UUID{contract.IDModelTest},
-		},
-		contract.IDDept3: {
-			allowedModelIDs: []uuid.UUID{contract.IDModelTest},
-			inherited:       true,
-		},
-		contract.IDDept6: {
-			allowedModelIDs: []uuid.UUID{contract.IDModelTest},
-		},
-		contract.IDDept4: {
-			allowedModelIDs: []uuid.UUID{contract.IDModelTest},
-			inherited:       true,
-		},
-		contract.IDDept5: {
-			allowedModelIDs: []uuid.UUID{contract.IDModelTest},
-			inherited:       true,
-		},
-		contract.IDDept7: {
-			allowedModelIDs: []uuid.UUID{contract.IDModelTest},
-		},
-		contract.IDDept8: {
-			allowedModelIDs: []uuid.UUID{contract.IDModelTest},
-			inherited:       true,
-		},
+		contract.IDDept1: {allowedModelIDs: allModels},
+		contract.IDDept2: {allowedModelIDs: allModels},
+		contract.IDDept3: {allowedModelIDs: allModels, inherited: true},
+		contract.IDDept6: {allowedModelIDs: allModels},
+		contract.IDDept4: {allowedModelIDs: allModels, inherited: true},
+		contract.IDDept5: {allowedModelIDs: allModels, inherited: true},
+		contract.IDDept7: {allowedModelIDs: allModels},
+		contract.IDDept8: {allowedModelIDs: allModels, inherited: true},
 	}
 }
 

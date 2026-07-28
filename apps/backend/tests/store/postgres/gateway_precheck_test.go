@@ -67,6 +67,34 @@ func TestLoadPrecheckContextAllowlistTypes(t *testing.T) {
 	}
 }
 
+// TestGatewayPrecheck_InactiveModelStillAllowed verifies that a platform key
+// with a model in its allowlist can still call that model after it becomes inactive.
+// This is the core invariant: inactive = hidden from UI, but existing configs keep working.
+func TestGatewayPrecheck_InactiveModelStillAllowed(t *testing.T) {
+	t.Parallel()
+	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{Budget: 1000})
+
+	// Verify precheck passes for deepseek-v4-pro (in allowlist).
+	if err := fx.Run("deepseek-v4-pro", false); err != nil {
+		t.Fatalf("precheck should pass before deactivation: %v", err)
+	}
+
+	// Deactivate the model (set active=false).
+	model, err := fx.Store.Models().ModelByType(fx.Ctx, "deepseek-v4-pro")
+	if err != nil || model == nil {
+		t.Fatalf("failed to find model: err=%v", err)
+	}
+	model.Active = false
+	if err := fx.Store.Models().UpdateModel(fx.Ctx, *model); err != nil {
+		t.Fatalf("failed to deactivate model: %v", err)
+	}
+
+	// Precheck should STILL pass — gateway only checks allowlist, not model active state.
+	if err := fx.Run("deepseek-v4-pro", false); err != nil {
+		t.Fatalf("precheck should still pass after model deactivation: %v", err)
+	}
+}
+
 func contains(items []string, want string) bool {
 	for _, item := range items {
 		if item == want {
