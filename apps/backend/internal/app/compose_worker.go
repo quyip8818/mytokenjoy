@@ -15,8 +15,11 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	riverinfra "github.com/tokenjoy/backend/internal/infra/river"
+	"github.com/tokenjoy/backend/internal/infra/river/workers"
 	"github.com/tokenjoy/backend/internal/infra/scheduler"
+	smsintegration "github.com/tokenjoy/backend/internal/integration/sms"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/worker/smssync"
 )
 
 func postgresPool(st store.Store) *pgxpool.Pool {
@@ -48,6 +51,17 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 	sched := scheduler.NewService(cfg, st)
 	bulk := scheduler.NewBulkEnqueuer(cfg, holder)
 
+	var smsSyncExec workers.SMSSyncExecutor
+	if cfg.SMSSyncEnabled && cfg.SMSAPIBaseURL != "" && cfg.SMSClientID != "" && cfg.SMSClientSecret != "" {
+		client := smsintegration.NewClient(smsintegration.Config{
+			BaseURL:      cfg.SMSAPIBaseURL,
+			ClientID:     cfg.SMSClientID,
+			ClientSecret: cfg.SMSClientSecret,
+		})
+		target := smssync.NewAdminPortTarget(reg.Infra.adminPort, smssync.NewRepoModelStore(st.Models()))
+		smsSyncExec = smssync.New(client, target)
+	}
+
 	riverClient, err := riverinfra.NewClient(cfg, pool, riverinfra.Deps{
 		Cfg:                  cfg,
 		Store:                st,
@@ -65,6 +79,7 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 		Scheduler:            sched,
 		BulkEnqueuer:         bulk,
 		NotificationRegistry: reg.Infra.notificationSvc.Registry(),
+		SMSSyncExecutor:      smsSyncExec,
 		DisablePeriodic:      !cfg.RiverPeriodicEnabled,
 	}, logger)
 	if err != nil {

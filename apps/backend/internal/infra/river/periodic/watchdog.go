@@ -28,5 +28,14 @@ func BuildWatchdogJobs(cfg config.Config) []*river.PeriodicJob {
 			nil,
 		))
 	}
+	if cfg.SMSSyncEnabled {
+		periodicJobs = append(periodicJobs, river.NewPeriodicJob(
+			river.PeriodicInterval(cfg.SMSSyncInterval()),
+			func() (river.JobArgs, *river.InsertOpts) {
+				return jobs.SMSSyncArgs{}, nil
+			},
+			nil,
+		))
+	}
 	return periodicJobs
 }

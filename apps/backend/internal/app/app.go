@@ -148,10 +148,13 @@ func startSMSSyncWorker(ctx context.Context, cfg config.Config, adminPort adminp
 		slog.Warn("sms sync enabled but config incomplete, skipping")
 		return
 	}
-	interval := time.Duration(cfg.SMSSyncIntervalSec) * time.Second
-	if interval <= 0 {
-		interval = 10 * time.Minute
+	// When River periodic jobs are active, SMS sync is handled by River — skip goroutine ticker.
+	if cfg.RiverEnabled && cfg.RiverPeriodicEnabled {
+		slog.Info("sms sync managed by River periodic job", "interval", cfg.SMSSyncInterval(), "url", cfg.SMSAPIBaseURL)
+		return
 	}
+	// Fallback: goroutine+ticker when River is disabled.
+	interval := cfg.SMSSyncInterval()
 	client := smsintegration.NewClient(smsintegration.Config{
 		BaseURL:      cfg.SMSAPIBaseURL,
 		ClientID:     cfg.SMSClientID,
@@ -163,5 +166,5 @@ func startSMSSyncWorker(ctx context.Context, cfg config.Config, adminPort adminp
 	// Worker needs company context for model upsert
 	workerCtx := ctxcompany.With(ctx, ctxcompany.Info{CompanyID: cfg.LocalCompanyID})
 	go w.Run(workerCtx)
-	slog.Info("sms sync worker started", "interval", interval, "url", cfg.SMSAPIBaseURL)
+	slog.Info("sms sync worker started (ticker fallback)", "interval", interval, "url", cfg.SMSAPIBaseURL)
 }

@@ -47,7 +47,8 @@ type Deps struct {
 	Scheduler            *scheduler.Service
 	BulkEnqueuer         *scheduler.BulkEnqueuer
 	NotificationRegistry *notification.Registry
-	DisablePeriodic      bool // tests: skip tenant_watchdog periodic registration
+	SMSSyncExecutor      workers.SMSSyncExecutor // nil when SMS sync is disabled
+	DisablePeriodic      bool                    // tests: skip tenant_watchdog periodic registration
 }
 
 func NewClient(cfg config.Config, pool *pgxpool.Pool, deps Deps, logger *slog.Logger) (*Client, error) {
@@ -87,6 +88,9 @@ func registerWorkers(deps Deps) *river.Workers {
 	river.AddWorker(workersBundle, workers.NewWatchdogWorker(deps.Scheduler, deps.BulkEnqueuer, deps.Store, deps.Cfg))
 	if deps.NotificationRegistry != nil {
 		river.AddWorker(workersBundle, workers.NewNotificationDeliveryWorker(deps.NotificationRegistry))
+	}
+	if deps.SMSSyncExecutor != nil {
+		river.AddWorker(workersBundle, workers.NewSMSSyncWorker(deps.SMSSyncExecutor, deps.Cfg.LocalCompanyID))
 	}
 	return workersBundle
 }

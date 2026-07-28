@@ -36,3 +36,10 @@ func (c Config) JobBatchSize() int {
 	}
 	return c.IngestJobBatchSize
 }
+
+func (c Config) SMSSyncInterval() time.Duration {
+	if c.SMSSyncIntervalSec <= 0 {
+		return 10 * time.Minute
+	}
+	return time.Duration(c.SMSSyncIntervalSec) * time.Second
+}
