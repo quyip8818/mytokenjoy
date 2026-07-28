@@ -26,27 +26,14 @@ for arg in "$@"; do
   esac
 done
 
-# saas mode: always full seed (platform admin + demo company)
-if [[ "${MODE}" == "saas" ]]; then
-  SEED=full
-fi
+# saas mode: always full seed
+[[ "${MODE}" == "saas" ]] && SEED=full
 
-SUPPORT_SAAS=$([[ "${MODE}" == "saas" ]] && echo true || echo false)
-
-# --- Update .env.development (only modify existing keys) ---
-ENV_FILE="${ROOT}/apps/backend/.env.development"
-
-set_env() {
-  local key="$1" value="$2"
-  if [[ -f "${ENV_FILE}" ]] && grep -q "^${key}=" "${ENV_FILE}"; then
-    sed -i '' "s|^${key}=.*|${key}=${value}|" "${ENV_FILE}"
-  fi
-}
-
-set_env SUPPORT_SAAS "${SUPPORT_SAAS}"
+# Load mode-specific env (sets COMPOSE, DATABASE_URL, NEWAPI_URL, etc.)
+# shellcheck source=../lib/mode-env.sh
+source "${ROOT}/scripts/lib/mode-env.sh"
 
 # --- Wipe & rebuild (SQL drop/create, preserves sms databases) ---
-# Stop newapi-apps first — its active connections would block DROP DATABASE.
 "${COMPOSE[@]}" stop newapi-apps 2>/dev/null || true
 "${COMPOSE[@]}" up postgres redis -d --wait
 reset_apps_databases
@@ -55,19 +42,12 @@ reset_apps_databases
 "${COMPOSE[@]}" exec -T redis redis-cli -n 0 FLUSHDB
 "${COMPOSE[@]}" exec -T redis redis-cli -n 2 FLUSHDB
 
-# Seed data (SEED env is read by Go config, not persisted)
-if [[ "${MODE}" == "saas" ]]; then
-  SEED="${SEED}" \
-  PLATFORM_BOOTSTRAP_EMAIL="${PLATFORM_BOOTSTRAP_EMAIL:-ops@tokenjoy.local}" \
-  PLATFORM_BOOTSTRAP_PASSWORD="${PLATFORM_BOOTSTRAP_PASSWORD:-platform-dev-123}" \
-    pnpm -F @tokenjoy/backend dev-bootstrap
-else
-  SEED="${SEED}" pnpm -F @tokenjoy/backend dev-bootstrap
-fi
+# Seed data
+SEED="${SEED}" pnpm -F @tokenjoy/backend dev-bootstrap
 
-# Re-sync NewAPI channel abilities after dev-bootstrap to ensure test-model is routable.
+# Re-sync NewAPI channel abilities
 "${NEWAPI_SCRIPTS}/setup-dev-mock-channel.sh" || true
 
 echo ""
 echo "Reset complete (mode=${MODE}, seed=${SEED})."
-echo "Next: pnpm start"
+echo "Next: pnpm start ${MODE}"

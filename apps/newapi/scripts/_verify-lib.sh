@@ -9,7 +9,7 @@ if [[ -z "${_VERIFY_LIB_SRC}" && -n "${ZSH_VERSION:-}" ]]; then
 fi
 VERIFY_SCRIPTS_DIR="$(cd "$(dirname "${_VERIFY_LIB_SRC}")" && pwd)"
 VERIFY_ROOT="$(cd "${VERIFY_SCRIPTS_DIR}/../../.." && pwd)"
-VERIFY_COMPOSE_FILE="${VERIFY_ROOT}/docker-compose.yml"
+VERIFY_COMPOSE_FILE="${VERIFY_COMPOSE_FILE:-${VERIFY_ROOT}/docker-compose.yml}"
 
 API_URL="${API_URL:-http://localhost:8010}"
 NEWAPI_URL="${NEWAPI_URL:-http://localhost:3010}"

@@ -6,7 +6,7 @@ export PATH="${ROOT}/node_modules/.bin:${PATH}"
 # shellcheck source=lib/db-reset.sh
 source "${ROOT}/scripts/lib/db-reset.sh"
 
-COMPOSE=(docker compose -f "${ROOT}/docker-compose.yml")
+COMPOSE=(docker compose -p tokenjoy-saas -f "${ROOT}/docker-compose.yml")
 
 cmd_start() {
   cleanup() { pkill -P $$ 2>/dev/null || true; sleep 0.5; pkill -9 -P $$ 2>/dev/null || true; }

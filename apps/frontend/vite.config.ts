@@ -5,7 +5,8 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { createApiProxyConfig, warnIfBackendUnreachable } from './vite-api-proxy'
 
-const apiProxyTarget = process.env.VITE_API_PROXY_TARGET ?? 'http://127.0.0.1:8010'
+const apiProxyTarget = process.env.VITE_API_PROXY_TARGET ?? 'http://127.0.0.1:8011'
+const devServerPort = Number(process.env.VITE_DEV_PORT) || 9192
 const apiProxy = createApiProxyConfig('/', apiProxyTarget)
 
 function apiBackendHealthPlugin(): Plugin {
@@ -36,7 +37,7 @@ export const baseViteConfig: UserConfig = {
     },
   },
   server: {
-    port: 9191,
+    port: devServerPort,
     proxy: apiProxy,
   },
   preview: {

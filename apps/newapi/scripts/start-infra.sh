@@ -7,6 +7,9 @@ set -euo pipefail
 source "$(cd "$(dirname "$0")" && pwd)/_verify-lib.sh"
 
 COMPOSE=(docker compose -f "${VERIFY_COMPOSE_FILE}")
+if [[ -n "${COMPOSE_PROJECT:-}" ]]; then
+  COMPOSE=(docker compose -p "${COMPOSE_PROJECT}" -f "${VERIFY_COMPOSE_FILE}")
+fi
 
 verify_info "Starting postgres + redis..."
 "${COMPOSE[@]}" up postgres redis -d --wait

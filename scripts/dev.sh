@@ -15,11 +15,16 @@ case "${cmd}" in
     if [[ "${target}" == "sms" ]]; then
       exec bash "${SMS}" start
     elif [[ "${target}" == "all" ]]; then
-      exec concurrently -n apps,sms -c blue,cyan \
-        "bash \"${DEV}/start.sh\"" \
-        "bash \"${SMS}\" start"
+      exec concurrently -n saas,local -c blue,cyan \
+        "bash \"${DEV}/start-saas.sh\"" \
+        "bash \"${DEV}/start-local.sh\""
+    elif [[ "${target}" == "saas" ]]; then
+      exec bash "${DEV}/start-saas.sh"
+    elif [[ "${target}" == "local" ]]; then
+      exec bash "${DEV}/start-local.sh"
     fi
-    exec bash "${DEV}/start.sh"
+    # Default: Local mode
+    exec bash "${DEV}/start-local.sh"
     ;;
   reset)
     target="${1:-}"
@@ -39,9 +44,11 @@ case "${cmd}" in
 usage: scripts/dev.sh <command> [args...]
 
 commands:
-  start              Start apps backend + frontend + mock
+  start              Start Local mode (default)
+  start local        Start Local mode (PG:5520 Backend:8011 Frontend:9192)
+  start saas         Start SaaS mode (PG:5510 Backend:8010 Frontend:9191)
+  start all          Start both SaaS and Local in parallel
   start sms          Start sms backend + frontend
-  start all          Start both apps and sms in parallel
   reset [mode]       Reset apps: pnpm reset [local|saas] [--empty|--minimal|--full]
   reset sms          Reset sms databases and seed
   reset all          Reset both apps and sms
