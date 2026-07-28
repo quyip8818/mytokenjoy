@@ -224,56 +224,296 @@ platform_keys (
 
 ---
 
-## 8. 性能优化：当前状态与改进方向
+---
 
-### 8.1 当前性能瓶颈
+## 8. 成员状态与生命周期
 
-`RequireSession` 是 **每个认证请求的热路径**。当前最大问题：
+### 8.1 状态
 
-**`ResolveCompanyChargeRate` 在 LRU 缓存之外，每次请求无条件执行 2 次 DB 查询。**
+| 状态 | 值 | 说明 | 可登录 |
+|------|------|------|--------|
+| 待激活 | `pending` | 已邀请，未完成注册 | 否 |
+| 已启用 | `active` | 正常使用 | 是 |
+| 已禁用 | `disabled` | 管理员禁用或移除 | 否 |
 
-即使 authz LRU 完全命中，仍有 `Company.GetByID` + `Billing.GetCurrency` 两次查询。对于高频 API（如轮询、列表页），这是不必要的重复开销。
+### 8.2 转换规则
 
-### 8.2 推荐改进（按优先级）
-
-#### P0：将 billing rate 纳入缓存
-
-billing currency 和 quota_per_unit 是公司级配置，变更频率极低（管理员操作）。应该和 member authz 一起缓存在 LRU 中，以 revision 为失效键。
-
-```go
-// 目标：GetSessionContext 在完全命中时 = 0 DB 查询
-type cacheValue struct {
-    member          types.Member
-    permissions     []string
-    readOnly        bool
-    billingCurrency string  // ← 新增
-    quotaPerUnit   int64   // ← 新增
-}
+```
+pending ──（注册激活）──▶ active ◀──▶ disabled
+   │                        │
+   ▼                        ▼
+ 硬删                    disabled（软删）
 ```
 
-将 `ResolveCompanyChargeRate` 调用移入 cache miss 分支。当 authz_revision 不变时，billing 信息也不变。
+| 从 | 到 | 方式 |
+|----|------|------|
+| pending | active | 用户完成注册（AcceptInvite） |
+| pending | 硬删 | 管理员删除，物理移除 member + invite 记录 |
+| active | disabled | 管理员禁用/移除 |
+| disabled | active | 管理员启用 |
 
-**效果**：热路径 DB 查询从 2 降至 0（revision 5s TTL 内）。
+**禁止**：管理员手动将 pending 改为 active。
 
-#### P1：revision 查询走 Redis
+### 8.3 删除行为
 
-当前 revision 缓存是进程内 5s TTL。多实例部署时每个实例独立缓存，revision bump 后 5s 窗口内可能返回过期权限。
+| 状态 | 行为 |
+|------|------|
+| pending | 硬删，物理移除 member + invite 记录 |
+| active / disabled | 软删，状态改为 `disabled`，API Key 失效，记录保留 |
 
-改为 Redis GET/SET with TTL，所有实例共享同一 revision 视图。bump revision 时 DEL key 即时失效。
+---
 
-**效果**：多实例一致性从 5s 降至亚秒级。单实例场景无区别。
+## 9. 邀请与注册流程
 
-#### P2：`CompanyType` 缓存
+### 9.1 核心概念
 
-`companyTypeFromContext` 在 context 无值时（测试或特殊路径）会 fallback 到 `Company.GetByID`。正常请求路径通过 CompanyResolve middleware 已注入 context，此查询几乎不触发。低优先级，但如果做了 P0 可以顺带收掉。
+| 概念 | 说明 |
+|------|------|
+| **创建来源 (source)** | member 进入系统方式：`manual` / `csv` / `feishu` / `dingtalk` / `wecom` / `invited` |
+| **邀请渠道 (inviteChannel)** | 链接分发渠道：`sms` / `email` / `admin_link` |
+| **注册渠道 (registrationChannel)** | 用户最终完成注册的渠道（嵌入加密 token） |
 
-### 8.3 改进后目标性能
+### 9.2 邀请流程
 
-| 场景                                    | DB 查询 | 备注                             |
-| --------------------------------------- | ------- | -------------------------------- |
-| 完全命中（同一 member 连续请求）        | 0       | revision 5s TTL 内 + LRU 命中    |
-| revision miss（首次或 >5s）             | 1       | 仅 SELECT authz_revision         |
-| authz miss（新 member / revision 变更） | 3       | revision + memberAuthz + billing |
-| 冷启动                                  | 3       | 同上                             |
+一个 member 只有一条 invite 记录（`company_invites`）。不同渠道分发的是同一条 invite 的不同加密 token——token 内嵌 `ch` 字段区分渠道。
 
-对比当前：热路径从 **2 DB/req** 降至 **0 DB/req**，仅 revision TTL 边界有 1 次查询。
+```
+CreateMember(input):
+  1. 创建 member 记录（status = pending）
+  2. 创建 invite 记录（生成 invite_code）
+  3. if input.phone: encrypt({code, ch=sms}) → 发送短信
+  4. if input.email: encrypt({code, ch=email}) → 发送邮件
+  5. if 都没有: 等待管理员手动获取链接
+```
+
+BatchImport 对每行执行同样逻辑。
+
+### 9.3 加密 Token
+
+AES-GCM 对称加密，密钥 `INVITE_SECRET`（`internal/pkg/invitetoken`）。
+
+**payload**：`{ "code": "invite_code", "ch": "sms|email|admin_link", "exp": timestamp }`
+
+- Token 不可伪造（AES-GCM 认证加密）
+- 过期双重校验（token.exp + DB expires_at）
+- 一次性使用（accepted_at 标记后不可重复）
+
+### 9.4 AcceptInvite
+
+```
+POST /auth/accept-invite { inviteCode, password, name? }
+  → 解密 token → code + channel
+  → 查 invite 验证未过期未使用
+  → 创建/关联 user，设置密码
+  → member.status → active，registrationChannel → channel
+  → 签发 JWT Session
+```
+
+### 9.5 相关 API
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/org/members` | 创建成员（status=pending + invite + 发送通知） |
+| POST | `/org/members/{id}/invite-link` | 管理员获取邀请链接（ch=admin_link） |
+| POST | `/org/members/batch-invite` | 批量重发邀请 |
+| POST | `/auth/accept-invite` | 注册激活 |
+
+### 9.6 配置
+
+| 环境变量 | 说明 |
+|----------|------|
+| `INVITE_SECRET` | AES-256 密钥（32 bytes hex），支持多密钥轮转 |
+| `INVITE_EXPIRE_HOURS` | 有效时间，默认 168（7天） |
+
+---
+
+## 10. Member/User 数据边界
+
+### 10.1 数据模型
+
+| 表 | 字段 | 说明 |
+|----|------|------|
+| `users` | name, phone, email, password_hash | 全局用户身份（跨公司） |
+| `members` | alias, department_id, employee_id, job_title, hire_date, status, source, registration_channel | 公司内成员身份 |
+
+### 10.2 API 边界
+
+| API | 用途 | 操作目标 |
+|-----|------|---------|
+| `POST /org/members` | 创建成员 | body `{user:{name,phone,email}, member:{alias,departmentId,...}}` → resolveOrCreateUser + 创建 member |
+| `PUT /org/members/:id` | 更新 member 字段 | alias, departmentId, employeeId, jobTitle, hireDate |
+| `PUT /org/members/:id/user` | 管理员改 user 字段 | name, phone, email（唯一性冲突报错） |
+| `PUT /me/profile` | 用户改自己 | name, avatar, alias |
+| `GET /org/members` | 列表 | JOIN users 返回 name/phone/email（只读展示） |
+
+### 10.3 代码位置
+
+| 功能 | 路径 |
+|------|------|
+| invite token 加解密 | `internal/pkg/invitetoken/` |
+| 创建成员 + 邀请 | `internal/domain/org/structure/member_mutate.go` |
+| 批量导入 + 邀请 | `internal/domain/org/structure/member_batch.go` |
+| AcceptInvite | `internal/domain/company/service_invite.go` |
+| 前端激活页 | `apps/frontend/src/routes/auth/invite-accept.tsx` |
+
+
+---
+
+## 11. SaaS 认证流程
+
+### 11.1 认证策略
+
+`AUTH_PRIMARY` 切换主认证路径（`phone` / `email`），两条对等。
+
+| 策略 | 登录方式 | 注册方式 |
+|------|---------|---------|
+| `phone` | 手机号 + 短信验证码 | 手机验证 → 创建企业 |
+| `email` | 邮箱 + 密码 或 邮箱 + OTP | 邮箱验证 → 创建企业 |
+
+### 11.2 登录分流
+
+`POST /auth/verify-code/verify` 验证码通过后按 membership 数量路由：
+
+| Member 数 | 有邀请？ | action | 行为 |
+|-----------|---------|--------|------|
+| 1 | — | `enter` | 直接 issueTokenPair |
+| ≥2 | — | `select_company` | Register Session → 企业选择页 |
+| 0 | 是 | `choose` | Register Session → 邀请选择页 |
+| 0 | 否 | `not_found` | 引导去注册 |
+| User不存在 | — | `not_found` | 引导去注册 |
+
+### 11.3 注册流程
+
+1. 验证手机/邮箱 → `POST /auth/register/init`（创建 User + Register Session）
+2. 设置密码 + 公司名 → `POST /auth/register/company`（创建 Trial 企业 + issueTokenPair）
+
+创建的是真实企业（`type=trial`），数据永久保留。
+
+### 11.4 多企业切换
+
+`POST /auth/switch-company { companyId }` → 校验 user 有目标 company 的 active member → 重新 issueTokenPair。
+
+### 11.5 SaaS API 端点
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/auth/capabilities` | 前端渲染决策（primaryAuth, registrationEnabled） |
+| POST | `/auth/otp/send` | 发送验证码 |
+| POST | `/auth/otp/verify` | 验证 → 分流 |
+| POST | `/auth/select-company` | 多企业选择 |
+| POST | `/auth/register/init` | 注册初始化 |
+| POST | `/auth/register/company` | 创建公司（含密码） |
+| POST | `/auth/switch-company` | 切换企业 |
+| GET | `/auth/setup-status` | 私有化检查（RequireLocal） |
+| POST | `/auth/setup` | 私有化初始化（RequireLocal） |
+
+### 11.6 OTP 服务
+
+手机验证码和邮箱验证码共用 `identity/verifycode.Service`：
+
+| 配置 | 值 |
+|------|------|
+| 验证码长度 | 6 位数字 |
+| 有效期 | 5 分钟（Redis TTL） |
+| 发送间隔 | 60 秒 |
+| 每日上限 | 10 次/target |
+| 验证尝试 | 最多 5 次，超过锁定 15 分钟 |
+
+Redis 存储：
+
+```
+sms:code:{target}      → code, TTL 5min
+sms:lock:{target}      → "1", TTL 60s
+sms:daily:{target}     → counter, TTL 到当日 24:00
+sms:attempts:{target}  → counter, TTL 15min
+```
+
+### 11.7 Token 机制
+
+| Cookie | 有效期 | 用途 |
+|--------|--------|------|
+| `tokenjoy_session_member` | 15 min | Access Token JWT |
+| `tokenjoy_refresh` | 7 天 | Refresh Token（DB-backed，Path=/api/auth/refresh） |
+| `tokenjoy_register_session` | 10 min | 注册中间态 JWT（仅含 userID） |
+
+---
+
+## 12. Trial 免费试用
+
+### 12.1 模拟资金
+
+注册时灌入 `LotKindMock` lot（`SeedTrialCredit`）。Gateway allowlist 仅含 mock 模型 → 真实模型自然被 403。Mock lot 正常 FIFO 消费，看板可见。
+
+### 12.2 升级（Trial → Standard）
+
+```sql
+UPDATE recharge_lots SET status='expired' WHERE company_id=$1 AND lot_kind='mock' AND status='active';
+UPDATE companies SET wallet_remain_quota=(SELECT SUM(quota_remaining) FROM recharge_lots WHERE company_id=$1 AND status='active'), type='standard' WHERE id=$1;
+```
+
+升级后：Key allowlist 解锁全部模型，充值解锁，mock lot expired。
+
+### 12.3 功能限制
+
+| 功能 | Trial 行为 |
+|------|-----------|
+| Gateway | 仅 mock 模型（allowlist） |
+| 预算/Key/组织/审计/看板 | 全功能 |
+| 充值 | 禁用，提示升级 |
+| 成员上限 | 50 人 |
+
+---
+
+## 13. AuthPopup 跨域方案
+
+### 13.1 部署拓扑
+
+`www.tokenjoy.com`（官网）+ `app.tokenjoy.com`（App）+ `api.tokenjoy.com`（API）。Cookie Domain `.tokenjoy.com` 共享 session。
+
+### 13.2 组件
+
+```tsx
+<AuthPopup open defaultMode="login|register" apiBase="/api" closable onSuccess onClose />
+```
+
+- 内部状态机：login tab（phone_verify → enter/select/choose/not_found）+ register tab（phone → info → success）
+- 自带 API client（纯 fetch + credentials:include），不依赖 App React Query
+- App 内通过 `SessionGate` 自动弹出（未登录时 FakeDashboard 背景 + AuthPopup 覆盖）
+- 官网通过 `@tokenjoy/auth-popup` npm 包引入
+
+### 13.3 前端文件
+
+```
+features/auth/
+├── components/auth-popup.tsx       — 统一认证弹窗
+├── components/fake-dashboard.tsx   — 登录背景装饰
+└── hooks/use-verify-countdown.ts
+
+routes/auth/login.tsx               — FakeDashboard + AuthPopup(closable=false)
+routes/auth/invite-accept.tsx       — 邀请激活页
+```
+
+---
+
+## 14. Company 类型与部署模式
+
+### 14.1 type 枚举
+
+| 值 | 含义 | 部署 |
+|----|------|------|
+| `standard` | SaaS 正式付费 | SaaS |
+| `trial` | SaaS 免费试用 | SaaS |
+| `selfhosted` | 私有化部署 | 非 SaaS |
+| `testing` | 开发/CI | 开发环境 |
+
+仅允许 `trial → standard` 流转。
+
+### 14.2 SaaS vs 私有化
+
+| 能力 | 私有化 | SaaS |
+|------|--------|------|
+| 租户数 | 1 | 多 |
+| Company 解析 | LocalCompanyID 兜底 | JWT 必须携带 |
+| 自助注册 | 无 | 有 |
+| 供应商 Key | 企业自管 | 平台统一管理（企业只读） |
+| Platform 管理后台 | 无 | 有 |

@@ -215,7 +215,6 @@ notification_preferences (
 )
 ```
 
-详细字段说明见 [notification-center-design.md](./notification-center-design.md)。
 
 ## 扩展新渠道
 
@@ -226,3 +225,176 @@ notification_preferences (
 5. 前端 `contracts/notification/types.ts` 同步更新
 
 无需改动 Dispatch 逻辑、HTTP handler 或前端 Inbox 组件。
+
+
+---
+
+## 数据模型详细规范
+
+### notification_log 索引策略
+
+```sql
+-- 收件箱查询（partial index，只索引 active 记录）
+CREATE INDEX idx_notification_log_inbox
+    ON notification_log (company_id, user_id, created_at DESC)
+    WHERE status = 'active';
+
+-- 分类筛选
+CREATE INDEX idx_notification_log_category
+    ON notification_log (company_id, user_id, category, created_at DESC)
+    WHERE status = 'active';
+
+-- 分组聚合
+CREATE INDEX idx_notification_log_group
+    ON notification_log (company_id, user_id, group_key, created_at DESC)
+    WHERE group_key != '' AND status = 'active';
+
+-- 未读计数
+CREATE INDEX idx_notification_log_unread
+    ON notification_log (company_id, user_id)
+    WHERE read_at IS NULL AND status = 'active';
+```
+
+### 生命周期状态机
+
+```
+新建 ──▶ active ──▶ archived ──▶ deleted（终态）
+           │                         ▲
+           └────────────────────────┘（可跳过 archived 直接删）
+
+active ← unarchive ← archived
+active ← undelete  ← deleted（恢复统一回 active）
+```
+
+- `read_at` 正交于生命周期：任何 status 下都可标记已读
+- 所有删除为软删除，数据永久保留
+
+### 分组机制
+
+#### group_key 生成规则
+
+| 事件类型 | group_key 格式 | 效果 |
+|----------|-----------|------|
+| budget_alert_reached | `budget:{ruleID}:{period}` | 同规则同周期合并 |
+| overrun_blocked | `overrun:{projectID}:{date}` | 同项目同天合并 |
+| key_expiring_soon / key_expired | `key_expiry:{keyID}` | 同 Key 合并 |
+| security_login_new_device | `""` | 不分组 |
+| system_maintenance_scheduled | `maintenance:{eventID}` | 同事件合并 |
+| usage_weekly_report | `""` | 不分组 |
+
+#### 分组查询
+
+使用 PG `DISTINCT ON` 两步查询：找每组代表行（最新一条）→ cursor 分页 → JOIN 回原表 + 子查询 group_count。空 group_key 用 `id::text` 作 fallback key。
+
+### SSE 实时推送
+
+```go
+type SSEEvent struct {
+    ID        string          `json:"id"`
+    EventType string          `json:"eventType"`
+    Title     string          `json:"title"`
+    Body      string          `json:"body"`
+    GroupKey  string          `json:"groupKey,omitempty"`
+    Category  string          `json:"category,omitempty"`
+    Payload   json.RawMessage `json:"payload,omitempty"`
+}
+```
+
+- 每用户一个 subscriber channel（按 member_id 订阅）
+- InAppChannel 写入 DB 后同步 Publish 到 Hub
+- 无持久化，断连重连后靠 REST API 补数据
+- 前端同 groupKey 10s 内防刷屏
+
+### GET /notifications 查询参数
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `limit` | int | 20 | 每页条数（max 100） |
+| `cursor` | string | — | 游标（RFC3339Nano UTC） |
+| `category` | string | — | 按类别筛选 |
+| `status` | string | all | `unread` / `read` / all |
+| `archived` | bool | false | 查已归档列表 |
+| `grouped` | bool | true | 是否分组返回 |
+| `group_key` | string | — | 指定组内详情 |
+
+---
+
+## 已实现通知事件
+
+### 组织同步删除保护超阈值
+
+**触发**：定时/手动同步 Diff 计算完毕，待删除成员数 > `deleteMemberThreshold` 或部门数 > `deleteDepartmentThreshold`。
+
+**行为**：
+1. 不执行任何变更
+2. 写入 SyncLog（result=failure）
+3. 通知本企业所有超级管理员 + 组织管理员
+
+**渠道**：站内通知始终投递 + 按 SyncConfig 配置的 `notifyPhone`/`notifyEmail`/`notifyIm`。
+
+**通知内容**：标题"组织同步保护触发"，正文含待删除数量、阈值、建议操作。actionUrl → `/org/data-source`。
+
+**代码入口**：`domain/org/core/notify.go` → `NotifySyncThresholdExceeded`；模板 `templates/sync-threshold-exceeded.html`。
+
+### 预算预警
+
+**触发**：Ingest commit 后 `CheckBudgetAlerts` 检测 touched department 的阈值。
+
+**渠道**：按 `alert_rules.notify_role_ids` 解析收件人，走 category `budget_alert` 默认 Email + InApp。
+
+**代码入口**：`domain/budget/alert_publisher.go`；模板 `templates/budget-alert.html`。
+
+### 超限阻断
+
+**触发**：OverrunService 禁用 Key 后。
+
+**渠道**：InApp + Webhook。
+
+**代码入口**：`domain/budget/overrun.go` → `notifyOverrun`；模板 `templates/overrun-blocked.html`。
+
+### 成员邀请
+
+**触发**：CreateMember / BatchImport / BatchInvite。
+
+**渠道**：SMS（阿里云）+ Email（Resend），含注册链接。
+
+**代码入口**：`domain/org/structure/member_mutate.go` → `sendInviteNotifications`；模板 `templates/company-invite.html`。
+
+---
+
+## UI 规范
+
+### 通知类别视觉
+
+| 类别 | 图标 (lucide-react) | 颜色 |
+|------|------|---------|
+| budget_alert | `TrendingUp` | `text-orange-500` |
+| key_expiration | `Key` | `text-amber-500` |
+| usage_report | `BarChart3` | `text-blue-500` |
+| security_event | `ShieldAlert` | `text-red-500` |
+| system_maintenance | `Settings` | `text-slate-500` |
+| overrun | `AlertTriangle` | `text-rose-500` |
+
+### 铃铛按钮
+
+- 按钮 h-9 w-9，`rounded-md border border-border`
+- 未读 badge：`absolute -right-1 -top-1`，蓝色圆形，白字数字，>99 显示 "99+"
+
+### 列表项状态
+
+| 状态 | 样式 |
+|------|------|
+| 未读 | `border-l-[3px] border-l-primary` + `bg-accent/40` + `font-medium` |
+| 已读 | 无边框 + 透明背景 + `font-normal text-muted-foreground` |
+| hover | `bg-muted/60` + 时间戳 → 归档按钮 |
+
+### actionUrl 映射
+
+前端 `getActionUrl(notification)` 根据 event_type + payload 计算跳转路由：
+
+| event_type | 路由 |
+|-----------|------|
+| budget_alert_reached | `/budget/alerts` |
+| key_expired / key_expiring_soon | `/keys/platform` |
+| overrun_blocked | `/budget` |
+| sync_threshold_exceeded | `/org/data-source` |

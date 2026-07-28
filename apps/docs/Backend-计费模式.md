@@ -108,7 +108,6 @@ flowchart TB
 | 事实 | lots、ledger、`wallet_remain_quota` | `wallet_remain_quota` 可读；**禁止**热路径 `SUM(ledger)` |
 | 投影 | soft / consumed / buckets           | soft 可用（带 lag）                                      |
 
-与 [架构终态设计.md](./架构终态设计.md) 一致：**摘要列是投影，不是事实。**
 
 ### 3.1 权威矩阵
 
@@ -216,7 +215,6 @@ flowchart TD
 | 5   | 模型白名单                                                        |
 
 **不做：** 动态 estimate；热路径扫 ledger；ingest 同事务重投影。  
-soft lag：见 [Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md) §10。
 
 ### 4.5 wallet_sync
 
@@ -303,7 +301,7 @@ quota_granted = Round(amount_display × QPU(currency))
 
 ```text
 pkg/common/constants.go          DefaultBillingCurrency / DefaultQuotaPerUnit
-pkg/newapiunits/quota.go         NewAPIGroupForDepartment
+integration/newapi/units.go      NewAPIGroupForDepartment
 
 domain/billing/currency.go       ResolveCompanyChargeRate / resolveQuotaPerUnit
 domain/billing/lot*.go           BuildPaidLot / Confirm / ConsumeLots

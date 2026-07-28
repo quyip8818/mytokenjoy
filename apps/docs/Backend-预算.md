@@ -2,7 +2,7 @@
 
 企业钱包与组织预算双轴、入账、配额同步与超限的**当前实现**说明。
 
-**相关：** [Backend.md](./Backend.md) · [Backend-架构.md](./Backend-架构.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-计费模式.md](./Backend-计费模式.md)
+**相关：** [Backend-架构.md](./Backend-架构.md) · [Backend-架构.md](./Backend-架构.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-计费模式.md](./Backend-计费模式.md)
 
 ---
 
@@ -100,7 +100,7 @@ flowchart TB
 | **展示投影**   | `usage_buckets`                          | `dashboard.Projector`（看门狗小时级触发） | hour/day 看板                      |
 | **冷矫正**     | 同上累计表                               | `budget_reconcile` 窗口 `SetConsumed`     | 修漂移                             |
 
-终态：**无** `budget_projection` / 游标 budget Projector。细节：[Backend-预算累计架构.md](./Backend-预算累计架构.md)。
+终态：**无** `budget_projection` / 游标 budget Projector。
 
 ```mermaid
 flowchart LR
@@ -207,7 +207,7 @@ flowchart TB
 | 预警规则     | CRUD      | `/api/budget/alerts/*`                                            |
 | 超限策略     | GET / PUT | `/api/budget/overrun-policy`                                      |
 | 审批         | —         | `/api/approvals/*`（统一审批引擎）                                |
-| 充值         | POST      | `/api/billing/recharge`；平台代充见 [Backend.md](./Backend.md) §2 |
+| 充值         | POST      | `/api/billing/recharge`；平台代充见 [Backend-架构.md](./Backend-架构.md) §2 |
 
 ---
 
@@ -244,7 +244,7 @@ sequenceDiagram
 
 **Gateway 预检（同步）** — 全部通过才代理（单位 point）；1× `LoadPrecheckContext` + 纯内存 `Evaluate`：
 
-| scope            | 公式（与 [预算分配与扣减.md](./预算分配与扣减.md) §14 一致）  |
+| scope            | 公式（见 §14 开发者扩展指南）  |
 | ---------------- | ------------------------------------------------------------- |
 | `member`         | `min(key, personal, wallet)` — **不含**未分配/预留池/部门报表 |
 | `project`        | `min(key, project, wallet)`                                   |
@@ -381,7 +381,7 @@ flowchart LR
 | 项目               | project 轴 consumed ≥ budget          | 禁用该项目 **project** + **project_member** Key |
 | project_member sub | Σ Key consumed ≥ `member_budget`      | 禁用该人该项目 **project_member** Key           |
 
-personal 用尽后的追加路径：**US-10 额度审批**（预留池 → `personal_budget`），不是运行时自动蹭未分配。见 [预算分配与扣减.md](./预算分配与扣减.md)。
+personal 用尽后的追加路径：**US-10 额度审批**（预留池 → `personal_budget`），不是运行时自动蹭未分配。见 §14。
 
 **预警配置：** `alert_rules`、`overrun_policy` 可经 API 配置并持久化；超限通知经 `NOTIFY_WEBHOOK_URL` 出站（如 `overrun_blocked`）。
 
@@ -429,7 +429,7 @@ sequenceDiagram
 | 看板 buckets 投影                            | `domain/dashboard`                                                    |
 | Rebalance                                    | `domain/budget/rebalance`（`adminport.Port` 更新 token）              |
 | NewAPI Admin 边界                            | `domain/adminport` + `integration/newapi/admin_port_adapter.go`       |
-| Quota 换算                                   | `pkg/newapiunits`                                                     |
+| Quota 换算                                   | `pkg/budget`                                                     |
 | Key 额度校验                                 | `domain/keys` + `pkg/budget`                                          |
 | Gateway 软缓存                               | `domain/budget/gateway_summary.go` + `infra/budgetcheck`              |
 | consumed 加载                                | `pkg/budget` + `store.BudgetConsumed()`                               |
@@ -441,7 +441,7 @@ sequenceDiagram
 
 ## 13. 待优化与待修复
 
-按优先级归纳；工程细节另见 [plan.md](./plan.md)、产品差距见 [Roadmap.md](./Roadmap.md)。
+按优先级归纳；工程细节另见 [plan/plan.md](./plan/plan.md)、产品差距见 [Roadmap.md](./Roadmap.md)。
 
 ### 应修复（行为与配置不一致）
 
@@ -475,3 +475,68 @@ sequenceDiagram
 | `budget_consumed` 三轴 | consumed SSOT；Gateway 读 `gateway_soft_*`；与 Overrun / UI 一致 |
 | 自然月账期             | `period_key` 机制已满足按月清零                                  |
 | 充值不涨部门 budget    | 产品约定，非缺陷                                                 |
+
+
+---
+
+## 14. 开发者扩展指南
+
+### 14.1 预检链：GatewayChainRemain
+
+核心函数 `pkg/budget/chain.go`，按 scope 取候选池剩余的最小值：
+
+| Scope | 候选池 |
+|-------|--------|
+| `member` | Key 剩余, personal 剩余 |
+| `project` | Key 剩余, 项目剩余 |
+| `project_member` | Key 剩余, 子额度剩余, 项目剩余 |
+
+各剩余 = limit - consumed（limit=0 表示不设上限，跳过）。**不参与预检**：未分配余量、部门报表、预留池。企业钱包在网关层独立检查。
+
+### 14.2 消耗入账轴（ConsumptionDeltas）
+
+`pkg/budget/consumed_attrib.go`：
+
+| Scope | 写入 budget_consumed 轴 |
+|-------|------------------------|
+| `member` | `platform_key` + `member` |
+| `project` | `platform_key` + `project` |
+| `project_member` | `platform_key` + `project` |
+
+`project_member` 子额度消耗不单独写轴——通过聚合该成员在该项目下所有 Key 的 `platform_key` 轴得出。
+
+### 14.3 包职责
+
+| 包 | 职责 | 副作用 |
+|----|------|--------|
+| `pkg/budget` | 纯计算：chain remain、tree、校验、period | 无 |
+| `domain/budget` | 编排：service CRUD、overrun、reconcile、combined key | 有 |
+| `domain/billing` | 钱包：充值、lot 消耗、余额查询 | 有 |
+| `domain/billing/lot` | lot 消耗引擎（FIFO + overdraft） | 有 |
+
+### 14.4 新增预检层级
+
+1. `ChainInputs` 添加字段
+2. `GatewayChainRemain` 对应 scope case 添加 candidate
+3. `BuildChainInputs` 填充新字段
+4. `OverrunService.evaluateOverrun` 添加封禁逻辑
+5. 刷新 `combined_key_summaries`
+
+### 14.5 新增 Key Scope
+
+1. `domain/types/keys.go` 添加常量
+2. `ValidPlatformKeyScope` 添加 case
+3. `GatewayChainRemain` 添加 scope case
+4. `ConsumptionDeltas` 添加入账轴
+5. `OverrunService` 添加检查
+6. `ValidatePlatformKeyScope` 添加字段校验
+
+### 14.6 关键不变量
+
+1. **scope 间不兜底**：member Key 只扣 personal；project Key 只扣项目池
+2. **部门 ledger 仅通知**：部门消耗达预算只发预警，不封 Key
+3. **未分配不参与运行时**：配置余量仅供分配，预检链不考虑
+4. **Personal 用尽即阻断**：恢复路径是预留池审批追加
+5. **combined_key_remain 是缓存**：`budget_consumed` 是唯一权威；summary 可重算
+6. **Lot 消耗不可逆**：overdraft 只能通过充值覆盖
+7. **子额度是 Key 聚合**：`project_member` 不写 member 轴

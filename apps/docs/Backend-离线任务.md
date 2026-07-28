@@ -1,7 +1,6 @@
 # Backend · 离线任务（终态）
 
 > **定位**：离线任务 **最优终态**（consumed 在 Ingest；无 `budget_projection`）。  
-> **预算副作用**：[Backend-预算累计架构.md](./Backend-预算累计架构.md)  
 > **入账**：[Backend-Ingest架构.md](./Backend-Ingest架构.md) · [Backend-预算.md](./Backend-预算.md)  
 > Schema / Unique：`internal/infra/jobs/`
 
@@ -60,7 +59,7 @@ flowchart TB
 | **river workers** | `internal/infra/river/workers` | 薄壳：`Work()` → 调 domain 一个方法         |
 | **river client**  | `internal/infra/river`         | Client 装配、Periodic、队列权重             |
 
-Domain 入队经各域 `JobEnqueuer` 端口（`domain/*/ports.go` + `app/port_*.go`）；底层统一 `jobs.Enqueuer`（`Insert` / `InsertInTx`）。事务内入队通过 `store.Tx`（`postgres.txStore` 实现），domain 不 import `pgx`。
+Domain 入队经各域 `JobEnqueuer` 端口（`domain/port/` + `adapter/enqueue/`）；底层统一 `jobs.Enqueuer`（`Insert` / `InsertInTx`）。事务内入队通过 `store.Tx`（`postgres.txStore` 实现），domain 不 import `pgx`。
 
 ### 2.1 Holder 与域端口
 
@@ -70,12 +69,12 @@ Domain 入队经各域 `JobEnqueuer` 端口（`domain/*/ports.go` + `app/port_*.
 
 | 域         | 端口                         | 适配器                                         |
 | ---------- | ---------------------------- | ---------------------------------------------- |
-| billing    | `billing.JobEnqueuer`        | `app/port_billing.go`                          |
-| budget     | `budget.JobEnqueuer`         | `app/port_budget.go`                           |
-| usage      | `usage.IngestJobEnqueuer`    | `app/port_usage.go`                            |
-| dashboard  | `dashboard.JobEnqueuer`      | `app/port_dashboard.go`                        |
-| newapisync | `newapisync.SyncJobEnqueuer` | `app/port_newapisync.go`                       |
-| org-remote | `remote.JobEnqueuer`         | `app/port_org.go`（含 `CancelPendingOrgSync`） |
+| billing    | `billing.JobEnqueuer`        | `adapter/enqueue/budget.go`                          |
+| budget     | `budget.JobEnqueuer`         | `adapter/enqueue/budget.go`                           |
+| usage      | `usage.IngestJobEnqueuer`    | `adapter/enqueue/usage_ingest.go`                            |
+| dashboard  | `dashboard.JobEnqueuer`      | `adapter/enqueue/dashboard.go`                        |
+| newapisync | `newapisync.SyncJobEnqueuer` | `adapter/enqueue/newapisync.go`                       |
+| org-remote | `remote.JobEnqueuer`         | `adapter/enqueue/org.go`                       |
 
 `RIVER_ENABLED=false` 时 Holder 保持 `NoopEnqueuer`（`Insert` 返回 `nil`，**不入队**）。
 
@@ -244,7 +243,6 @@ Deferred 入队：`compose_watchdog.go` → `startDeferredWatchdog`（`app.go` �
 - overrun：轻量预判后**按需**入队；百分比告警可直做
 - rebalance：月切 / reconcile / approval / project 删除 / newapisync 完成；**充值不触发**
 - Gateway 读 `combined_key_remain`；看板读 `usage_buckets`
-- 详见 [Backend-预算累计架构.md](./Backend-预算累计架构.md)
 
 ---
 
@@ -270,7 +268,7 @@ Deferred 入队：`compose_watchdog.go` → `startDeferredWatchdog`（`app.go` �
 ```text
 internal/
   app/compose_worker.go
-  app/port_*.go
+  adapter/enqueue/*.go
   config/watchdog.go
   domain/usage/ingest.go
   domain/budget/budget_projector.go
@@ -294,7 +292,6 @@ internal/
 
 | 文档                                             | 内容                         |
 | ------------------------------------------------ | ---------------------------- |
-| [Backend-模块化设计.md](./Backend-模块化设计.md) | 模块地图与 `infra/` 目录终态 |
 | [Backend-架构.md](./Backend-架构.md) §7          | 后台运行时                   |
 | [Backend-Ingest架构.md](./Backend-Ingest架构.md) | webhook → pending → ingest   |
 | [Backend-预算.md](./Backend-预算.md)             | 预算域、异步投影             |

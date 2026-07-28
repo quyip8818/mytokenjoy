@@ -1,6 +1,6 @@
 # TokenJoy Frontend
 
-`apps/frontend` 现状：架构、API 契约、本地联调。后端见 [Backend.md](./Backend.md)（索引）；工程待办见 [plan.md](./plan.md)；产品差距见 [Roadmap.md](./Roadmap.md)。
+`apps/frontend` 现状：架构、API 契约、本地联调。后端见 [Backend-架构.md](./Backend-架构.md)（索引）；工程待办见 [plan/plan.md](./plan/plan.md)；产品差距见 [Roadmap.md](./Roadmap.md)。
 
 **权威来源：** API 路径与 JSON → 本文 §5 + `apps/frontend/src/api/types/`（部分计费类型内联于 `api/billing.ts`）。
 
@@ -21,7 +21,7 @@ main.tsx → App.tsx
 ```
 
 - `pnpm start`：Postgres + Redis + NewAPI + backend `:8010` + frontend `:5173` + `dev-mock-llm` `:8765`；`/api` 与 `/v1` 反代 Go（`vite-api-proxy.ts`）
-- Dev Header「模拟消耗」：仅 `import.meta.env.DEV`；走 `POST /v1` 全链路 ingest 测试，见 [本地模式-模拟消耗Popup.md](./manual-testing/本地模式-模拟消耗Popup.md)
+- Dev Header「模拟消耗」：仅 `import.meta.env.DEV`；走 `POST /v1` 全链路 ingest 测试
 - 登录：`POST /auth/login`（邮箱密码）→ HttpOnly JWT Cookie → `GET /session`
 - 首页 `/` 按权限跳转 `HOME_PATH_CANDIDATES`
 
@@ -51,7 +51,7 @@ apps/frontend/
 | HTTP / DTO | `api/{domain}.ts`、`api/types/`                 |
 | 纯逻辑     | `lib/`、`features/{domain}/lib/`                |
 
-禁止硬编码路由（用 `ROUTES.*`）；`components/ui` 不含业务语义。工程待办见 [plan.md](./plan.md) §4。
+禁止硬编码路由（用 `ROUTES.*`）；`components/ui` 不含业务语义。工程待办见 [plan/plan.md](./plan/plan.md) §4。
 
 ### 2.1 约定与门禁
 
@@ -141,7 +141,7 @@ React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix
 | 列表 enrich              | 扩展现有 `GET /keys/platform`、`GET /models`；**不**新增平行 `/enriched` 端点 |
 | `platform_keys` 推导字段 | **不入库**；`platform_key_enrich.go` domain join；改名后下次 GET 自动反映     |
 | 审批「我的申请」         | `memberId` 查询参数；`tab` 仅表状态维度                                       |
-| `models.visibility`      | 可编辑、展示；运行时与 allowlist 合并校验属 [plan.md](./plan.md) §7           |
+| `models.visibility`      | 可编辑、展示；运行时与 allowlist 合并校验属 [plan/plan.md](./plan/plan.md) §7           |
 | 发布                     | 前后端同发；DB 迁移 additive only                                             |
 
 **`platform_keys` 字段分层：** 持久化 `scope` / `member_id` / `project_id`；响应 enrich `member_name` / `project_name` / `department_*`；运行面 `platform_key_mappings.department_id` 独立分层。见 [Backend-存储架构.md](./Backend-存储架构.md) · 本文 §5.5。
@@ -761,7 +761,7 @@ HTTP 非 2xx 时，body 应包含：
 
 ### 5.9 SaaS 多企业
 
-产品模型：**企业（Company）** = 一家公司；**成员（User）** = 企业内员工。计费双轴（企业钱包 + 部门 budget）、Gateway、平台鉴权详见 [Backend-预算.md](./Backend-预算.md) §2、[Backend.md](./Backend.md) §2。
+产品模型：**企业（Company）** = 一家公司；**成员（User）** = 企业内员工。计费双轴（企业钱包 + 部门 budget）、Gateway、平台鉴权详见 [Backend-预算.md](./Backend-预算.md) §2、[Backend-架构.md](./Backend-架构.md) §2。
 
 **共 11 个端点**（路径均相对于 `API_BASE_PATH`）。
 
@@ -889,7 +889,7 @@ HTTP 非 2xx 时，body 应包含：
 
 > **钱包类型：** `WalletView` 含 `billingCurrency`、`balances[]`（按币种 `balance` / `totalTopup` / `totalConsumed`）、`walletRemainQuota`（int64 quota）、`giftQuota`、`overdraftQuota`、`totalRequests`。同币种满足 `totalTopup - totalConsumed = balance`。
 
-后端详案：[Backend.md](./Backend.md) §2。NewAPI 部署：[Backend.md](./Backend.md) §4。
+后端详案：[Backend-架构.md](./Backend-架构.md) §2。NewAPI 部署：[Backend-架构.md](./Backend-架构.md) §4。
 
 ---
 
@@ -928,3 +928,150 @@ pnpm install && pnpm start
 - [ ] 页面从 `use-*-page` 取数
 - [ ] 新 API：§5.4 契约 + `api/` + `queryKeys` + 后端 handler
 - [ ] `pnpm lint` 与 `pnpm test` 通过
+
+
+---
+
+## 8. 页面体系设计规范
+
+### 8.1 页面骨架
+
+```
+AdminLayout
+  Sidebar │ Header
+          │ main (p-8, overflow-auto)
+          │   PageShell (space-y-6)
+          │     ├─ PageHeader
+          │     └─ Content (Card 或 SplitPanel)
+```
+
+`PageShell` 只有一种模式：竖向 `space-y-6` 容器。Split 页面通过 SplitPanel 自身 `flex-1 min-h-0` 撑满高度。
+
+### 8.2 两种页面形态
+
+| 形态 | 结构 | 适用 |
+|------|------|------|
+| **Flow**（竖向流式） | PageHeader → Stats Bar → Toolbar → Card → Pagination | /keys/provider, /approvals, /models/list, /budget/alerts, /billing, /audit/*, /me/* |
+| **Split**（主从分屏） | SplitPanel(master=Tree/List 280px, detail=ContextHeader+Content) | /dashboard/*, /keys/platform, /models/routing, /budget, /org/structure, /org/roles |
+
+### 8.3 核心布局组件
+
+| 组件 | 文件 | 接口 |
+|------|------|------|
+| `PageShell` | `components/layout/page-shell.tsx` | `{ children, className? }` |
+| `PageHeader` | `components/layout/page-header.tsx` | `{ title, description?, actions? }` |
+| `SplitPanel` | `components/layout/split-panel.tsx` | `{ master, detail, masterWidth=280, className? }` |
+| `ContextHeader` | `components/layout/context-header.tsx` | `{ breadcrumb?, title?, actions? }` |
+| `DataSection` | `components/layout/data-section.tsx` | `{ loading?, loadingVariant?, error?, onRetry?, empty?, children }` |
+
+### 8.4 间距系统
+
+| 元素 | 值 |
+|------|------|
+| main padding | p-8 (32px) |
+| PageShell 子元素 | space-y-6 (24px) |
+| Card 内 padding | px-5 py-4 |
+| Toolbar/按钮组 | gap-3 (12px) |
+| SplitPanel master | 280px |
+
+### 8.5 按钮规范
+
+| 场景 | variant | size |
+|------|---------|------|
+| 页面主操作（每页最多1个） | `default` | `sm` |
+| 次操作 | `outline` | `sm` |
+| 三级操作 | `ghost` | `sm` |
+| 表格行内 | `ghost` | `icon` 或 `sm` |
+
+创建类按钮带 icon：`<Plus className="size-3.5" /> 创建XXX`
+
+Button 支持 `disabledReason?: string` prop，disabled 时自动 Tooltip 展示原因。
+
+### 8.6 状态展示
+
+| 场景 | 组件 |
+|------|------|
+| 表格首次加载 | `DataSection` loadingVariant=`skeleton` → `TableSkeleton` |
+| Split 左侧加载 | loadingVariant=`spinner` → `PageLoading` |
+| 错误 | `ErrorState`（icon + 描述 + 重试） |
+| 首次使用空态 | `EmptyState` variant=`prominent` |
+| 筛选无结果 | `EmptyState` variant=`inline` |
+| Split 未选中 | `EmptyState` variant=`minimal` |
+
+### 8.7 页面归属映射
+
+| 路由 | 形态 | PageHeader | 内容容器 | ContextHeader |
+|------|------|-----------|---------|---------------|
+| /dashboard/cost | Split | 省略 | SplitPanel | ✓ breadcrumb |
+| /dashboard/usage | Split | 省略 | SplitPanel | ✓ |
+| /keys/platform | Split | 省略 | SplitPanel | ✓ tab+search |
+| /keys/provider | Flow | ✓ | Card > Table | — |
+| /approvals | Flow | ✓ | Tabs > Card > Table | — |
+| /models/list | Flow | ✓ | Card > Tabs > Table | — |
+| /models/routing | Split | 省略 | SplitPanel | ✓ |
+| /budget | Split | 省略 | SplitPanel | ✓ breadcrumb |
+| /budget/alerts | Flow | ✓ | Stats + Card > Table | — |
+| /billing | Flow | ✓ (带 desc) | Stats + Card | — |
+| /org/data-source | Flow | ✓ | Card (向导) | — |
+| /org/structure | Split | 省略 | SplitPanel | ✓ |
+| /org/roles | Split | 省略 | SplitPanel | ✓ |
+| /audit/operations | Flow | ✓ | Toolbar + Card > Table + Pagination | — |
+| /audit/calls | Flow | ✓ | Toolbar + Card > Table + Pagination | — |
+| /me/keys | Flow | ✓ | Card > List | — |
+| /me/settings | Flow | ✓ | Card > Form | — |
+| /notifications | Flow | ✓ | Card > List | — |
+
+### 8.8 典型代码结构
+
+**Flow 页面：**
+
+```tsx
+export function BudgetAlertsPageShell({ ... }: Props) {
+  return (
+    <PageShell>
+      <PageHeader title="预警规则" description="..." actions={<CreateBtn />} />
+      <StatsBar stats={stats} />
+      <Card>
+        <CardContent>
+          <DataSection loading={loading} error={error} onRetry={refresh} empty={emptyConfig}>
+            <BudgetAlertsTable ... />
+          </DataSection>
+        </CardContent>
+      </Card>
+    </PageShell>
+  )
+}
+```
+
+**Split 页面：**
+
+```tsx
+export function BudgetPageShell({ ... }: Props) {
+  return (
+    <PageShell>
+      <SplitPanel
+        master={<BudgetTreePanel ... />}
+        detail={
+          <>
+            <ContextHeader breadcrumb={['研发部', '项目A']} actions={<EditBtn />} />
+            <div className="min-h-0 flex-1 overflow-y-auto p-5">
+              <DataSection loading={loading} error={error} onRetry={refresh}>
+                <BudgetDetail ... />
+              </DataSection>
+            </div>
+          </>
+        }
+      />
+    </PageShell>
+  )
+}
+```
+
+### 8.9 响应式
+
+| 断点 | 行为 |
+|------|------|
+| ≥ 1440px | 正常布局 |
+| 1280–1440px | SplitPanel master 缩至 240px |
+| < 1280px | master 收折为 drawer |
+| < 1024px | AdminLayout sidebar 收折 |

@@ -1,7 +1,7 @@
 # TokenJoy 工程待办（Plan）
 
 > **定位**：上线前 fix / 功能点 / 联调与发布门禁的 **唯一 backlog**。完成即删除条目，不留 `[x]`。  
-> **关联**：[Roadmap.md](./Roadmap.md)（产品差距）· [Frontend.md](./Frontend.md)（架构与契约）· [Backend.md](./Backend.md) · [工程收口.md](./工程收口.md)（收口待办）
+> **关联**：[Roadmap.md](./Roadmap.md)（产品差距）· [Frontend.md](./Frontend.md)（架构与契约）· [Backend-架构.md](../Backend-架构.md)
 
 ---
 
@@ -9,13 +9,13 @@
 
 1. 新待办只写入本文；禁止再开 `*-计划.md` / `*-下一步.md`
 2. 产品级 ❌ 能力（钉钉、OIDC、真实支付等）只维护在 [Roadmap.md](./Roadmap.md)
-3. 架构现状见 Backend\* 文档；收口待办见 [工程收口.md](./工程收口.md)。
+3. 架构现状见 Backend* 文档。
 
 ---
 
 ## §1 NewAPI / Gateway（上线前）
 
-未完成项见 [工程收口.md](./工程收口.md) §1。
+未完成项见下。
 
 ### Fix
 
@@ -53,7 +53,7 @@ pnpm verify                # lint + test + build（含 Go 单测；E2E 用 test:
 
 ## §3 Keys
 
-架构约束见 [Backend.md](./Backend.md) §2.5。
+架构约束见 [Backend-架构.md](../Backend-架构.md) §2.5。
 
 ### 审批通过 + NewAPISync 同步跨事务一致性
 
@@ -61,14 +61,9 @@ pnpm verify                # lint + test + build（含 Go 单测；E2E 用 test:
 
 **验收：** 完整 outbox 统一为后续迭代；当前 NewAPI 失败时审批回 pending、可重试
 
-### Workflow 错误展示
-
-- [ ] `features/workflow/workflows/**` 内固定文案 `catch` 改为 `workflowErrorMessage(err, fallback)`
-- [ ] 已接入勿重复改：`key-form`、`approval-review`、`model-create/edit`、`provider-key-form`、`reject-reason`、`whitelist-config`
-
 ### 种子数据契约
 
-- [ ] `platform_keys.json` 删除 `memberName`、`projectName`、`appName` 等不入库字段
+✅ Workflow 错误已统一 `workflowErrorMessage`；种子冗余字段已清理。
 
 ---
 
@@ -78,8 +73,6 @@ pnpm verify                # lint + test + build（含 Go 单测；E2E 用 test:
 
 ### 工程优化
 
-- [ ] 预算默认账期去硬编码 `2026-06`（`lib/demo-clock.ts`、`use-budget-page.ts`）
-- [ ] Workflow 按域动态 `import()`，减小首屏包体
 - [ ] Zod response schema 试点 → OpenAPI/orval 生成类型
 - [ ] `@tanstack/react-virtual` 大表格按需引入（行数 >500）
 - [ ] `eslint-plugin-boundaries` 部分替代 `check-conventions.ts`
@@ -183,6 +176,6 @@ pnpm -F @tokenjoy/frontend test:e2e -- keys models audit wallet member
 
 ## §8 异步预算投影与离线任务
 
-设计见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md)。**目标态**见 [Backend-离线任务-触发优化.md](./Backend-离线任务-触发优化.md)（实施后重写 as-built 文档）。
+设计见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md)。
 
 ---

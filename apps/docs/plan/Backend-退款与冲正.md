@@ -2,7 +2,7 @@
 
 > **状态：仅设计，未实现。** 实现排期另议。  
 > 读者：Backend / 架构。  
-> 前置：[Backend-计费模式.md](../Backend-计费模式.md) · [架构终态设计.md](../架构终态设计.md)
+> 前置：[Backend-计费模式.md](../Backend-计费模式.md)
 
 ---
 
@@ -267,4 +267,3 @@ POST /api/platform/companies/{id}/refunds/lot         # A，可选二期
 - [Backend-计费模式.md](../Backend-计费模式.md) — 量纲、冻结展示、事实/投影
 - [Backend-预算.md](../Backend-预算.md) — 投影 / soft remain
 - [Backend-离线任务.md](../Backend-离线任务.md) — River 入队
-- [架构终态设计.md](../架构终态设计.md) — 摘要列=投影

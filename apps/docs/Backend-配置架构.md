@@ -1,7 +1,7 @@
 # Backend 配置架构
 
 > **范围**：`apps/backend` 配置加载、生产契约、空库引导、Secure Cookie、时钟、凭证密钥、测试构造。  
-> **索引**：env 快表见 [Backend.md](./Backend.md) §3 / [Backend-架构.md](./Backend-架构.md) §1.1；完整示例见 `apps/backend/.env.example`。
+> **索引**：env 快表见 [Backend-架构.md](./Backend-架构.md) §3 / [Backend-架构.md](./Backend-架构.md) §1.1；完整示例见 `apps/backend/.env.example`。
 
 ---
 
@@ -144,7 +144,7 @@ func NowUTC(clk Clock) time.Time
 
 `StoreBootstrap`（仅测试）：`SchemaPrepared`、`TestPartitionMonths`（默认 12，缩小测试模板分区范围；生产仍 2024–2032）。
 
-克隆 schema 上 reopen store 须 `PreparedConfig(schemaURL)`（`SchemaPrepared=true`），否则会再跑 `apply partitions` 并在非分区父表上报错。见 [Backend.md](./Backend.md) §5.0。
+克隆 schema 上 reopen store 须 `PreparedConfig(schemaURL)`（`SchemaPrepared=true`），否则会再跑 `apply partitions` 并在非分区父表上报错。见 [Backend-架构.md](./Backend-架构.md) §5.0。
 
 ---
 
@@ -204,7 +204,6 @@ func NowUTC(clk Clock) time.Time
 | `make test-fast` | 仅 `tests/pkg/...`，无 `DATABASE_URL`     |
 | `make test-unit` | 全量 `go test -tags=testhook ./tests/...` |
 
-详见 [Backend-测试优化.md §5.2-A](./Backend-测试优化.md)。
 
 ---
 

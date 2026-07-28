@@ -46,7 +46,7 @@ graph LR
     D -.->|审计视角| C
 ```
 
-**SaaS** 在之上增加 **平台运营**（企业开户、全局 Channel、代充）；企业内角色与私有化一致。成员登录 TokenJoy 控制台，**不**登录 NewAPI；企业钱包在 NewAPI 侧以 **企业钱包账号**（`newapi_wallet_company_id`）存在（见 [Backend.md](./Backend.md) §2、[Backend-预算.md](./Backend-预算.md)）。
+**SaaS** 在之上增加 **平台运营**（企业开户、全局 Channel、代充）；企业内角色与私有化一致。成员登录 TokenJoy 控制台，**不**登录 NewAPI；企业钱包在 NewAPI 侧以 **企业钱包账号**（`newapi_wallet_company_id`）存在（见 [Backend-架构.md](./Backend-架构.md) §2、[Backend-预算.md](./Backend-预算.md)）。
 
 | 角色       | 范围       | 核心诉求                           |
 | ---------- | ---------- | ---------------------------------- |
@@ -871,6 +871,6 @@ erDiagram
 | [Frontend.md](./Frontend.md) | 端点与类型权威来源   |
 | [Roadmap.md](./Roadmap.md)   | PRD 与实现的剩余差距 |
 
-**契约不覆盖（由其他系统承担）：** IM/邮件通知、审计归档基础设施。企业开户、NewAPI、企业钱包与 SaaS API 见 [Backend.md](./Backend.md) §2、[Backend-架构.md](./Backend-架构.md)。
+**契约不覆盖（由其他系统承担）：** IM/邮件通知、审计归档基础设施。企业开户、NewAPI、企业钱包与 SaaS API 见 [Backend-架构.md](./Backend-架构.md) §2、[Backend-架构.md](./Backend-架构.md)。
 
 PRD 或契约变更时，先更新 [Frontend.md](./Frontend.md) 与 `api/types/`，再同步 [Roadmap.md](./Roadmap.md)。

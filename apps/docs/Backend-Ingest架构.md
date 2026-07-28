@@ -2,7 +2,7 @@
 
 > **读者**：想搞清「一次 LLM 调用的钱，怎么记到企业账上」的研发 / 运维 / 联调同学。  
 > **风格**：由浅入深、只讲机制与数据流；关键路径对应 `apps/backend/internal/domain/usage/` 与 `internal/infra/ingest/`。  
-> **相关文档**：[Backend-预算.md](./Backend-预算.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-计费模式.md](./Backend-计费模式.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [Backend-架构.md](./Backend-架构.md) §7 · [Backend-结构优化.md](./Backend-结构优化.md) · [Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md) · [工程收口.md](./工程收口.md)
+> **相关文档**：[Backend-预算.md](./Backend-预算.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-计费模式.md](./Backend-计费模式.md) · [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) · [Backend-架构.md](./Backend-架构.md) §7
 
 ---
 
@@ -262,7 +262,7 @@ flowchart TB
 
 **Ingest 同事务只做：** ledger 幂等插入、FIFO 扣 lot、`budget_consumed` + `combined_key_remain` 原子写入、入队 `wallet_sync`。  
 `usage_buckets` 由看门狗每小时触发 `dashboard.Projector` 异步维护（见 [Backend-离线任务.md](./Backend-离线任务.md)）。  
-目标迁回 Ingest：[Backend-预算累计架构.md](./Backend-预算累计架构.md)。
+
 
 ### 6.1 预算累计（Ingest 同事务）
 
@@ -460,7 +460,6 @@ flowchart TB
 - webhook `200 accepted` **不等于**已入账；看 `ingest_jobs_pending` / `ingest_lag_seconds` / ledger。
 - `NEW_API_ENABLED=false` 时 ingest **仍工作**（写账），只是不同步 NewAPI remain / overrun。
 - webhook 全关时系统仍可工作：只靠 reconcile，延迟变大。
-- **本地模拟消耗 Popup**：`pnpm start` 为全栈（含 NewAPI + `dev-mock-llm`）；`pnpm reset` 含 bootstrap。模型 `local-test-model` 仅 `DEPLOY_ENV=local` Gateway 放行。见 [本地模式-模拟消耗Popup.md](./manual-testing/本地模式-模拟消耗Popup.md)。
 
 ---
 
@@ -565,13 +564,11 @@ flowchart TB
 | failure 队列与 newapi_sync outbox 分离 | 入账失败与 Token 同步失败的重试语义不同  |
 | 成功 job DELETE 而非 mark done         | 队列只保留 pending / dead，减少表膨胀    |
 
-### 13.2 仍可改进（见 [plan.md](./plan.md)）
+### 13.2 仍可改进（见 [plan/plan.md](./plan/plan.md)）
 
 | 方向                           | 现状                              | 建议                                                                                                                           |
 | ------------------------------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | Notify 队列满                  | NewAPI 内存队列有界，满则 drop    | 可接受因有 reconcile；监控 drop                                                                                                |
-| 入账延迟                       | 取决于 `WORKER_POLL_INTERVAL_SEC` | 监控 `ingest_lag_seconds` / pending；调参见 [Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md) **I1**              |
-| 投影 / 预检摘要 lag            | `gateway_soft_*` 异步刷新         | 缩窗见 [Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md) **§10**；SLA 见 [架构终态设计.md](./架构终态设计.md) §14 |
 | Update Key 非严格 Remote-first | 先写 DB 再 sync                   | 与 Create 路径统一                                                                                                             |
 | 预检 estimate                  | 固定最小值                        | 按模型单价动态估价                                                                                                             |
 | enqueue→ledger 延迟            | 无直方图                          | 可增加延迟 metric                                                                                                              |
@@ -589,9 +586,6 @@ flowchart TB
 6. 深入算法：[Backend-预算.md](./Backend-预算.md) · [Backend-计费模式.md](./Backend-计费模式.md)
 7. 账期细节：[Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)
 8. 表结构：[Backend-存储架构.md](./Backend-存储架构.md)
-9. 上线缺口：[工程收口.md](./工程收口.md)
-10. 性能与投影 lag：[Backend-v1-Ingest链路优化.md](./Backend-v1-Ingest链路优化.md)
-11. 本地模拟消耗 Popup：[本地模式-模拟消耗Popup.md](./manual-testing/本地模式-模拟消耗Popup.md)
 
 ---
 
@@ -600,7 +594,7 @@ flowchart TB
 - **Ingest** = 把 NewAPI 的消耗小票，变成 TokenJoy 主库里可审计、可预算、可预检的账。
 - **通信** = 管理面 Admin API + 运行面 Gateway 反代 + 结算面 webhook/直读，三条线各司其职。
 - **日志共享** = 独立日志库；NewAPI 写 `newapi.logs`，Backend 写 pending/cursor，并读 logs 入账。
-- **对齐** = `token_id`↔mapping、`newapi:{log_id}` 幂等、point↔quota（`pkg/newapiunits`）的 wallet_sync、发生月↔开账月双轨。
+- **对齐** = `token_id`↔mapping、`newapi:{log_id}` 幂等、point↔quota（`pkg/budget`）的 wallet_sync、发生月↔开账月双轨。
 - **Worker** = **两条异步线**（详见 [Backend-离线任务.md](./Backend-离线任务.md)）：线 A `infra/ingest.Worker`（pending + reconcile）与线 B `infra/river.Client`（`wallet_sync` / rebalance / overrun / org sync 等 River job）并行。
 - **可靠** = webhook 求快 ACK，IngestWorker 求入账，reconcile 求不丢；入账都走同一条 `IngestByLogID`。
 
@@ -608,7 +602,7 @@ flowchart TB
 
 ## 16. Ingest 事务内预算累计（同事务细节）
 
-> 以下内容整合自原 `Backend-预算累计架构.md`，描述 Ingest 事务中 `budget_consumed` 和 `combined_key_remain` 的原子写入。
+> 描述 Ingest 事务中 `budget_consumed` 和 `combined_key_remain` 的原子写入。
 
 ### 16.1 事务时序
 
