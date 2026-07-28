@@ -89,8 +89,8 @@ func (c Credential) Validate() error {
 			return fmt.Errorf("appId and appSecret are required")
 		}
 	case PlatformDingtalk:
-		if c.Dingtalk == nil || c.Dingtalk.CorpID == "" || c.Dingtalk.AppKey == "" || c.Dingtalk.AppSecret == "" {
-			return fmt.Errorf("corpId, appKey and appSecret are required")
+		if c.Dingtalk == nil || c.Dingtalk.AppKey == "" || c.Dingtalk.AppSecret == "" {
+			return fmt.Errorf("appKey and appSecret are required")
 		}
 	case PlatformWecom:
 		if c.Wecom == nil || c.Wecom.CorpID == "" || c.Wecom.Secret == "" || c.Wecom.AgentID == "" {

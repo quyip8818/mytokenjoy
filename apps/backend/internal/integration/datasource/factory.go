@@ -6,6 +6,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/integration/datasource/dingtalk"
 	"github.com/tokenjoy/backend/internal/integration/datasource/feishu"
 )
 
@@ -28,7 +29,15 @@ func (f *factory) ForPlatform(platform types.Platform, cred types.Credential) (P
 			return nil, domain.NewDomainError(domain.StatusUnprocessable, "invalid feishu credential")
 		}
 		return newFeishuProvider(feishu.NewClient(f.cfg.FeishuBaseURL, *cred.Feishu, f.httpClient)), nil
-	case types.PlatformDingtalk, types.PlatformWecom:
+	case types.PlatformDingtalk:
+		if cred.Dingtalk == nil {
+			return nil, domain.NewDomainError(domain.StatusUnprocessable, "invalid dingtalk credential")
+		}
+		return newDingtalkProvider(dingtalk.NewClient(dingtalk.Credential{
+			AppKey:    cred.Dingtalk.AppKey,
+			AppSecret: cred.Dingtalk.AppSecret,
+		}, f.httpClient)), nil
+	case types.PlatformWecom:
 		return nil, domain.NewDomainError(domain.StatusUnprocessable, "platform not supported")
 	default:
 		return nil, domain.NewDomainError(domain.StatusUnprocessable, "unsupported platform")

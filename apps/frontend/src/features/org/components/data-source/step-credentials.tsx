@@ -38,12 +38,11 @@ const PLATFORM_FIELDS: Record<Platform, FieldConfig[]> = {
     { name: 'appSecret', label: 'App Secret', placeholder: '输入 App Secret', password: true },
   ],
   dingtalk: [
-    { name: 'corpId', label: 'Corp ID', placeholder: '输入企业 CorpID' },
-    { name: 'appKey', label: 'App Key', placeholder: '输入应用的 App Key' },
+    { name: 'appKey', label: 'Client ID', placeholder: '输入应用的 Client ID' },
     {
       name: 'appSecret',
-      label: 'App Secret',
-      placeholder: '输入应用的 App Secret',
+      label: 'Client Secret',
+      placeholder: '输入应用的 Client Secret',
       password: true,
     },
   ],
@@ -61,7 +60,6 @@ function buildCredential(platform: Platform, data: FormFields): Credential {
     case 'dingtalk':
       return {
         platform: 'dingtalk',
-        corpId: data.corpId,
         appKey: data.appKey,
         appSecret: data.appSecret,
       }
