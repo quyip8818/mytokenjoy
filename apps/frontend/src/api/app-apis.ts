@@ -10,6 +10,7 @@ import { meApi } from './me'
 import { modelApi, routingApi } from './models'
 import { notificationApi } from './notifications'
 import { dataSourceApi, departmentApi, memberApi, roleApi, syncApi } from './org'
+import { platformApi } from './platform'
 import { sessionApi } from './session'
 
 export interface AppApis {
@@ -32,6 +33,7 @@ export interface AppApis {
   meApi: typeof meApi
   notificationApi: typeof notificationApi
   sessionApi: typeof sessionApi
+  platformApi: typeof platformApi
 }
 
 export const defaultApis: AppApis = {
@@ -54,4 +56,5 @@ export const defaultApis: AppApis = {
   meApi,
   notificationApi,
   sessionApi,
+  platformApi,
 }

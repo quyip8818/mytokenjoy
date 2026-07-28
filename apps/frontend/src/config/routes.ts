@@ -210,6 +210,17 @@ const ROUTE_DEFINITIONS_INTERNAL = [
     lazy: () => import('@/routes/me/settings'),
     navGroup: '我的',
   },
+  // ─── 平台管理（仅 platform admin 可见）───
+  {
+    key: 'platformModels',
+    path: '/platform/models',
+    label: '模型目录',
+    icon: Globe,
+    requiredPermissions: [PERMISSION.PLATFORM_MANAGE],
+    lazy: () => import('@/routes/platform/models'),
+    navGroup: '平台管理',
+    navGroupCollapsed: true,
+  },
 ] as const satisfies readonly RouteDefinition[]
 
 export const ROUTE_DEFINITIONS = ROUTE_DEFINITIONS_INTERNAL

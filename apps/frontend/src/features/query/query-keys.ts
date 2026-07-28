@@ -7,6 +7,7 @@ import { mydashboardKeys } from '@/features/mydashboard/query-keys'
 import { modelsKeys } from '@/features/models/query-keys'
 import { orgKeys } from '@/features/org/query-keys'
 import { billingKeys } from '@/features/billing/query-keys'
+import { platformKeys } from '@/features/platform'
 
 export const queryKeys = {
   session: {
@@ -22,4 +23,5 @@ export const queryKeys = {
   billing: billingKeys,
   mydashboard: mydashboardKeys,
   dashboard: dashboardKeys,
+  platform: platformKeys,
 }
