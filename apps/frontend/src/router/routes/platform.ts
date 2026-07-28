@@ -6,3 +6,9 @@ export const platformModelsRoute = createRoute({
   path: '/platform/models',
   component: lazyRouteComponent(() => import('@/routes/platform/models')),
 })
+
+export const platformCompaniesRoute = createRoute({
+  getParentRoute: () => authLayoutRoute,
+  path: '/platform/companies',
+  component: lazyRouteComponent(() => import('@/routes/platform/companies')),
+})

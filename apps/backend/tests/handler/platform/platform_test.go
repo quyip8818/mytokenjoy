@@ -211,3 +211,86 @@ func TestSuspendedCompanyGatewayRejected(t *testing.T) {
 		t.Fatalf("expected 403 for suspended company gateway, got %d", rec.Code)
 	}
 }
+
+func TestPlatformCompaniesOverviewReturnsWalletAndCounts(t *testing.T) {
+	t.Parallel()
+	mock := saas.StartNewAPIMock(t)
+	router := saas.NewRouter(t, mock)
+	platformCookie := saas.LoginPlatform(t, router)
+
+	// Create a company and recharge it so wallet data appears.
+	created := saas.CreateCompanyHTTP(t, router, platformCookie, "Overview Co", "admin@overview.example")
+	saas.PlatformRechargeHTTP(t, router, platformCookie, created.Company.ID, 500)
+
+	// Hit the overview endpoint.
+	req := httptest.NewRequest(http.MethodGet, "/api/platform/companies/overview", nil)
+	req.Header.Set("Cookie", platformCookie)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	var items []struct {
+		ID              uuid.UUID `json:"id"`
+		Name            string    `json:"name"`
+		Type            string    `json:"type"`
+		Status          string    `json:"status"`
+		BillingCurrency string    `json:"billingCurrency"`
+		Wallet          struct {
+			Balance       float64 `json:"balance"`
+			GiftBalance   float64 `json:"giftBalance"`
+			Overdraft     float64 `json:"overdraft"`
+			TotalTopup    float64 `json:"totalTopup"`
+			TotalConsumed float64 `json:"totalConsumed"`
+		} `json:"wallet"`
+		MonthlySpend float64 `json:"monthlySpend"`
+		MemberCount  int     `json:"memberCount"`
+		CreatedAt    string  `json:"createdAt"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&items); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(items) == 0 {
+		t.Fatal("expected at least one company in overview")
+	}
+
+	// Find the company we created and verify wallet fields.
+	var found bool
+	for _, item := range items {
+		if item.ID == created.Company.ID {
+			found = true
+			if item.Name != "Overview Co" {
+				t.Fatalf("expected name 'Overview Co', got %q", item.Name)
+			}
+			if item.Wallet.TotalTopup <= 0 {
+				t.Fatalf("expected positive totalTopup after recharge, got %f", item.Wallet.TotalTopup)
+			}
+			if item.Status != "active" {
+				t.Fatalf("expected status active, got %q", item.Status)
+			}
+			break
+		}
+	}
+	if !found {
+		t.Fatal("created company not found in overview response")
+	}
+}
+
+func TestPlatformCompaniesOverviewForbiddenForTenantMember(t *testing.T) {
+	t.Parallel()
+	mock := saas.StartNewAPIMock(t)
+	router := saas.NewRouter(t, mock)
+	platformCookie := saas.LoginPlatform(t, router)
+	provisioned := saas.ProvisionCompanyHTTP(t, router, platformCookie,
+		"Tenant For Overview", "tenant-ov@example.com", "Tenant Admin", "securepass123")
+
+	// Tenant member should be forbidden from accessing the overview endpoint.
+	req := httptest.NewRequest(http.MethodGet, "/api/platform/companies/overview", nil)
+	req.Header.Set("Cookie", provisioned.MemberCookie)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for tenant member on overview, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}

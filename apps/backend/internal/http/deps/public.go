@@ -27,6 +27,8 @@ type Platform struct {
 	AdminPort      adminport.Port
 	Models         store.ModelsRepository
 	SystemSettings store.SystemSettingsRepository
+	PlatformQuery  store.PlatformQueryRepository
+	Billing        store.BillingRepository
 }
 
 func (d Deps) Public() Public {
@@ -49,5 +51,7 @@ func (d Deps) Platform() Platform {
 		AdminPort:      d.AdminPort,
 		Models:         d.Store.Models(),
 		SystemSettings: d.Store.SystemSettings(),
+		PlatformQuery:  d.Store.PlatformQuery(),
+		Billing:        d.Store.Billing(),
 	}
 }

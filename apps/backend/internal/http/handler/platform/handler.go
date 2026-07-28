@@ -34,6 +34,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Use(httpmiddleware.RequireSession(h.protected))
 		r.Use(httpmiddleware.RequirePlatformAdmin(h.p.Cfg.TokenJoyCompanyID))
 		r.Get("/companies", h.ListCompanies)
+		r.Get("/companies/overview", h.CompaniesOverview)
 		r.Post("/companies", h.CreateCompany)
 		r.Patch("/companies/{id}", h.UpdateCompany)
 		r.Post("/companies/{id}/recharge", h.RechargeCompany)

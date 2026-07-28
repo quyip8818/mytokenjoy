@@ -190,6 +190,10 @@ func (s *Store) SystemSettings() store.SystemSettingsRepository {
 }
 func (s *Store) Logs() store.LogStore { return s.logs }
 
+func (s *Store) PlatformQuery() store.PlatformQueryRepository {
+	return newPlatformQueryRepo(s.pool)
+}
+
 func (s *Store) Pool() *pgxpool.Pool { return s.pool }
 
 // LogPool returns the pool used for the ingest log database (for LISTEN/NOTIFY).

@@ -111,6 +111,11 @@ func (s *txStore) SystemSettings() store.SystemSettingsRepository {
 	return &pgSystemSettingsRepo{db: s.tx}
 }
 
+func (s *txStore) PlatformQuery() store.PlatformQueryRepository {
+	// PlatformQuery is read-only aggregation, uses parent pool (not transactional).
+	return newPlatformQueryRepo(s.parent.pool)
+}
+
 func (s *txStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	return fn(s)
 }

@@ -59,6 +59,7 @@ type Store interface {
 	Session() SessionRepository
 	Approval() ApprovalRepository
 	SystemSettings() SystemSettingsRepository
+	PlatformQuery() PlatformQueryRepository
 	Logs() LogStore
 	WithTx(ctx context.Context, fn func(Store) error) error
 }

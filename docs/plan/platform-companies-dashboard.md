@@ -10,8 +10,8 @@
 - 余额（需要换算 quota → 金额）
 - 累计充值 / 累计消耗
 - 赠送额度 / 透支额度
-- 月度开销统计
-- 成员数 / key 数
+- 本月消耗
+- 成员数
 
 platform admin 目前只能通过 Recharge/Gift/Adjust 操作单个公司，无法一览所有公司的财务状况。
 
@@ -19,32 +19,60 @@ platform admin 目前只能通过 Recharge/Gift/Adjust 操作单个公司，无�
 
 ## 目标
 
-新增 `/platform/companies` 前端页面 + 一个增强的后端 API，展示：
+新增 `/platform/companies` 前端页面 + 一个独立的后端 API，展示企业财务概览。
+
+### 表格列
 
 | 列 | 数据来源 | 说明 |
 |----|---------|------|
 | 公司名称 | companies.name | |
 | 类型 | companies.type | standard / trial / demo |
-| 状态 | companies.status | active / suspended |
+| 状态 | companies.status | active / suspended，badge 区分 |
 | 币种 | companies.billing_currency | CNY |
-| 余额 | WalletAggregate.balance | quota → 金额换算 |
-| 赠送余额 | WalletAggregate.gift_quota | |
-| 透支额度 | WalletAggregate.overdraft_quota | |
-| 累计充值 | WalletAggregate.total_topup | |
-| 累计消耗 | WalletAggregate.total_consumed | |
-| 本月消耗 | usage logs 聚合 | 当月 token 花费 |
-| 成员数 | COUNT(members) | |
+| 余额 | AggregateWallet → Balances[primary].Balance | 已是金额（paid_amount 维度） |
+| 赠送余额 | AggregateWallet → GiftQuota / quotaPerUnit | quota_remaining 需换算，展示剩余可用赠送 |
+| 透支额度 | AggregateWallet → OverdraftQuota / quotaPerUnit | quota_remaining 需换算 |
+| 累计充值 | AggregateWallet → Balances[primary].TotalTopup | 已是金额 |
+| 累计消耗 | AggregateWallet → Balances[primary].TotalConsumed | = topup - balance |
+| 本月消耗 | usage_buckets 聚合 | 当月 SUM(cost)，小时级精度 |
+| 成员数 | COUNT(members) | status='active' |
 | 创建时间 | companies.created_at | |
+| 操作 | — | 充值 / 更多（赠送、停用/启用） |
 
-操作列：充值 / 赠送 / 停用 / 详情
+默认按余额升序排列（低余额排前面，方便发现需要充值的公司）。
+
+不做统计卡片、不做搜索、不做分页（公司数 <100）。
+
+---
+
+## 权限控制
+
+### 后端
+
+新端点注册在 `handler/platform/handler.go` 的 `r.Group` 内，自动受已有中间件保护：
+
+```go
+r.Use(httpmiddleware.RequireSession(h.protected))
+r.Use(httpmiddleware.RequirePlatformAdmin(h.p.Cfg.TokenJoyCompanyID))
+```
+
+`RequirePlatformAdmin` 双重校验：
+1. session.CompanyID == TokenJoyCompanyID（必须是平台超级公司的成员）
+2. session.Permissions 包含 `platform:manage`
+
+无需新增权限 key，复用现有 `platform:manage`。
+
+### 前端
+
+路由定义中加 `requiredPermissions: [PERMISSION.PLATFORM_MANAGE]`，与现有 `/platform/models` 一致。非 platform admin 不可见、不可访问。
 
 ---
 
 ## API 设计
 
-### `GET /api/platform/companies` （增强现有）
+### `GET /api/platform/companies/overview`（新建独立端点）
 
-替换现有简单的 `ListCompanies`，返回带财务概览的公司列表。
+不修改现有 `ListCompanies`，新建独立端点返回带财务聚合的列表。原因：现有 `ListCompanies` 被其他流程使用，保持轻量；聚合查询可独立优化。
 
 ```json
 [
@@ -71,29 +99,87 @@ platform admin 目前只能通过 Recharge/Gift/Adjust 操作单个公司，无�
 ### 实现方案
 
 ```go
-// handler/platform/companies.go
-func (h *Handler) ListCompanies(w http.ResponseWriter, r *http.Request) {
+// handler/platform/companies_overview.go
+func (h *Handler) CompaniesOverview(w http.ResponseWriter, r *http.Request) {
     companies := h.p.CompanySvc.ListCompanies(ctx)
-    // 对每个 company：
-    //   1. AggregateWallet → balance/topup/consumed/gift/overdraft
-    //   2. 月度开销：从 usage logs 或 dashboard 表读取当月聚合
-    //   3. 成员数：COUNT members WHERE company_id = X
+    // 批量查询（避免 N+1）：
+    //   1. 逐个 AggregateWallet（已有方法，接受 companyID 参数，无需 company.WithContext）
+    //   2. 批量 monthlySpend：usage_buckets 按时间范围聚合（利用分区裁剪 + idx_usage_buckets_time）
+    //   3. 批量 memberCount：SELECT company_id, COUNT(*) FROM members WHERE status='active' GROUP BY company_id
+    // 换算：giftQuota / quotaPerUnit, overdraftQuota / quotaPerUnit（需先 GetCurrency，全局只查一次）
+    // ponytail: AggregateWallet 逐个调用，公司 <100 可接受；超 200 家需改为批量 SQL
 }
 ```
 
-**性能考虑：** 公司数量预期 <100（SaaS 早期），逐个查 wallet 聚合可接受。如果以后公司数增加，改为批量 SQL 或物化视图。
-
 ### 数据来源映射
 
-| 字段 | SQL / 方法 |
-|------|-----------|
-| balance | `SumActiveLotsRemaining` → quota / quotaPerUnit，或直接用 `companies.wallet_remain_quota / quotaPerUnit` |
-| giftBalance | `SELECT SUM(quota_remaining) FROM recharge_lots WHERE company_id=$1 AND lot_kind='gift' AND status='active'` |
-| overdraft | `SELECT SUM(quota_remaining) FROM recharge_lots WHERE company_id=$1 AND lot_kind='overdraft' AND status='active'` |
-| totalTopup | `SELECT SUM(paid_amount) FROM recharge_lots WHERE company_id=$1 AND lot_kind IN ('paid','adjust')` |
-| totalConsumed | `SELECT SUM(quota_granted - quota_remaining) FROM recharge_lots WHERE company_id=$1` → 换算金额 |
-| monthlySpend | `SELECT SUM(cost) FROM consume_logs WHERE company_id=$1 AND period_key=$currentMonth` 或从 dashboard projection 读 |
-| memberCount | `SELECT COUNT(*) FROM members WHERE company_id=$1 AND status='active'` |
+| 字段 | 来源 | 说明 |
+|------|------|------|
+| balance | `AggregateWallet(companyID).Balances[primary].Balance` | 已是金额（paid_amount 维度），直接用 |
+| giftBalance | `AggregateWallet(companyID).GiftQuota` / quotaPerUnit | GiftQuota 是 quota_remaining 之和，换算为金额 |
+| overdraft | `AggregateWallet(companyID).OverdraftQuota` / quotaPerUnit | 同上，展示剩余可用透支 |
+| totalTopup | `AggregateWallet(companyID).Balances[primary].TotalTopup` | 已是金额 |
+| totalConsumed | `AggregateWallet(companyID).Balances[primary].TotalConsumed` | = topup - balance |
+| monthlySpend | **PlatformQueryRepo.SumMonthlyCost**（见下） | 基于 usage_buckets 聚合 |
+| memberCount | **PlatformQueryRepo.CountActiveMembers**（见下） | 跨公司聚合 |
+
+**注意事项：**
+- `AggregateWallet` 直接接受 `companyID uuid.UUID` 参数，无需设置 company context
+- `quotaPerUnit` 通过 `store.Billing().GetCurrency(ctx, "CNY")` 获取，全局只查一次（所有公司都是 CNY）
+
+### 跨公司查询：新增 PlatformQueryRepository
+
+现有 BillingRepository / OrgRepository 全部 company-scoped。跨公司聚合查询应放在独立 interface 中，
+避免污染现有职责边界，同时明确只在 platform handler 中使用。
+
+```go
+// store/platform_query_repo.go
+type PlatformQueryRepository interface {
+    SumMonthlyCost(ctx context.Context, from, to time.Time) (map[uuid.UUID]float64, error)
+    CountActiveMembers(ctx context.Context) (map[uuid.UUID]int, error)
+}
+```
+
+实现：
+
+```go
+// store/postgres/platform_query_repo.go
+type platformQueryRepo struct{ db Pool }
+
+func (r *platformQueryRepo) SumMonthlyCost(ctx context.Context, from, to time.Time) (map[uuid.UUID]float64, error) {
+    rows, err := r.db.Query(ctx, `
+        SELECT company_id, COALESCE(SUM(cost), 0)
+        FROM usage_buckets
+        WHERE bucket_start >= $1 AND bucket_start < $2
+        GROUP BY company_id
+    `, from, to)
+    // ...scan into map
+}
+
+func (r *platformQueryRepo) CountActiveMembers(ctx context.Context) (map[uuid.UUID]int, error) {
+    rows, err := r.db.Query(ctx, `
+        SELECT company_id, COUNT(*)
+        FROM members
+        WHERE status = 'active'
+        GROUP BY company_id
+    `)
+    // ...scan into map
+}
+```
+
+**为什么用 usage_buckets 而不是 usage_ledger：**
+- `usage_ledger` 是按 `occurred_at` 分区的大表，按 `period_key` 聚合需跨分区扫描
+- `usage_buckets` 是预聚合表（小时粒度），有 `idx_usage_buckets_time` 索引，数据量小得多
+- 月度汇总精度完全够用，规避了不同公司 period_key 多样性问题
+
+时间范围构建：
+```go
+now := time.Now().UTC()
+from := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+to := from.AddDate(0, 1, 0)
+```
+
+这些方法只在 platform handler 中使用，SaaS 模式下才挂载（`router.go` 中 `if cfg.SupportSaas` 才 Mount platform handler），私有化版本不会访问到。
 
 ---
 
@@ -103,18 +189,24 @@ func (h *Handler) ListCompanies(w http.ResponseWriter, r *http.Request) {
 
 `/platform/companies`，navGroup "平台管理"，与"模型目录"同组。
 
+```ts
+{
+  key: 'platformCompanies',
+  path: '/platform/companies',
+  label: '企业管理',
+  icon: Building2,
+  requiredPermissions: [PERMISSION.PLATFORM_MANAGE],
+  lazy: () => import('@/routes/platform/companies'),
+  navGroup: '平台管理',
+}
+```
+
 ### 页面功能
 
-1. **表格**：上述所有列，默认按余额排序
-2. **操作按钮**：
-   - 充值（弹窗输入金额 → `POST /companies/:id/recharge`）
-   - 赠送（弹窗 → `POST /companies/:id/gift`）
-   - 停用/启用（`PATCH /companies/:id` status toggle）
-3. **统计卡片**（表格上方）：
-   - 总公司数
-   - 活跃公司数
-   - 总余额
-   - 本月总消耗
+1. **表格**：上述列，默认按余额升序
+2. **操作**：
+   - 充值（主按钮，弹窗输入金额 → `POST /platform/companies/:id/recharge`）
+   - 更多菜单：赠送（`POST /platform/companies/:id/gift`）、停用/启用（`PATCH /platform/companies/:id`）
 
 ### 代码组织
 
@@ -122,23 +214,25 @@ func (h *Handler) ListCompanies(w http.ResponseWriter, r *http.Request) {
 features/platform/companies/
   hooks/use-platform-companies-page.ts
   components/platform-companies-page-shell.tsx
-  query-keys.ts  →  platformKeys.companies()
   index.ts
 ```
 
 API 加在 `api/platform.ts` 中：
 ```ts
-listCompanies: () => request<PlatformCompany[]>('/platform/companies')
+companiesOverview: () => request<PlatformCompanyOverview[]>('/platform/companies/overview')
 ```
 
 ---
 
 ## 不做的事
 
-- 不做月度 limit 设置（目前没有 per-company spending cap 机制，只有 per-department budget）
-- 不做 token 级别的 limit（NewAPI gateway 层面有 quota，不在此管理）
+- 不做统计卡片（公司少，表格一眼扫完）
+- 不做搜索/过滤（公司 <100）
+- 不做分页
+- 不做消费趋势/sparkline
 - 不做消费明细（已有 audit/调用日志页面）
-- 不做分页（公司数 <100，全量返回）
+- 不做月度 limit 设置
+- 不做实时数据（聚合数据可有合理缓存）
 
 ---
 
@@ -146,10 +240,12 @@ listCompanies: () => request<PlatformCompany[]>('/platform/companies')
 
 | 操作 | 路径 |
 |------|------|
-| 修改 | `handler/platform/handler.go` — ListCompanies 增强（或新建 companies.go） |
+| 新建 | `internal/store/platform_query_repo.go` — PlatformQueryRepository interface |
+| 新建 | `internal/store/postgres/platform_query_repo.go` — 实现 SumMonthlyCost / CountActiveMembers |
+| 新建 | `internal/http/handler/platform/companies_overview.go` — CompaniesOverview 端点 |
+| 修改 | `internal/http/handler/platform/handler.go` — 注册 `r.Get("/companies/overview", h.CompaniesOverview)` |
+| 修改 | `internal/http/deps/platform.go` — 注入 PlatformQueryRepository |
 | 新建 | `features/platform/companies/` — 前端 feature module |
-| 修改 | `api/platform.ts` — 加 listCompanies + PlatformCompany 类型 |
+| 修改 | `api/platform.ts` — 加 companiesOverview + PlatformCompanyOverview 类型 |
 | 修改 | `config/routes.ts` — 加 /platform/companies 路由 |
-| 修改 | `router/routes/platform.ts` — 注册 TanStack route |
 | 修改 | `features/platform/index.ts` — barrel export |
-| 可能 | `store/billing_repo.go` — 加批量聚合方法（如果逐个太慢） |

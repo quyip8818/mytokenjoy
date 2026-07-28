@@ -221,6 +221,15 @@ const ROUTE_DEFINITIONS_INTERNAL = [
     navGroup: '平台管理',
     navGroupCollapsed: true,
   },
+  {
+    key: 'platformCompanies',
+    path: '/platform/companies',
+    label: '企业管理',
+    icon: Building2,
+    requiredPermissions: [PERMISSION.PLATFORM_MANAGE],
+    lazy: () => import('@/routes/platform/companies'),
+    navGroup: '平台管理',
+  },
 ] as const satisfies readonly RouteDefinition[]
 
 export const ROUTE_DEFINITIONS = ROUTE_DEFINITIONS_INTERNAL

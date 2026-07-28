@@ -2,6 +2,26 @@ import { request } from './client'
 
 // --- Types ---
 
+export interface PlatformCompanyWallet {
+  balance: number
+  giftBalance: number
+  overdraft: number
+  totalTopup: number
+  totalConsumed: number
+}
+
+export interface PlatformCompanyOverview {
+  id: string
+  name: string
+  type: string
+  status: string
+  billingCurrency: string
+  wallet: PlatformCompanyWallet
+  monthlySpend: number
+  memberCount: number
+  createdAt: string
+}
+
 export interface PlatformModel {
   modelId: string
   provider: string
@@ -43,6 +63,7 @@ export interface PlatformSetPricingInput {
 // --- API ---
 
 export const platformApi = {
+  // --- Models ---
   listModels: () => request<PlatformModel[]>('/platform/models'),
 
   createModel: (data: PlatformCreateModelInput) =>
@@ -58,4 +79,16 @@ export const platformApi = {
     request<void>(`/platform/models/${id}/pricing`, { method: 'PUT', body: JSON.stringify(data) }),
 
   publish: () => request<{ version: number }>('/platform/catalog/publish', { method: 'POST' }),
+
+  // --- Companies ---
+  companiesOverview: () => request<PlatformCompanyOverview[]>('/platform/companies/overview'),
+
+  rechargeCompany: (id: string, amount: number) =>
+    request<void>(`/platform/companies/${id}/recharge`, { method: 'POST', body: JSON.stringify({ amount }) }),
+
+  giftCompany: (id: string, amount: number) =>
+    request<void>(`/platform/companies/${id}/gift`, { method: 'POST', body: JSON.stringify({ amount }) }),
+
+  updateCompany: (id: string, patch: { status?: string }) =>
+    request<void>(`/platform/companies/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 }
