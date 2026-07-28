@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import { IS_SAAS } from '@/config/app'
 import {
   authApi,
   type CompanyOption,
@@ -41,9 +42,11 @@ export interface AuthCardProps {
 }
 
 export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
-  const [mode, setMode] = useState<AuthMode>(defaultMode)
+  // ponytail: Local mode = login only; register steps are dead code (backend rejects too).
+  const effectiveMode: AuthMode = IS_SAAS ? defaultMode : 'login'
+  const [mode, setMode] = useState<AuthMode>(effectiveMode)
   const [step, setStep] = useState<AuthStep>(
-    defaultMode === 'register' ? 'register-phone' : 'login-phone-pw',
+    effectiveMode === 'register' ? 'register-phone' : 'login-phone-pw',
   )
 
   // Form state
@@ -102,7 +105,7 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
     step === 'login-phone-code' ||
     step === 'login-email-pw' ||
     step === 'login-email-code'
-  const showTabs = isLoginStep || step === 'register-phone' || step === 'register-email'
+  const showTabs = IS_SAAS && (isLoginStep || step === 'register-phone' || step === 'register-email')
 
   // Clear sensitive fields whenever the visible step changes.
   const changeStep = useCallback((next: AuthStep) => {
