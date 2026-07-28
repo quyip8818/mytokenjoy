@@ -72,6 +72,8 @@ export function usePlatformModelsPage() {
     }
   }, [apis, pricingModel, pricingForm, refresh])
 
+  const closePricing = useCallback(() => setPricingModel(null), [])
+
   return {
     models,
     loading,
@@ -85,7 +87,7 @@ export function usePlatformModelsPage() {
     pricingForm,
     setPricingForm,
     openPricing,
-    closePricing: () => setPricingModel(null),
+    closePricing,
     handleSavePricing,
   }
 }
