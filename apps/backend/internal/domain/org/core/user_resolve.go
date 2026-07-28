@@ -6,17 +6,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 // ResolveOrCreateUser finds an existing user by phone or email, or creates a new one.
-// Returns the user ID. When creating a new user, name is stored in users.name.
+// Returns the user ID. When phone and email are both empty (e.g. dingtalk without
+// mobile permission), creates a placeholder user identified by name only.
 func ResolveOrCreateUser(ctx context.Context, st Store, phone, email, name string) (uuid.UUID, error) {
-	if phone == "" && email == "" {
-		return uuid.Nil, domain.BadRequest("手机号或邮箱至少填写一项")
-	}
-
 	if phone != "" {
 		user, err := st.User().GetByPhone(ctx, phone)
 		if err != nil {
@@ -36,7 +32,7 @@ func ResolveOrCreateUser(ctx context.Context, st Store, phone, email, name strin
 		}
 	}
 
-	// Create new user.
+	// Create new user (phone/email may be empty for platforms that don't expose them).
 	now := time.Now().UTC()
 	userID := uuid.Must(uuid.NewV7())
 	newUser := store.User{
