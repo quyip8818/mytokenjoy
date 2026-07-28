@@ -6,7 +6,7 @@
  */
 
 const DEFAULT_BASE_URL = 'http://127.0.0.1:5173'
-const CREDENTIALS = { email: 'admin@example.com', password: 'demo1234' }
+const CREDENTIALS = { email: 'demo@tokenjoy.me', password: 'demo1234' }
 const STORAGE_PATH = '.auth/admin.json'
 
 export async function login(baseUrl = DEFAULT_BASE_URL) {

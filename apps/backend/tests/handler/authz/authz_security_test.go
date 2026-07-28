@@ -56,7 +56,7 @@ func TestAuthzSecurityReadOnly(t *testing.T) {
 
 	t.Run("AuthLoginIssuesJWTCookie", func(t *testing.T) {
 		t.Parallel()
-		rec := testhttp.ServeAuthz(t, router, http.MethodPost, "/api/auth/login", "", `{"email":"admin@example.com","password":"demo1234"}`, nil)
+		rec := testhttp.ServeAuthz(t, router, http.MethodPost, "/api/auth/login", "", `{"email":"demo@tokenjoy.me","password":"demo1234"}`, nil)
 		if rec.Code != http.StatusOK {
 			t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
 		}

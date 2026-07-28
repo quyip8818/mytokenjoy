@@ -149,7 +149,7 @@ verify_admin_login() {
   code=$(curl -s -o "${resp}" -w "%{http_code}" -c "${VERIFY_COOKIE_JAR}" \
     -X POST "${API_URL}/api/auth/login" \
     -H "Content-Type: application/json" \
-    -d '{"email":"admin@example.com","password":"demo1234"}')
+    -d '{"email":"demo@tokenjoy.me","password":"demo1234"}')
   if [[ "${code}" != "200" ]]; then
     verify_fail "admin login failed HTTP ${code}: $(cat "${resp}")"
   fi

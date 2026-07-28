@@ -19,5 +19,5 @@ async function loginAndSave(email: string, password: string, savePath: string) {
 }
 
 export default async function globalSetup() {
-  await loginAndSave('admin@example.com', 'demo1234', '.auth/admin.json')
+  await loginAndSave('demo@tokenjoy.me', 'demo1234', '.auth/admin.json')
 }

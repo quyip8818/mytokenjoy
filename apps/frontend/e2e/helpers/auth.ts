@@ -1,7 +1,7 @@
 import type { APIRequestContext, Page } from '@playwright/test'
 import { E2E_BASE_URL } from '../e2e-db'
 
-const DEMO_EMAIL = 'admin@example.com'
+const DEMO_EMAIL = 'demo@tokenjoy.me'
 const DEMO_PASSWORD = 'demo1234'
 const MEMBER_EMAIL = 'zhangsan@example.com'
 

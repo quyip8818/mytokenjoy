@@ -5,7 +5,7 @@ company:
 
 admin:
   name: '管理员'
-  email: 'admin@example.com'
+  email: 'demo@tokenjoy.me'
   password: 'demo1234'
 
 billing:

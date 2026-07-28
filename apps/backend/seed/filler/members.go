@@ -29,7 +29,7 @@ var leafDeptBudgets = []DeptBudget{
 func anchorMembers() []types.Member {
 	return []types.Member{
 		{
-			ID: contract.IDMemberAdmin, CompanyID: contract.DefaultCompanyID, Alias: "管理员", Phone: "13800000001", Email: "admin@example.com",
+			ID: contract.IDMemberAdmin, CompanyID: contract.DefaultCompanyID, Alias: "管理员", Phone: "13800000001", Email: "demo@tokenjoy.me",
 			DepartmentID: contract.IDDept1, DepartmentName: "总公司", Status: "active",
 			Roles: []string{permission.RoleSuperAdmin}, Source: "manual",
 		},
