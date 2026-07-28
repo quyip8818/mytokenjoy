@@ -2,32 +2,40 @@ package newapi
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 )
 
-type pricingEntry struct {
-	ModelName       string  `json:"model_name"`
-	ModelRatio      float64 `json:"model_ratio"`
-	CompletionRatio float64 `json:"completion_ratio"`
-}
-
-type pricingResponse struct {
-	Data []pricingEntry `json:"data"`
-}
-
 func (c *Client) ListModelPricing(ctx context.Context) ([]adminport.ModelPricing, error) {
-	var resp pricingResponse
-	if err := c.do(ctx, "GET", "/api/pricing", nil, &resp); err != nil {
+	// Read from global option (ModelRatio + CompletionRatio maps) — same source
+	// that UpsertModelRatio writes to. The /api/pricing endpoint aggregates
+	// channel-level data which may differ from the global pricing intent.
+	var entries []optionEntry
+	if err := c.do(ctx, "GET", "/api/option/", nil, &entries); err != nil {
 		return nil, fmt.Errorf("list model pricing: %w", err)
 	}
-	out := make([]adminport.ModelPricing, 0, len(resp.Data))
-	for _, e := range resp.Data {
+	byKey := make(map[string]string, len(entries))
+	for _, e := range entries {
+		byKey[e.Key] = e.Value
+	}
+
+	mrMap := map[string]float64{}
+	if raw := byKey["ModelRatio"]; raw != "" {
+		_ = json.Unmarshal([]byte(raw), &mrMap)
+	}
+	crMap := map[string]float64{}
+	if raw := byKey["CompletionRatio"]; raw != "" {
+		_ = json.Unmarshal([]byte(raw), &crMap)
+	}
+
+	out := make([]adminport.ModelPricing, 0, len(mrMap))
+	for modelName, modelRatio := range mrMap {
 		out = append(out, adminport.ModelPricing{
-			ModelName:       e.ModelName,
-			ModelRatio:      e.ModelRatio,
-			CompletionRatio: e.CompletionRatio,
+			ModelName:       modelName,
+			ModelRatio:      modelRatio,
+			CompletionRatio: crMap[modelName], // defaults to 0 if not in map
 		})
 	}
 	return out, nil
