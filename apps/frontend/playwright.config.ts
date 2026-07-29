@@ -5,9 +5,15 @@ import {
   E2E_BASE_URL,
   E2E_DATABASE_URL,
   E2E_HOST,
+  E2E_MODE,
   E2E_PREVIEW_PORT,
   E2E_SMS_PORT,
+  PG_PORT,
 } from './e2e/e2e-db'
+import { saasEnv } from './e2e/env/saas'
+import { localEnv } from './e2e/env/local'
+
+const modeEnv = E2E_MODE === 'saas' ? saasEnv : localEnv
 
 // ponytail: 必须在 webServer 启动前建库，config 加载时即执行
 createDatabase()
@@ -51,12 +57,10 @@ export default defineConfig({
       timeout: 120_000,
       gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 },
       env: {
+        ...modeEnv,
         DATABASE_URL: E2E_DATABASE_URL,
-        COMPANY_NAME: 'Demo Company',
         SESSION_SECRET: 'e2e-test-session-secret',
         DATA_SOURCE_CREDENTIAL_KEY: 'dGV2LWNyZWRlbnRpYWwta2V5LWZvci1sb2NhbC1kZXY=',
-        BOOTSTRAP_MODE: 'demo',
-        CLOCK_ANCHOR: '2026-06-19',
         DEPLOY_ENV: 'local',
         NEW_API_BASE_URL: 'http://127.0.0.1:3010',
         PORT: String(E2E_BACKEND_PORT),
@@ -70,7 +74,7 @@ export default defineConfig({
       timeout: 60_000,
       gracefulShutdown: { signal: 'SIGTERM', timeout: 5_000 },
       env: {
-        DATABASE_URL: 'postgres://tokenjoy:tokenjoy@127.0.0.1:5510/sms?sslmode=disable',
+        DATABASE_URL: `postgres://tokenjoy:tokenjoy@127.0.0.1:${PG_PORT}/sms?sslmode=disable`,
         JWT_SECRET: 'e2e-sms-jwt-secret',
         PORT: String(E2E_SMS_PORT),
       },

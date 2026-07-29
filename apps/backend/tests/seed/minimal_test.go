@@ -44,7 +44,7 @@ func TestMinimalSeedStore(t *testing.T) {
 }
 
 func TestLoadMinimalFromConfig(t *testing.T) {
-	t.Setenv("DATABASE_URL", config.DefaultDatabaseURL)
+	t.Setenv("DATABASE_URL", "postgres://tokenjoy:tokenjoy@127.0.0.1:5530/tokenjoy?sslmode=disable")
 	t.Setenv("COMPANY_NAME", "Demo Company")
 	t.Setenv("NEW_API_ENABLED", "true")
 	t.Setenv("NEW_API_BASE_URL", "http://127.0.0.1:3010")

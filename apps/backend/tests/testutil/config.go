@@ -72,7 +72,7 @@ func WithProductionContract() ConfigOption {
 		cfg.GatewayEnabled = true
 		WithNewAPIBaseURL("http://127.0.0.1:3010")(cfg)
 		if cfg.DatabaseURL == "" {
-			cfg.DatabaseURL = config.DefaultDatabaseURL
+			cfg.DatabaseURL = defaultTestDatabaseURL()
 		}
 		cfg.LogDatabaseURL = cfg.DatabaseURL
 		WithNewAPIWebhookSecret(DefaultTestWebhookSecret)(cfg)
@@ -116,7 +116,8 @@ func defaultTestDatabaseURL() string {
 	if v := os.Getenv("DATABASE_URL"); v != "" {
 		return v
 	}
-	return config.DefaultDatabaseURL
+	// 默认指向测试专用 PG（5530），不再用 dev 的 5510
+	return "postgres://tokenjoy:tokenjoy@127.0.0.1:5530/tokenjoy?sslmode=disable"
 }
 
 func TestConfig(opts ...ConfigOption) config.Config {
@@ -146,6 +147,7 @@ func TestConfig(opts ...ConfigOption) config.Config {
 			RiverEnabled: true,
 		},
 		PlatformConfig: config.PlatformConfig{
+			SupportSaas:       CurrentTestMode() == ModeSaaS,
 			CompanyName:       "Demo Company",
 			TokenJoyCompanyID: contract.TokenJoyCompanyID,
 			CompanyID:         contract.DefaultCompanyID,

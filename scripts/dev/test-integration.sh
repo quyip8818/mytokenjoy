@@ -6,23 +6,11 @@ source "$(cd "$(dirname "$0")" && pwd)/../lib/common.sh"
 # shellcheck source=../lib/test-common.sh
 source "${ROOT}/scripts/lib/test-common.sh"
 
-# 前端 vitest 只跑一次（纯 unit test，不依赖 PG/mode）
-if [[ "${nocache}" == "true" ]]; then
-  pnpm -F @tokenjoy/frontend test:nocache
-else
-  pnpm -F @tokenjoy/frontend test
-fi
-
-# 后端按 mode 循环
 for mode in "${modes[@]}"; do
   echo ""
   echo "════════════════════════════════════════════"
-  echo "  TEST_MODE=${mode}"
+  echo "  TEST_MODE=${mode} (integration)"
   echo "════════════════════════════════════════════"
   echo ""
-  if [[ "${nocache}" == "true" ]]; then
-    TEST_MODE="${mode}" pnpm -F @tokenjoy/backend test:nocache
-  else
-    TEST_MODE="${mode}" pnpm -F @tokenjoy/backend test
-  fi
+  TEST_MODE="${mode}" pnpm -F @tokenjoy/backend test:integration
 done

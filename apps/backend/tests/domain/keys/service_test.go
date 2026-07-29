@@ -246,6 +246,7 @@ func TestDeletePlatformKeyNotFound(t *testing.T) {
 }
 
 func TestRotateProviderKeyRespectsRotateEnabled(t *testing.T) {
+	testutil.SkipUnlessLocal(t)
 	t.Parallel()
 	svc, st := newKeysService(t)
 	ctx := testutil.Ctx()

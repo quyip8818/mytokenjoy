@@ -36,18 +36,20 @@ func CachedHandle(t *testing.T) (Handle, bool) {
 
 // OpenCloned creates a fresh database by cloning the template DB via
 // CREATE DATABASE ... TEMPLATE. Each test gets its own isolated database.
-func OpenCloned(t *testing.T, baseURL string, templateCfg config.Config) Handle {
+// mode is "saas" or "local".
+func OpenCloned(t *testing.T, baseURL string, mode string, templateCfg config.Config) Handle {
 	t.Helper()
 	if h, ok := CachedHandle(t); ok {
 		return h
 	}
 
 	ctx := context.Background()
-	if err := EnsureTemplateDB(ctx, baseURL, templateCfg); err != nil {
+	if err := EnsureTemplateDB(ctx, baseURL, mode, templateCfg); err != nil {
 		t.Fatalf("ensure template db: %v", err)
 	}
 
 	dbName := newTestDBName()
+	tmplName := TemplateDBName(mode)
 
 	// CREATE DATABASE cannot run inside a transaction; use a dedicated admin connection.
 	adminConn, err := pgx.Connect(ctx, baseURL)
@@ -58,7 +60,7 @@ func OpenCloned(t *testing.T, baseURL string, templateCfg config.Config) Handle 
 	_, err = adminConn.Exec(ctx, fmt.Sprintf(
 		"CREATE DATABASE %s TEMPLATE %s",
 		pgx.Identifier{dbName}.Sanitize(),
-		pgx.Identifier{templateDBName}.Sanitize(),
+		pgx.Identifier{tmplName}.Sanitize(),
 	))
 	adminConn.Close(ctx)
 	if err != nil {
@@ -90,15 +92,16 @@ func OpenCloned(t *testing.T, baseURL string, templateCfg config.Config) Handle 
 // OpenClonedShared is like OpenCloned but does NOT register a per-test cleanup.
 // Use for shared stores whose lifetime spans all tests in the package.
 // The cloned DB will be cleaned up by cleanupOrphanTestDatabases on the next run.
-func OpenClonedShared(t *testing.T, baseURL string, templateCfg config.Config) Handle {
+func OpenClonedShared(t *testing.T, baseURL string, mode string, templateCfg config.Config) Handle {
 	t.Helper()
 
 	ctx := context.Background()
-	if err := EnsureTemplateDB(ctx, baseURL, templateCfg); err != nil {
+	if err := EnsureTemplateDB(ctx, baseURL, mode, templateCfg); err != nil {
 		t.Fatalf("ensure template db: %v", err)
 	}
 
 	dbName := newTestDBName()
+	tmplName := TemplateDBName(mode)
 
 	adminConn, err := pgx.Connect(ctx, baseURL)
 	if err != nil {
@@ -108,7 +111,7 @@ func OpenClonedShared(t *testing.T, baseURL string, templateCfg config.Config) H
 	_, err = adminConn.Exec(ctx, fmt.Sprintf(
 		"CREATE DATABASE %s TEMPLATE %s",
 		pgx.Identifier{dbName}.Sanitize(),
-		pgx.Identifier{templateDBName}.Sanitize(),
+		pgx.Identifier{tmplName}.Sanitize(),
 	))
 	adminConn.Close(ctx)
 	if err != nil {

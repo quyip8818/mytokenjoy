@@ -38,6 +38,8 @@ case "${cmd}" in
     ;;
   infra) exec bash "${DEV}/infra.sh" "$@" ;;
   test) exec bash "${DEV}/test.sh" "$@" ;;
+  test:integration) exec bash "${DEV}/test-integration.sh" "$@" ;;
+  test:e2e) exec bash "${DEV}/test-e2e.sh" "$@" ;;
   frontend-wait) exec bash "${DEV}/frontend-wait.sh" ;;
   "")
     cat <<EOF >&2
@@ -53,7 +55,9 @@ commands:
   reset sms          Reset sms databases and seed
   reset all          Reset both apps and sms
   infra [sub]        Manage docker infra
-  test [args]        Run tests
+  test [args]        Run tests (--saas/--local to filter, default both)
+  test:integration   Run integration tests (--saas/--local to filter)
+  test:e2e           Run E2E tests (--saas/--local to filter)
 EOF
     exit 1
     ;;

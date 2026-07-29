@@ -1,5 +1,10 @@
 import { chromium } from '@playwright/test'
-import { E2E_BASE_URL } from './e2e-db'
+import { E2E_BASE_URL, E2E_MODE } from './e2e-db'
+
+const credentials = {
+  saas: { email: 'admin@tokenjoy.me', password: 'admin1234' },
+  local: { email: 'demo@tokenjoy.me', password: 'demo1234' },
+}
 
 async function loginAndSave(email: string, password: string, savePath: string) {
   const browser = await chromium.launch()
@@ -19,5 +24,6 @@ async function loginAndSave(email: string, password: string, savePath: string) {
 }
 
 export default async function globalSetup() {
-  await loginAndSave('demo@tokenjoy.me', 'demo1234', '.auth/admin.json')
+  const { email, password } = credentials[E2E_MODE]
+  await loginAndSave(email, password, '.auth/admin.json')
 }

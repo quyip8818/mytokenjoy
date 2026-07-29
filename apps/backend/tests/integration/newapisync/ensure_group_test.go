@@ -13,6 +13,7 @@ import (
 )
 
 func TestTrySyncCreateEnsuresGroupBeforeCreateToken(t *testing.T) {
+	testutil.SkipUnlessLocal(t)
 	t.Parallel()
 	var ensuredGroup, ensuredDisplay string
 	stub := &mock.StubAdminClient{

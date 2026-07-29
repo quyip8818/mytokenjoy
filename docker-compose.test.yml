@@ -1,0 +1,33 @@
+# 测试专用基础设施，与 dev 完全隔离
+# ponytail: 升级路径：testcontainers
+services:
+  postgres:
+    image: postgres:17-alpine
+    command: ['postgres', '-c', 'max_locks_per_transaction=1024', '-c', 'max_connections=300']
+    environment:
+      POSTGRES_USER: tokenjoy
+      POSTGRES_PASSWORD: tokenjoy
+      POSTGRES_DB: tokenjoy
+    ports:
+      - '5530:5432'
+    volumes:
+      - test_pg:/var/lib/postgresql/data
+      - ./scripts/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U tokenjoy -d tokenjoy']
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6330:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  test_pg:

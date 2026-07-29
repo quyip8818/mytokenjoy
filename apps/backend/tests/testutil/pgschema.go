@@ -18,7 +18,7 @@ func openTestSchema(t *testing.T) pg.Handle {
 	t.Helper()
 	baseURL := defaultTestDatabaseURL()
 	if baseURL == "" {
-		t.Fatal("DATABASE_URL required; run: pnpm start:postgres")
+		t.Fatal("DATABASE_URL required; run: docker compose -f docker-compose.test.yml up -d")
 	}
 	return pg.OpenSlow(t, baseURL)
 }
@@ -27,22 +27,40 @@ func openClonedTestSchema(t *testing.T) pg.Handle {
 	t.Helper()
 	baseURL := defaultTestDatabaseURL()
 	if baseURL == "" {
-		t.Fatal("DATABASE_URL required; run: pnpm start:postgres")
+		t.Fatal("DATABASE_URL required; run: docker compose -f docker-compose.test.yml up -d")
 	}
-	return pg.OpenCloned(t, baseURL, templateStoreConfig())
+	mode := CurrentTestMode()
+	return pg.OpenCloned(t, baseURL, string(mode), templateStoreConfig(mode))
 }
 
 func openSharedClonedSchema(t *testing.T) pg.Handle {
 	t.Helper()
 	baseURL := defaultTestDatabaseURL()
 	if baseURL == "" {
-		t.Fatal("DATABASE_URL required; run: pnpm start:postgres")
+		t.Fatal("DATABASE_URL required; run: docker compose -f docker-compose.test.yml up -d")
 	}
-	return pg.OpenClonedShared(t, baseURL, templateStoreConfig())
+	mode := CurrentTestMode()
+	return pg.OpenClonedShared(t, baseURL, string(mode), templateStoreConfig(mode))
 }
 
-func templateStoreConfig() config.Config {
-	cfg := TestConfig(WithIngestEnabled(true), WithBootstrapMode(config.BootstrapDemo))
-	cfg.StoreBootstrap.TestPartitionMonths = 12
-	return cfg
+func templateStoreConfig(mode TestMode) config.Config {
+	switch mode {
+	case ModeSaaS:
+		cfg := TestConfig(
+			WithSupportSaas(true),
+			WithBootstrapMode(config.BootstrapDemo),
+			WithPlatformBootstrap("admin@tokenjoy.me", "admin1234"),
+			WithIngestEnabled(true),
+		)
+		cfg.StoreBootstrap.TestPartitionMonths = 12
+		return cfg
+	default: // ModeLocal
+		cfg := TestConfig(
+			WithSupportSaas(false),
+			WithBootstrapMode(config.BootstrapDemo),
+			WithIngestEnabled(true),
+		)
+		cfg.StoreBootstrap.TestPartitionMonths = 12
+		return cfg
+	}
 }

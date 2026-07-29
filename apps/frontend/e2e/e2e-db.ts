@@ -3,18 +3,22 @@
  */
 import { execSync } from 'node:child_process'
 
-// --- Ports (高位避免和微信等桌面应用冲突) ---
-export const E2E_BACKEND_PORT = 9410
-export const E2E_SMS_PORT = 9411
-export const E2E_PREVIEW_PORT = 9412
+// --- Test mode ---
+export type E2EMode = 'saas' | 'local'
+export const E2E_MODE: E2EMode = (process.env.TEST_MODE ?? 'saas') as E2EMode
+
+// --- Ports (偏移到 942x，避免和 dev 的 941x 冲突) ---
+export const E2E_BACKEND_PORT = 9420
+export const E2E_SMS_PORT = 9421
+export const E2E_PREVIEW_PORT = 9422
 export const E2E_HOST = '127.0.0.1'
 export const E2E_BASE_URL = `http://${E2E_HOST}:${E2E_PREVIEW_PORT}`
 
-// --- Postgres ---
+// --- Postgres (测试专用 PG:5530) ---
 export const PG_HOST = '127.0.0.1'
-export const PG_PORT = '5510'
+export const PG_PORT = '5530'
 export const PG_USER = 'tokenjoy'
-export const E2E_DB = 'tokenjoy_e2e'
+export const E2E_DB = `tokenjoy_e2e_${E2E_MODE}`
 export const E2E_DATABASE_URL = `postgres://${PG_USER}:${PG_USER}@${PG_HOST}:${PG_PORT}/${E2E_DB}?sslmode=disable`
 
 const ADMIN_CONN = `postgres://${PG_USER}:${PG_USER}@${PG_HOST}:${PG_PORT}/postgres`
