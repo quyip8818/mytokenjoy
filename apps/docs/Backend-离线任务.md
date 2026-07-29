@@ -84,7 +84,7 @@ Domain 入队经各域 `JobEnqueuer` 端口（`domain/port/` + `adapter/enqueue/
 | kind                  | 队列     | Unique          | 触发层级                             | Worker                         | Domain 入口                             |
 | --------------------- | -------- | --------------- | ------------------------------------ | ------------------------------ | --------------------------------------- |
 | `newapi_sync`         | critical | 无              | L1 业务                              | `workers/newapi_sync.go`       | `newapisync.OutboxHandler`              |
-| ~~`wallet_sync`~~   | —        | —               | **已废弃**：改为 post-commit 实时 override | —                              | 见 [design/wallet-sync.md](./design/wallet-sync.md) |
+| ~~`wallet_sync`~~   | —        | —               | **已废弃**：改为 post-commit 实时 override | —                              | 见 [Backend-计费模式.md](./Backend-计费模式.md) §4.4 |
 | `rebalance`           | default  | per axis        | L1 按需 / 充值月切 / reconcile / L2  | `workers/rebalance.go`         | `budget.Rebalancer.ProcessAxis`         |
 | `overrun`             | default  | per payload     | L1 **仅可能触顶时**                  | `workers/overrun.go`           | `budget.OverrunProcessor`               |
 | `org_sync`            | default  | per company     | L1 ScheduledAt；L2 看门狗            | `workers/org_sync.go`          | `org.RunScheduledSync`                  |
@@ -163,7 +163,7 @@ Due 判据（只读 store，见 `infra/scheduler/due.go`）：
 > **已被实时 override 取代。** 现在每次 `wallet_remain_quota` 变更后，事务提交即 best-effort 调 `ManageUser("set_quota", mode="override")` 覆盖 NewAPI。不再需要 River job、debounce、delta 计算。
 >
 > 旧的 `wallet_sync` worker、`ReconcileWalletDrift`、`SyncCompanyWallet` 均已移除。
-> 详见 [design/wallet-sync.md](./design/wallet-sync.md)。
+> 详见 [Backend-计费模式.md](./Backend-计费模式.md) §4.4。
 
 ### 6.2 `rebalance` / `overrun`
 

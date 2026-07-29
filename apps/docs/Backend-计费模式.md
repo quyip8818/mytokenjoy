@@ -1,343 +1,279 @@
 # Backend 计费模式
 
-**一句话：** 内部统一 **point** 计量；钱包 / CallLog / 看板 Spend 以 **lot 冻结展示币** 为 SSOT；NewAPI `users.quota` 仅为 **派生通道配额**（可重建、非资金真相）。
+内部统一 **quota (int64)** 计量；钱包 / CallLog / 看板以 **lot 冻结展示币** 为 SSOT；NewAPI `users.quota` 是 TokenJoy 的实时镜像，不是资金真相。
 
-**相关：** [Backend-预算.md](./Backend-预算.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-架构.md](./Backend-架构.md) · [Backend-退款与冲正.md](./plan/Backend-退款与冲正.md)（设计 only） · [Frontend.md](./Frontend.md)
-
-**阅读路径：**
-
-| 章节 | 适合谁        | 内容                            |
-| ---- | ------------- | ------------------------------- |
-| §1–2 | 产品 / 新同学 | 两套金额、三世界、币种配置      |
-| §3–4 | 后端开发      | 权威边界、事实/投影、端到端流程 |
-| §5–7 | 实现 / Review | 数据模型、公式、代码地图        |
-| §8–9 | 联调 / 运维   | API 契约、部署                  |
-| §10  | 架构演进      | 风险、已收口项、待做            |
+**相关：** [Backend-预算.md](./Backend-预算.md) · [Backend-存储架构.md](./Backend-存储架构.md) · [Backend-Ingest架构.md](./Backend-Ingest架构.md) · [Frontend.md](./Frontend.md)
 
 ---
 
-## 1. 产品视角：两套数，别混读
+## 1. 两套数
 
-| 指标       | 用户看到                             | 后端字段                                                      | 用途                     |
-| ---------- | ------------------------------------ | ------------------------------------------------------------- | ------------------------ |
-| **展示币** | 钱包余额、CallLog 费用、看板 Spend   | `balances[]`、`ledger.display_amount`、`buckets.display_cost` | 财务闭合；**入账时冻结** |
-| **Quota**  | 预算/Key 额度（UI 常再换算成「元」） | `wallet_remain_quota`、`budget_*`、`key.budget`               | Gateway、预算、ingest    |
+| 指标       | 用户看到                           | 后端字段                                                     | 用途                   |
+| ---------- | ---------------------------------- | ------------------------------------------------------------ | ---------------------- |
+| **展示币** | 钱包余额、CallLog 费用、看板 Spend | `balances[]`、`ledger.display_amount`、`buckets.display_cost` | 财务闭合；入账时冻结   |
+| **Quota**  | 预算/Key 额度（UI 换算成「元」）   | `wallet_remain_quota`、`budget_*`、`key.budget`              | Gateway、预算、ingest  |
 
-默认：`1 CNY = 500000 quota`（`DefaultQuotaPerUnit`，与 `currencies` seed 对齐，等于 NewAPI 的 `QuotaPerUnit`）。
+默认：`1 CNY = 500,000 quota`（`DefaultQuotaPerUnit`，与 `currencies` seed 对齐）。
 
-```text
-钱包 / CallLog / Spend     预算 / Key 额度 UI
-   已是展示币                   用户填展示额
-   formatMoney                  quotaToDisplay / displayToQuota
-        │                              │
-        ▼                              ▼
-   lot 单价冻结                 API 只存 quota (int64)
-        └──────── quota 世界（Gateway / ingest）────────┘
-```
-
-**文案：** 「账户余额」= lot 闭合；「预算额度」= 组织额度（按**当前**公司 QPU 近似展示，≠ 历史 CallLog 单价）。
-
-易错：**量纲混用**（填 ¥ 当 quota 提交 → ~500000×）、**二次换算**（对已是展示币再 ÷QPU）。
+易错：**量纲混用**（填 ¥ 当 quota 提交 → ×500000）、**二次换算**（对已是展示币再 ÷QPU）。
 
 ---
 
-## 2. 三个世界与币种配置
+## 2. 三个世界
 
-```mermaid
-flowchart LR
-  U[Usage tokens] -->|entry.Amount = raw.Quota| Q[Quota int64]
-  Q -->|FIFO × lot.quota_per_unit| W[Wallet 展示币]
-  Q --> B[预算 / soft remain]
+```
+Usage tokens ──→ Quota (int64) ──→ Wallet 展示币（lot 冻结）
+                       │
+                       └──→ 预算 / soft remain
 ```
 
-| 世界   | 含义                  | 典型字段                                           | 改公司币后现算？ |
-| ------ | --------------------- | -------------------------------------------------- | ---------------- |
-| Usage  | token / 次数          | `input_tokens` / `output_tokens`                   | —                |
-| Quota  | 内部统一货币 (int64)  | `wallet_remain_quota`、`ledger.amount`、`budget_*` | 额度本身不换币   |
-| Wallet | lot 成本价 + 冻结展示 | `ledger.display_amount`、`buckets.display_cost`    | **否**           |
+| 世界   | 含义                 | 典型字段                                          | 改公司币后现算？ |
+| ------ | -------------------- | ------------------------------------------------- | ---------------- |
+| Usage  | token / 次数         | `input_tokens` / `output_tokens`                  | —                |
+| Quota  | 内部统一货币 (int64) | `wallet_remain_quota`、`ledger.amount`、`budget_*` | 不换币          |
+| Wallet | lot 成本价 + 冻结    | `ledger.display_amount`、`buckets.display_cost`   | **否**           |
 
-### 2.1 币种 / QPU SSOT
+### 2.1 币种 / QPU
 
-| 位置                                       | 作用                                               |
-| ------------------------------------------ | -------------------------------------------------- |
-| `common.DefaultBillingCurrency`（`CNY`）   | 唯一硬编码默认币码                                 |
-| `common.ResolveBillingCurrency`            | 空 → 默认                                          |
-| `currencies.quota_per_unit`                | **QPU 表级 SSOT**                                  |
-| `companies.billing_currency`               | 公司**当前**计费币（只影响**新**充值 / overdraft） |
-| Session `billingCurrency` + `quotaPerUnit` | FE 写边界注入（`ResolveCompanyChargeRate`）        |
+| 位置                             | 作用                                              |
+| -------------------------------- | ------------------------------------------------- |
+| `currencies.quota_per_unit`      | QPU 表级 SSOT                                     |
+| `companies.billing_currency`     | 公司当前计费币（只影响**新**充值 / overdraft）     |
+| Session `quotaPerUnit`           | FE 写边界注入（`ResolveCompanyChargeRate`）        |
 
-### 2.2 冻结规则（已实现）
+### 2.2 冻结规则
 
-1. 订单：落 `currency` + `quota_per_unit` + `quota_granted`。
-2. Lot：`display_amount = quota / lot.quota_per_unit`（paid/adjust）；gift/overdraft AmountDisplay=0。
-3. 消耗：`display_amount = take / lot.quota_per_unit`，币种 = **lot.billing_currency**。
-4. 改 `companies.billing_currency`：历史 lot / ledger **不回写**。
+1. 订单落 `currency` + `quota_per_unit` + `quota_granted`。
+2. Lot：`display_amount = quota / lot.quota_per_unit`（paid/adjust）；gift/overdraft = 0。
+3. 消耗段：`display_amount = take / lot.quota_per_unit`，币种 = lot.billing_currency。
+4. 改 `billing_currency`：历史 lot / ledger 不回写。
 
 ---
 
-## 3. 系统边界：谁说了算
+## 3. 权威边界
 
-```mermaid
-flowchart TB
-  subgraph SSOT["事实面（强一致）"]
-    LOT[company_recharge_lots]
-    LED[usage_ledger]
-    BP[companies.wallet_remain_quota]
-  end
-  subgraph Derived["投影 / 派生（最终一致，可重建）"]
-    Soft[gateway_soft_remain]
-    SN[budget_consumed]
-    BK[usage_buckets]
-    NA[NewAPI users.quota]
-  end
-  RCH[Recharge/Gift/Adjust] --> LOT
-  RCH --> BP
-  ING[Ingest] --> LOT
-  ING --> LED
-  ING --> BP
-  LED -.-> Soft
-  LED -.-> SN
-  LED -.-> BK
-  BP -->|set_quota override| NA
-  GW[Gateway] --> BP
-  GW --> Soft
+```
+事实面（强一致）         投影 / 派生（最终一致，可重建）
+───────────────         ─────────────────────────────
+company_recharge_lots   budget_consumed
+usage_ledger            usage_buckets
+wallet_remain_quota     gateway_soft_remain
+                        NewAPI users.quota
 ```
 
-| 面   | 代表                                | Gateway                                                  |
-| ---- | ----------------------------------- | -------------------------------------------------------- |
-| 事实 | lots、ledger、`wallet_remain_quota` | `wallet_remain_quota` 可读；**禁止**热路径 `SUM(ledger)` |
-| 投影 | soft / consumed / buckets           | soft 可用（带 lag）                                      |
+| 能力           | SSOT                                   | 派生                              |
+| -------------- | -------------------------------------- | --------------------------------- |
+| 企业可用 quota | `wallet_remain_quota` / Σ lot remain   | —                                 |
+| 展示币钱包     | lots（paid + adjust）                  | —                                 |
+| 单笔消耗       | `usage_ledger`                         | —                                 |
+| 组织 consumed  | —                                      | `budget_consumed`                 |
+| 看板 Spend     | —                                      | `usage_buckets.display_cost`      |
+| Gateway 挡单   | `wallet_remain_quota` + soft           | NewAPI 不参与预检                 |
+| NewAPI wallet  | —                                      | 实时 override 镜像                |
 
-
-### 3.1 权威矩阵
-
-| 能力           | SSOT                                    | 派生                                   |
-| -------------- | --------------------------------------- | -------------------------------------- |
-| 企业可用 point | `wallet_remain_quota` / Σ lot remaining | —                                      |
-| 展示币钱包     | `company_recharge_lots`（paid+adjust）  | —                                      |
-| 单笔消耗       | `usage_ledger`（amount + display）      | —                                      |
-| 组织 consumed  | —                                       | `budget_consumed`（point）             |
-| 看板 Spend     | —                                       | `usage_buckets.display_cost`（展示币） |
-| Gateway 挡单   | `wallet_remain_quota` + soft            | NewAPI 不挡预检                        |
-| NewAPI wallet  | —                                       | `set_quota` override（实时镜像）  |
-
-**不变量：** 禁止用 NewAPI quota 反算对外钱包；漂移以 Postgres 为准。
-
-### 3.2 写 / 读边界（量纲纪律）
-
-```text
-写边界（仅此换算）：表单展示→point（session.PPU）｜充值币→point（currencies.PPU）｜quota→point（CostFromQuota）
-事实面：lots + ledger + wallet_remain_quota
-投影面：consumed / soft / buckets（不重计价）
-读边界：已结算钱 → formatMoney｜额度 point → formatDisplayCurrency
-```
-
-### 3.3 设计约束
-
-1. Schema 以 `schema.sql` 为准；本地 wipe + seed。
-2. 生产路径 `NEW_API_GATEWAY_ENABLED=true`；禁止旁路消费。
-3. lot = 充值批次；每笔 lot 1:1 `company_recharge_orders`。
+**红线：** 禁止用 NewAPI quota 反算钱包；漂移以 Postgres 为准。
 
 ---
 
 ## 4. 核心流程
 
-### 4.1 总览
-
-```mermaid
-flowchart TB
-  Credit[充值/gift/adjust] --> LOT[(lot + wallet_remain_quota)]
-  Call[API 调用] --> GW[Gateway Precheck]
-  GW -->|通过| Proxy[Proxy NewAPI]
-  Proxy --> ING[Ingest]
-  ING --> LOT
-  ING --> LED[(usage_ledger)]
-  LED --> Proj[异步 budget/dashboard 投影]
-  LOT --> Sync[set_quota override → NewAPI]
-```
-
-入账同事务：**lot + ledger + wallet_remain_quota**。  
-`budget_consumed` / `gateway_soft_*` / `usage_buckets`：**异步投影**（非同事务；有 soft lag）。
-
-### 4.2 充值
-
-```mermaid
-sequenceDiagram
-  participant B as billing
-  participant Co as companies
-  participant Cur as currencies
-  participant PG as lots + wallet
-
-  B->>Co: billing_currency
-  B->>Cur: quota_per_unit
-  Note over B: quota = Round(amount × QPU)
-  B->>PG: BuildPaidLot 锁定 QPU/币种
-  B->>PG: wallet_remain_quota += quota
-```
-
-| 场景          | `lot_kind`                           | 展示币                |
-| ------------- | ------------------------------------ | --------------------- |
-| 自助/平台充值 | `paid`                               | `quota / QPU`，锁 QPU |
-| 赠送          | `gift`                               | 0                     |
-| 调账          | `adjust`                             | 显式写入              |
-| ingest 透支   | `overdraft`（每企业至多一个 active） | 0                     |
-
-新企业 `wallet_remain_quota=0`，无初始 lot。
-
-### 4.3 消耗：FIFO + overdraft
-
-```mermaid
-flowchart TD
-  A[Webhook/reconcile] --> B[锁 company]
-  B --> C{幂等?}
-  C -->|否| D[entry.Amount = raw.Quota → FIFO 扣 lot]
-  D --> E{不足?}
-  E -->|是| F[扩展 overdraft]
-  E -->|否| G[ledger 段 amount+display 冻结]
-  F --> G
-  G --> H[wallet_remain_quota / enqueue sync]
-  G --> I[异步投影]
-```
-
-- 跨 lot → 多段 ledger；gift/overdraft 段 `display_amount=0`。
-- lot 不足**不得**让 webhook 永久失败 → overdraft（应可观测告警，见 §10）。
-
-### 4.4 Gateway 预检
-
-单位均为 **point**。不读 NewAPI；读 `wallet_remain_quota` + `gateway_soft_remain`。
-
-| #   | 检查                                                              |
-| --- | ----------------------------------------------------------------- |
-| 1   | 企业 active                                                       |
-| 2   | `wallet_remain_quota ≥ minEstimate`（当前固定 `0.01×DefaultPPU`） |
-| 3   | soft remain > 0（有配置时）                                       |
-| 4   | Key active / 未过期                                               |
-| 5   | 模型白名单                                                        |
-
-**不做：** 动态 estimate；热路径扫 ledger；ingest 同事务重投影。  
-
-### 4.5 wallet sync（实时 override）
-
-每次 `wallet_remain_quota` 变更（充值或消费），事务提交后立即 best-effort 调 NewAPI：
+### 4.1 充值
 
 ```
-ManageUser(walletUserID, "set_quota", wallet_remain_quota)  → mode: "override"
+用户充值 → ResolveCompanyChargeRate(currency, QPU)
+        → quota = Round(amount × QPU)
+        → TX: BuildLot(锁定 QPU/币种) + ApplyWalletDelta
+        → TX commit
+        → set_quota override → NewAPI
 ```
 
-NewAPI user.quota 被覆盖为 TokenJoy 的绝对值。无 debounce、无 River job、无 delta 计算。失败不阻塞主流程（warn log），下一次变更会再次覆盖。
+| 场景        | lot_kind   | 展示币              |
+| ----------- | ---------- | ------------------- |
+| 自助/平台   | `paid`     | `quota / QPU` 锁定 |
+| 赠送        | `gift`     | 0                   |
+| 调账        | `adjust`   | 显式写入            |
+| ingest 透支 | `overdraft`| 0                   |
 
-详见 [design/wallet-sync.md](./design/wallet-sync.md)。
+新企业 `wallet_remain_quota = 0`，无初始 lot。
+
+### 4.2 消耗：FIFO + overdraft
+
+```
+consume log → TX: LockForUpdate(company)
+           → 幂等检查
+           → FIFO 扣 lot（跨 lot = 多段 ledger）
+           → lot 不足 → 扩展 overdraft
+           → SetWalletRemainQuota
+           → TX commit
+           → set_quota override → NewAPI
+```
+
+- 跨 lot 段：gift/overdraft 段 `display_amount = 0`。
+- overdraft 保证 ingest 不因余额不足永久失败（应设告警）。
+
+### 4.3 Gateway 预检
+
+单位 = quota。不读 NewAPI。
+
+| # | 检查                                        |
+|---|---------------------------------------------|
+| 1 | 企业 active                                 |
+| 2 | `wallet_remain_quota ≥ minEstimate`         |
+| 3 | `combined_key_remain > 0`（有配置时）       |
+| 4 | Key active / 未过期                         |
+| 5 | 模型白名单                                  |
+
+### 4.4 Wallet 同步（NewAPI）
+
+TokenJoy `wallet_remain_quota` 是 SOT。NewAPI wallet 是实时镜像。
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                        TokenJoy                             │
+│                                                            │
+│  ┌─────────────┐           ┌────────────────────┐          │
+│  │ 充值路径     │           │ 消费路径 (Ingest)   │          │
+│  │ CreditFromLot│           │ ConsumeLotsLocked  │          │
+│  └──────┬──────┘           └─────────┬──────────┘          │
+│         │ TX: ApplyWalletDelta       │ TX: SetWalletRemain │
+│         ▼                            ▼                     │
+│  ┌─────────────────────────────────────────┐               │
+│  │     companies.wallet_remain_quota       │  ← SOT        │
+│  └─────────────────────────────────────────┘               │
+│         │         Post-commit              │               │
+│         ▼         (best-effort)            ▼               │
+│  ┌─────────────────────────────────────────┐               │
+│  │  ManageUser("set_quota", value)         │               │
+│  │  mode: "override"                       │               │
+│  └────────────────────┬────────────────────┘               │
+└───────────────────────┼────────────────────────────────────┘
+                        │ HTTP POST /api/user/manage
+                        ▼
+            ┌─────────────────────┐
+            │      NewAPI         │
+            │  user.quota = value │  ← 纯镜像
+            └─────────────────────┘
+```
+
+**写入路径：**
+
+| 路径 | 触发时机 | 代码 |
+|------|----------|------|
+| 充值 | PlatformRecharge / Gift / Adjust / ConfirmPayment | `billing/lot_confirm.go` → `syncWalletBestEffort` |
+| 消费 | 每条 consume log 入账 | `usage/ingest.go` → post-commit block |
+| 升级 | trial/demo → standard | `company/service.go` → `UpgradeToStandard` |
+
+**失败处理：**
+
+| 场景 | 行为 |
+|------|------|
+| NewAPI 不可达 | warn log，不阻塞 |
+| 重复 override 同一个值 | 幂等 |
+| 并发 ingest（同 company） | company row lock 保证串行 |
+| NewAPI 自身扣了 quota | 下一次 ingest override 覆盖回来 |
+
+偏差方向安全：NewAPI wallet 暂时偏高（用户能多用一点），不会"有钱被拒"。
+
+**NewAPI API 格式：**
+
+```json
+POST /api/user/manage
+{
+  "id": <walletUserID>,
+  "action": "add_quota",
+  "mode": "override",
+  "value": <wallet_remain_quota 绝对值>
+}
+```
+
+`action` 固定 `"add_quota"`，`mode` 区分语义：`"add"` 增量 / `"override"` 覆盖绝对值。
 
 ---
 
-## 5. 数据模型精要
+## 5. 数据模型
 
 ### 5.1 表关系
 
-```mermaid
-erDiagram
-  currencies ||--o{ companies : billing_currency
-  companies ||--o{ company_recharge_orders : has
-  company_recharge_orders ||--|| company_recharge_lots : "1:1"
-  company_recharge_lots ||--o{ usage_ledger : debits
+```
+currencies ──1:N──→ companies (billing_currency)
+companies  ──1:N──→ company_recharge_orders
+company_recharge_orders ──1:1──→ company_recharge_lots
+company_recharge_lots ──1:N──→ usage_ledger (debit segments)
 ```
 
-### 5.2 展示币闭合（paid + adjust）
+### 5.2 展示币闭合
 
-```text
-display = quota / lot.quota_per_unit                         (单条)
-balance(c) = Σ (quota_remaining × amount_display / NULLIF(quota_granted,0))  WHERE currency=c AND kind∈{paid,adjust}
-totalTopup − totalConsumed = balance
+```
+单条:  display = quota / lot.quota_per_unit
+余额:  balance(c) = Σ (quota_remaining × amount_display / quota_granted)
+                     WHERE currency=c AND kind∈{paid, adjust}
 ```
 
 ### 5.3 Quota 守恒
 
-```text
-Σ quota_granted − Σ ledger.amount = Σ quota_remaining
-wallet_remain_quota = Σ quota_remaining
+```
+Σ quota_granted − Σ ledger.amount = Σ quota_remaining = wallet_remain_quota
 ```
 
 ### 5.4 lot_kind
 
-| kind             | 可花 | 计 totalTopup | 消耗 display                |
-| ---------------- | ---- | ------------- | --------------------------- |
-| paid / adjust    | ✅   | ✅            | `take / lot.quota_per_unit` |
-| gift / overdraft | ✅   | ❌            | 等价金额（同公式）          |
-
-预算 limit / consumed、key.budget 均为 **int64 quota**。
+| kind      | 可花 | 计 totalTopup | 消耗 display              |
+| --------- | ---- | ------------- | ------------------------- |
+| paid      | ✅   | ✅            | `take / lot.quota_per_unit` |
+| adjust    | ✅   | ✅            | 同上                       |
+| gift      | ✅   | ❌            | 同公式                     |
+| overdraft | ✅   | ❌            | 同公式                     |
 
 ---
 
-## 6. 公式与一致性
+## 6. 公式
 
-### 6.1 换算
-
-```text
-entry.Amount = raw.Quota                              (NewAPI 日志直通，零转换)
-display_amount = take / lot.quota_per_unit            (FIFO 冻结)
-quota_granted = Round(amount_display × QPU(currency))
+```
+entry.Amount = raw.Quota                    (NewAPI 日志直通，零转换)
+display_amount = take / lot.quota_per_unit  (FIFO 冻结)
+quota_granted = Round(amount × QPU)
+DefaultQuotaPerUnit = 500000
 ```
 
-| 常量                  | 值     |
-| --------------------- | ------ |
-| `DefaultQuotaPerUnit` | 500000 |
+**闭环验证：**
 
-### 6.2 闭环
-
-| #   | 验证                                                          |
-| --- | ------------------------------------------------------------- |
-| 1   | quota 守恒：授予 − ledger = remaining                         |
-| 2   | 展示币闭合：`wallet_closure_test`                             |
-| 3   | `display_amount = amount / lot.quota_per_unit`                |
-| 4   | 幂等 `(company_id, idempotency_key, lot_id, …)`               |
-| 5   | FIFO 与 ledger / wallet 同事务                                |
-| 6   | NewAPI token unlimited_quota=true，无需同步                   |
-| 7   | 投影终态：`Σ ledger.amount ≈ budget_consumed`（可 reconcile） |
-
-### 6.3 边界行为
-
-| 场景     | 行为                                                               |
-| -------- | ------------------------------------------------------------------ |
-| 预检不足 | 拒绝，不 proxy                                                     |
-| lot 不足 | overdraft                                                          |
-| 改币种   | 旧 lot/CallLog 不变；新充值用新币                                  |
-| 退款     | **未实现** → [Backend-退款与冲正.md](./plan/Backend-退款与冲正.md) |
+| # | 不变量 |
+|---|--------|
+| 1 | quota 守恒：授予 − ledger = remaining |
+| 2 | 展示币闭合：`wallet_closure_test` |
+| 3 | FIFO + ledger + wallet 同事务 |
+| 4 | 幂等：`(company_id, idempotency_key)` |
+| 5 | NewAPI token `unlimited_quota = true`（无需 per-token 同步） |
+| 6 | 投影终态：`Σ ledger.amount ≈ budget_consumed`（reconcile 修复） |
 
 ---
 
 ## 7. 代码地图
 
-```text
-pkg/common/constants.go          DefaultBillingCurrency / DefaultQuotaPerUnit
-integration/newapi/units.go      NewAPIGroupForDepartment
-
-domain/billing/currency.go       ResolveCompanyChargeRate / resolveQuotaPerUnit
-domain/billing/lot*.go           BuildPaidLot / Confirm / ConsumeLots
-domain/billing/wallet_*.go       AggregateWallet / lifetimeRequestCount
-
-domain/usage/ingest.go           入账事务（entry.Amount = raw.Quota）
-domain/usage/ledger_audit.go     CallLog.cost = DisplayAmount
-
-identity/authz/service.go        Session 下发 billingCurrency + quotaPerUnit
-domain/gateway/evaluate.go       预检（wallet_remain_quota + combined_key_remain）
-
-apps/frontend/src/lib/quota-display.ts  createBillingExchange / setActive（session 同步）
-                                        formatMoney(展示币) vs formatDisplayCurrency(quota)
-```
-
-**HTTP：** `GET /billing/wallet` · `GET /session`（含币种/QPU）· `POST /platform/.../recharge|gift|adjust`
+| 模块 | 文件 | 职责 |
+|------|------|------|
+| 常量 | `pkg/common/constants.go` | DefaultBillingCurrency / DefaultQuotaPerUnit |
+| 币种解析 | `domain/billing/currency.go` | ResolveCompanyChargeRate |
+| Lot 写入 | `domain/billing/lot/consume.go` | CreditFromLot / ConsumeLots |
+| 充值确认 | `domain/billing/lot_confirm.go` | confirmPaidRecharge / syncWalletBestEffort |
+| 钱包聚合 | `domain/billing/wallet_view.go` | AggregateWallet |
+| 入账 | `domain/usage/ingest.go` | IngestRaw（FIFO 消费 + post-commit sync） |
+| 预检 | `domain/gateway/evaluate.go` | wallet_remain_quota + combined_key_remain |
+| NewAPI 客户端 | `integration/newapi/user.go` | ManageUser (set_quota → override) |
+| Store | `store/postgres/company_repo.go` | ApplyWalletDelta / SetWalletRemainQuota |
+| FE 换算 | `frontend/src/lib/quota-display.ts` | formatMoney / formatDisplayCurrency |
 
 ---
 
-## 8. API 与前端契约
+## 8. API 契约
 
-### 8.1 Session（写边界）
+### 8.1 Session
 
 ```json
-{ "billingCurrency": "CNY", "quotaPerUnit": 500000, "...": "..." }
+{ "billingCurrency": "CNY", "quotaPerUnit": 500000 }
 ```
 
-FE：`AuthSessionProvider` → `setActiveBillingExchange`；表单 `displayToQuota` / `quotaToDisplay`。
+FE 用 `quotaToDisplay` / `displayToQuota` 做表单换算。
 
 ### 8.2 钱包
 
@@ -351,69 +287,51 @@ FE：`AuthSessionProvider` → `setActiveBillingExchange`；表单 `displayToQuo
 }
 ```
 
-### 8.3 读侧 helper
+### 8.3 展示规则
 
-| 数据                       | Helper                       |
-| -------------------------- | ---------------------------- |
-| CallLog / Spend / 钱包余额 | `formatMoney`（禁止再 ÷PPU） |
-| 预算 / Key remaining       | `formatDisplayCurrency`      |
+| 数据类型              | 用什么展示           |
+| --------------------- | -------------------- |
+| 钱包余额 / CallLog    | `formatMoney`（禁止再 ÷QPU） |
+| 预算额度 / Key remain | `formatDisplayCurrency` |
 
-预算/Key API **只收发 point**。
-
----
-
-## 9. 部署与运维
-
-```bash
-pnpm start:postgres   # schema 变更：wipe + seed
-cd apps/backend && make test-unit
-go test -tags=testhook ./tests/domain/billing/... -run WalletClosure
-go test -tags=testhook ./tests/identity/authz/...
-```
-
-| 场景       | 读哪                         |
-| ---------- | ---------------------------- |
-| Gateway    | `wallet_remain_quota` + soft |
-| 看板 Spend | `usage_buckets.display_cost` |
-| 钱包       | lots 聚合                    |
-| 财务时段   | `ledger.display_amount`      |
+预算/Key API 只收发 **quota (int64)**。
 
 ---
 
-## 10. 风险、收口与演进
+## 9. 边界行为
 
-### 10.1 已收口（量纲）
+| 场景     | 行为 |
+| -------- | ---- |
+| 预检不足 | 拒绝，不 proxy |
+| lot 不足 | 扩展 overdraft |
+| 改币种   | 旧 lot/CallLog 不变；新充值用新币 |
+| 退款     | **未实现** → [plan/Backend-退款与冲正.md](./plan/Backend-退款与冲正.md) |
 
-| 项                                | 状态 |
-| --------------------------------- | ---- |
-| Session 下发币种+QPU              | ✅   |
-| Key/审批 display↔quota            | ✅   |
-| CallLog/看板 `formatMoney`        | ✅   |
-| Ingest 直通 raw.Quota             | ✅   |
-| 充值 QPU 查表 + FIFO 冻结 display | ✅   |
+---
 
-### 10.2 接受中的风险
+## 10. 风险与演进
 
-| 风险             | 缓解                                                   |
-| ---------------- | ------------------------------------------------------ |
-| soft lag         | 投影加速 + `budget_reconcile`；不扫 ledger             |
-| wallet sync 失败 | best-effort + 下次变更自动覆盖；偏差方向安全（偏高）   |
-| 固定 minEstimate | 故意保持粗闸门                                         |
-| float64          | NUMERIC 落库                                           |
-| 无退款           | 设计见退款文，未实现                                   |
+### 接受中的风险
 
-### 10.3 待做
+| 风险 | 缓解 |
+|------|------|
+| soft lag | 投影加速 + budget_reconcile |
+| wallet sync 失败 | best-effort + 下次变更自动覆盖；偏差方向安全 |
+| 固定 minEstimate | 故意保持粗闸门 |
+| float64 精度 | NUMERIC 落库 |
 
-| 优先级 | 项                                                    |
-| ------ | ----------------------------------------------------- |
-| P1     | overdraft 告警/打点                                   |
-| P2     | 退款/冲正（[设计文档](./plan/Backend-退款与冲正.md)） |
-| P2     | gift/adjust 运营 UI                                   |
-| P3     | 多币种充值业务 / 改币种产品流程 / decimal / lot 归档  |
+### 待做
 
-### 10.4 红线
+| 优先级 | 项 |
+|--------|-----|
+| P1 | overdraft 告警/打点 |
+| P2 | 退款/冲正 |
+| P2 | gift/adjust 运营 UI |
+| P3 | 多币种 / 改币种流程 / lot 归档 |
+
+### 红线
 
 - 不用 NewAPI quota 反算钱包
-- 不 UPDATE 历史 `display_amount` 用新汇率
-- 不以旁路直连 NewAPI 为主消费路径
-- 不做 Gateway 动态 estimate（除非产品另开需求）
+- 不 UPDATE 历史 display_amount
+- 不旁路直连 NewAPI 消费
+- 不做 Gateway 动态 estimate（除非产品单独需求）

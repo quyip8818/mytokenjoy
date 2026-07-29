@@ -1,6 +1,6 @@
 # NewAPI User Wallet 对齐方案
 
-> ⚠️ **本方案已废弃。** 实际实现采用了更简单的"实时 override"方案，见 [design/wallet-sync.md](../design/wallet-sync.md)。
+> ⚠️ **本方案已废弃。** 实际实现采用了更简单的"实时 override"方案，见 [Backend-计费模式.md](../Backend-计费模式.md) §4.4。
 >
 > 原方案设计了 dirty 标记 + periodic job 定期对齐。最终选择了每次 wallet 变更后直接 `set_quota(mode=override)` 覆盖 NewAPI，无需额外的 worker 或 schema 变更。
 

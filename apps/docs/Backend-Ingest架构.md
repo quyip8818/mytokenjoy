@@ -225,7 +225,7 @@ flowchart LR
 | NewAPI         | 通道 `quota`        | NewAPI quota units |
 | Backend Ingest | 企业钱包 / 组织预算 | TokenJoy **point** |
 
-Ingest 事务提交后，**立即 best-effort** 调 NewAPI `ManageUser("set_quota", mode="override")` 把 `wallet_remain_quota` 绝对值覆盖到 NewAPI user wallet。充值路径同理。NewAPI wallet 是 TokenJoy 的实时镜像（非独立真相）。详见 [design/wallet-sync.md](./design/wallet-sync.md)。
+Ingest 事务提交后，**立即 best-effort** 调 NewAPI `ManageUser("set_quota", mode="override")` 把 `wallet_remain_quota` 绝对值覆盖到 NewAPI user wallet。充值路径同理。NewAPI wallet 是 TokenJoy 的实时镜像（非独立真相）。详见 [Backend-计费模式.md](./Backend-计费模式.md) §4.4。
 
 ### 5.4 账期对齐：发生月 vs 开账月（双轨）
 
