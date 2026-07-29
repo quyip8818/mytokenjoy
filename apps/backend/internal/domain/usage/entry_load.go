@@ -2,19 +2,24 @@ package usage
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 type EntryBuildSnapshot struct {
-	Catalog []types.ModelInfo
-	OrgTree []types.OrgNode
+	Catalog        []types.ModelInfo
+	OrgTree        []types.OrgNode
+	CompanyPricing []store.ModelPricingRow // contract prices for the company
+	GlobalPricing  []store.ModelPricingRow // global platform prices
+	QuotaPerUnit   int64                   // company billing QPU
 }
 
-func LoadEntryBuildSnapshot(ctx context.Context, deps EntryBuildReader) (EntryBuildSnapshot, error) {
+func LoadEntryBuildSnapshot(ctx context.Context, deps EntryBuildReader, tokenJoyCompanyID uuid.UUID) (EntryBuildSnapshot, error) {
 	catalog, err := deps.Models().Models(ctx)
 	if err != nil {
 		return EntryBuildSnapshot{}, err
@@ -23,7 +28,40 @@ func LoadEntryBuildSnapshot(ctx context.Context, deps EntryBuildReader) (EntryBu
 	if err != nil {
 		return EntryBuildSnapshot{}, err
 	}
-	return EntryBuildSnapshot{Catalog: catalog, OrgTree: tree}, nil
+
+	companyID := company.CompanyID(ctx)
+	now := time.Now()
+
+	companyPricing, _ := deps.ModelPricing().CurrentPricesBatch(ctx, companyID, now)
+
+	var globalPricing []store.ModelPricingRow
+	if tokenJoyCompanyID != companyID {
+		globalPricing, _ = deps.ModelPricing().CurrentPricesBatch(ctx, tokenJoyCompanyID, now)
+	}
+
+	qpu := resolveQPU(ctx, deps, companyID)
+
+	return EntryBuildSnapshot{
+		Catalog:        catalog,
+		OrgTree:        tree,
+		CompanyPricing: companyPricing,
+		GlobalPricing:  globalPricing,
+		QuotaPerUnit:   qpu,
+	}, nil
+}
+
+// resolveQPU looks up the company's billing QPU without importing domain/billing (avoid cycle).
+func resolveQPU(ctx context.Context, deps EntryBuildReader, companyID uuid.UUID) int64 {
+	co, err := deps.Company().GetByID(ctx, companyID)
+	if err != nil || co == nil {
+		return common.DefaultQuotaPerUnit
+	}
+	currency := common.ResolveBillingCurrency(co.BillingCurrency)
+	cur, err := deps.Billing().GetCurrency(ctx, currency)
+	if err != nil || cur == nil || cur.QuotaPerUnit <= 0 {
+		return common.DefaultQuotaPerUnit
+	}
+	return cur.QuotaPerUnit
 }
 
 func LoadEntryBuildInput(ctx context.Context, deps EntryBuildReader, mapping *store.PlatformKeyMapping, raw store.RawConsumeLog, source string, snap EntryBuildSnapshot) (EntryBuildInput, error) {

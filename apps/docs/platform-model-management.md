@@ -19,7 +19,7 @@ TokenJoy 支持两种部署模式：
 |---|---|---|
 | 谁管理模型 | platform admin（UI 操作） | 自动同步（catalogsync worker） |
 | 模型数据来源 | platform admin 手动 CRUD | 从 SaaS Catalog API 拉取 |
-| 定价来源 | platform admin 设定 | 跟随 SaaS 同步过来 |
+| 定价来源 | platform admin 设定 → `model_pricing` 表 | 跟随 SaaS 同步到本地 `model_pricing` 表 |
 | TokenJoyCompany | 存在，platform admin 属于此公司 | 存在但无人登录 |
 | Platform handler | 启用（SaaS only） | 不启用 |
 | catalogsync worker | 不启用 | 启用 |
@@ -76,7 +76,7 @@ GET /api/platform/sync/catalog/models
 }
 ```
 
-返回完整模型列表 + 实时价格。价格从 NewAPI option 中读取后拼入（不存在 models 表中）。
+返回完整模型列表 + 实时价格。价格从 `model_pricing` 表读取后拼入。
 
 ### Platform Admin API（需要登录 + `platform:manage` 权限）
 
@@ -110,7 +110,7 @@ GET /api/platform/sync/catalog/models
 
 全局模型的 `company_id = TokenJoyCompanyID`，`source = 'platform'`。
 
-**models 表不存价格。** 价格只在 NewAPI 的 option 中（见 `model-pricing-path.md`）。
+**models 表不存价格。** 价格存在 `model_pricing` 表（见 `model-pricing.md`）。
 
 模型同步使用 `catalog_synced_at` 时间戳列做 diff-disable：同步批次内所有 model 设同一个 batch timestamp，批次结束后把 timestamp 更早的 platform model 标记为 inactive。
 
@@ -156,8 +156,8 @@ SaaS 模式下这三个变量不配置（worker 不启动）。
    → source='platform', company_id=TokenJoyCompanyID
    → 不在列表中的旧 model 被标记 inactive
 
-5. 逐条 UpsertModelRatio 到本地 NewAPI option
-   → 本地客户读模型列表时能看到价格
+5. 逐条写入本地 model_pricing 表 (ON CONFLICT skip)
+   + best-effort UpsertModelRatio 到本地 NewAPI（gateway 预扣缓存）
 
 6. 更新本地 system_settings['catalog.models_version'] = 远端 version
 ```
@@ -211,10 +211,13 @@ Platform 只有一个 channel（`tokenjoy`），指向 SaaS gateway。不做动�
 |------|------|
 | **后端** | |
 | Platform handler（CRUD + Catalog API） | `internal/http/handler/platform/models.go` |
+| Platform pricing handler | `internal/http/handler/platform/pricing.go` |
 | 路由注册（中间件分层） | `internal/http/handler/platform/handler.go` |
+| Pricing domain service | `internal/domain/pricing/service.go` |
 | Catalog sync worker | `internal/worker/catalogsync/execute.go` |
 | Catalog sync HTTP client | `internal/integration/catalogsync/` |
 | SyncFromPlatform（models 表 upsert） | `internal/store/postgres/models_repo_crud.go` |
+| ModelPricing repo | `internal/store/postgres/model_pricing_repo.go` |
 | SystemSettings.Increment | `internal/store/postgres/system_settings_repo.go` |
 | 配置字段 | `internal/config/config.go` → PlatformConfig |
 | River periodic job | `internal/infra/jobs/kinds_catalogsync.go` |

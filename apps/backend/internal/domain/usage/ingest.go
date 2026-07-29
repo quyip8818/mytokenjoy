@@ -130,7 +130,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		return err
 	}
 
-	snap, err := LoadEntryBuildSnapshot(ctx, s.store)
+	snap, err := LoadEntryBuildSnapshot(ctx, s.store, s.cfg.TokenJoyCompanyID)
 	if err != nil {
 		return err
 	}
@@ -142,6 +142,10 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 	if err != nil {
 		return err
 	}
+
+	// Override raw.Quota with TJ-calculated quota from model_pricing.
+	entry = ApplyTJPricing(entry, snap, s.cfg.TokenJoyCompanyID)
+
 	occurrence, err := pkgbudget.OccurrenceDepartmentPeriodFromTree(snap.OrgTree, entry.DepartmentID, entry.OccurredAt)
 	if err != nil {
 		return err

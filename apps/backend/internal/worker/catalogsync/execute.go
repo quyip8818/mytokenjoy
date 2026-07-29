@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
@@ -95,9 +96,21 @@ func (e *Executor) syncModels(ctx context.Context, models []catalog.CatalogModel
 }
 
 func (e *Executor) syncPricing(ctx context.Context, models []catalog.CatalogModel) error {
+	now := time.Now()
 	for _, m := range models {
+		// Write to model_pricing table (TJ SOT).
+		row := store.ModelPricingRow{
+			CompanyID:     e.globalCompanyID,
+			ModelType:     m.ModelID,
+			InputPrice:    m.InputPrice,
+			OutputPrice:   m.OutputPrice,
+			EffectiveFrom: now,
+		}
+		_ = e.store.ModelPricing().Insert(ctx, row) // ON CONFLICT skips duplicates
+
+		// Best-effort push to local NewAPI (gateway cache).
 		if err := e.port.UpsertModelRatio(ctx, m.ModelID, m.InputPrice, m.OutputPrice); err != nil {
-			return fmt.Errorf("upsert model ratio %q: %w", m.ModelID, err)
+			slog.Warn("catalogsync: newapi pricing push failed", "model", m.ModelID, "error", err)
 		}
 	}
 	return nil

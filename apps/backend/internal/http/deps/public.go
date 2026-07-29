@@ -6,6 +6,7 @@ import (
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
+	domainpricing "github.com/tokenjoy/backend/internal/domain/pricing"
 	"github.com/tokenjoy/backend/internal/identity/credentials"
 	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
 	"github.com/tokenjoy/backend/internal/store"
@@ -25,6 +26,7 @@ type Platform struct {
 	BillingSvc     domainbilling.Service
 	KeysSvc        domainkeys.Service
 	AdminPort      adminport.Port
+	PricingSvc     *domainpricing.Service
 	Models         store.ModelsRepository
 	SystemSettings store.SystemSettingsRepository
 	PlatformQuery  store.PlatformQueryRepository
@@ -50,6 +52,7 @@ func (d Deps) Platform() Platform {
 		BillingSvc:     d.BillingSvc,
 		KeysSvc:        d.KeysSvc,
 		AdminPort:      d.AdminPort,
+		PricingSvc:     d.PricingSvc,
 		Models:         d.Store.Models(),
 		SystemSettings: d.Store.SystemSettings(),
 		PlatformQuery:  d.Store.PlatformQuery(),

@@ -111,6 +111,10 @@ func (s *txStore) SystemSettings() store.SystemSettingsRepository {
 	return &pgSystemSettingsRepo{db: s.tx}
 }
 
+func (s *txStore) ModelPricing() store.ModelPricingRepository {
+	return &modelPricingRepo{db: s.tx}
+}
+
 func (s *txStore) PlatformQuery() store.PlatformQueryRepository {
 	// PlatformQuery is read-only aggregation, uses parent pool (not transactional).
 	return newPlatformQueryRepo(s.parent.pool)

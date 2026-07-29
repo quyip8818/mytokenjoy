@@ -52,6 +52,13 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Delete("/models/{id}", h.DeleteModel)
 		r.Put("/models/{id}/pricing", h.SetModelPricing)
 		r.Post("/catalog/publish", h.PublishCatalog)
+		// Pricing management (model_pricing table — TJ is SOT)
+		r.Get("/pricing", h.ListGlobalPricing)
+		r.Put("/pricing", h.SetGlobalPricing)
+		r.Get("/pricing/{modelType}/history", h.GlobalPriceHistory)
+		r.Get("/companies/{id}/pricing", h.ListContractPricing)
+		r.Put("/companies/{id}/pricing", h.SetContractPricing)
+		r.Get("/companies/{id}/pricing/{modelType}/history", h.ContractPriceHistory)
 	})
 }
 

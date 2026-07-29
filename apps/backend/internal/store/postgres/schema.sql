@@ -663,3 +663,19 @@ CREATE TABLE IF NOT EXISTS system_settings (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+
+-- Model pricing: append-only price timeline. TJ is SOT for all pricing.
+CREATE TABLE IF NOT EXISTS model_pricing (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id      UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    model_type      VARCHAR(128) NOT NULL,
+    input_price     NUMERIC(12,6) NOT NULL,
+    output_price    NUMERIC(12,6) NOT NULL,
+    effective_from  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    note            TEXT NOT NULL DEFAULT '',
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (company_id, model_type, effective_from)
+);
+
+CREATE INDEX IF NOT EXISTS idx_model_pricing_current
+    ON model_pricing (company_id, model_type, effective_from DESC);

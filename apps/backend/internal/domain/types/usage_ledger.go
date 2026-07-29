@@ -18,13 +18,16 @@ const (
 )
 
 type UsageCallDetail struct {
-	Caller         string  `json:"caller"`
-	CallerID       string  `json:"callerId"`
-	CallerType     string  `json:"callerType"`
-	Provider       string  `json:"provider"`
-	Status         string  `json:"status"`
-	LatencyMs      float64 `json:"latencyMs"`
-	PreviewSnippet string  `json:"previewSnippet"`
+	Caller          string  `json:"caller"`
+	CallerID        string  `json:"callerId"`
+	CallerType      string  `json:"callerType"`
+	Provider        string  `json:"provider"`
+	Status          string  `json:"status"`
+	LatencyMs       float64 `json:"latencyMs"`
+	PreviewSnippet  string  `json:"previewSnippet"`
+	InputPrice      float64 `json:"inputPrice,omitempty"`
+	OutputPrice     float64 `json:"outputPrice,omitempty"`
+	ContractPricing bool    `json:"contractPricing,omitempty"`
 }
 
 type UsageLedgerEntry struct {

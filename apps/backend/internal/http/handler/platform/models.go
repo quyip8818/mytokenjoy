@@ -6,16 +6,14 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/http/response"
 	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
-	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
+	"github.com/tokenjoy/backend/internal/store"
 )
 
 // --- Catalog API (public, no auth) ---
@@ -66,8 +64,8 @@ func (h *Handler) CatalogModels(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Merge pricing from NewAPI.
-	priceMap := h.fetchPriceMap(ctx)
+	// Merge pricing from model_pricing table (TJ is SOT).
+	priceMap := h.globalPriceMap(ctx)
 
 	data := make([]catalogModelDTO, 0, len(active))
 	for _, m := range active {
@@ -80,7 +78,8 @@ func (h *Handler) CatalogModels(w http.ResponseWriter, r *http.Request) {
 			MaxContext:   m.MaxContext,
 		}
 		if p, ok := priceMap[m.Type]; ok {
-			dto.InputPrice, dto.OutputPrice = modelcatalog.PriceFromRatio(p.ModelRatio, p.CompletionRatio)
+			dto.InputPrice = p.InputPrice
+			dto.OutputPrice = p.OutputPrice
 		}
 		data = append(data, dto)
 	}
@@ -116,13 +115,15 @@ func (h *Handler) ListModels(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Merge pricing.
-	priceMap := h.fetchPriceMap(ctx)
+	// Merge pricing from model_pricing table.
+	priceMap := h.globalPriceMap(ctx)
+
 	result := make([]types.ModelInfoWithPricing, 0, len(global))
 	for _, m := range global {
 		item := types.ModelInfoWithPricing{ModelInfo: m}
 		if p, ok := priceMap[m.Type]; ok {
-			item.InputPrice, item.OutputPrice = modelcatalog.PriceFromRatio(p.ModelRatio, p.CompletionRatio)
+			item.InputPrice = p.InputPrice
+			item.OutputPrice = p.OutputPrice
 		}
 		result = append(result, item)
 	}
@@ -172,12 +173,11 @@ func (h *Handler) CreateModel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Sync pricing to NewAPI.
-	if h.p.AdminPort != nil && (body.InputPrice > 0 || body.OutputPrice > 0) {
-		if err := h.p.AdminPort.UpsertModelRatio(r.Context(), body.Type, body.InputPrice, body.OutputPrice); err != nil {
-			// Rollback the model insert.
+	// Write pricing to model_pricing table (TJ is SOT) + best-effort NewAPI push.
+	if body.InputPrice > 0 || body.OutputPrice > 0 {
+		if err := h.p.PricingSvc.SetGlobalPrice(r.Context(), body.Type, body.InputPrice, body.OutputPrice, ""); err != nil {
 			_ = h.p.Models.DeleteModel(r.Context(), created.ID)
-			httputil.WriteError(w, fmt.Errorf("sync pricing: %w", err))
+			httputil.WriteError(w, fmt.Errorf("set pricing: %w", err))
 			return
 		}
 	}
@@ -282,11 +282,7 @@ func (h *Handler) SetModelPricing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.p.AdminPort == nil {
-		httputil.WriteStatus(w, http.StatusServiceUnavailable, "pricing service unavailable")
-		return
-	}
-	if err := h.p.AdminPort.UpsertModelRatio(r.Context(), model.Type, body.InputPrice, body.OutputPrice); err != nil {
+	if err := h.p.PricingSvc.SetGlobalPrice(r.Context(), model.Type, body.InputPrice, body.OutputPrice, ""); err != nil {
 		httputil.WriteError(w, fmt.Errorf("set pricing: %w", err))
 		return
 	}
@@ -312,17 +308,12 @@ func (h *Handler) globalCtx(ctx context.Context) context.Context {
 	return ctxcompany.With(ctx, ctxcompany.Info{CompanyID: h.p.Cfg.TokenJoyCompanyID})
 }
 
-// fetchPriceMap fetches model pricing from NewAPI, returning an empty map on failure.
-func (h *Handler) fetchPriceMap(ctx context.Context) map[string]adminport.ModelPricing {
-	if h.p.AdminPort == nil {
-		return nil
-	}
-	pricingCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-	pricing, _ := h.p.AdminPort.ListModelPricing(pricingCtx)
-	m := make(map[string]adminport.ModelPricing, len(pricing))
-	for _, p := range pricing {
-		m[p.ModelName] = p
+// globalPriceMap loads current global prices into a map keyed by model_type.
+func (h *Handler) globalPriceMap(ctx context.Context) map[string]store.ModelPricingRow {
+	prices, _ := h.p.PricingSvc.ListGlobalPricing(ctx)
+	m := make(map[string]store.ModelPricingRow, len(prices))
+	for _, p := range prices {
+		m[p.ModelType] = p
 	}
 	return m
 }

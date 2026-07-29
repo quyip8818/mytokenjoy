@@ -185,6 +185,10 @@ func (s *Store) GatewayPrecheck() store.GatewayPrecheckRepository        { retur
 func (s *Store) CombinedKeySummaries() store.CombinedKeySummaryRepository {
 	return s.combinedKeySummaries
 }
+func (s *Store) ModelPricing() store.ModelPricingRepository {
+	return &modelPricingRepo{db: s.pool}
+}
+
 func (s *Store) SystemSettings() store.SystemSettingsRepository {
 	return &pgSystemSettingsRepo{db: s.pool}
 }

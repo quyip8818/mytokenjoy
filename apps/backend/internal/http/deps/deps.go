@@ -16,6 +16,7 @@ import (
 	domainmemberanalytics "github.com/tokenjoy/backend/internal/domain/memberanalytics"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
+	domainpricing "github.com/tokenjoy/backend/internal/domain/pricing"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/identity/authz"
 	"github.com/tokenjoy/backend/internal/identity/credentials"
@@ -49,6 +50,7 @@ type Deps struct {
 	IngestMetrics       ingestmetrics.Recorder
 	CompanySvc          domaincompany.Service
 	BillingSvc          domainbilling.Service
+	PricingSvc          *domainpricing.Service
 	MemberAnalyticsSvc  domainmemberanalytics.Service
 	CompanyGate         *domaincompany.Gate
 	ApprovalEngine      *domainapproval.Engine
