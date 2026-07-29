@@ -62,7 +62,6 @@ export default defineConfig({
         SESSION_SECRET: 'e2e-test-session-secret',
         DATA_SOURCE_CREDENTIAL_KEY: 'dGV2LWNyZWRlbnRpYWwta2V5LWZvci1sb2NhbC1kZXY=',
         DEPLOY_ENV: 'local',
-        NEW_API_BASE_URL: 'http://127.0.0.1:3010',
         PORT: String(E2E_BACKEND_PORT),
       },
     },

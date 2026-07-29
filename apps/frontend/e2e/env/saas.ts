@@ -3,9 +3,10 @@
  */
 export const saasEnv = {
   SUPPORT_SAAS: 'true',
-  BOOTSTRAP_MODE: 'none',
+  BOOTSTRAP_MODE: 'demo',
   PLATFORM_BOOTSTRAP_EMAIL: 'admin@tokenjoy.me',
   PLATFORM_BOOTSTRAP_PASSWORD: 'admin1234',
-  COMPANY_NAME: '',
-  CLOCK_ANCHOR: '',
+  COMPANY_NAME: 'Demo Company',
+  CLOCK_ANCHOR: '2026-06-19',
+  NEW_API_ENABLED: 'false',
 }

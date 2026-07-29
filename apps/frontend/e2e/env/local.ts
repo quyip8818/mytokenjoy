@@ -6,4 +6,5 @@ export const localEnv = {
   BOOTSTRAP_MODE: 'demo',
   COMPANY_NAME: 'Demo Company',
   CLOCK_ANCHOR: '2026-06-19',
+  NEW_API_ENABLED: 'false',
 }
