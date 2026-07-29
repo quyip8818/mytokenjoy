@@ -8,27 +8,19 @@ import (
 	contractsvc "sms/backend/internal/domain/contract"
 	dashboardsvc "sms/backend/internal/domain/dashboard"
 	evalsvc "sms/backend/internal/domain/evaluation"
-	modelsvc "sms/backend/internal/domain/model"
-	newapisyncsvc "sms/backend/internal/domain/newapisync"
-	oauthsvc "sms/backend/internal/domain/oauth"
 	ordersvc "sms/backend/internal/domain/order"
 	suppliersvc "sms/backend/internal/domain/supplier"
-	syncsvc "sms/backend/internal/domain/sync"
 	usersvc "sms/backend/internal/domain/user"
 )
 
 type Deps struct {
-	Config     config.Config
-	Logger     *slog.Logger
-	Auth       *authsvc.Service
-	Supplier   *suppliersvc.Service
-	Model      *modelsvc.Service
-	Contract   *contractsvc.Service
-	Order      *ordersvc.Service
-	Eval       *evalsvc.Service
-	Dashboard  *dashboardsvc.Service
-	User       *usersvc.Service
-	NewAPISync *newapisyncsvc.Service // nil when NEWAPI_BASE_URL is empty
-	OAuth      *oauthsvc.Service      // nil when SYNC_API_KEY is not configured
-	Sync       *syncsvc.Service       // nil when sync is not configured
+	Config    config.Config
+	Logger    *slog.Logger
+	Auth      *authsvc.Service
+	Supplier  *suppliersvc.Service
+	Contract  *contractsvc.Service
+	Order     *ordersvc.Service
+	Eval      *evalsvc.Service
+	Dashboard *dashboardsvc.Service
+	User      *usersvc.Service
 }

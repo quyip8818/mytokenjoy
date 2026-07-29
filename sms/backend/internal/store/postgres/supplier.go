@@ -103,27 +103,6 @@ func (s *Store) GetSupplier(ctx context.Context, id uuid.UUID) (*types.SupplierD
 		contacts = []types.SupplierContact{}
 	}
 
-	// Models
-	modelRows, err := s.pool.Query(ctx,
-		`SELECT id, supplier_id, model_name, model_type, context_length, input_price, output_price, discount, status, description, created_at, updated_at
-		 FROM models WHERE supplier_id = $1 ORDER BY created_at`, id)
-	if err != nil {
-		return nil, err
-	}
-	defer modelRows.Close()
-	var models []types.AiModel
-	for modelRows.Next() {
-		var m types.AiModel
-		if err := modelRows.Scan(&m.ID, &m.SupplierID, &m.ModelName, &m.ModelType, &m.ContextLength,
-			&m.InputPrice, &m.OutputPrice, &m.Discount, &m.Status, &m.Description, &m.CreatedAt, &m.UpdatedAt); err != nil {
-			return nil, err
-		}
-		models = append(models, m)
-	}
-	if models == nil {
-		models = []types.AiModel{}
-	}
-
 	// Contracts
 	contractListRows, err := s.pool.Query(ctx,
 		`SELECT id, supplier_id, contract_no, title, amount, sign_date, start_date, end_date, status, remarks, created_by, created_at, updated_at
@@ -196,7 +175,6 @@ func (s *Store) GetSupplier(ctx context.Context, id uuid.UUID) (*types.SupplierD
 	return &types.SupplierDetail{
 		Supplier:    sup,
 		Contacts:    contacts,
-		Models:      models,
 		Contracts:   contracts,
 		Orders:      orders,
 		Evaluations: evaluations,

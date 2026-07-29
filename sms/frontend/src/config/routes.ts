@@ -2,7 +2,6 @@ import type { ComponentType } from 'react'
 import {
   Box,
   FileText,
-  Globe,
   LayoutDashboard,
   Scale,
   Settings,
@@ -48,14 +47,6 @@ export const ROUTE_DEFINITIONS: RouteDefinition[] = [
     lazy: () => import('@/routes/suppliers/detail'),
   },
   {
-    key: 'models',
-    path: '/models',
-    label: '模型管理',
-    icon: Box,
-    lazy: () => import('@/routes/models/index'),
-    navGroup: '业务管理',
-  },
-  {
     key: 'contracts',
     path: '/contracts',
     label: '合同管理',
@@ -78,15 +69,6 @@ export const ROUTE_DEFINITIONS: RouteDefinition[] = [
     icon: Scale,
     lazy: () => import('@/routes/evaluations/index'),
     navGroup: '业务管理',
-  },
-  {
-    key: 'newapi',
-    path: '/newapi',
-    label: 'NewAPI',
-    icon: Globe,
-    lazy: () => import('@/routes/newapi/index'),
-    navGroup: '系统设置',
-    requiredRoles: ['admin'],
   },
   {
     key: 'users',

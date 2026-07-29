@@ -6,11 +6,6 @@ export const queryKeys = {
     detail: (id: number) => ['suppliers', 'detail', id] as const,
     options: () => ['suppliers', 'options'] as const,
   },
-  models: {
-    all: ['models'] as const,
-    list: (filter?: unknown) => ['models', 'list', filter] as const,
-    detail: (id: number) => ['models', 'detail', id] as const,
-  },
   contracts: {
     all: ['contracts'] as const,
     list: (filter?: unknown) => ['contracts', 'list', filter] as const,
@@ -33,10 +28,5 @@ export const queryKeys = {
     charts: () => ['dashboard', 'charts'] as const,
     expiring: () => ['dashboard', 'expiring'] as const,
     recentOrders: () => ['dashboard', 'recent-orders'] as const,
-  },
-  newapi: {
-    all: ['newapi'] as const,
-    status: () => ['newapi', 'status'] as const,
-    models: () => ['newapi', 'models'] as const,
   },
 }

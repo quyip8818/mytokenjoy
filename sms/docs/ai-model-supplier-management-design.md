@@ -9,7 +9,6 @@
 ### 目标
 
 - 统一管理大模型厂商档案、联系人、合作状态
-- 管理各厂商提供的模型目录（种类、单价、折扣）
 - 管理合同与采购订单，合同原文电子归档，到期预警
 - 五维度绩效评估对供应商打分评级，辅助采购决策
 - 登录认证 + 多角色权限控制
@@ -54,7 +53,6 @@ mytokenjoy/sms/
 │       │   ├── types/                # 共享内核：models.go, enums.go, errors.go
 │       │   ├── auth/                 # 登录/刷新/登出
 │       │   ├── supplier/             # 供应商 + 联系人
-│       │   ├── model/                # 模型目录
 │       │   ├── contract/             # 合同 + 附件
 │       │   ├── order/                # 采购订单
 │       │   ├── evaluation/           # 绩效评估 + 权重
@@ -78,7 +76,6 @@ mytokenjoy/sms/
 │       │   ├── session/              # 登录态管理
 │       │   ├── query/                # TanStack Query 封装 + queryKeys
 │       │   ├── suppliers/            # 供应商
-│       │   ├── models/               # 模型
 │       │   ├── contracts/            # 合同
 │       │   ├── orders/               # 订单
 │       │   ├── evaluations/          # 评估
@@ -87,9 +84,6 @@ mytokenjoy/sms/
 │       ├── routes/                   # 页面入口（从 features 导入）
 │       ├── components/ui/            # 原子组件（无业务语义）
 │       └── components/layout/        # 布局壳
-├── newapi/                           # NewAPI 部署配置
-│   └── scripts/
-│       └── bootstrap-local.sh
 └── docs/                             # SMS 产品文档
 ```
 
@@ -101,7 +95,7 @@ mytokenjoy/sms/
 - 跨 domain 调用通过 exported interface 或 value types，不引用对方内部实现
 - 前端 features 之间只通过 `index.ts` barrel 引用，禁止 deep import
 
-## 4. 数据模型（11 张表）
+## 4. 数据模型（10 张表）
 
 ### 4.1 roles 角色
 
@@ -167,23 +161,7 @@ Refresh token 存服务端，支持主动吊销和轮换。
 | is_primary | BOOLEAN | 是否主要联系人 |
 | created_at | TIMESTAMPTZ | |
 
-### 4.6 models 模型目录
-
-| 字段 | 类型 | 说明 |
-|---|---|---|
-| id | SERIAL PK | |
-| supplier_id | INT FK → suppliers | CASCADE 删除 |
-| model_name | VARCHAR(128) | 模型名称（如 GPT-4o） |
-| model_type | VARCHAR(32) | 文本 / 图像 / 语音 / 多模态 / 嵌入 |
-| context_length | INT | 上下文长度（token） |
-| input_price | NUMERIC(12,6) | 输入单价（元/百万 token） |
-| output_price | NUMERIC(12,6) | 输出单价（元/百万 token） |
-| discount | NUMERIC(5,2) | 折扣率（%） |
-| status | VARCHAR(32) | available / deprecated |
-| description | TEXT | 说明 |
-| created_at / updated_at | TIMESTAMPTZ | |
-
-### 4.7 contracts 合同
+### 4.6 contracts 合同
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -200,7 +178,7 @@ Refresh token 存服务端，支持主动吊销和轮换。
 | created_by | UUID FK → users | 创建人 |
 | created_at / updated_at | TIMESTAMPTZ | |
 
-### 4.8 contract_attachments 合同附件
+### 4.7 contract_attachments 合同附件
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -214,7 +192,7 @@ Refresh token 存服务端，支持主动吊销和轮换。
 
 存储：本地磁盘 `$UPLOAD_DIR/`（默认 `./uploads`），文件名 UUID + 原始扩展名。删除合同时 CASCADE 删附件记录。
 
-### 4.9 purchase_orders 采购订单
+### 4.8 purchase_orders 采购订单
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -236,7 +214,7 @@ pending → approved → delivered → completed
     cancelled  cancelled  cancelled
 ```
 
-### 4.10 evaluations 绩效评估
+### 4.9 evaluations 绩效评估
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -256,7 +234,7 @@ pending → approved → delivered → completed
 
 唯一约束：`UNIQUE (supplier_id, period)`。
 
-### 4.11 evaluation_weights 评估权重
+### 4.10 evaluation_weights 评估权重
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -285,7 +263,7 @@ pending → approved → delivered → completed
 
 | 功能 | admin | buyer | viewer |
 |---|---|---|---|
-| 供应商/联系人/模型/合同/订单 增删改 | ✅ | ✅ | ❌ |
+| 供应商/联系人/合同/订单 增删改 | ✅ | ✅ | ❌ |
 | 合同附件上传/删除 | ✅ | ✅ | ❌ |
 | 合同附件下载 | ✅ | ✅ | ✅ |
 | 绩效评估打分 | ✅ | ✅ | ❌ |
@@ -318,18 +296,13 @@ GET    /api/dashboard/summary       仪表盘（统计卡片 + 到期合同 + �
 
 GET    /api/suppliers               列表（keyword/status/category 筛选，分页）
 GET    /api/suppliers/options       下拉选项（id+name）
-GET    /api/suppliers/{id}          详情（含联系人 + 模型 + 合同 + 订单 + 评估）
+GET    /api/suppliers/{id}          详情（含联系人 + 合同 + 订单 + 评估）
 POST   /api/suppliers               新建
 PUT    /api/suppliers/{id}          更新
 DELETE /api/suppliers/{id}          删除（有关联合同/订单时拒绝）
 POST   /api/suppliers/{id}/contacts         添加联系人
 PUT    /api/suppliers/{id}/contacts/{cid}   更新联系人
 DELETE /api/suppliers/{id}/contacts/{cid}   删除联系人
-
-GET    /api/models                  模型列表（supplierId/modelType/status 筛选）
-POST   /api/models                  新建
-PUT    /api/models/{id}             更新
-DELETE /api/models/{id}             删除
 
 GET    /api/contracts               列表（keyword/supplierId/status 筛选）
 GET    /api/contracts/{id}          详情（含附件列表）
@@ -389,9 +362,8 @@ GET    /api/users/roles             角色列表
 
 | 页面 | 功能 |
 |---|---|
-| 仪表盘 | 统计卡片（供应商总数/合作中/模型数/活跃合同）、30天内到期合同预警、评级分布、模型数分布 |
-| 供应商管理 | 列表（状态/分类筛选、关键字搜索、分页）；详情页 Tab：联系人、模型、合同、订单、评估历史 |
-| 模型目录 | 跨供应商总表，按类型/厂商筛选 |
+| 仪表盘 | 统计卡片（供应商总数/合作中/活跃合同）、30天内到期合同预警、评级分布 |
+| 供应商管理 | 列表（状态/分类筛选、关键字搜索、分页）；详情页 Tab：联系人、合同、订单、评估历史 |
 | 合同管理 | 列表（到期天数高亮：≤30天橙色、已过期红色）；详情抽屉含附件区 |
 | 采购订单 | 列表 + 状态标记 + 下单日期 |
 | 绩效评估 | 列表 + 打分弹窗（五维度滑块，实时预览综合分与评级） |
@@ -419,8 +391,6 @@ GET    /api/users/roles             角色列表
 | REFRESH_TOKEN_TTL_H | 168 | Refresh Token 有效期（小时，7天） |
 | UPLOAD_DIR | ./uploads | 附件存储目录 |
 | SECURE_COOKIE | false | 生产环境设为 true |
-| NEWAPI_BASE_URL | http://localhost:3020 | NewAPI 地址 |
-| NEWAPI_ADMIN_USER_ID | 1 | NewAPI admin 用户 ID |
 
 前端 Vite 开发代理 `/api` → 后端 8020 端口，开发服务器监听 5174。
 
@@ -440,7 +410,7 @@ GET    /api/users/roles             角色列表
 ```bash
 # 在 monorepo 根目录（mytokenjoy/）执行
 pnpm install          # 安装所有依赖
-pnpm infra            # 启动基础设施（postgres:5510 + redis:6310 + newapi-sms:3020）
+pnpm infra            # 启动基础设施（postgres:5510 + redis:6310）
 pnpm start sms        # 启动 sms（backend:8020 + frontend:5174）
 pnpm reset sms        # 重置 sms 数据库 + seed
 pnpm test:sms         # 运行 sms 全部测试

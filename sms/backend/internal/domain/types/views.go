@@ -7,7 +7,6 @@ import "github.com/google/uuid"
 type SupplierDetail struct {
 	Supplier
 	Contacts    []SupplierContact `json:"contacts"`
-	Models      []AiModel         `json:"models"`
 	Contracts   []Contract        `json:"contracts"`
 	Orders      []PurchaseOrder   `json:"orders"`
 	Evaluations []Evaluation      `json:"evaluations"`
@@ -22,13 +21,11 @@ type ContractDetail struct {
 type DashboardCards struct {
 	SupplierTotal   int `json:"supplierTotal"`
 	ActiveSuppliers int `json:"activeSuppliers"`
-	ModelTotal      int `json:"modelTotal"`
 	ActiveContracts int `json:"activeContracts"`
 }
 
 type DashboardCharts struct {
-	GradeDistribution    []LabelCount `json:"gradeDistribution"`
-	ModelCountBySupplier []LabelCount `json:"modelCountBySupplier"`
+	GradeDistribution []LabelCount `json:"gradeDistribution"`
 }
 
 type LabelCount struct {

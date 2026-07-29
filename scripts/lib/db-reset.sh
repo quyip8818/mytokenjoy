@@ -31,22 +31,14 @@ EOSQL
   _psql -U tokenjoy -d logs -c "CREATE SCHEMA IF NOT EXISTS newapi;"
 }
 
-# reset_sms_databases — drop/recreate sms, sms_newapi, sms_logs (sms side only)
+# reset_sms_databases — drop/recreate sms (sms side only)
 reset_sms_databases() {
   _psql -U tokenjoy -d postgres -v ON_ERROR_STOP=1 <<-EOSQL
     SELECT pg_terminate_backend(pid) FROM pg_stat_activity
-      WHERE datname IN ('sms','sms_newapi','sms_logs') AND pid <> pg_backend_pid();
+      WHERE datname = 'sms' AND pid <> pg_backend_pid();
     DROP DATABASE IF EXISTS sms;
-    DROP DATABASE IF EXISTS sms_newapi;
-    DROP DATABASE IF EXISTS sms_logs;
     CREATE DATABASE sms OWNER sms;
-    CREATE DATABASE sms_newapi OWNER sms;
-    CREATE DATABASE sms_logs OWNER sms;
 EOSQL
 
-  for db in sms sms_newapi sms_logs; do
-    _psql -U tokenjoy -d "$db" -c "CREATE EXTENSION IF NOT EXISTS ltree;"
-  done
-
-  _psql -U tokenjoy -d sms_logs -c "CREATE SCHEMA IF NOT EXISTS newapi AUTHORIZATION sms;"
+  _psql -U tokenjoy -d sms -c "CREATE EXTENSION IF NOT EXISTS ltree;"
 }

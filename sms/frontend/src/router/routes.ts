@@ -40,12 +40,6 @@ export const supplierDetailRoute = createRoute({
   component: lazyRouteComponent(() => import('@/routes/suppliers/detail')),
 })
 
-export const modelsRoute = createRoute({
-  getParentRoute: () => authLayoutRoute,
-  path: '/models',
-  component: lazyRouteComponent(() => import('@/routes/models/index')),
-})
-
 export const contractsRoute = createRoute({
   getParentRoute: () => authLayoutRoute,
   path: '/contracts',
@@ -62,12 +56,6 @@ export const evaluationsRoute = createRoute({
   getParentRoute: () => authLayoutRoute,
   path: '/evaluations',
   component: lazyRouteComponent(() => import('@/routes/evaluations/index')),
-})
-
-export const newapiRoute = createRoute({
-  getParentRoute: () => authLayoutRoute,
-  path: '/newapi',
-  component: lazyRouteComponent(() => import('@/routes/newapi/index')),
 })
 
 export const usersRoute = createRoute({

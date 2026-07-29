@@ -3,7 +3,6 @@ package types
 var SupplierStatuses = []string{"potential", "active", "frozen", "blacklisted"}
 var ContractStatuses = []string{"draft", "active", "expired", "terminated"}
 var OrderStatuses = []string{"pending", "approved", "delivered", "completed", "cancelled"}
-var ModelStatuses = []string{"available", "deprecated"}
 var EvalGrades = []string{"A", "B", "C", "D"}
 
 func IsValidStatus(val string, allowed []string) bool {

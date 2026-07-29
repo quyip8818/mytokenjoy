@@ -67,28 +67,6 @@ CREATE TABLE IF NOT EXISTS supplier_contacts (
 );
 CREATE INDEX IF NOT EXISTS idx_supplier_contacts_supplier ON supplier_contacts(supplier_id);
 
--- ====== models (AI 模型) ======
-CREATE TABLE IF NOT EXISTS models (
-    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    supplier_id    UUID NOT NULL REFERENCES suppliers(id),
-    model_name     VARCHAR(128) NOT NULL,
-    model_id       VARCHAR(128),
-    model_type     VARCHAR(32),
-    context_length INT,
-    input_price    NUMERIC(12,6),
-    output_price   NUMERIC(12,6),
-    discount       NUMERIC(5,2),
-    status         VARCHAR(32) NOT NULL DEFAULT 'available'
-                   CHECK (status IN ('available', 'deprecated')),
-    description    TEXT,
-    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_models_supplier ON models(supplier_id);
-CREATE INDEX IF NOT EXISTS idx_models_status ON models(status);
-CREATE TRIGGER set_updated_at BEFORE UPDATE ON models
-    FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
-
 -- ====== contracts ======
 CREATE TABLE IF NOT EXISTS contracts (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -171,39 +149,3 @@ CREATE TABLE IF NOT EXISTS evaluation_weights (
     dimension VARCHAR(32) UNIQUE NOT NULL,
     weight    INT NOT NULL CHECK (weight >= 0 AND weight <= 100)
 );
-
--- ====== oauth_clients (for cross-system API access) ======
-CREATE TABLE IF NOT EXISTS oauth_clients (
-    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    client_id           TEXT UNIQUE NOT NULL,
-    client_secret_hash  TEXT NOT NULL,
-    scope               TEXT NOT NULL DEFAULT 'sync:read',
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- ====== sync_versions (partition version counter for incremental sync) ======
-CREATE TABLE IF NOT EXISTS sync_versions (
-    partition  TEXT PRIMARY KEY,
-    version    INT NOT NULL DEFAULT 0
-);
-
--- Initialize partitions
-INSERT INTO sync_versions (partition, version) VALUES
-    ('channels', 0),
-    ('models', 0),
-    ('currencies', 0)
-ON CONFLICT (partition) DO NOTHING;
-
--- Auto-increment sync version on models changes
-CREATE OR REPLACE FUNCTION bump_sync_version_models()
-RETURNS TRIGGER AS $$
-BEGIN
-    UPDATE sync_versions SET version = version + 1 WHERE partition = 'models';
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS trg_bump_sync_models ON models;
-CREATE TRIGGER trg_bump_sync_models
-    AFTER INSERT OR UPDATE OR DELETE ON models
-    FOR EACH STATEMENT EXECUTE FUNCTION bump_sync_version_models();

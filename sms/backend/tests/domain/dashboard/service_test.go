@@ -24,11 +24,10 @@ type mockStore struct {
 func newMockStore() *mockStore {
 	return &mockStore{
 		cards: &types.DashboardCards{
-			SupplierTotal: 10, ActiveSuppliers: 8, ModelTotal: 20, ActiveContracts: 5,
+			SupplierTotal: 10, ActiveSuppliers: 8, ActiveContracts: 5,
 		},
 		charts: &types.DashboardCharts{
-			GradeDistribution:    []types.LabelCount{{Label: "A", Count: 3}},
-			ModelCountBySupplier: []types.LabelCount{{Label: "Acme", Count: 5}},
+			GradeDistribution: []types.LabelCount{{Label: "A", Count: 3}},
 		},
 		expiring: []types.ExpiringContract{
 			{ID: uuid.Must(uuid.NewV7()), Title: "即将到期", ContractNo: "CT-1", EndDate: "2024-02-01", SupplierName: "Acme"},

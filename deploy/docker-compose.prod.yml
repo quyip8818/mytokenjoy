@@ -70,22 +70,7 @@ services:
         limits:
           memory: 512M
 
-  newapi-sms:
-    image: calciumion/new-api:latest
-    <<: [*restart, *logging]
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
-    environment:
-      SQL_DSN: postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/sms_newapi?sslmode=disable
-      LOG_SQL_DSN: postgresql://${PG_USER}:${PG_PASSWORD}@postgres:5432/sms_logs?sslmode=disable&search_path=newapi
-      REDIS_CONN_STRING: redis://:${REDIS_PASSWORD}@redis:6379/1
-      SESSION_SECRET: ${SMS_NEWAPI_SESSION_SECRET}
-      SYNC_FREQUENCY: 60
-    deploy:
-      resources:
-        limits:
-          memory: 512M
+
 
   # ─── Apps 后端 ──────────────────────────────────────────────
   apps-backend:

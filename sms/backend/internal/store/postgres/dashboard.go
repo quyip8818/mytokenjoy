@@ -12,9 +12,8 @@ func (s *Store) DashboardCards(ctx context.Context) (*types.DashboardCards, erro
 		SELECT
 			(SELECT count(*) FROM suppliers),
 			(SELECT count(*) FROM suppliers WHERE status = 'active'),
-			(SELECT count(*) FROM models),
 			(SELECT count(*) FROM contracts WHERE status = 'active')
-	`).Scan(&cards.SupplierTotal, &cards.ActiveSuppliers, &cards.ModelTotal, &cards.ActiveContracts)
+	`).Scan(&cards.SupplierTotal, &cards.ActiveSuppliers, &cards.ActiveContracts)
 	return &cards, err
 }
 
@@ -36,25 +35,6 @@ func (s *Store) DashboardCharts(ctx context.Context) (*types.DashboardCharts, er
 	}
 	if charts.GradeDistribution == nil {
 		charts.GradeDistribution = []types.LabelCount{}
-	}
-
-	rows2, err := s.pool.Query(ctx,
-		`SELECT sup.name, count(m.id)
-		 FROM suppliers sup LEFT JOIN models m ON m.supplier_id = sup.id
-		 GROUP BY sup.id, sup.name ORDER BY count(m.id) DESC LIMIT 10`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows2.Close()
-	for rows2.Next() {
-		var lc types.LabelCount
-		if err := rows2.Scan(&lc.Label, &lc.Count); err != nil {
-			return nil, err
-		}
-		charts.ModelCountBySupplier = append(charts.ModelCountBySupplier, lc)
-	}
-	if charts.ModelCountBySupplier == nil {
-		charts.ModelCountBySupplier = []types.LabelCount{}
 	}
 
 	return charts, nil
