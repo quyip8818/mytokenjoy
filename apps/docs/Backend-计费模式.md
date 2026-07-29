@@ -98,7 +98,7 @@ flowchart TB
   LED -.-> Soft
   LED -.-> SN
   LED -.-> BK
-  BP -->|wallet_sync| NA
+  BP -->|set_quota override| NA
   GW[Gateway] --> BP
   GW --> Soft
 ```
@@ -119,7 +119,7 @@ flowchart TB
 | 组织 consumed  | —                                       | `budget_consumed`（point）             |
 | 看板 Spend     | —                                       | `usage_buckets.display_cost`（展示币） |
 | Gateway 挡单   | `wallet_remain_quota` + soft            | NewAPI 不挡预检                        |
-| NewAPI wallet  | —                                       | `wallet_sync`                          |
+| NewAPI wallet  | —                                       | `set_quota` override（实时镜像）  |
 
 **不变量：** 禁止用 NewAPI quota 反算对外钱包；漂移以 Postgres 为准。
 
@@ -153,7 +153,7 @@ flowchart TB
   ING --> LOT
   ING --> LED[(usage_ledger)]
   LED --> Proj[异步 budget/dashboard 投影]
-  LOT --> Sync[wallet_sync]
+  LOT --> Sync[set_quota override → NewAPI]
 ```
 
 入账同事务：**lot + ledger + wallet_remain_quota**。  
@@ -216,9 +216,17 @@ flowchart TD
 
 **不做：** 动态 estimate；热路径扫 ledger；ingest 同事务重投影。  
 
-### 4.5 wallet_sync
+### 4.5 wallet sync（实时 override）
 
-Postgres 扣 point 与 NewAPI 扣 quota 有取整差：`Unique 5s` debounce → `ToNewAPIUnits` → `TopUp(delta)`；漂移超 ε 入队校准。Gateway **不因** pending sync 拒单。
+每次 `wallet_remain_quota` 变更（充值或消费），事务提交后立即 best-effort 调 NewAPI：
+
+```
+ManageUser(walletUserID, "set_quota", wallet_remain_quota)  → mode: "override"
+```
+
+NewAPI user.quota 被覆盖为 TokenJoy 的绝对值。无 debounce、无 River job、无 delta 计算。失败不阻塞主流程（warn log），下一次变更会再次覆盖。
+
+详见 [design/wallet-sync.md](./design/wallet-sync.md)。
 
 ---
 
@@ -386,13 +394,13 @@ go test -tags=testhook ./tests/identity/authz/...
 
 ### 10.2 接受中的风险
 
-| 风险             | 缓解                                       |
-| ---------------- | ------------------------------------------ |
-| soft lag         | 投影加速 + `budget_reconcile`；不扫 ledger |
-| sync 取整        | ε + debounce                               |
-| 固定 minEstimate | 故意保持粗闸门                             |
-| float64          | NUMERIC 落库                               |
-| 无退款           | 设计见退款文，未实现                       |
+| 风险             | 缓解                                                   |
+| ---------------- | ------------------------------------------------------ |
+| soft lag         | 投影加速 + `budget_reconcile`；不扫 ledger             |
+| wallet sync 失败 | best-effort + 下次变更自动覆盖；偏差方向安全（偏高）   |
+| 固定 minEstimate | 故意保持粗闸门                                         |
+| float64          | NUMERIC 落库                                           |
+| 无退款           | 设计见退款文，未实现                                   |
 
 ### 10.3 待做
 

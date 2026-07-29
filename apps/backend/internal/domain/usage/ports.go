@@ -59,3 +59,9 @@ type LotSegment struct {
 	Cost            float64
 	BillingCurrency string
 }
+
+// QuotaSyncer syncs wallet quota to an external gateway (e.g. NewAPI).
+// Used by IngestService for best-effort post-commit wallet override.
+type QuotaSyncer interface {
+	ManageUser(ctx context.Context, userID int64, action string, value int64) error
+}

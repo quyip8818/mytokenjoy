@@ -122,7 +122,7 @@ Ingest 靠 `logs.token_id` 反查 mapping。若 Rotate 换了 token 主键，旧
 ### 3.2 运行面：Gateway
 
 - 调用方只认识 TokenJoy 的 `/v1/*`。
-- Gateway 先做 Precheck（`LoadPrecheckContext` + `Evaluate`：企业状态、组织预算、钱包 `wallet_remain_quota`、模型白名单、Key 状态），通过后 **反代** 到 NewAPI。**不读** NewAPI quota，不因 `wallet_sync` 滞后拒单。
+- Gateway 先做 Precheck（`LoadPrecheckContext` + `Evaluate`：企业状态、组织预算、钱包 `wallet_remain_quota`、模型白名单、Key 状态），通过后 **反代** 到 NewAPI。**不读** NewAPI quota，不因 wallet sync 滞后拒单。
 - Gateway **不负责入账**；入账发生在 NewAPI settle 之后。
 
 ### 3.3 结算面：Webhook + 直读日志库
@@ -216,7 +216,7 @@ flowchart LR
 
 因此：**快路径 webhook 与慢路径 reconcile 可以同时跑**，不会把一笔钱记两次。
 
-### 5.3 金额与量纲对齐：双扣 + wallet_sync
+### 5.3 金额与量纲对齐：双扣 + wallet override
 
 一次真实调用会在两边各扣一次，量纲不同：
 
@@ -225,7 +225,7 @@ flowchart LR
 | NewAPI         | 通道 `quota`        | NewAPI quota units |
 | Backend Ingest | 企业钱包 / 组织预算 | TokenJoy **point** |
 
-二者有取整差，靠 **wallet_sync**（debounce 入队 → River Worker TopUp / 校准）把 NewAPI 用户配额拉回与 Postgres `wallet_remain_quota` 一致。Gateway **不**因漂移或 pending sync 拒单；漂移由异步 `wallet_sync` 与对账冷路径消化。
+Ingest 事务提交后，**立即 best-effort** 调 NewAPI `ManageUser("set_quota", mode="override")` 把 `wallet_remain_quota` 绝对值覆盖到 NewAPI user wallet。充值路径同理。NewAPI wallet 是 TokenJoy 的实时镜像（非独立真相）。详见 [design/wallet-sync.md](./design/wallet-sync.md)。
 
 ### 5.4 账期对齐：发生月 vs 开账月（双轨）
 
@@ -256,11 +256,11 @@ flowchart TB
   G -->|已存在| Z[静默成功]
   G -->|新账| H[AllocateConsumptionLots FIFO]
   H --> I[InsertSegments]
-  I --> J[InsertTx wallet_sync]
-  J --> Z2[返回成功]
+  I --> Z2[返回成功 + post-commit wallet override]
 ```
 
-**Ingest 同事务只做：** ledger 幂等插入、FIFO 扣 lot、`budget_consumed` + `combined_key_remain` 原子写入、入队 `wallet_sync`。  
+**Ingest 同事务只做：** ledger 幂等插入、FIFO 扣 lot、`budget_consumed` + `combined_key_remain` 原子写入。  
+**事务后 best-effort：** `set_quota` override NewAPI wallet。  
 `usage_buckets` 由看门狗每小时触发 `dashboard.Projector` 异步维护（见 [Backend-离线任务.md](./Backend-离线任务.md)）。  
 
 
@@ -297,13 +297,13 @@ flowchart TB
 
 见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md)。入队统一为 River `Insert` / `InsertInTx` → `river_job`。
 
-| 副作用              | 条件                 | River kind                       |
+| 副作用              | 条件                 | 机制                             |
 | ------------------- | -------------------- | -------------------------------- |
-| `wallet_sync`       | **始终**             | 同事务；Unique 5s                |
+| wallet override     | **始终**             | post-commit best-effort HTTP     |
 | rebalance / overrun | **不在 Ingest 执行** | 按需入队；方向允许轻量预判后跳过 |
 | `dashboard_project` | **不在 Ingest 入队** | 看门狗每小时检测 lag 后入队      |
 
-`NEW_API_ENABLED=false` 时：ledger **照常**；rebalance / overrun **不入队**；`wallet_sync` 可入队但无 NewAPI 消费意义。
+`NEW_API_ENABLED=false` 时：ledger **照常**；rebalance / overrun **不入队**；wallet override 可执行但无 NewAPI 消费意义。
 
 ---
 
@@ -499,7 +499,7 @@ flowchart TB
   IW --> ING
   ING --> LOGS
   ING --> MAIN
-  RC -->|wallet_sync / rebalance| ADM
+  RC -->|rebalance / overrun| ADM
   API --> MAIN
 ```
 
@@ -594,8 +594,8 @@ flowchart TB
 - **Ingest** = 把 NewAPI 的消耗小票，变成 TokenJoy 主库里可审计、可预算、可预检的账。
 - **通信** = 管理面 Admin API + 运行面 Gateway 反代 + 结算面 webhook/直读，三条线各司其职。
 - **日志共享** = 独立日志库；NewAPI 写 `newapi.logs`，Backend 写 pending/cursor，并读 logs 入账。
-- **对齐** = `token_id`↔mapping、`newapi:{log_id}` 幂等、point↔quota（`pkg/budget`）的 wallet_sync、发生月↔开账月双轨。
-- **Worker** = **两条异步线**（详见 [Backend-离线任务.md](./Backend-离线任务.md)）：线 A `infra/ingest.Worker`（pending + reconcile）与线 B `infra/river.Client`（`wallet_sync` / rebalance / overrun / org sync 等 River job）并行。
+- **对齐** = `token_id`↔mapping、`newapi:{log_id}` 幂等、point↔quota wallet override（post-commit `set_quota`）、发生月↔开账月双轨。
+- **Worker** = **两条异步线**（详见 [Backend-离线任务.md](./Backend-离线任务.md)）：线 A `infra/ingest.Worker`（pending + reconcile）与线 B `infra/river.Client`（rebalance / overrun / org sync 等 River job）并行。wallet sync 已从 River job 改为 post-commit 内联调用。
 - **可靠** = webhook 求快 ACK，IngestWorker 求入账，reconcile 求不丢；入账都走同一条 `IngestByLogID`。
 
 ---
@@ -615,9 +615,9 @@ IngestRaw → BEGIN
   → IncrementConsumedBatch（UNNEST 批量 UPSERT budget_consumed，最多 3 轴）
   → DecrementBatch（combined_key_remain -= amount；GREATEST(remain - delta, 0)）
   → NULL remain → 锁行重算 → UpdateBatch（仅初始化）
-  → INSERT wallet_sync job（River in-tx）
   → 可选 INSERT overrun job（remain ≤ 0 时）
   → COMMIT
+→ Post-commit: ManageUser("set_quota", wallet_remain_quota) — best-effort
 ```
 
 ### 16.2 约束
@@ -629,7 +629,7 @@ IngestRaw → BEGIN
 | consumed 一次写     | `IncrementConsumedBatch` UNNEST 批量 UPSERT       |
 | combined 原子扣减   | `GREATEST(remain - delta, 0)`                     |
 | 绝对重算仅初始化    | NULL remain → 锁行 → 重算 → UpdateBatch           |
-| job 失败 = 账务回滚 | River job 在同一事务中插入                        |
+| wallet sync 不阻塞  | post-commit best-effort HTTP，失败仅 warn log     |
 | 无 advisory lock    | Ingest 热路径不拿 budget advisory lock            |
 
 ### 16.3 批量 consumed SQL

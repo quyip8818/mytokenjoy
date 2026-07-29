@@ -30,9 +30,8 @@ flowchart TB
     WH[webhook / pending] --> ING[IngestService.IngestRaw]
     REC[reconcile 水位] --> ING
     ING --> LEDGER[ledger_lot_consumed_combined]
-    ING -->|InsertInTx| WSjob[wallet_sync]
+    ING -->|post-commit HTTP| WS[set_quota override → NewAPI]
     ING -.->|仅可能触顶| OV[overrun_可选]
-    DRIFT[ReconcileWalletDrift] -->|Insert| WSjob
   end
 
   subgraph lineB [线 B — river.Client]
@@ -85,7 +84,7 @@ Domain 入队经各域 `JobEnqueuer` 端口（`domain/port/` + `adapter/enqueue/
 | kind                  | 队列     | Unique          | 触发层级                             | Worker                         | Domain 入口                             |
 | --------------------- | -------- | --------------- | ------------------------------------ | ------------------------------ | --------------------------------------- |
 | `newapi_sync`         | critical | 无              | L1 业务                              | `workers/newapi_sync.go`       | `newapisync.OutboxHandler`              |
-| `wallet_sync`         | default  | args，~5s       | L0 ingest / L1 充值漂移              | `workers/wallet_sync.go`       | `billing.SyncCompanyWallet`             |
+| ~~`wallet_sync`~~   | —        | —               | **已废弃**：改为 post-commit 实时 override | —                              | 见 [design/wallet-sync.md](./design/wallet-sync.md) |
 | `rebalance`           | default  | per axis        | L1 按需 / 充值月切 / reconcile / L2  | `workers/rebalance.go`         | `budget.Rebalancer.ProcessAxis`         |
 | `overrun`             | default  | per payload     | L1 **仅可能触顶时**                  | `workers/overrun.go`           | `budget.OverrunProcessor`               |
 | `org_sync`            | default  | per company     | L1 ScheduledAt；L2 看门狗            | `workers/org_sync.go`          | `org.RunScheduledSync`                  |
@@ -135,8 +134,8 @@ Store：`store/tenant_background_state.go` + `postgres/tenant_background_state_r
 | Ingest 预判触顶                   | `overrun`                                  | 可先判跳过                         |
 | 按需 / Key 变更                   | `rebalance`                                | 按轴 Unique                        |
 | `schedule.EnsureMonthRebalance`   | `rebalance`（company）                     | 月切；reconcile 批首或看门狗       |
-| `billing.afterRecharge`           | `wallet_sync`                              | 充值后仅同步钱包；不触发 rebalance |
-| `billing.ReconcileWalletDrift`    | `wallet_sync`                              |                                    |
+| `billing.afterRecharge`           | ~~`wallet_sync`~~ → 改为 post-commit `set_quota` | 充值后实时同步钱包             |
+| ~~`billing.ReconcileWalletDrift`~~ | ~~`wallet_sync`~~ → 已废弃                       | 不再需要                       |
 | `budget.ReconcileService` 修复后  | `rebalance`（company）                     |                                    |
 | `newapisync/*`                    | `newapi_sync`                              |                                    |
 | `org.UpdateSyncConfig` / 同步成功 | `org_sync`                                 |                                    |
@@ -159,11 +158,12 @@ Due 判据（只读 store，见 `infra/scheduler/due.go`）：
 
 ## 6. Worker 行为摘要
 
-### 6.1 `wallet_sync`
+### 6.1 ~~`wallet_sync`~~（已废弃）
 
-- 读权威 `users.quota`（`FreshNewAPIUnits`）与 `wallet_remain_quota` → `ToNewAPIUnits` → `QuotaDelta` → `TopUp`
-- 公司无 `NewAPIWalletCompanyID` → `billing.ErrWalletNotConfigured` → `river.JobCancel`
-- NewAPI / PG `bigint out of range`（SQLSTATE 22003）、缺 `newapi_wallet_company_id` 等配置错误 → `IsNonRetryableNewAPIError` → `JobCancel`（rebalance / newapi_sync / overrun 同策略）
+> **已被实时 override 取代。** 现在每次 `wallet_remain_quota` 变更后，事务提交即 best-effort 调 `ManageUser("set_quota", mode="override")` 覆盖 NewAPI。不再需要 River job、debounce、delta 计算。
+>
+> 旧的 `wallet_sync` worker、`ReconcileWalletDrift`、`SyncCompanyWallet` 均已移除。
+> 详见 [design/wallet-sync.md](./design/wallet-sync.md)。
 
 ### 6.2 `rebalance` / `overrun`
 
@@ -171,7 +171,7 @@ Due 判据（只读 store，见 `infra/scheduler/due.go`）：
 - rebalance 纯粹按月度预算限额计算 `RemainQuota`（`ComputeRemainForMapping` → `ToNewAPIUnits`），不再与 wallet 做 min
 - Gateway 独立检查 `wallet_remain_quota`（硬约束），与 per-key `RemainQuota` 解耦
 - company 轴成功 → 写 `tenant_background_state.last_rebalanced_period`（`EnsureRow` 后 `SetLastRebalancedPeriod`）
-- 充值不再触发 rebalance（只触发 `wallet_sync`）；触发场景：月切、reconcile、approval、project 删除、newapisync 完成
+- 充值不再触发 rebalance（只触发 wallet override）；触发场景：月切、reconcile、approval、project 删除、newapisync 完成
 
 ### 6.3 `org_sync`
 
@@ -239,7 +239,7 @@ Deferred 入队：`compose_watchdog.go` → `startDeferredWatchdog`（`app.go` �
 ## 9. 与 Ingest / 预算的关系（终态）
 
 - Ingest **同事务**写 ledger + lot + `budget_consumed` + `combined_key_remain`
-- 同事务仅入队 `wallet_sync`；**无** `budget_projection`、`dashboard_project`（由看门狗驱动）
+- wallet sync 改为 post-commit 内联 HTTP（不再入队 River job）；**无** `budget_projection`、`dashboard_project`（由看门狗驱动）
 - overrun：轻量预判后**按需**入队；百分比告警可直做
 - rebalance：月切 / reconcile / approval / project 删除 / newapisync 完成；**充值不触发**
 - Gateway 读 `combined_key_remain`；看板读 `usage_buckets`

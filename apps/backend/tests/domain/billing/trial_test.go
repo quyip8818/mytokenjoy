@@ -138,7 +138,7 @@ func TestExpireMockLotsPreservesPaidLotBalance(t *testing.T) {
 		CreatedBy: contract.IDMemberAdmin, CreatedAt: now, UpdatedAt: now,
 	}
 	paidLot := domainbilling.BuildLot(paidOrder, common.DefaultBillingCurrency, store.LotKindPaid, paidOrder.Amount)
-	if err := billinglot.CreditFromLot(ctx, st, paidOrder, paidLot, paidLot.QuotaGranted); err != nil {
+	if _, err := billinglot.CreditFromLot(ctx, st, paidOrder, paidLot, paidLot.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
 

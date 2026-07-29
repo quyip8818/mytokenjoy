@@ -192,5 +192,15 @@ func (s *service) UpgradeToStandard(ctx context.Context, companyID uuid.UUID) er
 
 	// Post-commit: invalidate precheck cache so test-model is immediately rejected.
 	s.cacheInvalidator.InvalidateCompany(companyID)
+
+	// Post-commit: sync wallet to NewAPI (best-effort).
+	if s.client != nil {
+		updatedCo, err := s.store.Company().GetByID(ctx, companyID)
+		if err == nil && updatedCo != nil {
+			if walletUserID, ok := store.ConfiguredNewAPIWalletCompanyID(updatedCo); ok {
+				_ = s.client.ManageUser(ctx, walletUserID, "set_quota", updatedCo.WalletRemainQuota)
+			}
+		}
+	}
 	return nil
 }

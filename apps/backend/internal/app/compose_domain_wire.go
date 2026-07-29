@@ -80,8 +80,8 @@ func wireCompany(cfg config.Config, i infra, grants domaingrants.Normalizer) dom
 	return domaincompany.NewService(cfg, i.store, i.adminPort, grants, opts...)
 }
 
-func wireBilling(cfg config.Config, i infra, reader domainusage.Reader) domainbilling.Service {
-	return domainbilling.NewService(cfg, i.store, reader, i.adminPort)
+func wireBilling(i infra, reader domainusage.Reader) domainbilling.Service {
+	return domainbilling.NewService(i.store, reader, i.adminPort)
 }
 
 func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, budget domainbudget.Service) domainmemberanalytics.Service {
@@ -93,7 +93,7 @@ func wireIngestService(cfg config.Config, i infra, logger *slog.Logger, enqueuer
 	cache := budgetcheck.WrapStore(i.budgetCheck)
 	budgetOps := bridge.NewUsageBudgetOps(cache, alertPub, logger)
 	lotConsumer := bridge.NewUsageLotConsumer()
-	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), logger, enqueue.NewUsageIngestEnqueuer(enqueuer), i.notifier, budgetOps, lotConsumer)
+	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), logger, enqueue.NewUsageIngestEnqueuer(enqueuer), i.notifier, budgetOps, lotConsumer, i.adminPort)
 }
 
 func wireReader(i infra) domainusage.Reader {

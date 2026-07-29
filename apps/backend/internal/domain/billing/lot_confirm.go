@@ -2,6 +2,7 @@ package billing
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -29,9 +30,11 @@ func (s *service) confirmGiftLot(ctx context.Context, amount float64, createdBy 
 		CreatedAt: now, UpdatedAt: now,
 	}
 	lot := BuildLot(order, currency, store.LotKindGift, 0)
-	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted, s.syncQuotaToNewAPI); err != nil {
+	newRemain, err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted)
+	if err != nil {
 		return err
 	}
+	s.syncWalletBestEffort(ctx, companyID, newRemain)
 	return nil
 }
 
@@ -52,9 +55,11 @@ func (s *service) confirmAdjustLot(ctx context.Context, amount, paidAmount float
 		CreatedAt: now, UpdatedAt: now,
 	}
 	lot := BuildLot(order, currency, store.LotKindAdjust, paidAmount)
-	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted, s.syncQuotaToNewAPI); err != nil {
+	newRemain, err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted)
+	if err != nil {
 		return err
 	}
+	s.syncWalletBestEffort(ctx, companyID, newRemain)
 	return nil
 }
 
@@ -86,9 +91,11 @@ func (s *service) finishPendingOrder(ctx context.Context, order store.RechargeOr
 	order.Status = store.RechargeStatusConfirmed
 	order.QuotaPerUnit = ppu
 	lot := BuildLot(order, currency, store.LotKindPaid, order.Amount)
-	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted, s.syncQuotaToNewAPI); err != nil {
+	newRemain, err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted)
+	if err != nil {
 		return err
 	}
+	s.syncWalletBestEffort(ctx, order.CompanyID, newRemain)
 	return nil
 }
 
@@ -112,9 +119,11 @@ func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, sourc
 		CreatedBy:      createdBy, CreatedAt: now, UpdatedAt: now,
 	}
 	lot := BuildLot(order, currency, store.LotKindPaid, order.Amount)
-	if err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted, s.syncQuotaToNewAPI); err != nil {
+	newRemain, err := billinglot.CreditFromLot(ctx, s.store, order, lot, lot.QuotaGranted)
+	if err != nil {
 		return err
 	}
+	s.syncWalletBestEffort(ctx, companyID, newRemain)
 	return nil
 }
 
@@ -133,4 +142,19 @@ func (s *service) ConfirmPayment(ctx context.Context, orderID uuid.UUID) error {
 		return nil
 	}
 	return s.finishPendingOrder(ctx, *order)
+}
+
+// syncWalletBestEffort overrides the NewAPI wallet to match the local SOT (best-effort, post-commit).
+func (s *service) syncWalletBestEffort(ctx context.Context, companyID uuid.UUID, newRemain int64) {
+	if s.quotaSyncer == nil {
+		return
+	}
+	walletUserID, ok := company.ResolveNewAPIWalletCompanyID(ctx, s.store.Company())
+	if !ok {
+		return
+	}
+	if err := s.quotaSyncer.ManageUser(ctx, walletUserID, "set_quota", newRemain); err != nil {
+		slog.Default().Warn("wallet sync after recharge failed",
+			"company_id", companyID, "new_remain", newRemain, "error", err)
+	}
 }

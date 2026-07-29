@@ -137,42 +137,16 @@ type CreditStore interface {
 	WithTx(ctx context.Context, fn func(store.Store) error) error
 }
 
-// PreCreditFunc is called BEFORE the local CreditFromLot transaction commits.
-// This is where external side-effects (e.g. syncing quota to NewAPI) should run.
-//
-// Design rationale ("add first, commit second"):
-//   - If PreCreditFunc succeeds but local tx fails → external system has slightly
-//     more quota than local. This is safe: the external quota is a loose ceiling,
-//     not the source of truth. The extra quota gets consumed naturally or corrected
-//     by reconciliation.
-//   - If PreCreditFunc fails → local tx never starts, the operation fails cleanly.
-//     User sees "recharge failed", retries. No inconsistency.
-//   - The reverse (commit first, sync after) is dangerous: local wallet has funds
-//     but external system rejects requests due to insufficient quota. User experience
-//     is "I paid but can't use the service" — much worse.
-type PreCreditFunc func(ctx context.Context, lot store.RechargeLot) error
-
 // CreditFromLot is the sole write path for recharge lot insert + wallet_remain_quota delta.
-//
-// If a PreCreditFunc is provided, it runs before the transaction. This allows external
-// systems (e.g. NewAPI) to be updated first, ensuring the user is never in a state
-// where they have local balance but are rejected by the external gateway.
+// Returns the new absolute wallet_remain_quota after the credit is applied.
 func CreditFromLot(
 	ctx context.Context,
 	st CreditStore,
 	order store.RechargeOrder,
 	lotRow store.RechargeLot,
 	deltaQuota int64,
-	beforeCommit ...PreCreditFunc,
-) error {
-	// Pre-commit: sync external systems before local state changes.
-	if len(beforeCommit) > 0 && beforeCommit[0] != nil {
-		if err := beforeCommit[0](ctx, lotRow); err != nil {
-			return err
-		}
-	}
-
-	return st.WithTx(ctx, func(tx store.Store) error {
+) (newWalletRemain int64, err error) {
+	err = st.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Billing().ConfirmRechargeWithLot(ctx, order, lotRow); err != nil {
 			return err
 		}
@@ -187,6 +161,18 @@ func CreditFromLot(
 				fifoHead = &lotRow.ID
 			}
 		}
-		return tx.Company().ApplyWalletDelta(ctx, order.CompanyID, deltaQuota, fifoHead)
+		if err := tx.Company().ApplyWalletDelta(ctx, order.CompanyID, deltaQuota, fifoHead); err != nil {
+			return err
+		}
+		// ponytail: re-read to get post-delta value. ApplyWalletDelta is an atomic
+		// SQL increment and doesn't return the result. Acceptable cost for recharge
+		// (low-frequency path). Upgrade path: add RETURNING to ApplyWalletDelta.
+		co, err := tx.Company().GetByID(ctx, order.CompanyID)
+		if err != nil {
+			return err
+		}
+		newWalletRemain = co.WalletRemainQuota
+		return nil
 	})
+	return newWalletRemain, err
 }

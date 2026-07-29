@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/pkg/common"
@@ -38,44 +37,20 @@ type Store interface {
 }
 
 type service struct {
-	cfg         config.Config
 	store       Store
 	reader      domainusage.Reader
 	quotaSyncer QuotaSyncer
 }
 
 func NewService(
-	cfg config.Config,
 	st Store,
 	reader domainusage.Reader,
 	quotaSyncer QuotaSyncer,
 ) Service {
 	return &service{
-		cfg: cfg, store: st, reader: reader,
+		store: st, reader: reader,
 		quotaSyncer: quotaSyncer,
 	}
-}
-
-// syncQuotaToNewAPI is the PreCreditFunc called before CreditFromLot commits.
-// It syncs quota to the external NewAPI gateway so the user won't be rejected.
-//
-// Returns error to abort the recharge if NewAPI is unreachable — this ensures
-// we never have local balance that the user can't actually spend.
-func (s *service) syncQuotaToNewAPI(ctx context.Context, lot store.RechargeLot) error {
-	if lot.LotKind == store.LotKindOverdraft {
-		return nil
-	}
-	if s.cfg.IsProductionDeploy() && lot.LotKind == store.LotKindMock {
-		return nil // prod trial/demo gets a one-time large quota at company creation
-	}
-	if s.quotaSyncer == nil {
-		return nil
-	}
-	walletUserID, ok := company.ResolveNewAPIWalletCompanyID(ctx, s.store.Company())
-	if !ok {
-		return nil // company not yet provisioned on NewAPI; skip silently
-	}
-	return s.quotaSyncer.ManageUser(ctx, walletUserID, "add_quota", lot.QuotaGranted)
 }
 
 func (s *service) PlatformRecharge(ctx context.Context, companyID uuid.UUID, amount float64, operatorID uuid.UUID) error {

@@ -24,6 +24,7 @@ type IngestService struct {
 	notifier    types.Notifier
 	budgetOps   BudgetOps
 	lotConsumer LotConsumer
+	quotaSyncer QuotaSyncer
 }
 
 func NewIngestService(
@@ -35,6 +36,7 @@ func NewIngestService(
 	notifier types.Notifier,
 	budgetOps BudgetOps,
 	lotConsumer LotConsumer,
+	quotaSyncer QuotaSyncer,
 ) *IngestService {
 	if logStore == nil {
 		logStore = store.NoopLogStore()
@@ -49,6 +51,7 @@ func NewIngestService(
 		cfg: cfg, store: st, logStore: logStore, logger: logger,
 		enqueuer: enqueuer, notifier: notifier,
 		budgetOps: budgetOps, lotConsumer: lotConsumer,
+		quotaSyncer: quotaSyncer,
 	}
 }
 
@@ -246,6 +249,18 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 	}
 
 	// --- Post-commit (best-effort) ---
+
+	// Sync wallet to external gateway (NewAPI).
+	if s.quotaSyncer != nil {
+		if walletUserID, ok := company.ResolveNewAPIWalletCompanyID(ctx, s.store.Company()); ok {
+			co, err := s.store.Company().GetByID(ctx, companyID)
+			if err == nil && co != nil {
+				if syncErr := s.quotaSyncer.ManageUser(ctx, walletUserID, "set_quota", co.WalletRemainQuota); syncErr != nil {
+					s.logger.Warn("wallet sync after ingest failed", "company_id", companyID, "error", syncErr)
+				}
+			}
+		}
+	}
 
 	// Refresh Redis combined key cache.
 	s.budgetOps.RefreshCombinedKeySummaries(ctx, companyID, effects.Summaries)
