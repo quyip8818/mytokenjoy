@@ -89,6 +89,6 @@ func (h *Handler) PlatformKeyBearer(w http.ResponseWriter, r *http.Request) {
 
 // Mount registers the dev handler on the given router under /dev.
 func Mount(r chi.Router, d httpdeps.Deps) {
-	h := NewHandler(d.Protected(), d.Config.LocalCompanyID, d.DevBearerResolver, d.DevReadinessChecker)
+	h := NewHandler(d.Protected(), d.Config.CompanyID, d.DevBearerResolver, d.DevReadinessChecker)
 	r.Route("/dev", h.RegisterRoutes)
 }

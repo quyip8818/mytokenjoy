@@ -34,7 +34,8 @@ func SharedTestStore(t *testing.T, opts ...ConfigOption) (config.Config, store.S
 		if cfg.IngestEnabled() {
 			cfg.LogDatabaseURL = schemaURL
 		}
-		cfg.StoreBootstrap.SchemaPrepared = true
+		cfg.StoreBootstrap.SkipSchema = true
+		cfg.StoreBootstrap.SkipSeed = true
 		st, err := postgres.New(context.Background(), cfg)
 		if err != nil {
 			sharedErr = err

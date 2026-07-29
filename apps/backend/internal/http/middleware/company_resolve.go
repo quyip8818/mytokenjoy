@@ -26,14 +26,14 @@ func CompanyResolve(cfg config.Config, companySvc CompanyService, tokenIssuer se
 				return
 			}
 
-			// In single-tenant (non-SaaS) mode, use LocalCompanyID as the implicit
+			// In single-tenant (non-SaaS) mode, use CompanyID as the implicit
 			// tenant for all requests. In SaaS mode, require the JWT to carry the
 			// company binding — no fallback.
 			var companyID uuid.UUID
 			if claims, ok := httpx.ResolveMemberClaims(r, tokenIssuer); ok && claims.CompanyID != uuid.Nil {
 				companyID = claims.CompanyID
 			} else if !cfg.SupportSaas {
-				companyID = cfg.LocalCompanyID
+				companyID = cfg.CompanyID
 			}
 
 			if companyID == uuid.Nil {

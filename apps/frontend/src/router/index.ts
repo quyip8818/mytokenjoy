@@ -3,6 +3,7 @@ import { RouteFallback } from '@/components/layout/route-fallback'
 import { rootRoute } from './root'
 import { authLayoutRoute } from './auth-layout'
 import { loginRoute, inviteAcceptRoute } from './routes/auth'
+import { setupRoute } from './routes/setup'
 import { homeRoute } from './routes/home'
 import { dashboardCostRoute, dashboardUsageRoute } from './routes/dashboard'
 import { keysPlatformRoute, approvalsRoute, keysProviderRoute } from './routes/keys'
@@ -18,6 +19,7 @@ const routeTree = rootRoute.addChildren([
   // Public routes
   loginRoute,
   inviteAcceptRoute,
+  setupRoute,
   // Authenticated layout + its children
   authLayoutRoute.addChildren([
     homeRoute,

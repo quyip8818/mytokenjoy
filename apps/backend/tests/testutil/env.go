@@ -9,6 +9,7 @@ import (
 func ApplyLocalEnv(t *testing.T) {
 	t.Helper()
 	t.Setenv("DEPLOY_ENV", config.DeployEnvLocal)
+	t.Setenv("SUPPORT_SAAS", "false")
 	t.Setenv("DATABASE_URL", config.DefaultDatabaseURL)
 	t.Setenv("COMPANY_NAME", "Acme Corp")
 	t.Setenv("NEW_API_ENABLED", "true")

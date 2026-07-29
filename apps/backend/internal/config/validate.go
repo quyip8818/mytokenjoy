@@ -26,14 +26,8 @@ func (c Config) validateCore() error {
 	if strings.TrimSpace(c.DatabaseURL) == "" {
 		return fmt.Errorf("DATABASE_URL is required")
 	}
-	if c.TokenJoyCompanyID == uuid.Nil || c.LocalCompanyID == uuid.Nil {
-		return fmt.Errorf("TOKENJOY_COMPANY_ID and LOCAL_COMPANY_ID must be set")
-	}
-	if c.TokenJoyCompanyID == c.LocalCompanyID {
-		return fmt.Errorf("TOKENJOY_COMPANY_ID and LOCAL_COMPANY_ID must differ")
-	}
-	if !c.SupportSaas && strings.TrimSpace(c.CompanyName) == "" {
-		return fmt.Errorf("COMPANY_NAME is required when SUPPORT_SAAS=false")
+	if c.TokenJoyCompanyID == uuid.Nil {
+		return fmt.Errorf("TOKENJOY_COMPANY_ID must be set")
 	}
 	if strings.TrimSpace(c.SessionSecret) == "" {
 		return fmt.Errorf("SESSION_SECRET is required")

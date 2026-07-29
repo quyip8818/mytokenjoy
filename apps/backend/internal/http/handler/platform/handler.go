@@ -28,6 +28,9 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Get("/sync/versions", h.CatalogVersions)
 	r.Get("/sync/catalog/models", h.CatalogModels)
 
+	// Public — Local registration (guarded by X-Registration-Secret header)
+	r.Post("/register-local", h.RegisterLocal)
+
 	// Platform admin auth
 	r.Post("/auth/login", h.Login)
 	r.Group(func(r chi.Router) {

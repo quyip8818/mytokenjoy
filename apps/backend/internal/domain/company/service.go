@@ -142,7 +142,7 @@ func (s *service) ListCompanies(ctx context.Context) ([]store.Company, error) {
 }
 
 func (s *service) UpdateCompany(ctx context.Context, id uuid.UUID, patch UpdateCompanyPatch) error {
-	if id == s.cfg.TokenJoyCompanyID || id == s.cfg.LocalCompanyID {
+	if id == s.cfg.TokenJoyCompanyID || id == s.cfg.CompanyID {
 		return domain.Forbidden("protected company cannot be modified")
 	}
 	if patch.Status != nil {

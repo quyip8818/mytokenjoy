@@ -11,15 +11,15 @@ import (
 )
 
 type companyOverviewItem struct {
-	ID              uuid.UUID           `json:"id"`
-	Name            string              `json:"name"`
-	Type            string              `json:"type"`
-	Status          string              `json:"status"`
-	BillingCurrency string              `json:"billingCurrency"`
+	ID              uuid.UUID            `json:"id"`
+	Name            string               `json:"name"`
+	Type            string               `json:"type"`
+	Status          string               `json:"status"`
+	BillingCurrency string               `json:"billingCurrency"`
 	Wallet          companyWalletSummary `json:"wallet"`
-	MonthlySpend    float64             `json:"monthlySpend"`
-	MemberCount     int                 `json:"memberCount"`
-	CreatedAt       time.Time           `json:"createdAt"`
+	MonthlySpend    float64              `json:"monthlySpend"`
+	MemberCount     int                  `json:"memberCount"`
+	CreatedAt       time.Time            `json:"createdAt"`
 }
 
 type companyWalletSummary struct {

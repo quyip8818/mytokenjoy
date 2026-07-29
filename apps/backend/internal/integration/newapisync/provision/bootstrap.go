@@ -91,7 +91,7 @@ func Bootstrap(ctx context.Context, d syncdeps.Deps, companyID uuid.UUID) error 
 }
 
 func bootstrapDemoWalletUser(ctx context.Context, d syncdeps.Deps, companyID uuid.UUID) error {
-	if !d.Cfg.AllowsDevHTTPRoutes() || companyID != d.Cfg.LocalCompanyID {
+	if !d.Cfg.AllowsDevHTTPRoutes() || companyID != d.Cfg.CompanyID {
 		return nil
 	}
 	co, err := d.Store.Company().GetByID(ctx, companyID)

@@ -18,8 +18,12 @@ type TableWriter interface {
 // ApplyBootstrap writes the minimum data required for any environment to start.
 // All operations are idempotent (ON CONFLICT DO NOTHING).
 func ApplyBootstrap(ctx context.Context, exec TableWriter, appCfg config.Config, bsCfg Config) error {
-	companyID := appCfg.LocalCompanyID
+	companyID := appCfg.CompanyID
 	tokenJoyID := appCfg.TokenJoyCompanyID
+
+	if companyID == uuid.Nil {
+		return fmt.Errorf("bootstrap: CompanyID must be set (got uuid.Nil)")
+	}
 
 	if err := insertCurrencies(ctx, exec, bsCfg); err != nil {
 		return fmt.Errorf("bootstrap currencies: %w", err)

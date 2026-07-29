@@ -30,8 +30,8 @@ func TestBootstrapLeavesAllPlatformKeysReady(t *testing.T) {
 		},
 	}
 	sync, _ := newapisynctf.NewLocalTestService(t, stub)
-	ctx := testutil.CtxForCompany(contract.LocalCompanyID)
-	if err := sync.Bootstrap(ctx, contract.LocalCompanyID); err != nil {
+	ctx := testutil.CtxForCompany(contract.DefaultCompanyID)
+	if err := sync.Bootstrap(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 	unready, err := sync.UnreadyPlatformKeyIDs(ctx)
@@ -56,8 +56,8 @@ func TestDevReadinessOKAfterBootstrap(t *testing.T) {
 		},
 	}
 	sync, st := newapisynctf.NewLocalTestService(t, stub)
-	ctx := testutil.CtxForCompany(contract.LocalCompanyID)
-	if err := sync.Bootstrap(ctx, contract.LocalCompanyID); err != nil {
+	ctx := testutil.CtxForCompany(contract.DefaultCompanyID)
+	if err := sync.Bootstrap(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 	_ = st

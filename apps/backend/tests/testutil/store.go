@@ -19,7 +19,8 @@ func NewTestStore(t *testing.T, opts ...ConfigOption) (config.Config, store.Stor
 		schemaURL = openTestSchema(t).URL
 	} else {
 		schemaURL = openClonedTestSchema(t).URL
-		cfg.StoreBootstrap.SchemaPrepared = true
+		cfg.StoreBootstrap.SkipSchema = true
+		cfg.StoreBootstrap.SkipSeed = true
 	}
 	cfg.DatabaseURL = schemaURL
 	if cfg.IngestEnabled() {
@@ -43,6 +44,7 @@ func PreparedConfig(schemaURL string) config.Config {
 	if cfg.IngestEnabled() {
 		cfg.LogDatabaseURL = schemaURL
 	}
-	cfg.StoreBootstrap.SchemaPrepared = true
+	cfg.StoreBootstrap.SkipSchema = true
+	cfg.StoreBootstrap.SkipSeed = true
 	return cfg
 }

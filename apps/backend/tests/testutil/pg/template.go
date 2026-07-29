@@ -80,7 +80,8 @@ func buildOrVerifyTemplateDB(ctx context.Context, baseURL string, templateCfg co
 	cfg := templateCfg
 	cfg.DatabaseURL = templateURL
 	cfg.LogDatabaseURL = templateURL
-	cfg.StoreBootstrap.SchemaPrepared = false
+	cfg.StoreBootstrap.SkipSchema = false
+	cfg.StoreBootstrap.SkipSeed = false
 
 	st, err := postgres.New(ctx, cfg)
 	if err != nil {

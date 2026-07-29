@@ -38,3 +38,9 @@ func applySchema(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) err
 	}
 	return nil
 }
+
+// ApplySchema is the exported entry point for applying DDL schema independently
+// (before seed/bootstrap). Used by main to prepare tables for the setup server.
+func ApplySchema(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) error {
+	return applySchema(ctx, pool, cfg)
+}

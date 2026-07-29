@@ -43,7 +43,7 @@ func TestMiddlewareBehaviors(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		})
 		cfg := sessionConfig()
-		cfg.LocalCompanyID = uuid.Nil
+		cfg.CompanyID = uuid.Nil
 		handler := httpmiddleware.CompanyResolve(cfg, stub, testutil.SessionIssuer(t))(next)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
@@ -65,7 +65,7 @@ func TestMiddlewareBehaviors(t *testing.T) {
 			t.Fatal("next should not run")
 		})
 		cfg := sessionConfig()
-		cfg.LocalCompanyID = contract.DefaultCompanyID
+		cfg.CompanyID = contract.DefaultCompanyID
 		handler := httpmiddleware.CompanyResolve(cfg, stub, testutil.SessionIssuer(t))(next)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/session", nil)

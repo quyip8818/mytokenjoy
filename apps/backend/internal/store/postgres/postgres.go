@@ -48,7 +48,7 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 		pool.Close()
 		return nil, fmt.Errorf("ping postgres: %w", err)
 	}
-	if !cfg.StoreBootstrap.SchemaPrepared {
+	if !cfg.StoreBootstrap.SkipSchema {
 		if err := applySchema(ctx, pool, cfg); err != nil {
 			pool.Close()
 			return nil, err
@@ -94,7 +94,7 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 		s.logTables = tables
 		s.logs = newLogRepo(logPool, tables)
 	}
-	if !cfg.StoreBootstrap.SchemaPrepared {
+	if !cfg.StoreBootstrap.SkipSeed {
 		if err := seed.Init(ctx, pool, s, cfg); err != nil {
 			pool.Close()
 			if s.logPool != nil {

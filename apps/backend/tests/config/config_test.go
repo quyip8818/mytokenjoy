@@ -63,20 +63,6 @@ func TestIngestRequiresWebhookSecret(t *testing.T) {
 	}
 }
 
-func TestPrivateRequiresCompanyName(t *testing.T) {
-	testutil.ApplyLocalEnv(t)
-	t.Setenv("COMPANY_NAME", "")
-	t.Setenv("SUPPORT_SAAS", "false")
-
-	_, err := config.Load()
-	if err == nil {
-		t.Fatal("expected error when private deployment has no COMPANY_NAME")
-	}
-	if !strings.Contains(err.Error(), "COMPANY_NAME") {
-		t.Fatalf("expected COMPANY_NAME error, got %v", err)
-	}
-}
-
 func TestProductionRequiresGatewayEnabled(t *testing.T) {
 	testutil.ApplyProductionEnv(t)
 	t.Setenv("NEW_API_GATEWAY_ENABLED", "false")

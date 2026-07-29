@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
@@ -19,6 +20,12 @@ func RunDevBootstrap(ctx context.Context, cfg config.Config, logger *slog.Logger
 	}
 	if !cfg.NewAPIEnabled {
 		return fmt.Errorf("NEW_API_ENABLED is required for dev bootstrap")
+	}
+
+	// Resolve CompanyID before opening store (seed.Init needs it).
+	// Dev bootstrap always uses DemoCompanyID — it seeds a fresh DB without setup flow.
+	if cfg.CompanyID == (uuid.UUID{}) {
+		cfg.CompanyID = DemoCompanyID
 	}
 
 	st, err := openStore(ctx, cfg)
@@ -47,8 +54,8 @@ func RunDevBootstrap(ctx context.Context, cfg config.Config, logger *slog.Logger
 	if !ok {
 		return fmt.Errorf("newapi sync is not configured")
 	}
-	bootstrapCtx := company.DefaultContext(cfg.LocalCompanyID)
-	if err := sync.Bootstrap(bootstrapCtx, cfg.LocalCompanyID); err != nil {
+	bootstrapCtx := company.DefaultContext(cfg.CompanyID)
+	if err := sync.Bootstrap(bootstrapCtx, cfg.CompanyID); err != nil {
 		logger.Warn("platform key sync failed (non-fatal, keys will sync on next request)", "error", err)
 	}
 

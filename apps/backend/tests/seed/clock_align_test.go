@@ -62,7 +62,7 @@ func TestSeedBudgetConsumedAlignWithClockAnchor(t *testing.T) {
 
 	rows, err := pool.Query(ctx, `
 		SELECT DISTINCT period_key FROM budget_consumed WHERE company_id = $1
-	`, contract.LocalCompanyID)
+	`, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func TestSeedBudgetConsumedAlignWithClockAnchor(t *testing.T) {
 
 	ledgerRows, err := pool.Query(ctx, `
 		SELECT period_key, occurred_at FROM usage_ledger WHERE company_id = $1
-	`, contract.LocalCompanyID)
+	`, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}

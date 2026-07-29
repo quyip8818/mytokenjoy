@@ -12,8 +12,7 @@ var remoteIDNamespace = uuid.MustParse("6ba7b814-9dad-11d1-80b4-00c04fd430c8")
 
 var (
 	TokenJoyCompanyID = uuid.MustParse("00000000-0000-7000-8000-000000000001")
-	LocalCompanyID    = uuid.MustParse("00000000-0000-7000-8000-000000000002")
-	DefaultCompanyID  = LocalCompanyID
+	DefaultCompanyID  = uuid.MustParse("00000000-0000-7000-8000-000000000002")
 )
 
 // --- Models ---

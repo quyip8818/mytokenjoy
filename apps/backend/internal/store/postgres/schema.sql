@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS companies (
     name                      TEXT NOT NULL,
     industry                  TEXT NOT NULL DEFAULT '',
     size                      TEXT NOT NULL DEFAULT '',
-    type                      TEXT NOT NULL DEFAULT 'selfhosted'
+    type                      TEXT NOT NULL DEFAULT 'standard'
                               CHECK (type IN ('standard', 'trial', 'demo', 'selfhosted', 'testing')),
     status                    TEXT NOT NULL DEFAULT 'active',
     root_dept_id              UUID,

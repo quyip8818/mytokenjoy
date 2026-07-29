@@ -78,6 +78,9 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 	if err := registry.Credentials.BootstrapPlatformIfNeeded(ctx); err != nil {
 		return nil, err
 	}
+	if err := registry.Credentials.BootstrapLocalAdminIfNeeded(ctx); err != nil {
+		return nil, err
+	}
 
 	bgWorkers, err := buildBackgroundWorkers(cfg, logger, st, registry, holder, orgAdmin)
 	if err != nil {

@@ -148,7 +148,7 @@ func TestConfig(opts ...ConfigOption) config.Config {
 		PlatformConfig: config.PlatformConfig{
 			CompanyName:       "Demo Company",
 			TokenJoyCompanyID: contract.TokenJoyCompanyID,
-			LocalCompanyID:    contract.LocalCompanyID,
+			CompanyID:         contract.DefaultCompanyID,
 		},
 		IdentityConfig: config.IdentityConfig{
 			SessionSecret:      TestSessionSecret,

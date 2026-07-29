@@ -18,6 +18,7 @@ import (
 type Service interface {
 	AuthenticateMember(ctx context.Context, companyID uuid.UUID, email, password string) (types.Member, error)
 	BootstrapPlatformIfNeeded(ctx context.Context) error
+	BootstrapLocalAdminIfNeeded(ctx context.Context) error
 }
 
 type service struct {
@@ -104,4 +105,64 @@ func (s *service) AuthenticateMember(ctx context.Context, companyID uuid.UUID, e
 
 func verifyPassword(hash, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+}
+
+// BootstrapLocalAdminIfNeeded creates the local admin as a super-admin member of the
+// selfhosted company (cfg.CompanyID). Called after seed.Init when in local (non-SaaS) mode.
+// Reads admin email from system_settings (written by setup server), finds the user,
+// and creates a member with super_admin role. Idempotent.
+func (s *service) BootstrapLocalAdminIfNeeded(ctx context.Context) error {
+	if s.cfg.SupportSaas {
+		return nil // SaaS mode — no local admin bootstrap
+	}
+	if s.cfg.CompanyID == uuid.Nil {
+		return nil // not yet initialized
+	}
+
+	// Read admin email from system_settings
+	adminEmail, err := s.store.SystemSettings().Get(ctx, "setup_admin_email")
+	if err != nil || adminEmail == "" {
+		return nil // no setup admin configured — skip
+	}
+
+	// Idempotent: already a member?
+	existing, _, _ := s.store.Org().MemberByEmail(ctx, s.cfg.CompanyID, adminEmail)
+	if existing != nil {
+		return nil
+	}
+
+	// Find the user created during setup
+	user, err := s.store.User().GetByEmail(ctx, adminEmail)
+	if err != nil || user == nil {
+		return nil // user not found — skip (setup incomplete?)
+	}
+
+	// Create member with super_admin role
+	companyCtx := ctxcompany.With(ctx, ctxcompany.Info{CompanyID: s.cfg.CompanyID})
+	memberID := uuid.Must(uuid.NewV7())
+	member := types.Member{
+		ID:        memberID,
+		CompanyID: s.cfg.CompanyID,
+		UserID:    user.ID,
+		Alias:     user.Name,
+		Status:    types.MemberStatusActive,
+		Roles:     []string{grants.RoleSuperAdmin},
+	}
+
+	// Read existing members to append
+	members, err := s.store.Org().Members(companyCtx)
+	if err != nil {
+		return fmt.Errorf("bootstrap local admin: load members: %w", err)
+	}
+	// Double-check idempotency
+	for _, m := range members {
+		if m.UserID == user.ID {
+			return nil
+		}
+	}
+	members = append(members, member)
+	if err := s.store.Org().SetMembers(companyCtx, members); err != nil {
+		return fmt.Errorf("bootstrap local admin: set members: %w", err)
+	}
+	return nil
 }

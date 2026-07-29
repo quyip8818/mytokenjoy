@@ -38,18 +38,18 @@ func TestBootstrapDemoWalletUserCreatesWallet(t *testing.T) {
 		},
 	}
 	sync, st := newapisynctf.NewLocalTestService(t, stub)
-	ctx := testutil.CtxForCompany(contract.LocalCompanyID)
-	if err := sync.Bootstrap(ctx, contract.LocalCompanyID); err != nil {
+	ctx := testutil.CtxForCompany(contract.DefaultCompanyID)
+	if err := sync.Bootstrap(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 	if stub.CreateUserCalls != 1 {
 		t.Fatalf("expected one CreateUser call, got %d", stub.CreateUserCalls)
 	}
-	expectedUsername := company.WalletUsername(contract.LocalCompanyID)
+	expectedUsername := company.WalletUsername(contract.DefaultCompanyID)
 	if createdUsername != expectedUsername {
 		t.Fatalf("expected username %q, got %q", expectedUsername, createdUsername)
 	}
-	co, err := st.Company().GetByID(ctx, contract.LocalCompanyID)
+	co, err := st.Company().GetByID(ctx, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,8 +71,8 @@ func TestBootstrapSyncsActiveSeedKey(t *testing.T) {
 		},
 	}
 	sync, st := newapisynctf.NewLocalTestService(t, stub)
-	ctx := testutil.CtxForCompany(contract.LocalCompanyID)
-	if err := sync.Bootstrap(ctx, contract.LocalCompanyID); err != nil {
+	ctx := testutil.CtxForCompany(contract.DefaultCompanyID)
+	if err := sync.Bootstrap(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 	mapping, err := st.PlatformKeyMappings().GetMappingByPlatformKeyID(ctx, contract.IDPlatformKey1)
@@ -106,9 +106,9 @@ func TestBootstrapRepairsPendingHashOnSyncedMapping(t *testing.T) {
 		},
 	}
 	sync, st := newapisynctf.NewLocalTestService(t, stub)
-	ctx := testutil.CtxForCompany(contract.LocalCompanyID)
+	ctx := testutil.CtxForCompany(contract.DefaultCompanyID)
 	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
-		CompanyID:     contract.LocalCompanyID,
+		CompanyID:     contract.DefaultCompanyID,
 		PlatformKeyID: contract.IDPlatformKey1,
 		DepartmentID:  contract.IDDept3,
 		NewAPIGroup:   "dept-dept-3",
@@ -132,7 +132,7 @@ func TestBootstrapRepairsPendingHashOnSyncedMapping(t *testing.T) {
 		}
 		break
 	}
-	if err := sync.Bootstrap(ctx, contract.LocalCompanyID); err != nil {
+	if err := sync.Bootstrap(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 	hash, ok, err := st.Keys().PlatformKeyHashByID(ctx, contract.IDPlatformKey1)
@@ -158,9 +158,9 @@ func TestReconcileMissingTokenRecreatesSync(t *testing.T) {
 		},
 	}
 	sync, st := newapisynctf.NewLocalTestService(t, stub)
-	ctx := testutil.CtxForCompany(contract.LocalCompanyID)
+	ctx := testutil.CtxForCompany(contract.DefaultCompanyID)
 	if err := st.PlatformKeyMappings().UpsertMapping(ctx, store.PlatformKeyMapping{
-		CompanyID:     contract.LocalCompanyID,
+		CompanyID:     contract.DefaultCompanyID,
 		PlatformKeyID: contract.IDPlatformKey1,
 		DepartmentID:  contract.IDDept3,
 		NewAPIGroup:   "dept-dept-3",
@@ -169,7 +169,7 @@ func TestReconcileMissingTokenRecreatesSync(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := sync.Bootstrap(ctx, contract.LocalCompanyID); err != nil {
+	if err := sync.Bootstrap(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 	mapping, err := st.PlatformKeyMappings().GetMappingByPlatformKeyID(ctx, contract.IDPlatformKey1)
@@ -201,12 +201,12 @@ func TestBootstrapSkipsWhenAllReady(t *testing.T) {
 		},
 	}
 	sync, st := newapisynctf.NewLocalTestService(t, stub)
-	ctx := testutil.CtxForCompany(contract.LocalCompanyID)
-	if err := sync.Bootstrap(ctx, contract.LocalCompanyID); err != nil {
+	ctx := testutil.CtxForCompany(contract.DefaultCompanyID)
+	if err := sync.Bootstrap(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 	callsAfterFirst := stub.CreateTokenCalls
-	if err := sync.Bootstrap(ctx, contract.LocalCompanyID); err != nil {
+	if err := sync.Bootstrap(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 	if stub.CreateTokenCalls != callsAfterFirst {
@@ -231,22 +231,22 @@ func TestBootstrapHealsZeroWalletCompanyID(t *testing.T) {
 		},
 	}
 	sync, st := newapisynctf.NewLocalTestService(t, stub)
-	ctx := testutil.CtxForCompany(contract.LocalCompanyID)
-	if err := sync.Bootstrap(ctx, contract.LocalCompanyID); err != nil {
+	ctx := testutil.CtxForCompany(contract.DefaultCompanyID)
+	if err := sync.Bootstrap(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 	pool := postgres.MainPool(st)
-	if _, err := pool.Exec(ctx, `UPDATE companies SET newapi_wallet_company_id = 0 WHERE id = $1`, contract.LocalCompanyID); err != nil {
+	if _, err := pool.Exec(ctx, `UPDATE companies SET newapi_wallet_company_id = 0 WHERE id = $1`, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 	createCallsBefore := stub.CreateUserCalls
-	if err := sync.Bootstrap(ctx, contract.LocalCompanyID); err != nil {
+	if err := sync.Bootstrap(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 	if stub.CreateUserCalls <= createCallsBefore {
 		t.Fatalf("expected CreateUser on heal, before=%d after=%d", createCallsBefore, stub.CreateUserCalls)
 	}
-	co, err := st.Company().GetByID(ctx, contract.LocalCompanyID)
+	co, err := st.Company().GetByID(ctx, contract.DefaultCompanyID)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -16,6 +16,7 @@ type HTTPConfig struct {
 	CORSOrigins       string `env:"CORS_ORIGINS" envDefault:"http://localhost:5173,http://localhost:5175"`
 	RequestTimeoutSec int    `env:"REQUEST_TIMEOUT_SEC" envDefault:"30"`
 	AccessLogSlowMs   int    `env:"ACCESS_LOG_SLOW_THRESHOLD_MS" envDefault:"5000"`
+	StaticDir         string `env:"STATIC_DIR"` // optional: serve frontend static files from this directory
 }
 
 // DeployConfig holds deployment and environment settings.
@@ -95,7 +96,7 @@ type PlatformConfig struct {
 	SupportSaas               bool      `env:"SUPPORT_SAAS" envDefault:"false"`
 	CompanyName               string    `env:"COMPANY_NAME"`
 	TokenJoyCompanyID         uuid.UUID `env:"TOKENJOY_COMPANY_ID" envDefault:"00000000-0000-7000-8000-000000000001"`
-	LocalCompanyID            uuid.UUID `env:"LOCAL_COMPANY_ID" envDefault:"00000000-0000-7000-8000-000000000002"`
+	CompanyID                 uuid.UUID // 运行时赋值，不从 env 读取。SaaS=DemoCompanyID; Local=setup 产出的 ID。
 	PlatformSharedNewAPIGroup string    `env:"PLATFORM_SHARED_NEW_API_GROUP" envDefault:"platform_shared"`
 	CompanyWalletCacheTTLSec  int       `env:"COMPANY_WALLET_CACHE_TTL_SEC" envDefault:"30"`
 
@@ -106,6 +107,14 @@ type PlatformConfig struct {
 	CatalogSyncEnabled     bool   `env:"CATALOG_SYNC_ENABLED" envDefault:"false"`
 	CatalogSyncURL         string `env:"CATALOG_SYNC_URL"`
 	CatalogSyncIntervalSec int    `env:"CATALOG_SYNC_INTERVAL_SEC" envDefault:"300"`
+
+	// Setup / registration (local only)
+	SaasPlatformURL        string `env:"SAAS_PLATFORM_URL"`
+	SaasRegistrationSecret string `env:"SAAS_REGISTRATION_SECRET"`
+	SetupOfflineMode       bool   `env:"SETUP_OFFLINE_MODE" envDefault:"false"`
+
+	// SaaS side: secret for register-local endpoint
+	LocalRegistrationSecret string `env:"LOCAL_REGISTRATION_SECRET"`
 }
 
 // IdentityConfig holds authentication, session, and authorization settings.
