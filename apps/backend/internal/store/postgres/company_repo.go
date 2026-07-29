@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -22,6 +23,7 @@ func (r *companyRepo) GetByID(ctx context.Context, id uuid.UUID) (*store.Company
 	row := r.db.QueryRow(ctx, `
 		SELECT id, name, industry, size, type, status, root_dept_id, newapi_wallet_company_id, authz_revision,
 			billing_currency, fifo_head_lot_id, wallet_remain_quota,
+			sync_token_hash, token_issued_at,
 			created_at, updated_at
 		FROM companies WHERE id = $1
 	`, id)
@@ -35,6 +37,7 @@ func (r *companyRepo) GetByIDs(ctx context.Context, ids []uuid.UUID) ([]store.Co
 	rows, err := r.db.Query(ctx, `
 		SELECT id, name, industry, size, type, status, root_dept_id, newapi_wallet_company_id, authz_revision,
 			billing_currency, fifo_head_lot_id, wallet_remain_quota,
+			sync_token_hash, token_issued_at,
 			created_at, updated_at
 		FROM companies WHERE id = ANY($1)
 	`, ids)
@@ -107,6 +110,7 @@ func (r *companyRepo) List(ctx context.Context) ([]store.Company, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, name, industry, size, type, status, root_dept_id, newapi_wallet_company_id, authz_revision,
 			billing_currency, fifo_head_lot_id, wallet_remain_quota,
+			sync_token_hash, token_issued_at,
 			created_at, updated_at
 		FROM companies ORDER BY id
 	`)
@@ -149,6 +153,7 @@ func (r *companyRepo) LockForUpdate(ctx context.Context, id uuid.UUID) (*store.C
 	row := r.db.QueryRow(ctx, `
 		SELECT id, name, industry, size, type, status, root_dept_id, newapi_wallet_company_id, authz_revision,
 			billing_currency, fifo_head_lot_id, wallet_remain_quota,
+			sync_token_hash, token_issued_at,
 			created_at, updated_at
 		FROM companies WHERE id = $1 FOR UPDATE
 	`, id)
@@ -177,6 +182,25 @@ func (r *companyRepo) SetWalletRemainQuota(ctx context.Context, id uuid.UUID, re
 	return err
 }
 
+func (r *companyRepo) GetBySyncTokenHash(ctx context.Context, hash string) (*store.Company, error) {
+	row := r.db.QueryRow(ctx, `
+		SELECT id, name, industry, size, type, status, root_dept_id, newapi_wallet_company_id, authz_revision,
+			billing_currency, fifo_head_lot_id, wallet_remain_quota,
+			sync_token_hash, token_issued_at,
+			created_at, updated_at
+		FROM companies WHERE sync_token_hash = $1
+	`, hash)
+	return scanCompanyExtendedOptional(row)
+}
+
+func (r *companyRepo) UpdateSyncToken(ctx context.Context, id uuid.UUID, hash string, issuedAt time.Time) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE companies SET sync_token_hash = $2, token_issued_at = $3, updated_at = NOW()
+		WHERE id = $1
+	`, id, hash, issuedAt)
+	return err
+}
+
 func scanCompanyExtendedOptional(row scannable) (*store.Company, error) {
 	c, err := scanCompanyExtended(row)
 	if err == pgx.ErrNoRows {
@@ -190,6 +214,7 @@ func scanCompanyExtended(row scannable) (*store.Company, error) {
 	err := row.Scan(&c.ID, &c.Name, &c.Industry, &c.Size, &c.Type, &c.Status,
 		&c.RootDeptID, &c.NewAPIWalletCompanyID, &c.AuthzRevision,
 		&c.BillingCurrency, &c.FIFOHeadLotID, &c.WalletRemainQuota,
+		&c.SyncTokenHash, &c.TokenIssuedAt,
 		&c.CreatedAt, &c.UpdatedAt)
 	if err != nil {
 		return nil, err

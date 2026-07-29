@@ -31,6 +31,8 @@ type Company struct {
 	BillingCurrency       string
 	FIFOHeadLotID         *uuid.UUID
 	WalletRemainQuota     int64
+	SyncTokenHash         *string
+	TokenIssuedAt         *time.Time
 	CreatedAt             time.Time
 	UpdatedAt             time.Time
 }
@@ -57,4 +59,6 @@ type CompanyRepository interface {
 	LockForUpdate(ctx context.Context, id uuid.UUID) (*Company, error)
 	ApplyWalletDelta(ctx context.Context, id uuid.UUID, delta int64, fifoHeadLotID *uuid.UUID) error
 	SetWalletRemainQuota(ctx context.Context, id uuid.UUID, remain int64, fifoHeadLotID *uuid.UUID) error
+	GetBySyncTokenHash(ctx context.Context, hash string) (*Company, error)
+	UpdateSyncToken(ctx context.Context, id uuid.UUID, hash string, issuedAt time.Time) error
 }

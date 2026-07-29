@@ -22,3 +22,11 @@ type CatalogResponse[T any] struct {
 	Version int `json:"version"`
 	Data    []T `json:"data"`
 }
+
+// CatalogPricing represents a pricing entry from the platform sync API.
+type CatalogPricing struct {
+	ModelType   string  `json:"modelType"`
+	InputPrice  float64 `json:"inputPrice"`
+	OutputPrice float64 `json:"outputPrice"`
+	IsContract  bool    `json:"isContract"`
+}

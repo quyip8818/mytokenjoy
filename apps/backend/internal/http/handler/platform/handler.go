@@ -28,6 +28,12 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Get("/sync/versions", h.CatalogVersions)
 	r.Get("/sync/catalog/models", h.CatalogModels)
 
+	// Per-company sync token protected — contains company-isolated data
+	r.Group(func(r chi.Router) {
+		r.Use(httpmiddleware.RequireSyncToken(h.p.Companies))
+		r.Get("/sync/catalog/pricing", h.CatalogPricing)
+	})
+
 	// Public — Local registration (guarded by X-Registration-Secret header)
 	r.Post("/register-local", h.RegisterLocal)
 

@@ -1,5 +1,4 @@
 // Package catalogsync implements an HTTP client for the platform Catalog sync API.
-// No authentication — the Catalog API is public read-only.
 package catalogsync
 
 import (
@@ -13,7 +12,8 @@ import (
 )
 
 type Config struct {
-	BaseURL string
+	BaseURL   string
+	SyncToken string // cst_ prefixed token for authenticated endpoints (pricing)
 }
 
 type Client struct {
@@ -31,25 +31,37 @@ func NewClient(cfg Config) *Client {
 // FetchVersions returns the remote catalog version from GET /api/platform/sync/versions.
 func (c *Client) FetchVersions(ctx context.Context) (*CatalogVersions, error) {
 	var v CatalogVersions
-	if err := c.doGet(ctx, "/api/platform/sync/versions", &v); err != nil {
+	if err := c.doGet(ctx, "/api/platform/sync/versions", false, &v); err != nil {
 		return nil, fmt.Errorf("catalog fetch versions: %w", err)
 	}
 	return &v, nil
 }
 
-// FetchModels fetches the models catalog.
+// FetchModels fetches the models catalog (public, no auth required).
 func (c *Client) FetchModels(ctx context.Context) (*CatalogResponse[CatalogModel], error) {
 	var resp CatalogResponse[CatalogModel]
-	if err := c.doGet(ctx, "/api/platform/sync/catalog/models", &resp); err != nil {
+	if err := c.doGet(ctx, "/api/platform/sync/catalog/models", false, &resp); err != nil {
 		return nil, fmt.Errorf("catalog fetch models: %w", err)
 	}
 	return &resp, nil
 }
 
-func (c *Client) doGet(ctx context.Context, path string, out any) error {
+// FetchPricing fetches the per-company pricing catalog (requires sync token).
+func (c *Client) FetchPricing(ctx context.Context) (*CatalogResponse[CatalogPricing], error) {
+	var resp CatalogResponse[CatalogPricing]
+	if err := c.doGet(ctx, "/api/platform/sync/catalog/pricing", true, &resp); err != nil {
+		return nil, fmt.Errorf("catalog fetch pricing: %w", err)
+	}
+	return &resp, nil
+}
+
+func (c *Client) doGet(ctx context.Context, path string, auth bool, out any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.url(path), nil)
 	if err != nil {
 		return err
+	}
+	if auth && c.cfg.SyncToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.cfg.SyncToken)
 	}
 
 	res, err := c.httpClient.Do(req)

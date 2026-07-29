@@ -120,8 +120,11 @@ func buildCatalogSyncExecutor(cfg config.Config, st store.Store, reg ServiceRegi
 		slog.Warn("catalog sync enabled but CATALOG_SYNC_URL empty, skipping")
 		return nil
 	}
+	// Sync token is persisted by setup flow into system_settings.
+	syncToken, _ := st.SystemSettings().Get(context.Background(), "catalog_sync_token")
 	client := catalogintegration.NewClient(catalogintegration.Config{
-		BaseURL: cfg.CatalogSyncURL,
+		BaseURL:   cfg.CatalogSyncURL,
+		SyncToken: syncToken,
 	})
 	return catalogsync.NewExecutor(client, reg.Infra.adminPort, st, cfg.TokenJoyCompanyID)
 }

@@ -46,9 +46,11 @@ TokenJoy 支持两种部署模式：
 
 ## API 详解
 
-### Catalog API（公开只读，无需登录）
+### Catalog API（供 Local catalogsync worker 调用）
 
-供 Local 的 catalogsync worker 调用。注册在 `/api/platform/` 路由下但在鉴权中间件外面。
+注册在 `/api/platform/` 路由下。分为公开端点和 sync token 保护端点。
+
+**公开端点（无需鉴权）：**
 
 ```
 GET /api/platform/sync/versions
@@ -76,7 +78,36 @@ GET /api/platform/sync/catalog/models
 }
 ```
 
-返回完整模型列表 + 实时价格。价格从 `model_pricing` 表读取后拼入。
+返回完整模型列表 + 实时价格。全局数据，无公司隔离。
+
+**Sync token 保护端点（per-company 隔离）：**
+
+```
+GET /api/platform/sync/catalog/pricing
+Header: Authorization: Bearer cst_<hex64>
+响应: {
+  "data": [
+    { "modelType": "gpt-4o", "inputPrice": 1.0, "outputPrice": 4.0, "isContract": true },
+    { "modelType": "claude-3", "inputPrice": 3.0, "outputPrice": 15.0, "isContract": false }
+  ]
+}
+```
+
+返回全局价 + 该公司合同价合并结果。合同价覆盖同 modelType 的全局价。`isContract=true` 表示该价格来自公司专属合同。
+
+鉴权由 `RequireSyncToken` 中间件完成：从 `Authorization: Bearer cst_xxx` 提取 token → SHA-256 hash → 查 `companies.sync_token_hash` → 验公司 status=active → 注入 companyID 到 context。
+
+### 注册端点（Local setup 调用）
+
+```
+POST /api/platform/register-local
+Header: X-Registration-Secret: <shared_secret>
+Body: { "name", "industry", "size", "idempotencyKey" }
+响应 201: { "companyId": "uuid", "syncToken": "cst_..." }
+响应 409: token 刚签发（60s 内），使用已有 token
+```
+
+公司创建幂等（同 idempotencyKey 不重复建），每次签发新 sync token 并覆盖旧 hash。60 秒防重窗口防止网络重试覆盖有效 token。
 
 ### Platform Admin API（需要登录 + `platform:manage` 权限）
 
@@ -116,13 +147,28 @@ GET /api/platform/sync/catalog/models
 
 ### system_settings 表
 
-`catalog.models_version` key 存储当前发布版本号。`Increment` 方法使用原子 SQL：
+| key | 说明 |
+|-----|------|
+| `catalog.models_version` | 当前发布版本号 |
+| `catalog_sync_token` | Local 侧的 sync token 明文（setup 写入） |
+| `register_local:<idempotencyKey>` | 注册幂等映射 → companyId |
+
+版本号的 `Increment` 方法使用原子 SQL：
 
 ```sql
 INSERT INTO system_settings (key, value) VALUES ($1, '1')
 ON CONFLICT (key) DO UPDATE SET value = (system_settings.value::int + 1)::text
 RETURNING value::int
 ```
+
+### companies 表（sync 相关列）
+
+```sql
+sync_token_hash  CHAR(64)     -- SHA-256(cst_token)，SaaS 侧验证用
+token_issued_at  TIMESTAMPTZ  -- 签发时间，60s 防重窗口判断
+```
+
+`sync_token_hash` 有 UNIQUE INDEX（WHERE NOT NULL），中间件通过 hash 反查 company。
 
 ---
 
@@ -137,6 +183,8 @@ CATALOG_SYNC_INTERVAL_SEC=300
 ```
 
 SaaS 模式下这三个变量不配置（worker 不启动）。
+
+Sync token 由 setup 流程自动获取并存入 `system_settings` 表（key: `catalog_sync_token`）。Worker 启动时从 system_settings 读取，无需手动配置。
 
 ### 同步流程
 
@@ -161,6 +209,16 @@ SaaS 模式下这三个变量不配置（worker 不启动）。
 
 6. 更新本地 system_settings['catalog.models_version'] = 远端 version
 ```
+
+### Sync Token 生命周期
+
+| 事件 | 行为 |
+|------|------|
+| Setup 首次运行 | 调 register-local → SaaS 签发 cst_ token → 存入 system_settings |
+| Worker 启动 | 从 system_settings 读 token，构造 client |
+| Token 丢失 | 运维重跑 setup（等 60s 窗口过），新 token 覆盖旧的 |
+| Token 泄露 | 同上——重跑 setup 即 rotate |
+| 公司停用 | SaaS 标记 status=inactive，sync 返回 403 |
 
 ### Channel 管理
 
@@ -212,16 +270,20 @@ Platform 只有一个 channel（`tokenjoy`），指向 SaaS gateway。不做动�
 | **后端** | |
 | Platform handler（CRUD + Catalog API） | `internal/http/handler/platform/models.go` |
 | Platform pricing handler | `internal/http/handler/platform/pricing.go` |
+| Catalog pricing sync endpoint | `internal/http/handler/platform/catalog_pricing.go` |
 | 路由注册（中间件分层） | `internal/http/handler/platform/handler.go` |
+| RequireSyncToken 中间件 | `internal/http/middleware/sync_token.go` |
 | Pricing domain service | `internal/domain/pricing/service.go` |
 | Catalog sync worker | `internal/worker/catalogsync/execute.go` |
 | Catalog sync HTTP client | `internal/integration/catalogsync/` |
 | SyncFromPlatform（models 表 upsert） | `internal/store/postgres/models_repo_crud.go` |
 | ModelPricing repo | `internal/store/postgres/model_pricing_repo.go` |
+| Company repo（含 sync token 方法） | `internal/store/postgres/company_repo.go` |
 | SystemSettings.Increment | `internal/store/postgres/system_settings_repo.go` |
 | 配置字段 | `internal/config/config.go` → PlatformConfig |
 | River periodic job | `internal/infra/jobs/kinds_catalogsync.go` |
 | River worker adapter | `internal/infra/river/workers/catalog_sync.go` |
+| Setup server（token 持久化） | `internal/app/setup_server.go` |
 | **前端** | |
 | Feature module | `apps/frontend/src/features/platform/models/` |
 | API 定义 | `apps/frontend/src/api/platform.ts` |

@@ -28,9 +28,14 @@ CREATE TABLE IF NOT EXISTS companies (
     billing_currency          CHAR(3) NOT NULL DEFAULT 'CNY' REFERENCES currencies (currency),
     fifo_head_lot_id          UUID,
     wallet_remain_quota       BIGINT NOT NULL DEFAULT 0,
+    sync_token_hash           CHAR(64),
+    token_issued_at           TIMESTAMPTZ,
     created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_companies_sync_token_hash
+  ON companies (sync_token_hash) WHERE sync_token_hash IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS company_invites (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),

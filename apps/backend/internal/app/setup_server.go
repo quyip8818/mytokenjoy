@@ -156,7 +156,7 @@ func handleSetupInit(
 		}
 
 		// 2. Register company: call SaaS or generate locally
-		companyID, err := registerCompany(ctx, cfg, req, idempotencyKey, logger)
+		companyID, syncToken, err := registerCompany(ctx, cfg, req, idempotencyKey, logger)
 		if err != nil {
 			logger.Error("register company", "error", err)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to register company: " + err.Error()})
@@ -188,6 +188,13 @@ func handleSetupInit(
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 			return
 		}
+		if syncToken != "" {
+			if err := setSystemSettingTx(ctx, tx, "catalog_sync_token", syncToken); err != nil {
+				logger.Error("write catalog_sync_token", "error", err)
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
+				return
+			}
+		}
 
 		// 4. Create admin user (users table only — member/roles created by bootstrap)
 		if err := createAdminUserTx(ctx, tx, req); err != nil {
@@ -216,10 +223,10 @@ func handleSetupInit(
 }
 
 // registerCompany calls SaaS platform to register a selfhosted company.
-// Returns the company ID assigned by SaaS. Errors if SaaS is unreachable.
-func registerCompany(ctx context.Context, cfg config.Config, req setupInitRequest, idempotencyKey string, logger *slog.Logger) (uuid.UUID, error) {
+// Returns the company ID and sync token assigned by SaaS. Errors if SaaS is unreachable.
+func registerCompany(ctx context.Context, cfg config.Config, req setupInitRequest, idempotencyKey string, logger *slog.Logger) (uuid.UUID, string, error) {
 	if strings.TrimSpace(cfg.SaasPlatformURL) == "" {
-		return uuid.Nil, fmt.Errorf("SAAS_PLATFORM_URL is required for setup (no offline mode)")
+		return uuid.Nil, "", fmt.Errorf("SAAS_PLATFORM_URL is required for setup (no offline mode)")
 	}
 
 	// Call SaaS: POST /api/platform/register-local
@@ -234,7 +241,7 @@ func registerCompany(ctx context.Context, cfg config.Config, req setupInitReques
 	url := strings.TrimRight(cfg.SaasPlatformURL, "/") + "/api/platform/register-local"
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("build request: %w", err)
+		return uuid.Nil, "", fmt.Errorf("build request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("X-Registration-Secret", cfg.SaasRegistrationSecret)
@@ -242,26 +249,31 @@ func registerCompany(ctx context.Context, cfg config.Config, req setupInitReques
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(httpReq)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("cannot reach SaaS platform at %s: %w", cfg.SaasPlatformURL, err)
+		return uuid.Nil, "", fmt.Errorf("cannot reach SaaS platform at %s: %w", cfg.SaasPlatformURL, err)
 	}
 	defer resp.Body.Close()
 
 	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode == http.StatusConflict {
+		// 409 = token recently issued, retry later
+		return uuid.Nil, "", fmt.Errorf("SaaS returned 409: token recently issued, retry after 60s")
+	}
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return uuid.Nil, fmt.Errorf("SaaS register-local returned %d: %s", resp.StatusCode, string(respBody))
+		return uuid.Nil, "", fmt.Errorf("SaaS register-local returned %d: %s", resp.StatusCode, string(respBody))
 	}
 
 	var result struct {
 		CompanyID string `json:"companyId"`
+		SyncToken string `json:"syncToken"`
 	}
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		return uuid.Nil, fmt.Errorf("parse SaaS response: %w", err)
+		return uuid.Nil, "", fmt.Errorf("parse SaaS response: %w", err)
 	}
 	id, err := uuid.Parse(result.CompanyID)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("parse company ID from SaaS: %w", err)
+		return uuid.Nil, "", fmt.Errorf("parse company ID from SaaS: %w", err)
 	}
-	return id, nil
+	return id, result.SyncToken, nil
 }
 
 // createAdminUserTx inserts a user row with bcrypt-hashed password within a transaction.

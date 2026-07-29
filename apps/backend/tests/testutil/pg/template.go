@@ -12,7 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store/postgres"
 )
 
-const testTemplateVersion = 48 // bump when schema/seed changes — 两个 template 共享版本号
+const testTemplateVersion = 49 // bump when schema/seed changes — 两个 template 共享版本号
 
 // errOnce supports retry on failure (only marks done on success).
 type errOnce struct {
