@@ -121,6 +121,12 @@ func (s *LocalService) BatchImport(ctx context.Context, rows []types.BatchImport
 	expiresAt := now.Add(s.d.Cfg.InviteExpireDuration())
 
 	for index, row := range rows {
+		if row.Phone == "" && row.Email == "" {
+			failures = append(failures, types.MemberBatchImportFailure{
+				Row: index + 1, Reason: "手机号或邮箱至少填写一项",
+			})
+			continue
+		}
 		dept, created := resolveDepartmentByPath(row.DepartmentName, orgNodes, flat)
 		if created {
 			// Re-flatten since tree was modified.

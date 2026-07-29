@@ -88,9 +88,9 @@ func TestUnsupportedPlatformReturns422(t *testing.T) {
 	t.Parallel()
 	_, _, svc := orgfix.NewServiceFromStore(t)
 	_, err := svc.TestDataSource(testutil.Ctx(), types.Credential{
-		Platform: types.PlatformDingtalk,
-		Dingtalk: &types.DingtalkCredential{
-			Platform: types.PlatformDingtalk, CorpID: "c", AppKey: "k", AppSecret: "s",
+		Platform: types.PlatformWecom,
+		Wecom: &types.WecomCredential{
+			Platform: types.PlatformWecom, CorpID: "c", Secret: "s", AgentID: "a",
 		},
 	})
 	if err == nil {

@@ -22,6 +22,10 @@ import (
 )
 
 func (s *LocalService) CreateMember(ctx context.Context, input types.CreateMemberInput) (types.Member, error) {
+	if input.User.Phone == "" && input.User.Email == "" {
+		return types.Member{}, domain.NewDomainError(domain.StatusBadRequest, "phone or email is required")
+	}
+
 	departments, err := common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
 	if err != nil {
 		return types.Member{}, err
