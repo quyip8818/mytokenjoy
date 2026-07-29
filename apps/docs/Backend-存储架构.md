@@ -225,7 +225,7 @@ flowchart LR
 | `sk-xxx`                   | → `platform_keys.key_hash` → `platform_key_mappings.newapi_key_id`      |
 | `newapi_wallet_company_id` | → NewAPI `users.quota`（派生缓存；SSOT 为 lot / `wallet_remain_quota`） |
 | `TOKENJOY_COMPANY_ID`      | 平台模型源公司 UUID（默认 `00000000-0000-7000-8000-000000000001`）      |
-| `LOCAL_COMPANY_ID`         | 本地化部署业务公司 UUID（默认 `00000000-0000-7000-8000-000000000002`）  |
+| `cfg.CompanyID`            | 运行时确定的业务公司 UUID（SaaS=DemoCompanyID, Local=setup 产出）       |
 | SaaS 公司 ID               | 创建时由 `uuid.NewV7()` 生成                                            |
 | 幂等键                     | `newapi:{log_id}`                                                       |
 | `members`                  | TokenJoy 成员，非 NewAPI user                                           |

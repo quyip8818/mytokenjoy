@@ -142,9 +142,9 @@ func NowUTC(clk Clock) time.Time
 
 非空库：bootstrap 全部 `ON CONFLICT DO NOTHING`，幂等无副作用。`ReconcilePresetRoles` 只补齐新增 permission grants。
 
-`StoreBootstrap`（仅测试）：`SchemaPrepared`、`TestPartitionMonths`（默认 12，缩小测试模板分区范围；生产仍 2024–2032）。
+`StoreBootstrap`（仅测试/启动）：`SkipSchema`（外部已 apply DDL 时跳过）、`SkipSeed`（模板 DB 已含 seed 数据时跳过）、`TestPartitionMonths`（默认 12，缩小测试模板分区范围；生产仍 2024–2032）。
 
-克隆 schema 上 reopen store 须 `PreparedConfig(schemaURL)`（`SchemaPrepared=true`），否则会再跑 `apply partitions` 并在非分区父表上报错。见 [Backend-架构.md](./Backend-架构.md) §5.0。
+克隆 schema 上 reopen store 须 `SkipSchema=true; SkipSeed=true`，否则会再跑 `apply partitions` 并在非分区父表上报错。见 [Backend-架构.md](./Backend-架构.md) §5.0。
 
 ---
 
@@ -185,7 +185,7 @@ func NowUTC(clk Clock) time.Time
 
 ## 9. 测试约定
 
-`tests/testutil/config.go` 默认：`DeployEnv=local`、`BootstrapMode=minimal`、`SchemaPrepared=true`、合法 `DataSourceCredentialKey`。
+`tests/testutil/config.go` 默认：`DeployEnv=local`、`BootstrapMode=minimal`、`SkipSchema=true`、`SkipSeed=true`、合法 `DataSourceCredentialKey`。`CompanyID=contract.DefaultCompanyID`。
 
 常用 option：`WithBootstrapMode`、`WithClockAnchor`、`WithDeployEnv`、`WithSecureCookie`、`WithProductionContract`。
 

@@ -1,6 +1,13 @@
 # Local 版首次启动公司注册
 
+> **状态：已实现** — 见 commit `feat: local setup — runtime CompanyID resolution + setup UI`
+
 > local（selfhosted）版第一次启动时，引导用户向 SaaS 平台注册公司，获取 companyId 并持久化。后续启动直接使用该 companyId，不再依赖硬编码的 `LOCAL_COMPANY_ID`。
+>
+> 实现差异：
+> - 无 setup token（不需要额外保护，setup server 一次性运行）
+> - 无离线模式（SaaS 不可达时直接报错）
+> - `StoreBootstrap.SchemaPrepared` 拆分为 `SkipSchema` + `SkipSeed`
 
 ---
 

@@ -513,7 +513,7 @@ routes/auth/invite-accept.tsx       — 邀请激活页
 | 能力 | 私有化 | SaaS |
 |------|--------|------|
 | 租户数 | 1 | 多 |
-| Company 解析 | LocalCompanyID 兜底 | JWT 必须携带 |
+| Company 解析 | cfg.CompanyID 兜底 | JWT 必须携带 |
 | 自助注册 | 无 | 有 |
 | 供应商 Key | 企业自管 | 平台统一管理（企业只读） |
 | Platform 管理后台 | 无 | 有 |
