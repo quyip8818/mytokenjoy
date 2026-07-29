@@ -72,7 +72,10 @@ export REDIS_URL="redis://127.0.0.1:${REDIS_PORT}/2"
 export PLATFORM_BOOTSTRAP_EMAIL=admin@tokenjoy.me
 export PLATFORM_BOOTSTRAP_PASSWORD=admin1234
 
-# SaaS side: accept local instance registrations with this secret.
+# Local→SaaS registration: local setup calls SaaS to register company.
+# SaaS side accepts with LOCAL_REGISTRATION_SECRET.
+export SAAS_PLATFORM_URL="http://127.0.0.1:8010"
+export SAAS_REGISTRATION_SECRET="dev-local-registration-secret"
 export LOCAL_REGISTRATION_SECRET="dev-local-registration-secret"
 
 # --- Frontend ---
