@@ -19,31 +19,34 @@ import (
 // --- Catalog API (public, no auth) ---
 
 const catalogModelsVersionKey = "catalog.models_version"
+const catalogPricingVersionKey = "catalog.pricing_version"
 
 // CatalogVersions returns the current catalog version for sync clients.
 func (h *Handler) CatalogVersions(w http.ResponseWriter, r *http.Request) {
-	version, err := h.p.SystemSettings.Get(r.Context(), catalogModelsVersionKey)
+	ctx := r.Context()
+	modelsV, err := h.p.SystemSettings.Get(ctx, catalogModelsVersionKey)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
 	}
-	v, _ := strconv.Atoi(version) // empty → 0
-	response.JSON(w, http.StatusOK, map[string]int{"models": v})
+	pricingV, _ := h.p.SystemSettings.Get(ctx, catalogPricingVersionKey)
+	mv, _ := strconv.Atoi(modelsV)  // empty → 0
+	pv, _ := strconv.Atoi(pricingV) // empty → 0
+	response.JSON(w, http.StatusOK, map[string]int{"models": mv, "pricing": pv})
 }
 
 // catalogModelDTO is the public Catalog API response format.
+// ponytail: price fields removed — pricing now synced via dedicated /sync/catalog/pricing endpoint.
 type catalogModelDTO struct {
 	ModelID      string   `json:"modelId"`
 	DisplayName  string   `json:"displayName"`
 	Provider     string   `json:"provider"`
 	CallType     string   `json:"callType"`
-	InputPrice   float64  `json:"inputPrice"`
-	OutputPrice  float64  `json:"outputPrice"`
 	Capabilities []string `json:"capabilities"`
 	MaxContext   int      `json:"maxContext"`
 }
 
-// CatalogModels returns the full model catalog with pricing for sync clients.
+// CatalogModels returns the full model catalog for sync clients (no pricing — use /sync/catalog/pricing).
 func (h *Handler) CatalogModels(w http.ResponseWriter, r *http.Request) {
 	ctx := h.globalCtx(r.Context())
 
@@ -64,24 +67,16 @@ func (h *Handler) CatalogModels(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Merge pricing from model_pricing table (TJ is SOT).
-	priceMap := h.globalPriceMap(ctx)
-
 	data := make([]catalogModelDTO, 0, len(active))
 	for _, m := range active {
-		dto := catalogModelDTO{
+		data = append(data, catalogModelDTO{
 			ModelID:      m.Type,
 			DisplayName:  m.Name,
 			Provider:     m.Provider,
 			CallType:     primaryCapability(m.Capabilities),
 			Capabilities: m.Capabilities,
 			MaxContext:   m.MaxContext,
-		}
-		if p, ok := priceMap[m.Type]; ok {
-			dto.InputPrice = p.InputPrice
-			dto.OutputPrice = p.OutputPrice
-		}
-		data = append(data, dto)
+		})
 	}
 
 	response.JSON(w, http.StatusOK, map[string]any{"version": v, "data": data})

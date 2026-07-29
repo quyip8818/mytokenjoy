@@ -9,7 +9,7 @@ TokenJoy 支持两种部署模式：
 
 在 SaaS 模式下，platform admin（`平台管理员` 角色，属于 TokenJoy 公司）是模型目录的唯一 SOT（Source of Truth）。所有租户看到的"内置模型"列表和价格都来自 platform admin 的配置。
 
-在 Local 模式下，不存在 platform admin。模型目录通过后台 `catalogsync` worker 自动从 SaaS 的 Catalog API 同步。
+在 Local 模式下，不存在 platform admin。模型目录和定价通过后台 `catalogsync` worker 自动从 SaaS 的 Catalog API 同步。
 
 ---
 
@@ -19,7 +19,7 @@ TokenJoy 支持两种部署模式：
 |---|---|---|
 | 谁管理模型 | platform admin（UI 操作） | 自动同步（catalogsync worker） |
 | 模型数据来源 | platform admin 手动 CRUD | 从 SaaS Catalog API 拉取 |
-| 定价来源 | platform admin 设定 → `model_pricing` 表 | 跟随 SaaS 同步到本地 `model_pricing` 表 |
+| 定价来源 | platform admin 设定 → `model_pricing` 表 | 独立 pricing sync 通道从 SaaS 同步 |
 | TokenJoyCompany | 存在，platform admin 属于此公司 | 存在但无人登录 |
 | Platform handler | 启用（SaaS only） | 不启用 |
 | catalogsync worker | 不启用 | 启用 |
@@ -40,7 +40,10 @@ TokenJoy 支持两种部署模式：
 
 发布不是"把数据推到 local"——而是 bump 一个版本号。Local worker 定期检查版本号，发现变更时主动拉取。
 
-好处：batch 编辑时不会每改一个就触发同步，攒一批一起发布。
+- **模型发布**：点击"发布"按钮 → bump `catalog.models_version`
+- **定价变更**：`SetGlobalPrice`/`SetContractPrice` 自动 bump `catalog.pricing_version`（无需手动发布）
+
+好处：模型 batch 编辑时攒一批一起发布；定价变更即时生效（下次 sync 周期内）。
 
 ---
 
@@ -54,10 +57,10 @@ TokenJoy 支持两种部署模式：
 
 ```
 GET /api/platform/sync/versions
-响应: { "models": 3 }
+响应: { "models": 3, "pricing": 2 }
 ```
 
-返回当前发布版本号。Worker 用它和本地版本比较，相同则跳过。
+返回当前模型和定价的发布版本号。Worker 分别和本地版本比较，相同则跳过。
 
 ```
 GET /api/platform/sync/catalog/models
@@ -69,8 +72,6 @@ GET /api/platform/sync/catalog/models
       "displayName": "GPT-4o",
       "provider": "openai",
       "callType": "chat",
-      "inputPrice": 2.5,
-      "outputPrice": 10.0,
       "capabilities": ["chat", "vision"],
       "maxContext": 128000
     }
@@ -78,7 +79,7 @@ GET /api/platform/sync/catalog/models
 }
 ```
 
-返回完整模型列表 + 实时价格。全局数据，无公司隔离。
+返回完整模型目录（不含定价）。全局数据，无公司隔离。定价通过独立的 `/sync/catalog/pricing` 端点获取。
 
 **Sync token 保护端点（per-company 隔离）：**
 
@@ -86,6 +87,7 @@ GET /api/platform/sync/catalog/models
 GET /api/platform/sync/catalog/pricing
 Header: Authorization: Bearer cst_<hex64>
 响应: {
+  "version": 2,
   "data": [
     { "modelType": "gpt-4o", "inputPrice": 1.0, "outputPrice": 4.0, "isContract": true },
     { "modelType": "claude-3", "inputPrice": 3.0, "outputPrice": 15.0, "isContract": false }
@@ -93,7 +95,7 @@ Header: Authorization: Bearer cst_<hex64>
 }
 ```
 
-返回全局价 + 该公司合同价合并结果。合同价覆盖同 modelType 的全局价。`isContract=true` 表示该价格来自公司专属合同。
+返回全局价 + 该公司合同价合并结果。合同价覆盖同 modelType 的全局价。`isContract=true` 表示该价格来自公司专属合同。`version` 字段为当前 `catalog.pricing_version` 值。
 
 鉴权由 `RequireSyncToken` 中间件完成：从 `Authorization: Bearer cst_xxx` 提取 token → SHA-256 hash → 查 `companies.sync_token_hash` → 验公司 status=active → 注入 companyID 到 context。
 
@@ -118,7 +120,11 @@ Body: { "name", "industry", "size", "idempotencyKey" }
 | PUT | `/api/platform/models/:id` | 更新模型属性（名称、provider、状态等） |
 | DELETE | `/api/platform/models/:id` | 删除模型 |
 | PUT | `/api/platform/models/:id/pricing` | 仅更新定价（不改目录信息） |
-| POST | `/api/platform/catalog/publish` | 发布（版本号 +1） |
+| POST | `/api/platform/catalog/publish` | 发布模型目录（models version +1） |
+| GET | `/api/platform/pricing` | 全局定价列表 |
+| PUT | `/api/platform/pricing` | 设全局定价（自动 bump pricing version） |
+| GET | `/api/platform/companies/:id/pricing` | 某公司合同价列表 |
+| PUT | `/api/platform/companies/:id/pricing` | 设合同价（自动 bump pricing version） |
 
 创建模型时的请求体：
 ```json
@@ -145,12 +151,23 @@ Body: { "name", "industry", "size", "idempotencyKey" }
 
 模型同步使用 `catalog_synced_at` 时间戳列做 diff-disable：同步批次内所有 model 设同一个 batch timestamp，批次结束后把 timestamp 更早的 platform model 标记为 inactive。
 
+### model_pricing 表
+
+Append-only 价格时间线。唯一约束 `(company_id, model_type, effective_from)`。
+
+- 全局价：`company_id = TokenJoyCompanyID`
+- 合同价：`company_id = <具体公司 ID>`
+
+`CurrentPricesBatch` 取每个 model_type 的最新 effective_from 行。Ingest 优先用合同价，无合同价时 fallback 全局价。
+
 ### system_settings 表
 
 | key | 说明 |
 |-----|------|
-| `catalog.models_version` | 当前发布版本号 |
+| `catalog.models_version` | 模型目录发布版本号（手动 Publish bump） |
+| `catalog.pricing_version` | 定价版本号（SetGlobalPrice/SetContractPrice 自动 bump） |
 | `catalog_sync_token` | Local 侧的 sync token 明文（setup 写入） |
+| `setup_company_id` | Local 侧注册获得的 companyId（setup 写入） |
 | `register_local:<idempotencyKey>` | 注册幂等映射 → companyId |
 
 版本号的 `Increment` 方法使用原子 SQL：
@@ -191,24 +208,27 @@ Sync token 由 setup 流程自动获取并存入 `system_settings` 表（key: `c
 ```
 每 CATALOG_SYNC_INTERVAL_SEC 秒执行一次：
 
-1. GET <CATALOG_SYNC_URL>/api/platform/sync/versions
-   → 拿到远端 models version
+1. GET /sync/versions → { models: M, pricing: P }
 
-2. 和本地 system_settings['catalog.models_version'] 比较
-   → 相同则跳过，不同则继续
+2. Models sync（独立通道）：
+   - 比较本地 catalog.models_version 与远端 models version
+   - 相同 → 跳过
+   - 不同 → GET /sync/catalog/models
+     → SyncFromPlatform: upsert 到本地 models 表
+     → 更新本地 catalog.models_version
 
-3. GET <CATALOG_SYNC_URL>/api/platform/sync/catalog/models
-   → 拿到完整 CatalogModel[]
-
-4. SyncFromPlatform: upsert 到本地 models 表
-   → source='platform', company_id=TokenJoyCompanyID
-   → 不在列表中的旧 model 被标记 inactive
-
-5. 逐条写入本地 model_pricing 表 (ON CONFLICT skip)
-   + best-effort UpsertModelRatio 到本地 NewAPI（gateway 预扣缓存）
-
-6. 更新本地 system_settings['catalog.models_version'] = 远端 version
+3. Pricing sync（独立通道）：
+   - 比较本地 catalog.pricing_version 与远端 pricing version
+   - 相同 → 跳过
+   - 不同 → GET /sync/catalog/pricing (Bearer cst_xxx)
+     → 遍历返回数据：
+       - isContract=false → 写入 model_pricing (company_id=globalCompanyID)
+                          + push NewAPI gateway cache
+       - isContract=true  → 写入 model_pricing (company_id=localCompanyID)
+     → 更新本地 catalog.pricing_version
 ```
+
+模型和定价各自独立 version，互不影响。改价不需要重新同步模型，模型变更也不触发定价同步。
 
 ### Sync Token 生命周期
 
@@ -274,8 +294,10 @@ Platform 只有一个 channel（`tokenjoy`），指向 SaaS gateway。不做动�
 | 路由注册（中间件分层） | `internal/http/handler/platform/handler.go` |
 | RequireSyncToken 中间件 | `internal/http/middleware/sync_token.go` |
 | Pricing domain service | `internal/domain/pricing/service.go` |
-| Catalog sync worker | `internal/worker/catalogsync/execute.go` |
-| Catalog sync HTTP client | `internal/integration/catalogsync/` |
+| Catalog sync worker（executor） | `internal/worker/catalogsync/execute.go` |
+| Catalog sync HTTP client | `internal/integration/catalogsync/client.go` |
+| Catalog sync types | `internal/integration/catalogsync/types.go` |
+| Worker 组装（compose） | `internal/app/compose_worker.go` |
 | SyncFromPlatform（models 表 upsert） | `internal/store/postgres/models_repo_crud.go` |
 | ModelPricing repo | `internal/store/postgres/model_pricing_repo.go` |
 | Company repo（含 sync token 方法） | `internal/store/postgres/company_repo.go` |
@@ -284,6 +306,10 @@ Platform 只有一个 channel（`tokenjoy`），指向 SaaS gateway。不做动�
 | River periodic job | `internal/infra/jobs/kinds_catalogsync.go` |
 | River worker adapter | `internal/infra/river/workers/catalog_sync.go` |
 | Setup server（token 持久化） | `internal/app/setup_server.go` |
+| **测试** | |
+| Sync token + pricing 鉴权测试 | `tests/handler/platform/sync_token_test.go` |
+| Pricing sync worker 测试 | `tests/worker/catalogsync/pricing_sync_test.go` |
+| 模型同步测试 | `tests/domain/models/global_catalog_test.go` |
 | **前端** | |
 | Feature module | `apps/frontend/src/features/platform/models/` |
 | API 定义 | `apps/frontend/src/api/platform.ts` |

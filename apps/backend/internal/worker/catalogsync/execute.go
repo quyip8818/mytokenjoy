@@ -1,5 +1,6 @@
 // Package catalogsync implements the platform catalog → local sync worker.
-// Uses River PeriodicJob + version-based incremental sync (models only).
+// Uses River PeriodicJob + version-based incremental sync.
+// Models and pricing are synced independently with separate version counters.
 package catalogsync
 
 import (
@@ -16,8 +17,11 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-// Version key in system_settings.
-const keyModelsVersion = "catalog.models_version"
+// Version keys in system_settings.
+const (
+	keyModelsVersion  = "catalog.models_version"
+	keyPricingVersion = "catalog.pricing_version"
+)
 
 // Executor holds the dependencies for catalog sync.
 type Executor struct {
@@ -25,15 +29,21 @@ type Executor struct {
 	port            adminport.Port
 	store           store.Store
 	globalCompanyID uuid.UUID
+	localCompanyID  uuid.UUID // the company registered on SaaS (for contract pricing)
 }
 
-func NewExecutor(client *catalog.Client, port adminport.Port, st store.Store, globalCompanyID uuid.UUID) *Executor {
-	return &Executor{client: client, port: port, store: st, globalCompanyID: globalCompanyID}
+func NewExecutor(client *catalog.Client, port adminport.Port, st store.Store, globalCompanyID, localCompanyID uuid.UUID) *Executor {
+	return &Executor{
+		client:          client,
+		port:            port,
+		store:           st,
+		globalCompanyID: globalCompanyID,
+		localCompanyID:  localCompanyID,
+	}
 }
 
-// Execute performs a single sync cycle: check version → pull models → upsert + pricing.
+// Execute performs a single sync cycle with independent models and pricing channels.
 func (e *Executor) Execute(ctx context.Context) error {
-	// 1. Fetch remote version.
 	remote, err := e.client.FetchVersions(ctx)
 	if err != nil {
 		return fmt.Errorf("catalogsync fetch versions: %w", err)
@@ -41,40 +51,38 @@ func (e *Executor) Execute(ctx context.Context) error {
 
 	settings := e.store.SystemSettings()
 
-	// 2. Compare local version.
-	localStr, err := settings.Get(ctx, keyModelsVersion)
+	// --- Models sync ---
+	localModelsStr, err := settings.Get(ctx, keyModelsVersion)
 	if err != nil {
-		return fmt.Errorf("catalogsync get local version: %w", err)
+		return fmt.Errorf("catalogsync get models version: %w", err)
 	}
-	local, _ := strconv.Atoi(localStr) // missing/empty → 0
+	localModels, _ := strconv.Atoi(localModelsStr)
 
-	if local == remote.Models {
-		slog.Debug("catalogsync: up to date", "version", local)
-		return nil
-	}
-
-	// 3. Pull models catalog.
-	resp, err := e.client.FetchModels(ctx)
-	if err != nil {
-		return fmt.Errorf("catalogsync fetch models: %w", err)
-	}
-
-	// 4. Sync models to local DB.
-	if err := e.syncModels(ctx, resp.Data); err != nil {
-		return fmt.Errorf("catalogsync sync models: %w", err)
+	if localModels != remote.Models {
+		resp, err := e.client.FetchModels(ctx)
+		if err != nil {
+			return fmt.Errorf("catalogsync fetch models: %w", err)
+		}
+		if err := e.syncModels(ctx, resp.Data); err != nil {
+			return fmt.Errorf("catalogsync sync models: %w", err)
+		}
+		if err := settings.Set(ctx, keyModelsVersion, strconv.Itoa(resp.Version)); err != nil {
+			return fmt.Errorf("catalogsync set models version: %w", err)
+		}
+		slog.Info("catalogsync: models synced", "version", resp.Version, "count", len(resp.Data))
 	}
 
-	// 5. Sync pricing to local NewAPI.
-	if err := e.syncPricing(ctx, resp.Data); err != nil {
-		return fmt.Errorf("catalogsync sync pricing: %w", err)
+	// --- Pricing sync (independent channel) ---
+	localPricingStr, _ := settings.Get(ctx, keyPricingVersion)
+	localPricing, _ := strconv.Atoi(localPricingStr)
+
+	if localPricing != remote.Pricing {
+		if err := e.syncPricing(ctx, remote.Pricing); err != nil {
+			return fmt.Errorf("catalogsync sync pricing: %w", err)
+		}
+		slog.Info("catalogsync: pricing synced", "version", remote.Pricing)
 	}
 
-	// 6. Update local version from response.
-	if err := settings.Set(ctx, keyModelsVersion, strconv.Itoa(resp.Version)); err != nil {
-		return fmt.Errorf("catalogsync set local version: %w", err)
-	}
-
-	slog.Info("catalogsync: sync complete", "version", resp.Version, "models", len(resp.Data))
 	return nil
 }
 
@@ -95,23 +103,37 @@ func (e *Executor) syncModels(ctx context.Context, models []catalog.CatalogModel
 	return e.store.Models().SyncFromPlatform(ctx, e.globalCompanyID, infos)
 }
 
-func (e *Executor) syncPricing(ctx context.Context, models []catalog.CatalogModel) error {
+// syncPricing fetches pricing from the dedicated endpoint and writes to model_pricing.
+// isContract determines which companyID the row belongs to.
+func (e *Executor) syncPricing(ctx context.Context, remoteVersion int) error {
+	resp, err := e.client.FetchPricing(ctx)
+	if err != nil {
+		return fmt.Errorf("catalogsync fetch pricing: %w", err)
+	}
+
 	now := time.Now()
-	for _, m := range models {
-		// Write to model_pricing table (TJ SOT).
+	for _, p := range resp.Data {
+		companyID := e.globalCompanyID
+		if p.IsContract {
+			companyID = e.localCompanyID
+		}
+
 		row := store.ModelPricingRow{
-			CompanyID:     e.globalCompanyID,
-			ModelType:     m.ModelID,
-			InputPrice:    m.InputPrice,
-			OutputPrice:   m.OutputPrice,
+			CompanyID:     companyID,
+			ModelType:     p.ModelType,
+			InputPrice:    p.InputPrice,
+			OutputPrice:   p.OutputPrice,
 			EffectiveFrom: now,
 		}
-		_ = e.store.ModelPricing().Insert(ctx, row) // ON CONFLICT skips duplicates
+		_ = e.store.ModelPricing().Insert(ctx, row) // ON CONFLICT skip
 
-		// Best-effort push to local NewAPI (gateway cache).
-		if err := e.port.UpsertModelRatio(ctx, m.ModelID, m.InputPrice, m.OutputPrice); err != nil {
-			slog.Warn("catalogsync: newapi pricing push failed", "model", m.ModelID, "error", err)
+		// Global prices → best-effort push to local NewAPI (gateway cache).
+		if !p.IsContract {
+			if err := e.port.UpsertModelRatio(ctx, p.ModelType, p.InputPrice, p.OutputPrice); err != nil {
+				slog.Warn("catalogsync: newapi pricing push failed", "model", p.ModelType, "error", err)
+			}
 		}
 	}
-	return nil
+
+	return e.store.SystemSettings().Set(ctx, keyPricingVersion, strconv.Itoa(remoteVersion))
 }

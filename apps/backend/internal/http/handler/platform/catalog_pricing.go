@@ -1,7 +1,9 @@
 package platform
 
 import (
+	"context"
 	"net/http"
+	"strconv"
 
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
@@ -70,5 +72,11 @@ func (h *Handler) CatalogPricing(w http.ResponseWriter, r *http.Request) {
 		merged = append(merged, cp)
 	}
 
-	response.JSON(w, http.StatusOK, map[string]any{"data": merged})
+	response.JSON(w, http.StatusOK, map[string]any{"version": h.pricingVersion(ctx), "data": merged})
+}
+
+func (h *Handler) pricingVersion(ctx context.Context) int {
+	vStr, _ := h.p.SystemSettings.Get(ctx, catalogPricingVersionKey)
+	v, _ := strconv.Atoi(vStr)
+	return v
 }

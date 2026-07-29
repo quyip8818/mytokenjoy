@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	"github.com/tokenjoy/backend/internal/config"
@@ -126,5 +127,8 @@ func buildCatalogSyncExecutor(cfg config.Config, st store.Store, reg ServiceRegi
 		BaseURL:   cfg.CatalogSyncURL,
 		SyncToken: syncToken,
 	})
-	return catalogsync.NewExecutor(client, reg.Infra.adminPort, st, cfg.TokenJoyCompanyID)
+	// Local company ID (registered on SaaS) for contract pricing mapping.
+	localCoStr, _ := st.SystemSettings().Get(context.Background(), "setup_company_id")
+	localCompanyID, _ := uuid.Parse(localCoStr) // zero UUID if not yet set up
+	return catalogsync.NewExecutor(client, reg.Infra.adminPort, st, cfg.TokenJoyCompanyID, localCompanyID)
 }

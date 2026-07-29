@@ -2,17 +2,17 @@ package catalogsync
 
 // CatalogVersions holds the remote version of each sync partition.
 type CatalogVersions struct {
-	Models int `json:"models"`
+	Models  int `json:"models"`
+	Pricing int `json:"pricing"`
 }
 
 // CatalogModel represents a model entry from the platform catalog.
+// ponytail: price fields removed — pricing synced via dedicated /sync/catalog/pricing.
 type CatalogModel struct {
 	ModelID      string   `json:"modelId"`
 	DisplayName  string   `json:"displayName"`
 	Provider     string   `json:"provider"`
 	CallType     string   `json:"callType"`
-	InputPrice   float64  `json:"inputPrice"`
-	OutputPrice  float64  `json:"outputPrice"`
 	Capabilities []string `json:"capabilities,omitempty"`
 	MaxContext   int      `json:"maxContext,omitempty"`
 }

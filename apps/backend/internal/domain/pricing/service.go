@@ -22,6 +22,10 @@ func NewService(cfg config.Config, st store.Store, client adminport.Port) *Servi
 	return &Service{store: st, client: client, cfg: cfg}
 }
 
+// catalog.pricing_version is bumped after every price change so CatalogSync
+// clients know to re-pull.
+const keyPricingVersion = "catalog.pricing_version"
+
 // SetGlobalPrice inserts a global price row and best-effort syncs to NewAPI.
 func (s *Service) SetGlobalPrice(ctx context.Context, modelType string, input, output float64, note string) error {
 	row := store.ModelPricingRow{
@@ -41,6 +45,8 @@ func (s *Service) SetGlobalPrice(ctx context.Context, modelType string, input, o
 			slog.Warn("newapi pricing sync failed", "model", modelType, "error", err)
 		}
 	}
+	// Bump pricing version for CatalogSync clients.
+	_, _ = s.store.SystemSettings().Increment(ctx, keyPricingVersion)
 	return nil
 }
 
@@ -56,7 +62,12 @@ func (s *Service) SetContractPrice(ctx context.Context, companyID uuid.UUID, mod
 		EffectiveFrom: time.Now(),
 		Note:          note,
 	}
-	return s.store.ModelPricing().Insert(ctx, row)
+	if err := s.store.ModelPricing().Insert(ctx, row); err != nil {
+		return err
+	}
+	// Bump pricing version for CatalogSync clients.
+	_, _ = s.store.SystemSettings().Increment(ctx, keyPricingVersion)
+	return nil
 }
 
 // ListGlobalPricing returns current global prices for all models.
