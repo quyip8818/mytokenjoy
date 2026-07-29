@@ -72,16 +72,8 @@ export REDIS_URL="redis://127.0.0.1:${REDIS_PORT}/2"
 export PLATFORM_BOOTSTRAP_EMAIL=admin@tokenjoy.me
 export PLATFORM_BOOTSTRAP_PASSWORD=admin1234
 
-# --- Setup / registration (local→SaaS, dev only) ---
-# When SUPPORT_SAAS=false and SAAS_PLATFORM_URL is set, local setup registers with SaaS.
-if [[ "${SUPPORT_SAAS}" == "false" ]]; then
-  export SAAS_PLATFORM_URL="http://127.0.0.1:8010"
-  export SAAS_REGISTRATION_SECRET="dev-local-registration-secret"
-fi
-# SaaS side: accept local registrations with this secret.
-if [[ "${SUPPORT_SAAS}" == "true" ]]; then
-  export LOCAL_REGISTRATION_SECRET="dev-local-registration-secret"
-fi
+# SaaS side: accept local instance registrations with this secret.
+export LOCAL_REGISTRATION_SECRET="dev-local-registration-secret"
 
 # --- Frontend ---
 export VITE_API_PROXY_TARGET="http://localhost:${BACKEND_PORT}"

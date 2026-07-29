@@ -111,7 +111,6 @@ type PlatformConfig struct {
 	// Setup / registration (local only)
 	SaasPlatformURL        string `env:"SAAS_PLATFORM_URL"`
 	SaasRegistrationSecret string `env:"SAAS_REGISTRATION_SECRET"`
-	SetupOfflineMode       bool   `env:"SETUP_OFFLINE_MODE" envDefault:"false"`
 
 	// SaaS side: secret for register-local endpoint
 	LocalRegistrationSecret string `env:"LOCAL_REGISTRATION_SECRET"`

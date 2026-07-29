@@ -215,13 +215,11 @@ func handleSetupInit(
 	}
 }
 
-// registerCompany calls SaaS platform or generates UUID locally depending on config.
+// registerCompany calls SaaS platform to register a selfhosted company.
+// Returns the company ID assigned by SaaS. Errors if SaaS is unreachable.
 func registerCompany(ctx context.Context, cfg config.Config, req setupInitRequest, idempotencyKey string, logger *slog.Logger) (uuid.UUID, error) {
-	if cfg.SetupOfflineMode || strings.TrimSpace(cfg.SaasPlatformURL) == "" {
-		// Offline mode: generate UUID v7 locally
-		id := uuid.Must(uuid.NewV7())
-		logger.Info("offline mode: generated local company ID", "companyId", id)
-		return id, nil
+	if strings.TrimSpace(cfg.SaasPlatformURL) == "" {
+		return uuid.Nil, fmt.Errorf("SAAS_PLATFORM_URL is required for setup (no offline mode)")
 	}
 
 	// Call SaaS: POST /api/platform/register-local
@@ -244,7 +242,7 @@ func registerCompany(ctx context.Context, cfg config.Config, req setupInitReques
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(httpReq)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("call SaaS register-local: %w", err)
+		return uuid.Nil, fmt.Errorf("cannot reach SaaS platform at %s: %w", cfg.SaasPlatformURL, err)
 	}
 	defer resp.Body.Close()
 
