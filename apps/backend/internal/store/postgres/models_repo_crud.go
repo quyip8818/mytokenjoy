@@ -188,18 +188,24 @@ func (r *pgModelsRepo) SyncFromPlatform(ctx context.Context, companyID uuid.UUID
 		return fmt.Errorf("sync platform batch ts: %w", err)
 	}
 
-	// Step 1: Upsert all models from platform — mark active, update name, bump catalog_synced_at.
+	// Step 1: Upsert all models from platform — mark active, update metadata, bump catalog_synced_at.
 	for _, m := range models {
+		caps := m.Capabilities
+		if caps == nil {
+			caps = []string{}
+		}
 		_, err := r.db.Exec(ctx, `
-			INSERT INTO models (company_id, provider, type, name, source, active, catalog_synced_at, updated_at)
-			VALUES ($1, $2, $3, $4, 'platform', TRUE, $5, $5)
+			INSERT INTO models (company_id, provider, type, name, source, active, capabilities, max_context, catalog_synced_at, updated_at)
+			VALUES ($1, $2, $3, $4, 'platform', TRUE, $5, $6, $7, $7)
 			ON CONFLICT (company_id, provider, type) DO UPDATE SET
 				name = EXCLUDED.name,
 				source = 'platform',
 				active = TRUE,
-				catalog_synced_at = $5,
-				updated_at = $5
-		`, companyID, m.Provider, m.Type, m.Name, batchTS)
+				capabilities = EXCLUDED.capabilities,
+				max_context = EXCLUDED.max_context,
+				catalog_synced_at = $7,
+				updated_at = $7
+		`, companyID, m.Provider, m.Type, m.Name, caps, m.MaxContext, batchTS)
 		if err != nil {
 			return fmt.Errorf("upsert platform model %s: %w", m.Type, err)
 		}
