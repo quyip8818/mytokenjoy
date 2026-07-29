@@ -7,24 +7,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 All commands run from the repo root (pnpm workspace, `pnpm@11.9.0`):
 
 ```bash
-# Full-stack (orchestration: scripts/dev/* · scripts/verify.sh)
-pnpm start               # ensure-infra (no build) + backend + frontend + dev-mock
-pnpm start:lite          # Postgres + backend + frontend only
-pnpm docker:reset        # Wipe PG + full infra + token + L1a/L1b (alias: pnpm reset)
-pnpm bootstrap           # Infra + admin token + dev-mock channel (no wipe)
-pnpm bootstrap -- --token-only   # Mint admin token only (NewAPI must be running)
-pnpm infra               # Postgres + Redis + NewAPI (background)
-pnpm infra postgres      # Postgres only (before backend tests)
-pnpm infra attach        # Foreground attach NewAPI compose stack
-pnpm verify              # CI: lint + test + build
-pnpm verify gate         # Gateway + webhook smoke
-pnpm verify integration  # Ledger + lifecycle + metrics
-pnpm generate:permissions
+# Full-stack — mode-based (scripts/dev.sh dispatches)
+pnpm start               # default: local mode (PG:5520 BE:8011 FE:9192)
+pnpm start:saas          # SaaS mode (PG:5510 BE:8010 FE:9191)
+pnpm start:local         # explicit local mode
+pnpm start:all           # both modes in parallel
+pnpm reset               # reset DB (accepts: local|saas|all; flags: --empty|--minimal|--full)
+pnpm infra               # start all docker infra (both modes)
+pnpm infra:down          # stop all docker infra
 
 # Tests
 pnpm test                # All package tests (starts Postgres)
-pnpm test -- --nocache   # Vitest/go tests without cache
-pnpm test:e2e
+pnpm test:integration    # Integration tests (ledger + lifecycle + metrics)
+pnpm test:e2e            # Playwright E2E tests
+pnpm generate:permissions
 
 # Frontend (apps/frontend)
 pnpm -F @tokenjoy/frontend start     # Vite dev server
@@ -42,7 +38,7 @@ make test-unit          # go test -tags=testhook ./tests/... (requires PostgreSQ
 make lint               # go vet + gofmt check
 make format             # gofmt -w .
 
-# Prerequisites: pnpm infra postgres (or DATABASE_URL)
+# Prerequisites: pnpm infra (or DATABASE_URL pointing to a running Postgres)
 
 # Single backend test:
 cd apps/backend && go test ./tests/domain/gateway/... -run TestPrecheckRejectsZeroBudget -v
@@ -50,7 +46,16 @@ cd apps/backend && go test ./tests/domain/gateway/... -run TestPrecheckRejectsZe
 
 ## Architecture
 
-pnpm monorepo with apps under `apps/` and shared contracts under `packages/`:
+pnpm monorepo with apps under `apps/`, shared contracts under `packages/`, and SMS system under `sms/`.
+
+### Deployment Modes
+
+Two deployment modes controlled by `SUPPORT_SAAS`:
+
+- **SaaS** (`SUPPORT_SAAS=true`): Multi-tenant platform. Includes platform admin UI (model catalog, company management, billing). Ports: PG:5510, BE:8010, FE:9191.
+- **Local** (`SUPPORT_SAAS=false`): Single-tenant private deployment. First boot runs setup wizard. Model/pricing pulled from SaaS via CatalogSync. Ports: PG:5520, BE:8011, FE:9192.
+
+Both modes can run simultaneously via `pnpm start:all`. Port isolation via `scripts/lib/mode-env.sh`.
 
 ### Contracts (`packages/contracts/`)
 
@@ -60,12 +65,13 @@ Cross-app JSON contracts and codegen. Permission manifest: `permission/manifest.
 
 React 19 SPA — Vite, TypeScript, TailwindCSS v4 (CSS-first, no tailwind.config).
 
-- **Routing:** react-router v7 (`import from 'react-router'`, NOT `'react-router-dom'`). Routes defined in `config/routes.ts` via `ROUTE_DEFINITIONS` (single source of truth).
+- **Routing:** TanStack Router (`import from '@tanstack/react-router'`). Routes defined in `router/index.ts` with route tree, individual routes in `router/routes/*.ts`.
 - **State:** Zustand v5 stores co-located with features.
 - **UI:** shadcn/ui in `components/ui/`, Radix primitives, lucide-react icons. `cn()` from `lib/utils.ts`.
 - **API layer:** Custom fetch in `api/client.ts` (`/api` base). Domain namespaces in `api/*.ts`. Vite proxies `/api` to backend.
 - **Testing:** Vitest + @testing-library/react. Tests in `tests/`. Use `createMockApis()` + `renderHookWithProviders` from `@tests/utils`.
 - **Path alias:** `@/*` → `./src/*`, `@tests/*` → `./tests/*`
+- **Deploy mode:** `config/app.ts` exports `DEPLOY_MODE`, `IS_SAAS` (from `VITE_SUPPORT_SAAS`)
 
 Key conventions:
 
@@ -82,39 +88,59 @@ Go 1.25 — chi router, PostgreSQL (pgx v5), env config (caarlos0/env).
 Module: `github.com/tokenjoy/backend`
 
 ```
-cmd/server/              — entrypoint
+cmd/server/              — entrypoint (schema apply → resolve company → setup server or normal boot)
 internal/
-  app/                   — application wiring (DI)
+  app/                   — application wiring (DI), setup_server.go (local first-boot), resolve_company.go
   config/                — env-based configuration
   domain/                — business logic by subdomain:
     adminport/, audit/, billing/, budget/, company/, dashboard/,
     grants/, keys/, memberanalytics/, models/, org/, gateway/,
     newapisync/, usage/
   http/handler/          — HTTP handlers (one package per domain)
+    platform/            — SaaS admin: model catalog, companies, register-local
   http/middleware/       — auth, RBAC, company resolve, CORS
   http/httputil/         — response/decode helpers
-  identity/              — authz, credentials, session tokens
-  infra/                 — worker, notification, permission manifest
-  integration/           — external: newapi (admin_port_adapter), datasource (feishu)
+  identity/              — authz, credentials (service.go: login, bootstrap), session tokens
+  infra/                 — worker, notification, permission manifest, river jobs
+  integration/           — external adapters:
+    newapi/              — NewAPI admin port adapter + token store
+    catalogsync/         — HTTP client for SaaS catalog API (local mode)
+    datasource/          — org import providers (feishu, dingtalk)
   pkg/                   — shared utilities (budget calc, org helpers, newapiunits, tree)
   store/                 — repository interfaces + implementations:
     postgres/            — PostgreSQL (production + tests)
-seed/                    — demo bootstrap + contract IDs (see docs/Backend.md §5.3)
+  worker/
+    catalogsync/         — River periodic job: version-gated model/pricing pull from SaaS
+seed/                    — demo bootstrap + contract IDs
 tests/                   — ALL unit tests (mirrors internal/ structure)
   testutil/              — test helpers, fixtures, stubs
 ```
 
-**Store pattern:** Production and tests both use `postgres.New`. Tests use per-schema isolation via `testutil.NewTestStore` / `NewTestApp` (see `docs/Backend.md` §5).
+**Startup lifecycle:** Apply schema → resolve company (SaaS=DemoCompanyID, Local=from `system_settings`) → [Local: setup server if uninitialized] → app.New with seed → serve.
 
-**Multi-tenant:** `company_id` is the tenant boundary, carried via `domain/company.Context` in request context. Platform (SaaS admin) is a separate auth layer.
+**Store pattern:** Production and tests both use `postgres.New`. Tests use per-schema isolation via `testutil.NewTestStore` / `NewTestApp`.
 
-**NewAPI integration:** Domain talks to NewAPI Admin via `domain/adminport.Port` (adapter in `integration/newapi/`); quota conversion in `pkg/newapiunits/`. `domain/newapisync/` syncs PlatformKey/ProviderKey; `domain/gateway/` runs `/v1` precheck then reverse-proxies. Precheck validates: key validity → key status → model whitelist → budget → forward. Dev-only model `local-test-model` is blocked in production (`DEPLOY_ENV=production`) before precheck — see `docs/manual-testing/本地模式-模拟消耗Popup.md`. NewAPI admin token is self-healing: loaded from NewAPI's Postgres on startup (`internal/integration/newapi/tokenstore.go`), auto-refreshed on 401.
+**Multi-tenant:** `company_id` is the tenant boundary, carried via `domain/company.Context` in request context. Platform (SaaS admin) is a separate auth layer with `RequirePlatformAdmin` middleware.
+
+**NewAPI integration:** Domain talks to NewAPI Admin via `domain/adminport.Port` (adapter in `integration/newapi/`); quota conversion in `pkg/newapiunits/`. `domain/newapisync/` syncs PlatformKey/ProviderKey; `domain/gateway/` runs `/v1` precheck then reverse-proxies. Precheck validates: key validity → key status → model whitelist → budget → forward. NewAPI admin token is self-healing: loaded from NewAPI's Postgres on startup, auto-refreshed on 401.
+
+**CatalogSync (local mode):** River periodic job pulls models from SaaS platform. Version-gated: compares local `catalog.models_version` in `system_settings` with remote `/sync/versions`, pulls only when different. Publish on SaaS side bumps version counter.
 
 **Model pricing sync:** Backend 启动时自动从 NewAPI `/api/pricing` 拉取 `model_ratio`/`completion_ratio`，按 `type == model_name` 精确匹配更新模型价格。转换公式：`InputPrice = ratio × 2`，`OutputPrice = ratio × completion_ratio × 2`。手动触发：`POST /api/models/sync-pricing`。
 
 ### NewAPI (`apps/newapi/`)
 
 Docker-based LLM API gateway upstream (QuantumNous/new-api). Configured via `.env`. Backend HTTP client and `admin_port_adapter` live in `internal/integration/newapi/`. Custom patches in `patches/new-api/` are applied at Docker build time (0001: webhook, 0002: admin token contract, 0003: username length, 0004: sk- key prefix). Token keys are stored without prefix in DB; `GetFullKey()` prepends `sk-` for user-facing display (51 chars total, OpenAI-compatible).
+
+### SMS Project (`sms/`)
+
+Standalone supplier management system (separate Go backend + React frontend). Domains: auth, contract, dashboard, evaluation, order, supplier, user. Uses TanStack Router + shadcn/ui. No longer has sync relationship with TokenJoy — the old "smssync" concept is replaced by CatalogSync (Local pulls from SaaS).
+
+### Infrastructure (`docker-compose*.yml`)
+
+- `docker-compose.yml` — SaaS mode infra (PG:5510, Redis:6310, NewAPI:3010)
+- `docker-compose.local.yml` — Local mode infra (PG:5520, Redis:6320, NewAPI:3011)
+- `docker-compose.test.yml` — Test infra (PG:5530, Redis:6330), isolated from dev
 
 ## Testing Patterns (Backend)
 
@@ -145,13 +171,16 @@ E2E 测试文件命名：`{domain}-{feature}.spec.ts`（如 `models-list.spec.ts
 ## Key Documentation
 
 - `docs/plan/plan.md` — Engineering backlog (single source for pending work)
+- `docs/plan/architecture-design.md` — Architecture design (local/SaaS modes, startup, catalog sync)
 - `docs/PRD.md` — Product requirements (authoritative PRD)
 - `docs/Frontend.md` — Frontend development guide and API contract
-- `docs/Backend-架构.md` — Backend architecture (layering, naming, Store, Worker)
-- `docs/Backend-配置架构.md` — Config load, production contract, bootstrap, Clock
-- `docs/Backend-业务时钟与账期.md` — Business clock, dual period keys, guards
-- `docs/Backend-预算.md` — Budget subsystem design
-- `docs/Backend-存储架构.md` — Storage layer design
+- `apps/docs/Backend-架构.md` — Backend architecture (layering, naming, Store, Worker)
+- `apps/docs/Backend-配置架构.md` — Config load, production contract, bootstrap, Clock
+- `apps/docs/Backend-业务时钟与账期.md` — Business clock, dual period keys, guards
+- `apps/docs/Backend-预算.md` — Budget subsystem design
+- `apps/docs/Backend-存储架构.md` — Storage layer design
+- `apps/docs/platform-model-management.md` — Platform model management (SaaS catalog)
+- `apps/docs/model-pricing-path.md` — Model pricing flow (NewAPI → TokenJoy → user)
 - `docs/架构演进.md` — Architecture evolution and decisions
 - `DESIGN.md` — Design system tokens and visual conventions
 
@@ -161,19 +190,36 @@ E2E 测试文件命名：`{domain}-{feature}.spec.ts`（如 `models-list.spec.ts
 
 ## Environment Variables
 
-- `VITE_API_PROXY_TARGET=http://localhost:8080` — Frontend proxy target
-- `DATABASE_URL` — PostgreSQL connection (required for tests and production)
-- `DATA_SOURCE_CREDENTIAL_KEY` — Required credential encryption key (32-byte hex or base64)
+### Backend Core
+- `DATABASE_URL` — PostgreSQL connection (required)
 - `DEPLOY_ENV` — `local` / `staging` / `production` (`production` triggers fail-fast production contract)
+- `SUPPORT_SAAS` — `true` = multi-tenant SaaS; `false` = single-tenant local
 - `BOOTSTRAP_MODE` — `none` / `minimal` / `demo` (empty DB bootstrap policy)
+- `SESSION_SECRET` — JWT session signing key
+- `DATA_SOURCE_CREDENTIAL_KEY` — Credential encryption key (32-byte hex or base64)
 - `SECURE_COOKIE` — Set-Cookie Secure flag (required `true` when `DEPLOY_ENV=production`)
 - `CLOCK_ANCHOR` — Optional `YYYY-MM-DD` for fixed dashboard clock and seed reference date
+
+### NewAPI
 - `NEW_API_ENABLED=true` — Enable NewAPI integration
 - `NEW_API_GATEWAY_ENABLED=true` — Enable `/v1` Gateway
 - `NEW_API_BASE_URL` / `NEW_API_ADMIN_TOKEN` — NewAPI service credentials
 - `PLATFORM_SHARED_NEW_API_GROUP` — SaaS shared NewAPI group (default `platform_shared`)
-- `SESSION_SECRET` — JWT session signing key
-- `SUPPORT_SAAS=true` — Multi-tenant SaaS mode
+
+### Platform / CatalogSync (mode-specific)
+- `TOKENJOY_COMPANY_ID` — Platform company UUID (default: `00000000-0000-7000-8000-000000000001`)
+- `PLATFORM_BOOTSTRAP_EMAIL` / `PLATFORM_BOOTSTRAP_PASSWORD` — SaaS platform admin bootstrap
+- `CATALOG_SYNC_ENABLED` — Enable catalog sync worker (local mode)
+- `CATALOG_SYNC_URL` — SaaS platform URL to pull catalog from
+- `CATALOG_SYNC_INTERVAL_SEC` — Sync poll interval (default: 300)
+- `SAAS_PLATFORM_URL` — SaaS URL for local mode registration
+- `SAAS_REGISTRATION_SECRET` — Secret sent by local during registration
+- `LOCAL_REGISTRATION_SECRET` — SaaS side secret to validate registration requests
+- `STATIC_DIR` — Optional: serve frontend static files (for local setup server)
+
+### Frontend
+- `VITE_API_PROXY_TARGET` — Backend URL for Vite proxy
+- `VITE_SUPPORT_SAAS` — Frontend deploy mode flag
 
 ## Coding Philosophy
 
@@ -213,6 +259,7 @@ Lazy-senior-dev mode — efficient, not careless. Smallest working diff wins.
 
 ### 前端
 - 页面入口：`routes/{domain}/{page}.tsx`（仅组合，从 features/ 导入）
+- 路由定义：`router/routes/{domain}.ts`（TanStack Router `createRoute`）
 - 领域特性包：`features/{domain}/`（含 hooks/、components/、lib/、index.ts）
 - 横切特性包：`features/{concern}/`（session、query、workflow 等基础设施）
 - 原子组件：`components/ui/`（无业务语义）
