@@ -15,7 +15,7 @@ func insertSeedCurrencies(ctx context.Context, exec TableWriter) error {
 	if _, err := exec.Exec(ctx, `
 		INSERT INTO currencies (currency, quota_per_unit, enabled)
 		VALUES ($1, $2, TRUE)
-		ON CONFLICT (currency) DO NOTHING
+		ON CONFLICT (currency) DO UPDATE SET quota_per_unit = EXCLUDED.quota_per_unit
 	`, common.DefaultBillingCurrency, common.DefaultQuotaPerUnit); err != nil {
 		return fmt.Errorf("seed currencies: %w", err)
 	}
