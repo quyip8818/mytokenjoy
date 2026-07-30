@@ -1,13 +1,7 @@
 import { createContext, useContext } from 'react'
 
 export type CtaHighlightKey =
-  | 'CREDENTIAL'
-  | 'IMPORT'
-  | 'BUDGET'
-  | 'MODEL'
-  | 'OVERRUN'
-  | 'CREATE_KEY'
-  | 'APPLY_BUDGET'
+  'CREDENTIAL' | 'IMPORT' | 'BUDGET' | 'MODEL' | 'OVERRUN' | 'CREATE_KEY' | 'APPLY_BUDGET'
 
 export interface CtaHighlightResult {
   id: string

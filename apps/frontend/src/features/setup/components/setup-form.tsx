@@ -180,7 +180,10 @@ export function SetupForm({ submitting, error, onSubmit }: SetupFormProps) {
 
       {/* Error */}
       {displayError && (
-        <div className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+        <div
+          className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          role="alert"
+        >
           {displayError}
         </div>
       )}

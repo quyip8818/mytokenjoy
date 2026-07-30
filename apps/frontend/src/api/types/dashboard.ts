@@ -13,12 +13,7 @@ export interface CostSummary {
 }
 
 export type CostPeriod =
-  | 'current_month'
-  | 'current_week'
-  | 'last_month'
-  | 'last_7_days'
-  | 'last_30_days'
-  | 'custom'
+  'current_month' | 'current_week' | 'last_month' | 'last_7_days' | 'last_30_days' | 'custom'
 
 export type CostGranularity = 'day' | 'hour' | 'week' | 'month'
 

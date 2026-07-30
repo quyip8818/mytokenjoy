@@ -75,13 +75,7 @@ export interface Department {
 export type MemberStatus = 'active' | 'disabled' | 'pending'
 
 export type MemberSource =
-  | 'manual'
-  | 'csv'
-  | 'feishu'
-  | 'dingtalk'
-  | 'wecom'
-  | 'invited'
-  | 'imported'
+  'manual' | 'csv' | 'feishu' | 'dingtalk' | 'wecom' | 'invited' | 'imported'
 
 export type RegistrationChannel = 'sms' | 'email' | 'admin_link'
 

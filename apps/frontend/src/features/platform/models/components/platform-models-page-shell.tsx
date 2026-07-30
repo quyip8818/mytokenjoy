@@ -24,10 +24,18 @@ function PricingDialog({
   onClose: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-base font-semibold">编辑定价</h3>
-        <p className="mt-1 text-sm text-muted-foreground">{model.name} ({model.type})</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {model.name} ({model.type})
+        </p>
         <div className="mt-4 space-y-3">
           <label className="block text-sm">
             <span className="text-muted-foreground">输入价格 (元/百万tokens)</span>
@@ -49,8 +57,12 @@ function PricingDialog({
           </label>
         </div>
         <div className="mt-5 flex justify-end gap-2">
-          <Button variant="outline" size="sm" onClick={onClose}>取消</Button>
-          <Button size="sm" onClick={onSave}>保存</Button>
+          <Button variant="outline" size="sm" onClick={onClose}>
+            取消
+          </Button>
+          <Button size="sm" onClick={onSave}>
+            保存
+          </Button>
         </div>
       </div>
     </div>
@@ -102,7 +114,10 @@ export function PlatformModelsPageShell({
               </thead>
               <tbody>
                 {models.map((m) => (
-                  <tr key={m.modelId} className={`border-b last:border-0 hover:bg-muted/20 ${!m.active ? 'opacity-50' : ''}`}>
+                  <tr
+                    key={m.modelId}
+                    className={`border-b last:border-0 hover:bg-muted/20 ${!m.active ? 'opacity-50' : ''}`}
+                  >
                     <td className="px-4 py-3">
                       <div className="font-medium">{m.name}</div>
                       <div className="font-mono text-[11px] text-muted-foreground">{m.type}</div>
@@ -121,13 +136,25 @@ export function PlatformModelsPageShell({
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="inline-flex items-center gap-1">
-                        <button onClick={() => openPricing(m)} className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground" title="编辑定价">
+                        <button
+                          onClick={() => openPricing(m)}
+                          className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                          title="编辑定价"
+                        >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => handleToggle(m)} className={`rounded p-1.5 hover:bg-muted ${m.active ? 'text-amber-500' : 'text-green-500'}`} title={m.active ? '禁用' : '启用'}>
+                        <button
+                          onClick={() => handleToggle(m)}
+                          className={`rounded p-1.5 hover:bg-muted ${m.active ? 'text-amber-500' : 'text-green-500'}`}
+                          title={m.active ? '禁用' : '启用'}
+                        >
                           <Power className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => handleDelete(m)} className="rounded p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600" title="删除">
+                        <button
+                          onClick={() => handleDelete(m)}
+                          className="rounded p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                          title="删除"
+                        >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>

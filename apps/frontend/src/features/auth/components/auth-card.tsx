@@ -105,7 +105,8 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
     step === 'login-phone-code' ||
     step === 'login-email-pw' ||
     step === 'login-email-code'
-  const showTabs = IS_SAAS && (isLoginStep || step === 'register-phone' || step === 'register-email')
+  const showTabs =
+    IS_SAAS && (isLoginStep || step === 'register-phone' || step === 'register-email')
 
   // Clear sensitive fields whenever the visible step changes.
   const changeStep = useCallback((next: AuthStep) => {

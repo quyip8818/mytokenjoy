@@ -62,11 +62,7 @@ export default function SetupPage() {
 
         {/* Form */}
         <div className="px-10 pb-10">
-          <SetupForm
-            submitting={state === 'submitting'}
-            error={error}
-            onSubmit={submit}
-          />
+          <SetupForm submitting={state === 'submitting'} error={error} onSubmit={submit} />
         </div>
       </div>
     </div>

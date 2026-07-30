@@ -13,8 +13,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/config"
-	saas "github.com/tokenjoy/backend/tests/testutil/saas"
 	"github.com/tokenjoy/backend/tests/testutil"
+	saas "github.com/tokenjoy/backend/tests/testutil/saas"
 )
 
 const testRegistrationSecret = "test-local-reg-secret-32bytes!!"

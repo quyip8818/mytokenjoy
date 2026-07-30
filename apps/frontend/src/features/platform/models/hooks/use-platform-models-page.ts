@@ -8,7 +8,12 @@ import { platformKeys } from '../query-keys'
 export function usePlatformModelsPage() {
   const apis = useInjectedApis()
 
-  const { data: models = [], loading, error, refresh } = useInjectedQuery({
+  const {
+    data: models = [],
+    loading,
+    error,
+    refresh,
+  } = useInjectedQuery({
     queryKey: platformKeys.models(),
     queryFn: (a) => a.platformApi.listModels(),
   })
@@ -29,25 +34,31 @@ export function usePlatformModelsPage() {
     }
   }, [apis])
 
-  const handleToggle = useCallback(async (model: PlatformModel) => {
-    try {
-      await apis.platformApi.updateModel(model.modelId, { active: !model.active })
-      toast.success(model.active ? '模型已禁用' : '模型已启用')
-      void refresh()
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : '操作失败')
-    }
-  }, [apis, refresh])
+  const handleToggle = useCallback(
+    async (model: PlatformModel) => {
+      try {
+        await apis.platformApi.updateModel(model.modelId, { active: !model.active })
+        toast.success(model.active ? '模型已禁用' : '模型已启用')
+        void refresh()
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : '操作失败')
+      }
+    },
+    [apis, refresh],
+  )
 
-  const handleDelete = useCallback(async (model: PlatformModel) => {
-    try {
-      await apis.platformApi.deleteModel(model.modelId)
-      toast.success('模型已删除')
-      void refresh()
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : '删除失败')
-    }
-  }, [apis, refresh])
+  const handleDelete = useCallback(
+    async (model: PlatformModel) => {
+      try {
+        await apis.platformApi.deleteModel(model.modelId)
+        toast.success('模型已删除')
+        void refresh()
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : '删除失败')
+      }
+    },
+    [apis, refresh],
+  )
 
   const openPricing = useCallback((model: PlatformModel) => {
     setPricingModel(model)

@@ -6,10 +6,18 @@ import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { PlatformCompanyOverview } from '@/api/platform'
 import type { usePlatformCompaniesPage } from '../hooks/use-platform-companies-page'
@@ -21,12 +29,21 @@ function fmt(n: number) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  return status === 'active'
-    ? <Badge variant="default">活跃</Badge>
-    : <Badge variant="secondary">停用</Badge>
+  return status === 'active' ? (
+    <Badge variant="default">活跃</Badge>
+  ) : (
+    <Badge variant="secondary">停用</Badge>
+  )
 }
 
-function RechargeDialog({ target, amount, setAmount, loading, onConfirm, onClose }: {
+function RechargeDialog({
+  target,
+  amount,
+  setAmount,
+  loading,
+  onConfirm,
+  onClose,
+}: {
   target: PlatformCompanyOverview
   amount: string
   setAmount: (v: string) => void
@@ -35,8 +52,14 @@ function RechargeDialog({ target, amount, setAmount, loading, onConfirm, onClose
   onClose: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-base font-semibold">充值</h3>
         <p className="mt-1 text-sm text-muted-foreground">{target.name}</p>
         <label className="mt-4 block text-sm">
@@ -51,7 +74,9 @@ function RechargeDialog({ target, amount, setAmount, loading, onConfirm, onClose
           />
         </label>
         <div className="mt-5 flex justify-end gap-2">
-          <Button variant="outline" size="sm" onClick={onClose}>取消</Button>
+          <Button variant="outline" size="sm" onClick={onClose}>
+            取消
+          </Button>
           <Button size="sm" disabled={loading} onClick={onConfirm}>
             {loading ? '处理中…' : '确认充值'}
           </Button>
@@ -61,7 +86,14 @@ function RechargeDialog({ target, amount, setAmount, loading, onConfirm, onClose
   )
 }
 
-function GiftDialog({ target, amount, setAmount, loading, onConfirm, onClose }: {
+function GiftDialog({
+  target,
+  amount,
+  setAmount,
+  loading,
+  onConfirm,
+  onClose,
+}: {
   target: PlatformCompanyOverview
   amount: string
   setAmount: (v: string) => void
@@ -70,8 +102,14 @@ function GiftDialog({ target, amount, setAmount, loading, onConfirm, onClose }: 
   onClose: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-base font-semibold">赠送额度</h3>
         <p className="mt-1 text-sm text-muted-foreground">{target.name}</p>
         <label className="mt-4 block text-sm">
@@ -86,7 +124,9 @@ function GiftDialog({ target, amount, setAmount, loading, onConfirm, onClose }: 
           />
         </label>
         <div className="mt-5 flex justify-end gap-2">
-          <Button variant="outline" size="sm" onClick={onClose}>取消</Button>
+          <Button variant="outline" size="sm" onClick={onClose}>
+            取消
+          </Button>
           <Button size="sm" disabled={loading} onClick={onConfirm}>
             {loading ? '处理中…' : '确认赠送'}
           </Button>
@@ -103,9 +143,24 @@ function sortedByBalance(companies: PlatformCompanyOverview[]) {
 
 export function PlatformCompaniesPageShell(props: Props) {
   const {
-    companies, loading, error, refresh,
-    rechargeTarget, rechargeAmount, setRechargeAmount, recharging, openRecharge, closeRecharge, handleRecharge,
-    giftTarget, giftAmount, setGiftAmount, gifting, openGift, closeGift, handleGift,
+    companies,
+    loading,
+    error,
+    refresh,
+    rechargeTarget,
+    rechargeAmount,
+    setRechargeAmount,
+    recharging,
+    openRecharge,
+    closeRecharge,
+    handleRecharge,
+    giftTarget,
+    giftAmount,
+    setGiftAmount,
+    gifting,
+    openGift,
+    closeGift,
+    handleGift,
     handleToggleStatus,
   } = props
 
@@ -121,7 +176,9 @@ export function PlatformCompaniesPageShell(props: Props) {
             error={error}
             onRetry={refresh}
             skeletonColumns={10}
-            empty={sorted.length === 0 ? { title: '暂无企业', description: '还没有创建任何企业' } : null}
+            empty={
+              sorted.length === 0 ? { title: '暂无企业', description: '还没有创建任何企业' } : null
+            }
           >
             <Table>
               <TableHeader>
@@ -142,15 +199,27 @@ export function PlatformCompaniesPageShell(props: Props) {
                   <TableRow key={co.id}>
                     <TableCell className="font-medium">{co.name}</TableCell>
                     <TableCell>{co.type}</TableCell>
-                    <TableCell><StatusBadge status={co.status} /></TableCell>
-                    <TableCell className="text-right tabular-nums">¥{fmt(co.wallet.balance)}</TableCell>
-                    <TableCell className="text-right tabular-nums">¥{fmt(co.wallet.giftBalance)}</TableCell>
-                    <TableCell className="text-right tabular-nums">¥{fmt(co.wallet.totalTopup)}</TableCell>
-                    <TableCell className="text-right tabular-nums">¥{fmt(co.monthlySpend)}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={co.status} />
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      ¥{fmt(co.wallet.balance)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      ¥{fmt(co.wallet.giftBalance)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      ¥{fmt(co.wallet.totalTopup)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      ¥{fmt(co.monthlySpend)}
+                    </TableCell>
                     <TableCell className="text-right">{co.memberCount}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Button size="sm" variant="outline" onClick={() => openRecharge(co)}>充值</Button>
+                        <Button size="sm" variant="outline" onClick={() => openRecharge(co)}>
+                          充值
+                        </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button size="icon" variant="ghost" className="h-8 w-8">

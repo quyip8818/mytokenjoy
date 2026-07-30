@@ -8,7 +8,12 @@ import { platformCompaniesKeys } from '../query-keys'
 export function usePlatformCompaniesPage() {
   const apis = useInjectedApis()
 
-  const { data: companies = [], loading, error, refresh } = useInjectedQuery({
+  const {
+    data: companies = [],
+    loading,
+    error,
+    refresh,
+  } = useInjectedQuery({
     queryKey: platformCompaniesKeys.overview(),
     queryFn: (a) => a.platformApi.companiesOverview(),
   })
@@ -78,16 +83,19 @@ export function usePlatformCompaniesPage() {
   }, [apis, giftTarget, giftAmount, refresh])
 
   // --- Toggle status ---
-  const handleToggleStatus = useCallback(async (co: PlatformCompanyOverview) => {
-    const newStatus = co.status === 'active' ? 'suspended' : 'active'
-    try {
-      await apis.platformApi.updateCompany(co.id, { status: newStatus })
-      toast.success(newStatus === 'active' ? `${co.name} 已启用` : `${co.name} 已停用`)
-      void refresh()
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : '操作失败')
-    }
-  }, [apis, refresh])
+  const handleToggleStatus = useCallback(
+    async (co: PlatformCompanyOverview) => {
+      const newStatus = co.status === 'active' ? 'suspended' : 'active'
+      try {
+        await apis.platformApi.updateCompany(co.id, { status: newStatus })
+        toast.success(newStatus === 'active' ? `${co.name} 已启用` : `${co.name} 已停用`)
+        void refresh()
+      } catch (e: unknown) {
+        toast.error(e instanceof Error ? e.message : '操作失败')
+      }
+    },
+    [apis, refresh],
+  )
 
   return {
     companies,

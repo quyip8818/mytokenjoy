@@ -108,10 +108,16 @@ export const platformApi = {
   listCurrencies: () => request<PlatformCurrency[]>('/platform/currencies'),
 
   createCurrency: (data: { code: string; quotaPerUnit: number }) =>
-    request<PlatformCurrency>('/platform/currencies', { method: 'POST', body: JSON.stringify(data) }),
+    request<PlatformCurrency>('/platform/currencies', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 
   updateCurrency: (code: string, data: { quotaPerUnit: number }) =>
-    request<PlatformCurrency>(`/platform/currencies/${code}`, { method: 'PUT', body: JSON.stringify(data) }),
+    request<PlatformCurrency>(`/platform/currencies/${code}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 
   toggleCurrencyStatus: (code: string, enabled: boolean) =>
     request<PlatformCurrency>(`/platform/currencies/${code}/status`, {
