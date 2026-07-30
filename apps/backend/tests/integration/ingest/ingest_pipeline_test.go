@@ -20,12 +20,12 @@ import (
 	riverfix "github.com/tokenjoy/backend/tests/testutil/river"
 )
 
-// TestIngestIdempotentAndRollup verifies the full ingest→River→budget pipeline:
+// TestIngestIdempotentAndRollup verifies the full ingest→budget pipeline:
 // - Idempotent: double-ingest produces a single ledger entry
 // - Consumed snapshots increase for both key and member axes
 func TestIngestIdempotentAndRollup(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	runner, st, ingest := riverfix.NewIngestRuntime(t, stub)
+	_, st, ingest := riverfix.NewIngestRuntime(t, stub)
 	ctx := testutil.Ctx()
 	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
 
@@ -39,7 +39,6 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 	if err := ingest.IngestByLogID(ctx, 1001, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
-	runner.RunOnce(t, ctx)
 
 	exists, err := testutil.HasLedgerLogID(st, 1001)
 	if err != nil || !exists {
@@ -95,7 +94,6 @@ func TestIngestSnapshotUsesNowPeriodForMonthlyOrg(t *testing.T) {
 	if err := ingest.IngestByLogID(ctx, 9901, types.SourceWebhook); err != nil {
 		t.Fatal(err)
 	}
-	runner.RunOnce(t, ctx)
 
 	afterSnapshot := budgetfix.SnapshotConsumedAtPeriod(t, st, store.AxisKindPlatformKey, contract.IDPlatformKey1, snapshotPeriod)
 	if afterSnapshot <= beforeSnapshot {

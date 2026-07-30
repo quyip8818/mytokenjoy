@@ -24,7 +24,7 @@ func TestCurrenciesSyncTriggered(t *testing.T) {
 	globalCompanyID := cfg.TokenJoyCompanyID
 	localCompanyID := createTestCompany(t, st)
 
-	mockServer := currenciesMockServer(t, catalog.CatalogVersions{Models: 0, Pricing: 0, Currencies: 1}, []catalog.CatalogCurrency{
+	mockServer := currenciesMockServer(t, catalog.CatalogVersions{Models: 0, Pricing: 0, Currencies: 2}, []catalog.CatalogCurrency{
 		{Code: "CNY", QuotaPerUnit: 500000},
 		{Code: "USD", QuotaPerUnit: 3600000},
 	})
@@ -63,8 +63,8 @@ func TestCurrenciesSyncTriggered(t *testing.T) {
 
 	// Verify: system_settings version updated
 	vStr, _ := st.SystemSettings().Get(ctx, "catalog.currencies_version")
-	if vStr != "1" {
-		t.Errorf("expected local currencies version '1', got %q", vStr)
+	if vStr != "2" {
+		t.Errorf("expected local currencies version '2', got %q", vStr)
 	}
 }
 

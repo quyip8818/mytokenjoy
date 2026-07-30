@@ -130,6 +130,8 @@ func TestExecutorPricingSyncSkipsWhenUpToDate(t *testing.T) {
 		case "/api/platform/sync/catalog/pricing":
 			called = true
 			_ = json.NewEncoder(w).Encode(map[string]any{"version": 3, "data": []any{}})
+		case "/api/platform/sync/catalog/currencies":
+			_ = json.NewEncoder(w).Encode(map[string]any{"version": 0, "data": []any{}})
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -273,6 +275,11 @@ func pricingMockServer(t *testing.T, versions catalog.CatalogVersions, pricing [
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"version": versions.Pricing,
 				"data":    pricing,
+			})
+		case "/api/platform/sync/catalog/currencies":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"version": versions.Currencies,
+				"data":    []any{},
 			})
 		default:
 			w.WriteHeader(http.StatusNotFound)
