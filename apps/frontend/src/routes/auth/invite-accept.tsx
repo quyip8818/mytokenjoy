@@ -129,7 +129,7 @@ export default function InviteAcceptPage() {
 
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-        <Button type="submit" disabled={submitting}>
+        <Button type="submit" className="w-full" disabled={submitting}>
           {submitting ? '激活中…' : '加入'}
         </Button>
       </form>

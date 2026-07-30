@@ -190,7 +190,7 @@ export function SetupForm({ submitting, error, onSubmit }: SetupFormProps) {
       {/* Submit */}
       <Button
         type="submit"
-        className="h-11 text-base font-medium"
+        className="h-11 w-full text-base font-medium"
         disabled={submitting || !companyName.trim() || !adminEmail.trim()}
         disabledReason={submitting ? '初始化中…' : undefined}
       >

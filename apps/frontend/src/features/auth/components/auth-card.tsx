@@ -482,7 +482,7 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
             <FormMessage error={displayError} />
             <Button
               type="submit"
-              className="h-11 text-base font-medium"
+              className="h-11 w-full text-base font-medium"
               disabled={submitting || !phone.trim() || !password}
               disabledReason={
                 submitting
@@ -518,7 +518,7 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
             <FormMessage error={displayError} />
             <Button
               type="submit"
-              className="h-11 text-base font-medium"
+              className="h-11 w-full text-base font-medium"
               disabled={submitting || !code.trim()}
               disabledReason={submitting ? '请求中…' : !code.trim() ? '请输入验证码' : undefined}
             >
@@ -540,7 +540,7 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
             <FormMessage error={displayError} />
             <Button
               type="submit"
-              className="h-11 text-base font-medium"
+              className="h-11 w-full text-base font-medium"
               disabled={submitting || !email.trim() || !password}
               disabledReason={
                 submitting ? '请求中…' : !email.trim() || !password ? '请填写邮箱和密码' : undefined
@@ -573,7 +573,7 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
             <FormMessage error={error || emailSendError} />
             <Button
               type="submit"
-              className="h-11 text-base font-medium"
+              className="h-11 w-full text-base font-medium"
               disabled={submitting || !code.trim()}
               disabledReason={submitting ? '请求中…' : !code.trim() ? '请输入验证码' : undefined}
             >
@@ -612,7 +612,7 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
             <FormMessage error={displayError} />
             <Button
               type="submit"
-              className="h-11 text-base font-medium"
+              className="h-11 w-full text-base font-medium"
               disabled={
                 submitting ||
                 !code.trim() ||
@@ -662,7 +662,7 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
             <FormMessage error={error || emailSendError} />
             <Button
               type="submit"
-              className="h-11 text-base font-medium"
+              className="h-11 w-full text-base font-medium"
               disabled={
                 submitting ||
                 !code.trim() ||
@@ -721,7 +721,7 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
             <FormMessage error={displayError} />
             <Button
               type="submit"
-              className="h-11 text-base font-medium"
+              className="h-11 w-full text-base font-medium"
               disabled={
                 submitting || !code.trim() || password.length < 8 || password !== confirmPassword
               }
@@ -778,7 +778,7 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
             <FormMessage error={error || emailSendError} />
             <Button
               type="submit"
-              className="h-11 text-base font-medium"
+              className="h-11 w-full text-base font-medium"
               disabled={
                 submitting || !code.trim() || password.length < 8 || password !== confirmPassword
               }
@@ -872,7 +872,7 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
             <FormMessage error={displayError} />
             <Button
               type="submit"
-              className="h-11 text-base font-medium"
+              className="h-11 w-full text-base font-medium"
               disabled={submitting || !companyName.trim()}
               disabledReason={
                 submitting ? '请求中…' : !companyName.trim() ? '请输入企业名称' : undefined
