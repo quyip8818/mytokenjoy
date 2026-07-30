@@ -11,9 +11,8 @@ const DefaultPersonalBudget = 0
 const DefaultBillingCurrency = "CNY"
 
 // DefaultQuotaPerUnit is the seed QPU for DefaultBillingCurrency (currencies table).
-// 1 CNY = 500000 quota. This aligns with NewAPI's internal QuotaPerUnit so that
-// model_ratio=1 traffic flows through without conversion.
-const DefaultQuotaPerUnit int64 = 500000
+// 1 CNY = 10000 quota.
+const DefaultQuotaPerUnit int64 = 10000
 
 // ResolveBillingCurrency returns code, or DefaultBillingCurrency when empty.
 func ResolveBillingCurrency(code string) string {
