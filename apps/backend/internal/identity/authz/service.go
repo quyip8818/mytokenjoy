@@ -9,6 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -32,6 +33,7 @@ type ChargeRateResolver func(ctx context.Context, companyID uuid.UUID) (currency
 type service struct {
 	store      Store
 	chargeRate ChargeRateResolver
+	cfg        config.Config
 	cache      *LRUCache
 	revCache   *revisionCache
 }
@@ -42,6 +44,7 @@ func NewService(cfg config.Config, st Store, chargeRate ChargeRateResolver) Serv
 	return &service{
 		store:      st,
 		chargeRate: chargeRate,
+		cfg:        cfg,
 		cache:      NewLRUCache(cfg.AuthzCacheSize),
 		revCache:   newRevisionCache(5 * time.Second),
 	}
@@ -73,7 +76,7 @@ func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, me
 			AuthzRevision:   revision,
 			User:            types.SessionUser{Name: userName},
 			Member:          member,
-			Permissions:     perms,
+			Permissions:     s.scopePermissions(perms),
 			ReadOnly:        readOnly,
 			BillingCurrency: currency,
 			QuotaPerUnit:    ppu,
@@ -97,11 +100,27 @@ func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, me
 		AuthzRevision:   revision,
 		User:            types.SessionUser{Name: authz.UserName},
 		Member:          authz.Member,
-		Permissions:     permissions,
+		Permissions:     s.scopePermissions(permissions),
 		ReadOnly:        readOnly,
 		BillingCurrency: currency,
 		QuotaPerUnit:    ppu,
 	}, nil
+}
+
+// scopePermissions removes platform-only permissions in non-SaaS mode.
+// Defense-in-depth: even if code erroneously resolves platform:manage for a local user,
+// it will never be exposed in the session response.
+func (s *service) scopePermissions(perms []string) []string {
+	if s.cfg.SupportSaas {
+		return perms
+	}
+	out := make([]string, 0, len(perms))
+	for _, p := range perms {
+		if p != permission.PlatformManage {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // companyInfoFromContext tries to get company type and name from the request context first

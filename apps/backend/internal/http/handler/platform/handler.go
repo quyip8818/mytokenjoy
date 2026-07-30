@@ -42,7 +42,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Post("/auth/login", h.Login)
 	r.Group(func(r chi.Router) {
 		r.Use(httpmiddleware.RequireSession(h.protected))
-		r.Use(httpmiddleware.RequirePlatformAdmin(h.p.Cfg.TokenJoyCompanyID))
+		r.Use(httpmiddleware.RequirePlatformAdmin(h.p.Cfg.TokenJoyCompanyID, h.p.Cfg.SupportSaas))
 		r.Get("/companies", h.ListCompanies)
 		r.Get("/companies/overview", h.CompaniesOverview)
 		r.Post("/companies", h.CreateCompany)

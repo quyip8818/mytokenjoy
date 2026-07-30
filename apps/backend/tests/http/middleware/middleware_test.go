@@ -108,7 +108,7 @@ func TestMiddlewareBehaviors(t *testing.T) {
 			t.Fatal("next should not run")
 		})
 		tokenJoyCompanyID := uuid.MustParse("00000000-0000-7000-8000-000000000001")
-		handler := httpmiddleware.RequirePlatformAdmin(tokenJoyCompanyID)(next)
+		handler := httpmiddleware.RequirePlatformAdmin(tokenJoyCompanyID, true)(next)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/platform/companies", nil)
 		rec := httptest.NewRecorder()
@@ -125,7 +125,7 @@ func TestMiddlewareBehaviors(t *testing.T) {
 		})
 		tokenJoyCompanyID := uuid.MustParse("00000000-0000-7000-8000-000000000001")
 		tenantCompanyID := uuid.MustParse("00000000-0000-7000-8000-000000000002")
-		handler := httpmiddleware.RequirePlatformAdmin(tokenJoyCompanyID)(next)
+		handler := httpmiddleware.RequirePlatformAdmin(tokenJoyCompanyID, true)(next)
 
 		// Inject a session from a different company (tenant) even with "*" permissions
 		session := types.SessionContext{
@@ -151,7 +151,7 @@ func TestMiddlewareBehaviors(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		})
 		tokenJoyCompanyID := uuid.MustParse("00000000-0000-7000-8000-000000000001")
-		handler := httpmiddleware.RequirePlatformAdmin(tokenJoyCompanyID)(next)
+		handler := httpmiddleware.RequirePlatformAdmin(tokenJoyCompanyID, true)(next)
 
 		session := types.SessionContext{
 			CompanyID:   tokenJoyCompanyID,
@@ -177,7 +177,7 @@ func TestMiddlewareBehaviors(t *testing.T) {
 			t.Fatal("next should not run")
 		})
 		tokenJoyCompanyID := uuid.MustParse("00000000-0000-7000-8000-000000000001")
-		handler := httpmiddleware.RequirePlatformAdmin(tokenJoyCompanyID)(next)
+		handler := httpmiddleware.RequirePlatformAdmin(tokenJoyCompanyID, true)(next)
 
 		// Same company but missing platform:manage permission
 		session := types.SessionContext{
