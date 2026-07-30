@@ -19,12 +19,19 @@ func insertSeedCurrencies(ctx context.Context, exec TableWriter) error {
 	`, common.DefaultBillingCurrency, common.DefaultQuotaPerUnit); err != nil {
 		return fmt.Errorf("seed currencies: %w", err)
 	}
-	// Seed catalog.currencies_version so Local instances trigger first sync.
-	if _, err := exec.Exec(ctx, `
-		INSERT INTO system_settings (key, value) VALUES ('catalog.currencies_version', '1')
-		ON CONFLICT (key) DO NOTHING
-	`); err != nil {
-		return fmt.Errorf("seed currencies version: %w", err)
+	return nil
+}
+
+// seedCatalogVersions sets all catalog version counters to 1 so Local sync clients
+// know there is data to pull on first boot. Idempotent (DO NOTHING on conflict).
+func seedCatalogVersions(ctx context.Context, exec TableWriter) error {
+	for _, key := range []string{"catalog.models_version", "catalog.pricing_version", "catalog.currencies_version"} {
+		if _, err := exec.Exec(ctx, `
+			INSERT INTO system_settings (key, value) VALUES ($1, '1')
+			ON CONFLICT (key) DO NOTHING
+		`, key); err != nil {
+			return fmt.Errorf("seed %s: %w", key, err)
+		}
 	}
 	return nil
 }

@@ -16,6 +16,9 @@ func ApplyTables(ctx context.Context, exec TableWriter, snap store.Snapshot) err
 	if err := insertSeedCurrencies(ctx, exec); err != nil {
 		return err
 	}
+	if err := seedCatalogVersions(ctx, exec); err != nil {
+		return err
+	}
 	if err := insertSeedCompany(ctx, exec, snap); err != nil {
 		return err
 	}
