@@ -102,7 +102,6 @@ type PlatformConfig struct {
 	PlatformBootstrapPassword string `env:"PLATFORM_BOOTSTRAP_PASSWORD"`
 
 	// Catalog sync (pull model/pricing from SaaS platform — local mode only)
-	CatalogSyncEnabled     bool   `env:"CATALOG_SYNC_ENABLED" envDefault:"false"`
 	CatalogSyncURL         string `env:"CATALOG_SYNC_URL"`
 	CatalogSyncIntervalSec int    `env:"CATALOG_SYNC_INTERVAL_SEC" envDefault:"300"`
 

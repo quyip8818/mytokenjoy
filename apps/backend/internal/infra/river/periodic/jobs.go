@@ -29,7 +29,7 @@ func BuildPeriodicJobs(cfg config.Config) []*river.PeriodicJob {
 			nil,
 		))
 	}
-	if cfg.CatalogSyncEnabled {
+	if !cfg.SupportSaas {
 		periodicJobs = append(periodicJobs, river.NewPeriodicJob(
 			river.PeriodicInterval(cfg.CatalogSyncInterval()),
 			func() (river.JobArgs, *river.InsertOpts) {

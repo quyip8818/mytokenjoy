@@ -106,7 +106,7 @@ func (b *backgroundWorkers) start(ctx context.Context, cfg config.Config) {
 		}()
 	}
 	// ponytail: immediate catalog sync on boot so models are available right after setup.
-	// Periodic job handles subsequent syncs. Fire-and-forget in a goroutine to not block startup.
+	// Periodic job handles subsequent syncs. Idempotent (version-based skip if already current).
 	if b.catalogSyncExecutor != nil {
 		go func() {
 			if err := b.catalogSyncExecutor.Execute(ctx); err != nil {
@@ -127,23 +127,26 @@ func (b *backgroundWorkers) stop(ctx context.Context) {
 	}
 }
 
-// buildCatalogSyncExecutor constructs the catalog sync executor if enabled, nil otherwise.
+// buildCatalogSyncExecutor constructs the catalog sync executor.
+// Returns nil if disabled, in SaaS mode, or no usable URL is available.
+// ponytail: CATALOG_SYNC_URL takes priority; falls back to SAAS_PLATFORM_URL (same server handles both).
 func buildCatalogSyncExecutor(cfg config.Config, st store.Store, reg ServiceRegistry) *catalogsync.Executor {
-	if !cfg.CatalogSyncEnabled {
+	if cfg.SupportSaas {
 		return nil
 	}
-	if cfg.CatalogSyncURL == "" {
-		slog.Warn("catalog sync enabled but CATALOG_SYNC_URL empty, skipping")
+	syncURL := cfg.CatalogSyncURL
+	if syncURL == "" {
+		syncURL = cfg.SaasPlatformURL
+	}
+	if syncURL == "" {
 		return nil
 	}
-	// Sync token is persisted by setup flow into system_settings.
 	syncToken, _ := st.SystemSettings().Get(context.Background(), "catalog_sync_token")
 	client := catalogintegration.NewClient(catalogintegration.Config{
-		BaseURL:   cfg.CatalogSyncURL,
+		BaseURL:   syncURL,
 		SyncToken: syncToken,
 	})
-	// Local company ID (registered on SaaS) for contract pricing mapping.
 	localCoStr, _ := st.SystemSettings().Get(context.Background(), "setup_company_id")
-	localCompanyID, _ := uuid.Parse(localCoStr) // zero UUID if not yet set up
+	localCompanyID, _ := uuid.Parse(localCoStr)
 	return catalogsync.NewExecutor(client, reg.Infra.adminPort, st, cfg.TokenJoyCompanyID, localCompanyID)
 }

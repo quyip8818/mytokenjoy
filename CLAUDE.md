@@ -209,8 +209,7 @@ E2E 测试文件命名：`{domain}-{feature}.spec.ts`（如 `models-list.spec.ts
 ### Platform / CatalogSync (mode-specific)
 - `TOKENJOY_COMPANY_ID` — Platform company UUID (default: `00000000-0000-7000-8000-000000000001`)
 - `PLATFORM_BOOTSTRAP_EMAIL` / `PLATFORM_BOOTSTRAP_PASSWORD` — SaaS platform admin bootstrap
-- `CATALOG_SYNC_ENABLED` — Enable catalog sync worker (local mode)
-- `CATALOG_SYNC_URL` — SaaS platform URL to pull catalog from
+- `CATALOG_SYNC_URL` — SaaS platform URL to pull catalog from (fallback: `SAAS_PLATFORM_URL`)
 - `CATALOG_SYNC_INTERVAL_SEC` — Sync poll interval (default: 300)
 - `SAAS_PLATFORM_URL` — SaaS URL for local mode registration
 - `SAAS_REGISTRATION_SECRET` — Secret sent by local during registration

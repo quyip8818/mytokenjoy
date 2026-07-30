@@ -194,12 +194,11 @@ token_issued_at  TIMESTAMPTZ  -- 签发时间，60s 防重窗口判断
 ### 配置
 
 ```env
-CATALOG_SYNC_ENABLED=true
 CATALOG_SYNC_URL=https://app.tokenjoy.com
 CATALOG_SYNC_INTERVAL_SEC=300
 ```
 
-SaaS 模式下这三个变量不配置（worker 不启动）。
+SaaS 模式下 CatalogSync 自动跳过。Local 模式默认启用，URL 优先读 `CATALOG_SYNC_URL`，未配则 fallback 到 `SAAS_PLATFORM_URL`。
 
 Sync token 由 setup 流程自动获取并存入 `system_settings` 表（key: `catalog_sync_token`）。Worker 启动时从 system_settings 读取，无需手动配置。
 

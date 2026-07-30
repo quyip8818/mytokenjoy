@@ -47,13 +47,13 @@ SaaS 是 currencies 的 Source of Truth。平台管理员通过 UI 管理，每�
                                Local 实例拉取并覆盖
 ```
 
-### 3.2 Local（`CatalogSyncEnabled=true`）
+### 3.2 Local（非 SaaS 模式）
 
 Local 不直接编辑 currencies，由 CatalogSync 从 SaaS 同步。首次启动时 seed 写入 CNY 作为 fallback（sync 执行前可用），sync 成功后 upsert 覆盖。
 
-### 3.3 独立部署（`SupportSaas=false, CatalogSyncEnabled=false`）
+### 3.3 独立部署（无 SAAS_PLATFORM_URL）
 
-currencies 由 seed 初始化，后续手动修改数据库或扩展管理接口。
+currencies 由 seed 初始化，后续手动修改数据库或扩展管理接口。CatalogSync 因无可用 URL 自动跳过。
 
 ---
 
