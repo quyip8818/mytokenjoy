@@ -33,8 +33,9 @@ func postgresPool(st store.Store) *pgxpool.Pool {
 }
 
 type backgroundWorkers struct {
-	river  *riverinfra.Client
-	logger *slog.Logger
+	river               *riverinfra.Client
+	catalogSyncExecutor *catalogsync.Executor
+	logger              *slog.Logger
 }
 
 func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Store, reg ServiceRegistry, holder *jobs.Holder, orgAdmin *enqueue.OrgRiverAdminHolder) (*backgroundWorkers, error) {
@@ -50,6 +51,8 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 	dashboardReconcile := domaindashboard.NewReconcileService(cfg, st, enqueue.NewDashboardEnqueuer(holder), logger)
 	sched := scheduler.NewService(cfg, st)
 	bulk := scheduler.NewBulkEnqueuer(cfg, holder)
+
+	catalogExecutor := buildCatalogSyncExecutor(cfg, st, reg)
 
 	riverClient, err := riverinfra.NewClient(cfg, pool, riverinfra.Deps{
 		Cfg:                  cfg,
@@ -68,7 +71,7 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 		Scheduler:            sched,
 		BulkEnqueuer:         bulk,
 		NotificationRegistry: reg.Infra.notificationSvc.Registry(),
-		CatalogSyncExecutor:  buildCatalogSyncExecutor(cfg, st, reg),
+		CatalogSyncExecutor:  catalogExecutor,
 		DisablePeriodic:      !cfg.RiverPeriodicEnabled,
 	}, logger)
 	if err != nil {
@@ -85,8 +88,9 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 	}
 
 	return &backgroundWorkers{
-		river:  riverClient,
-		logger: logger,
+		river:               riverClient,
+		catalogSyncExecutor: catalogExecutor,
+		logger:              logger,
 	}, nil
 }
 
@@ -98,6 +102,17 @@ func (b *backgroundWorkers) start(ctx context.Context, cfg config.Config) {
 		go func() {
 			if err := b.river.Start(ctx); err != nil && ctx.Err() == nil {
 				slog.Error("river client stopped", "error", err)
+			}
+		}()
+	}
+	// ponytail: immediate catalog sync on boot so models are available right after setup.
+	// Periodic job handles subsequent syncs. Fire-and-forget in a goroutine to not block startup.
+	if b.catalogSyncExecutor != nil {
+		go func() {
+			if err := b.catalogSyncExecutor.Execute(ctx); err != nil {
+				slog.Warn("catalog sync on boot failed", "error", err)
+			} else {
+				slog.Info("catalog sync on boot completed")
 			}
 		}()
 	}
