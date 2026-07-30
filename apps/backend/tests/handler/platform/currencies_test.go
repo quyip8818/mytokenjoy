@@ -149,7 +149,7 @@ func TestCatalogCurrenciesEndpoint(t *testing.T) {
 		t.Error("CNY not found in sync catalog response")
 	}
 
-	// Version should be >= 1 (from seed)
+	// Version should be >= 1 (seeded by insertSeedCurrencies)
 	if resp.Version < 1 {
 		t.Errorf("expected version >= 1, got %d", resp.Version)
 	}
