@@ -15,6 +15,5 @@ export { findBudgetNode } from './lib/mappers'
 export { BudgetProgressCell } from './components/budget-progress-cell'
 
 // === 自身 components 通过 self-barrel 消费 ===
-export { useAsyncFetch } from './hooks/use-async-fetch'
 export { groupProjectsByTeam, thresholdClass, type AlertRuleView } from './lib/alerts'
 export { POLICY_LABELS, ALERT_PRESET_THRESHOLDS } from './lib/constants'

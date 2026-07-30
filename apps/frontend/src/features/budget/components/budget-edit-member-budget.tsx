@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { BudgetNode, MemberBudget, UpdateMemberBudgetInput } from '@/api/types'
 import { ApiError } from '@/api/client'
 import { toast } from 'sonner'
@@ -10,7 +11,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { formatMoney } from '@/lib/quota-display'
 import { cn } from '@/lib/utils'
 import { Users, Pencil, Check, X, Loader2, Search } from 'lucide-react'
-import { useAsyncFetch } from '@/features/budget'
 
 const emptyMemberBudgets: MemberBudget[] = []
 
@@ -107,23 +107,27 @@ function MemberBudgetEditDialog({
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const fetchMembers = useCallback(
-    () =>
+  const queryClient = useQueryClient()
+
+  const memberBudgetKey = ['budget', 'memberBudgets', departmentId, individualMode] as const
+  const enabled = open && individualMode
+
+  const { data: members = emptyMemberBudgets, isLoading: loading } = useQuery({
+    queryKey: memberBudgetKey,
+    queryFn: () =>
       getMemberBudgets(departmentId)
-        .then((data) => data ?? [])
+        .then((data) => data ?? emptyMemberBudgets)
         .catch((err) => {
           toast.error(err instanceof ApiError ? err.message : '加载成员额度失败')
-          return []
+          return emptyMemberBudgets
         }),
-    [departmentId, getMemberBudgets],
-  )
+    enabled,
+  })
 
-  const fetchKey = open && individualMode ? `${departmentId}:${individualMode}` : ''
-  const {
-    loading,
-    data: members,
-    replace: replaceMembers,
-  } = useAsyncFetch(fetchKey, fetchMembers, open && individualMode, emptyMemberBudgets)
+  const replaceMembers = useCallback(
+    (next: MemberBudget[]) => { queryClient.setQueryData(memberBudgetKey, next) },
+    [queryClient, memberBudgetKey],
+  )
 
   function handleClose() {
     setAverageDraft('')
