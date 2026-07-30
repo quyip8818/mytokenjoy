@@ -97,11 +97,11 @@ export function useBudgetActions({ injectedApis, refresh }: UseBudgetActionsOpti
     [apis, refresh],
   )
 
-  const getDepartmentTree = useCallback(() => apis.departmentApi.getTree(), [apis])
+  const getDepartmentTree = useCallback(() => apis.orgApi.departments.getTree(), [apis])
 
   const getMembers = useCallback(
     async (departmentId: string) => {
-      const result = await apis.memberApi.list({
+      const result = await apis.orgApi.members.list({
         departmentId,
         directOnly: true,
         page: 1,
@@ -114,7 +114,7 @@ export function useBudgetActions({ injectedApis, refresh }: UseBudgetActionsOpti
 
   const getAllDeptMembers = useCallback(
     async (departmentId: string) => {
-      const result = await apis.memberApi.list({ departmentId, page: 1, pageSize: 200 })
+      const result = await apis.orgApi.members.list({ departmentId, page: 1, pageSize: 200 })
       return result?.items ?? []
     },
     [apis],
@@ -122,7 +122,7 @@ export function useBudgetActions({ injectedApis, refresh }: UseBudgetActionsOpti
 
   const searchMembers = useCallback(
     async (keyword: string) => {
-      const result = await apis.memberApi.list({ keyword, page: 1, pageSize: 50 })
+      const result = await apis.orgApi.members.list({ keyword, page: 1, pageSize: 50 })
       return result?.items ?? []
     },
     [apis],

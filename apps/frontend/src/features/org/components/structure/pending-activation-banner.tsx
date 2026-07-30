@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { AlertTriangle, Send, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { memberApi } from '@/api/org'
+import { orgApi } from '@/api/org'
 
 interface PendingActivationBannerProps {
   pendingCount: number
@@ -26,7 +26,7 @@ export function PendingActivationBanner({ pendingCount }: PendingActivationBanne
     if (remaining > 0 || sending) return
     setSending(true)
     try {
-      const { sent } = await memberApi.batchInvite()
+      const { sent } = await orgApi.members.batchInvite()
       toast.success(`已发送 ${sent} 封激活邀请`)
       setRemaining(COOLDOWN)
     } catch {

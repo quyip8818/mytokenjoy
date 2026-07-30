@@ -39,13 +39,15 @@ describe('useKeyFormBudget', () => {
           },
         ]),
       },
-      platformKeyApi: {
-        list: vi.fn().mockResolvedValue({
-          items: [
-            { id: 'pk-1', status: 'active', memberId: 'm1', budget: 2000, scope: 'project_member' },
-          ],
-          total: 1,
-        }),
+      keysApi: {
+        platform: {
+          list: vi.fn().mockResolvedValue({
+            items: [
+              { id: 'pk-1', status: 'active', memberId: 'm1', budget: 2000, scope: 'project_member' },
+            ],
+            total: 1,
+          }),
+        },
       },
     })
 
@@ -66,7 +68,7 @@ describe('useKeyFormBudget', () => {
     await waitFor(() => {
       expect(result.current.subBudgetRemaining).toBe(3000)
     })
-    expect(apis.platformKeyApi.list).toHaveBeenCalledWith({
+    expect(apis.keysApi.platform.list).toHaveBeenCalledWith({
       projectId: 'proj-1',
       scope: 'project_member',
       memberId: 'm1',
@@ -89,15 +91,17 @@ describe('useKeyFormBudget', () => {
           },
         ]),
       },
-      platformKeyApi: {
-        list: vi.fn().mockResolvedValue({
-          items: [
-            { id: 'pk-1', status: 'active', budget: 2000, scope: 'project' },
-            { id: 'pk-2', status: 'active', memberId: 'm1', budget: 1500, scope: 'project_member' },
-            { id: 'pk-3', status: 'disabled', budget: 999, scope: 'project_member' },
-          ],
-          total: 3,
-        }),
+      keysApi: {
+        platform: {
+          list: vi.fn().mockResolvedValue({
+            items: [
+              { id: 'pk-1', status: 'active', budget: 2000, scope: 'project' },
+              { id: 'pk-2', status: 'active', memberId: 'm1', budget: 1500, scope: 'project_member' },
+              { id: 'pk-3', status: 'disabled', budget: 999, scope: 'project_member' },
+            ],
+            total: 3,
+          }),
+        },
       },
     })
 
@@ -118,6 +122,6 @@ describe('useKeyFormBudget', () => {
     await waitFor(() => {
       expect(result.current.projectBudgetRemaining).toBe(5500)
     })
-    expect(apis.platformKeyApi.list).toHaveBeenCalledWith({ projectId: 'proj-1' })
+    expect(apis.keysApi.platform.list).toHaveBeenCalledWith({ projectId: 'proj-1' })
   })
 })

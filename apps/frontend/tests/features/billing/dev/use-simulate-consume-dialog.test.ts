@@ -30,9 +30,11 @@ describe('useSimulateConsumeDialog', () => {
     const simulateBearer = vi.fn().mockResolvedValue({ bearer: 'sk-test-key' })
     const onSuccess = vi.fn()
     const apis = createMockApis({
-      platformKeyApi: {
-        list: vi.fn().mockResolvedValue({ items: [activeKey], total: 1 }),
-        simulateBearer,
+      keysApi: {
+        platform: {
+          list: vi.fn().mockResolvedValue({ items: [activeKey], total: 1 }),
+          simulateBearer,
+        },
       },
     })
     vi.mocked(simulateConsume.postChatCompletions).mockResolvedValue()
@@ -64,9 +66,11 @@ describe('useSimulateConsumeDialog', () => {
     const simulateBearer = vi.fn().mockResolvedValue({ bearer: 'sk-test-key' })
     const onSuccess = vi.fn()
     const apis = createMockApis({
-      platformKeyApi: {
-        list: vi.fn().mockResolvedValue({ items: [activeKey], total: 1 }),
-        simulateBearer,
+      keysApi: {
+        platform: {
+          list: vi.fn().mockResolvedValue({ items: [activeKey], total: 1 }),
+          simulateBearer,
+        },
       },
     })
 

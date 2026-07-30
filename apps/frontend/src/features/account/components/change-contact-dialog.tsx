@@ -17,7 +17,7 @@ interface ChangeContactDialogProps {
   type: 'phone' | 'email'
   error: string | null
   saving: boolean
-  onSubmit: (value: string, code: string) => Promise<boolean>
+  onSubmit: (value: string, code: string) => Promise<unknown>
 }
 
 export function ChangeContactDialog({

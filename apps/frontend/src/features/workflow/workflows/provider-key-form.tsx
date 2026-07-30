@@ -35,7 +35,7 @@ export function ProviderKeyFormWorkflow({
     if (!name || !keyValue) return
     setSubmitting(true)
     try {
-      await apis.providerKeyApi.create({ provider, name, key: keyValue })
+      await apis.keysApi.provider.create({ provider, name, key: keyValue })
       toast.success('供应商 Key 已添加')
       onSuccess?.()
       closeAll()

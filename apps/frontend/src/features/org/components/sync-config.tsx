@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select'
 
 interface SyncConfigProps {
-  syncApi: AppApis['syncApi']
+  syncApi: AppApis['orgApi']['sync']
   onTriggerSync: () => void
   triggeringSyc: boolean
   onSaved?: () => void

@@ -1,4 +1,4 @@
-import type { WalletView, WalletCurrencyView } from '@/api/billing'
+import type { WalletView, WalletCurrencyView } from '@/api/types'
 
 export function primaryWalletBalance(
   wallet: WalletView | undefined,

@@ -8,8 +8,10 @@ import { mockProviderKeys } from '@tests/fixtures/keys'
 describe('useProviderKeysPage', () => {
   it('loads provider keys on mount', async () => {
     const apis = createMockApis({
-      providerKeyApi: {
-        list: vi.fn().mockResolvedValue(mockProviderKeys),
+      keysApi: {
+        provider: {
+          list: vi.fn().mockResolvedValue(mockProviderKeys),
+        },
       },
     })
 
@@ -20,6 +22,6 @@ describe('useProviderKeysPage', () => {
       expect(result.current.keys).toEqual(mockProviderKeys)
     })
 
-    expect(apis.providerKeyApi.list).toHaveBeenCalled()
+    expect(apis.keysApi.provider.list).toHaveBeenCalled()
   })
 })

@@ -62,15 +62,17 @@ const rules: RoutingRule[] = [
 
 function createRoutingApis() {
   return createMockApis({
-    routingApi: {
-      getRules: vi.fn().mockResolvedValue(rules),
-      updateRule: vi.fn().mockResolvedValue(rules[0]),
-    },
-    departmentApi: {
-      getTree: vi.fn().mockResolvedValue(departments),
-    },
-    modelApi: {
+    modelsApi: {
       list: vi.fn().mockResolvedValue(mockModels),
+      routing: {
+        getRules: vi.fn().mockResolvedValue(rules),
+        updateRule: vi.fn().mockResolvedValue(rules[0]),
+      },
+    },
+    orgApi: {
+      departments: {
+        getTree: vi.fn().mockResolvedValue(departments),
+      },
     },
   })
 }
@@ -83,9 +85,9 @@ describe('useModelRoutingPage', () => {
 
     await waitForLoaded(result, 'loading')
 
-    expect(apis.routingApi.getRules).toHaveBeenCalled()
-    expect(apis.departmentApi.getTree).toHaveBeenCalled()
-    expect(apis.modelApi.list).toHaveBeenCalled()
+    expect(apis.modelsApi.routing.getRules).toHaveBeenCalled()
+    expect(apis.orgApi.departments.getTree).toHaveBeenCalled()
+    expect(apis.modelsApi.list).toHaveBeenCalled()
     expect(result.current.rules).toEqual(rules)
     expect(result.current.departments).toEqual(departments)
     expect(result.current.models.length).toBeGreaterThan(0)
@@ -131,7 +133,7 @@ describe('useModelRoutingPage', () => {
     expect(result.current.parentRule?.nodeId).toBe('dept-1')
   })
 
-  it('handleSave calls routingApi.updateRule', async () => {
+  it('handleSave calls modelsApi.routing.updateRule', async () => {
     const apis = createRoutingApis()
 
     const { result } = renderHookWithProviders(() => useModelRoutingPage(apis), { apis })
@@ -150,7 +152,7 @@ describe('useModelRoutingPage', () => {
       })
     })
 
-    expect(apis.routingApi.updateRule).toHaveBeenCalledWith('dept-1', {
+    expect(apis.modelsApi.routing.updateRule).toHaveBeenCalledWith('dept-1', {
       inherited: false,
       allowedModelIds: [
         '00000000-0000-7000-8000-0000000000b1',

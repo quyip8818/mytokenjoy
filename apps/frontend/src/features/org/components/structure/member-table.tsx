@@ -7,7 +7,7 @@ import {
   type RowSelectionState,
 } from '@tanstack/react-table'
 import type { Member } from '@/api/types'
-import { memberApi } from '@/api/org'
+import { orgApi } from '@/api/org'
 import { useSession } from '@/features/session'
 import {
   Pagination,
@@ -189,7 +189,7 @@ export function MemberTable({
             currentMemberRoles.includes('超级管理员') || currentMemberRoles.includes('组织管理员')
           const handleGetInviteLink = async () => {
             try {
-              const { inviteLink } = await memberApi.getInviteLink(member.id)
+              const { inviteLink } = await orgApi.members.getInviteLink(member.id)
               await navigator.clipboard.writeText(inviteLink)
               toast.success('邀请链接已复制到剪贴板')
             } catch {
@@ -198,7 +198,7 @@ export function MemberTable({
           }
           const handleResendInvite = async () => {
             try {
-              await memberApi.batchInvite([member.id])
+              await orgApi.members.batchInvite([member.id])
               toast.success('邀请已重新发送')
             } catch {
               toast.error('重新发送邀请失败')

@@ -41,7 +41,7 @@ export function ModelEditWorkflow({
     if (!canSubmit) return
     setSubmitting(true)
     try {
-      await apis.modelApi.update(model.modelId, {
+      await apis.modelsApi.update(model.modelId, {
         name: displayName.trim(),
         description: description.trim(),
         endpoint: isCustomModel(model) ? endpoint.trim() : undefined,

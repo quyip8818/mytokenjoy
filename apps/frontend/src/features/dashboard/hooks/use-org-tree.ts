@@ -28,7 +28,7 @@ export function useOrgTree(injectedApis?: AppApis) {
   } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.org.tree(),
-    queryFn: (apis) => apis.departmentApi.getTree(),
+    queryFn: (apis) => apis.orgApi.departments.getTree(),
   })
 
   const pathMap = useMemo(() => buildPathMap(departments), [departments])

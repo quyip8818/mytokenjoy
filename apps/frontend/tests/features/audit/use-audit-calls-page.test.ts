@@ -15,11 +15,15 @@ describe('useAuditCallsPage', () => {
       auditApi: createAuditApiMock({
         getCalls: vi.fn().mockResolvedValue(createPaginatedResponse(mockCallLogs)),
       }),
-      modelApi: {
+      modelsApi: {
         list: vi.fn().mockResolvedValue(mockModelRefs),
       },
-      memberApi: {
-        list: vi.fn().mockResolvedValue(createPaginatedResponse(mockMembers, { pageSize: 100 })),
+      orgApi: {
+        members: {
+          list: vi
+            .fn()
+            .mockResolvedValue(createPaginatedResponse(mockMembers, { pageSize: 100 })),
+        },
       },
     })
 

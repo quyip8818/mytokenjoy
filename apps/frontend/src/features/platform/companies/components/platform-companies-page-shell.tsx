@@ -19,7 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import type { PlatformCompanyOverview } from '@/api/platform'
+import type { PlatformCompanyOverview } from '@/api/types'
 import type { usePlatformCompaniesPage } from '../hooks/use-platform-companies-page'
 
 type Props = ReturnType<typeof usePlatformCompaniesPage>

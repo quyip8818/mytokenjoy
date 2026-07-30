@@ -81,7 +81,7 @@ export function KeyFormWorkflow({
   const [existingNames, setExistingNames] = useState<Set<string>>(new Set())
   useEffect(() => {
     let cancelled = false
-    void apis.platformKeyApi.list({ memberId: effectiveMemberId || memberId }).then((res) => {
+    void apis.keysApi.platform.list({ memberId: effectiveMemberId || memberId }).then((res) => {
       if (!cancelled) {
         setExistingNames(new Set(res.items.map((k) => k.name)))
       }
@@ -100,7 +100,7 @@ export function KeyFormWorkflow({
     if (!memberId) return
     let cancelled = false
     const resolve = async () => {
-      const allModels = await apis.modelApi.list()
+      const allModels = await apis.modelsApi.list()
       const enabled = allModels.filter((m) => m.active)
       const allowedIds = await resolveAllModels()
       if (!allowedIds) return enabled
@@ -114,13 +114,13 @@ export function KeyFormWorkflow({
       .catch(() => {
         // Fallback: show all active models rather than stuck on "加载中"
         if (!cancelled) {
-          void apis.modelApi.list().then((all) => setAvailableModels(all.filter((m) => m.active)))
+          void apis.modelsApi.list().then((all) => setAvailableModels(all.filter((m) => m.active)))
         }
       })
     return () => {
       cancelled = true
     }
-  }, [memberId, apis.modelApi, resolveAllModels])
+  }, [memberId, apis.modelsApi, resolveAllModels])
 
   const {
     budgetSummary,
@@ -220,7 +220,7 @@ export function KeyFormWorkflow({
     }
     setSubmitting(true)
     try {
-      const created = await apis.platformKeyApi.create({
+      const created = await apis.keysApi.platform.create({
         name,
         scope,
         memberId:
@@ -252,7 +252,7 @@ export function KeyFormWorkflow({
     if (!key) return
     setSubmitting(true)
     try {
-      await apis.platformKeyApi.update(key.id, {
+      await apis.keysApi.platform.update(key.id, {
         name,
         budget: budgetAmount,
         modelWhitelist: models,

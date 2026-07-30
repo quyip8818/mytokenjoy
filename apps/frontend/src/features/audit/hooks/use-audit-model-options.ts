@@ -5,7 +5,7 @@ export function useAuditModelOptions(injectedApis?: AppApis) {
   const { data: models = [], loading } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.audit.models(),
-    queryFn: (apis) => apis.modelApi.list(),
+    queryFn: (apis) => apis.modelsApi.list(),
   })
 
   return { models, loading }

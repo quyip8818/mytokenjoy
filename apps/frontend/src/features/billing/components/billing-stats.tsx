@@ -1,6 +1,6 @@
 import { AlertTriangle, BarChart3, Gift, TrendingUp, Wallet } from 'lucide-react'
 import { StatCard } from '@/components/ui/stat-card'
-import type { WalletView } from '@/api/billing'
+import type { WalletView } from '@/api/types'
 import { formatCurrencyAmount, formatMoney } from '@/lib/quota-display'
 import { primaryWalletBalance } from '../lib/selectors'
 

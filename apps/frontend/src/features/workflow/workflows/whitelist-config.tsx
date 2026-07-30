@@ -56,8 +56,8 @@ export function WhitelistConfigWorkflow({
   useEffect(() => {
     void (async () => {
       const [rules, depts] = await Promise.all([
-        apis.routingApi.getRules(),
-        apis.departmentApi.getTree(),
+        apis.modelsApi.routing.getRules(),
+        apis.orgApi.departments.getTree(),
       ])
       const parentId = findParentDeptId(depts, rule.nodeId)
       const parentRule = parentId ? rules.find((r) => r.nodeId === parentId) : undefined
@@ -83,7 +83,7 @@ export function WhitelistConfigWorkflow({
     }
     setSubmitting(true)
     try {
-      await apis.routingApi.updateRule(rule.id, {
+      await apis.modelsApi.routing.updateRule(rule.id, {
         inherited,
         allowedModelIds: inherited ? rule.allowedModelIds : modelIds,
       })

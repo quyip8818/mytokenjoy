@@ -6,8 +6,10 @@ import { waitForLoaded } from '@tests/helpers/wait-for-loaded'
 describe('useDataSourcePage', () => {
   it('enters select phase when data source is not connected', async () => {
     const apis = createMockApis({
-      dataSourceApi: {
-        getStatus: vi.fn().mockResolvedValue({ connected: false, platform: null }),
+      orgApi: {
+        dataSource: {
+          getStatus: vi.fn().mockResolvedValue({ connected: false, platform: null }),
+        },
       },
     })
 
@@ -16,13 +18,15 @@ describe('useDataSourcePage', () => {
     await waitForLoaded(result, 'loading')
 
     expect(result.current.phase).toBe('select')
-    expect(apis.dataSourceApi.getStatus).toHaveBeenCalled()
+    expect(apis.orgApi.dataSource.getStatus).toHaveBeenCalled()
   })
 
   it('enters connected phase when data source is connected', async () => {
     const apis = createMockApis({
-      dataSourceApi: {
-        getStatus: vi.fn().mockResolvedValue({ connected: true, platform: 'feishu' }),
+      orgApi: {
+        dataSource: {
+          getStatus: vi.fn().mockResolvedValue({ connected: true, platform: 'feishu' }),
+        },
       },
     })
 

@@ -55,7 +55,7 @@ export function useKeyFormBudget({
   useEffect(() => {
     if (!isCreate || scope !== 'project' || !projectId) return
     let cancelled = false
-    void Promise.all([apis.budgetApi.getProjects(), apis.platformKeyApi.list({ projectId })]).then(
+    void Promise.all([apis.budgetApi.getProjects(), apis.keysApi.platform.list({ projectId })]).then(
       ([groups, keysRes]) => {
         if (cancelled) return
         const group = groups.find((g) => g.id === projectId)
@@ -79,7 +79,7 @@ export function useKeyFormBudget({
     let cancelled = false
     void Promise.all([
       apis.budgetApi.getProjects(),
-      apis.platformKeyApi.list({ projectId, scope: 'project_member', memberId: effectiveMemberId }),
+      apis.keysApi.platform.list({ projectId, scope: 'project_member', memberId: effectiveMemberId }),
     ]).then(([groups, keysRes]) => {
       if (cancelled) return
       const group = groups.find((g) => g.id === projectId)

@@ -11,10 +11,12 @@ const mockPermissions = [{ key: 'org.read', label: '查看组织' }]
 describe('useRolesPage', () => {
   it('loads roles and selects the first role on mount', async () => {
     const apis = createMockApis({
-      roleApi: {
-        list: vi.fn().mockResolvedValue(mockRoles),
-        getPermissions: vi.fn().mockResolvedValue(mockPermissions),
-        getMembers: vi.fn().mockResolvedValue([]),
+      orgApi: {
+        roles: {
+          list: vi.fn().mockResolvedValue(mockRoles),
+          getPermissions: vi.fn().mockResolvedValue(mockPermissions),
+          getMembers: vi.fn().mockResolvedValue([]),
+        },
       },
     })
 
@@ -25,6 +27,6 @@ describe('useRolesPage', () => {
     })
 
     expect(result.current.selectedRoleId).toBe('r1')
-    expect(apis.roleApi.getMembers).toHaveBeenCalledWith('r1')
+    expect(apis.orgApi.roles.getMembers).toHaveBeenCalledWith('r1')
   })
 })

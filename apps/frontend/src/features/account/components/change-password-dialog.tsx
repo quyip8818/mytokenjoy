@@ -16,7 +16,7 @@ interface ChangePasswordDialogProps {
   hasPassword: boolean
   error: string | null
   saving: boolean
-  onSubmit: (oldPassword: string | undefined, newPassword: string) => Promise<boolean>
+  onSubmit: (oldPassword: string | undefined, newPassword: string) => Promise<unknown>
 }
 
 export function ChangePasswordDialog({

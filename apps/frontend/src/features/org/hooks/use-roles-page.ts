@@ -26,7 +26,7 @@ export function useRolesPage(injectedApis?: AppApis) {
   } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.org.roles(),
-    queryFn: (api) => api.roleApi.list(),
+    queryFn: (api) => api.orgApi.roles.list(),
   })
 
   const {
@@ -36,7 +36,7 @@ export function useRolesPage(injectedApis?: AppApis) {
   } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.org.permissions(),
-    queryFn: (api) => api.roleApi.getPermissions(),
+    queryFn: (api) => api.orgApi.roles.getPermissions(),
   })
 
   const resolvedSelectedRoleId = selectedRoleId ?? roles[0]?.id ?? null
@@ -49,7 +49,7 @@ export function useRolesPage(injectedApis?: AppApis) {
   } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.org.roleMembers(resolvedSelectedRoleId ?? ''),
-    queryFn: (api) => api.roleApi.getMembers(resolvedSelectedRoleId!),
+    queryFn: (api) => api.orgApi.roles.getMembers(resolvedSelectedRoleId!),
     enabled: Boolean(resolvedSelectedRoleId),
   })
 
@@ -81,9 +81,9 @@ export function useRolesPage(injectedApis?: AppApis) {
   const handleFormSubmit = async (data: { name: string; permissions: string[] }) => {
     await withErrorToast(async () => {
       if (editingRole) {
-        await apis.roleApi.update(editingRole.id, data)
+        await apis.orgApi.roles.update(editingRole.id, data)
       } else {
-        await apis.roleApi.create(data)
+        await apis.orgApi.roles.create(data)
       }
       setFormOpen(false)
       await invalidateOrg()
@@ -94,7 +94,7 @@ export function useRolesPage(injectedApis?: AppApis) {
   const handleConfirmDelete = async () => {
     if (!deleteConfirm) return
     await withErrorToast(async () => {
-      await apis.roleApi.delete(deleteConfirm.id)
+      await apis.orgApi.roles.delete(deleteConfirm.id)
       if (resolvedSelectedRoleId === deleteConfirm.id) {
         setSelectedRoleId(null)
       }
@@ -116,7 +116,7 @@ export function useRolesPage(injectedApis?: AppApis) {
   const handleConfirmRemove = async () => {
     if (!removeConfirm) return
     await withErrorToast(async () => {
-      await apis.roleApi.removeMember(removeConfirm.role.id, removeConfirm.member.id)
+      await apis.orgApi.roles.removeMember(removeConfirm.role.id, removeConfirm.member.id)
       setRemoveConfirm(null)
       await invalidateOrg()
       toast.success('成员已从角色中移除')
@@ -126,14 +126,14 @@ export function useRolesPage(injectedApis?: AppApis) {
   const handleAddMember = async (memberId: string) => {
     if (!resolvedSelectedRoleId) return
     await withErrorToast(async () => {
-      await apis.roleApi.addMember(resolvedSelectedRoleId, memberId)
+      await apis.orgApi.roles.addMember(resolvedSelectedRoleId, memberId)
       await invalidateOrg()
       toast.success('成员已添加到角色')
     }, '添加失败，请重试')
   }
 
   const searchMembers = async (keyword: string) => {
-    const res = await apis.memberApi.list({ page: 1, pageSize: 20, keyword })
+    const res = await apis.orgApi.members.list({ page: 1, pageSize: 20, keyword })
     return res.items
   }
 

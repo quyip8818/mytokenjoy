@@ -20,8 +20,10 @@ const mockTree = [
 describe('useOrgTree', () => {
   it('fetches department tree on mount', async () => {
     const apis = createMockApis({
-      departmentApi: {
-        getTree: vi.fn().mockResolvedValue(mockTree),
+      orgApi: {
+        departments: {
+          getTree: vi.fn().mockResolvedValue(mockTree),
+        },
       },
     })
     const { result } = renderHookWithProviders(() => useOrgTree(apis), { apis })
@@ -33,8 +35,10 @@ describe('useOrgTree', () => {
 
   it('builds breadcrumb path for nested dept', async () => {
     const apis = createMockApis({
-      departmentApi: {
-        getTree: vi.fn().mockResolvedValue(mockTree),
+      orgApi: {
+        departments: {
+          getTree: vi.fn().mockResolvedValue(mockTree),
+        },
       },
     })
     const { result } = renderHookWithProviders(() => useOrgTree(apis), { apis })

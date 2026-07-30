@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import type { LoginActivityResponse } from '@/api/me'
+import type { LoginActivityResponse } from '@/api/types'
 
 const PAGE_SIZE = 20
 

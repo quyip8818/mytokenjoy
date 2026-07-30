@@ -27,7 +27,7 @@ export function useMyKeysPage(injectedApis?: AppApis) {
     injectedApis,
     queryKey: queryKeys.keys.mine(memberId),
     queryFn: (apis) =>
-      apis.platformKeyApi
+      apis.keysApi.platform
         .list({ memberId })
         .then((res) =>
           res.items.filter(
@@ -62,7 +62,7 @@ export function useMyKeysPage(injectedApis?: AppApis) {
 
   const handleDelete = async () => {
     if (!deleteTarget) return
-    await apis.platformKeyApi.delete(deleteTarget.id)
+    await apis.keysApi.platform.delete(deleteTarget.id)
     toast.success('Key 已删除')
     setDeleteTarget(null)
     refresh()
@@ -70,7 +70,7 @@ export function useMyKeysPage(injectedApis?: AppApis) {
 
   const handleToggle = async (key: PlatformKey) => {
     const enabled = key.status !== 'active'
-    await apis.platformKeyApi.toggle(key.id, enabled)
+    await apis.keysApi.platform.toggle(key.id, enabled)
     toast.success(enabled ? 'Key 已启用' : 'Key 已禁用')
     refresh()
     return key.id
@@ -100,7 +100,7 @@ export function useMyKeysPage(injectedApis?: AppApis) {
   const openRotateKey = (key: PlatformKey) => {
     open('key-rotate-confirm', {
       key,
-      onRotate: (k: PlatformKey) => apis.platformKeyApi.rotate(k.id),
+      onRotate: (k: PlatformKey) => apis.keysApi.platform.rotate(k.id),
       onDone: refresh,
     })
   }

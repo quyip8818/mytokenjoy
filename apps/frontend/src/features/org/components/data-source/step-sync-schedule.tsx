@@ -18,7 +18,7 @@ import {
 import { Loader2 } from 'lucide-react'
 
 interface StepSyncScheduleProps {
-  syncApi: AppApis['syncApi']
+  syncApi: AppApis['orgApi']['sync']
   onComplete: () => void
   onBack: () => void
 }

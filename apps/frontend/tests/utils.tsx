@@ -33,16 +33,51 @@ export function createMockSession(
   }
 }
 
+// ponytail: DeepPartial 让测试只需 mock 用到的方法，withOverrides 负责和 base 合并。
+type DeepPartial<T> = {
+  [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K]
+}
+
 type ApiNamespaceOverrides = {
-  [K in keyof AppApis]?: Partial<AppApis[K]>
+  [K in keyof AppApis]?: DeepPartial<AppApis[K]>
 }
 
 function withOverrides<K extends keyof AppApis>(
   base: AppApis,
   key: K,
-  partial?: Partial<AppApis[K]>,
+  partial?: DeepPartial<AppApis[K]>,
 ): AppApis[K] {
-  return partial ? { ...base[key], ...partial } : base[key]
+  if (!partial) return base[key]
+  // For nested API objects (like orgApi, keysApi), merge one level deeper
+  if (key === 'orgApi' && partial) {
+    const baseOrg = base.orgApi
+    const partialOrg = partial as DeepPartial<typeof baseOrg>
+    return {
+      dataSource: { ...baseOrg.dataSource, ...partialOrg.dataSource },
+      sync: { ...baseOrg.sync, ...partialOrg.sync },
+      departments: { ...baseOrg.departments, ...partialOrg.departments },
+      members: { ...baseOrg.members, ...partialOrg.members },
+      roles: { ...baseOrg.roles, ...partialOrg.roles },
+    } as AppApis[K]
+  }
+  if (key === 'keysApi' && partial) {
+    const baseKeys = base.keysApi
+    const partialKeys = partial as DeepPartial<typeof baseKeys>
+    return {
+      provider: { ...baseKeys.provider, ...partialKeys.provider },
+      platform: { ...baseKeys.platform, ...partialKeys.platform },
+    } as AppApis[K]
+  }
+  if (key === 'modelsApi' && partial) {
+    const baseModels = base.modelsApi
+    const partialModels = partial as DeepPartial<typeof baseModels>
+    return {
+      ...baseModels,
+      ...partialModels,
+      routing: { ...baseModels.routing, ...partialModels.routing },
+    } as AppApis[K]
+  }
+  return { ...base[key], ...partial } as AppApis[K]
 }
 
 function mergeApis(base: AppApis, overrides: ApiNamespaceOverrides): AppApis {
@@ -53,15 +88,9 @@ function mergeApis(base: AppApis, overrides: ApiNamespaceOverrides): AppApis {
     auditApi: withOverrides(base, 'auditApi', overrides.auditApi),
     dashboardApi: withOverrides(base, 'dashboardApi', overrides.dashboardApi),
     devApi: withOverrides(base, 'devApi', overrides.devApi),
-    modelApi: withOverrides(base, 'modelApi', overrides.modelApi),
-    routingApi: withOverrides(base, 'routingApi', overrides.routingApi),
-    dataSourceApi: withOverrides(base, 'dataSourceApi', overrides.dataSourceApi),
-    syncApi: withOverrides(base, 'syncApi', overrides.syncApi),
-    departmentApi: withOverrides(base, 'departmentApi', overrides.departmentApi),
-    memberApi: withOverrides(base, 'memberApi', overrides.memberApi),
-    roleApi: withOverrides(base, 'roleApi', overrides.roleApi),
-    providerKeyApi: withOverrides(base, 'providerKeyApi', overrides.providerKeyApi),
-    platformKeyApi: withOverrides(base, 'platformKeyApi', overrides.platformKeyApi),
+    modelsApi: withOverrides(base, 'modelsApi', overrides.modelsApi),
+    orgApi: withOverrides(base, 'orgApi', overrides.orgApi),
+    keysApi: withOverrides(base, 'keysApi', overrides.keysApi),
     approvalApi: withOverrides(base, 'approvalApi', overrides.approvalApi),
     meApi: withOverrides(base, 'meApi', overrides.meApi),
     notificationApi: withOverrides(base, 'notificationApi', overrides.notificationApi),
@@ -74,13 +103,16 @@ export function createMockApis(overrides: ApiNamespaceOverrides = {}): AppApis {
   const session = createMockSession()
   const base: AppApis = {
     ...defaultApis,
-    departmentApi: {
-      ...defaultApis.departmentApi,
-      getTree: vi.fn().mockResolvedValue(mockDepartments),
-    },
-    memberApi: {
-      ...defaultApis.memberApi,
-      list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }),
+    orgApi: {
+      ...defaultApis.orgApi,
+      departments: {
+        ...defaultApis.orgApi.departments,
+        getTree: vi.fn().mockResolvedValue(mockDepartments),
+      },
+      members: {
+        ...defaultApis.orgApi.members,
+        list: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 10 }),
+      },
     },
     approvalApi: {
       ...defaultApis.approvalApi,

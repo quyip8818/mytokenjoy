@@ -1,4 +1,4 @@
-import type { TopUpRecord } from '@/api/billing'
+import type { TopUpRecord } from '@/api/types'
 import type { PaymentMethod, TopUpRecordView } from '@/features/billing'
 
 export function toTopUpRecordView(record: TopUpRecord): TopUpRecordView {

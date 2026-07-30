@@ -48,7 +48,7 @@ export function ApprovalSubmitWorkflow({
   useEffect(() => {
     let cancelled = false
     void (async () => {
-      const allModels = await apis.modelApi.list()
+      const allModels = await apis.modelsApi.list()
       const enabled = allModels.filter((m) => m.active)
       const allowedIds = await resolveAllowedModelIds()
       if (cancelled) return

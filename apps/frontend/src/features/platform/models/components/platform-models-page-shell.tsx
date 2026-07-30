@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
-import type { PlatformModel } from '@/api/platform'
+import type { PlatformModel } from '@/api/types'
 import type { usePlatformModelsPage } from '../hooks/use-platform-models-page'
 
 type Props = ReturnType<typeof usePlatformModelsPage>

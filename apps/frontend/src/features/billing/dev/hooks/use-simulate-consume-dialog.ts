@@ -34,7 +34,7 @@ function formatPlatformKeyLabel(key: PlatformKey): string {
 }
 
 async function resolveBearer(
-  devApiClient: AppApis['platformKeyApi'],
+  devApiClient: AppApis['keysApi']['platform'],
   platformKeyId: string,
 ): Promise<string> {
   const { bearer } = await devApiClient.simulateBearer(platformKeyId)
@@ -69,7 +69,7 @@ export function useSimulateConsumeDialog(
     injectedApis,
     queryKey: [...queryKeys.keys.all, 'simulate-consume'] as const,
     queryFn: (a) =>
-      a.platformKeyApi
+      a.keysApi.platform
         .list({ scope: 'member', page: 1, pageSize: 50 })
         .then((page) => page.items.filter((key) => key.status === 'active')),
     enabled: open,
@@ -92,7 +92,7 @@ export function useSimulateConsumeDialog(
     injectedApis,
     queryKey: [...queryKeys.keys.all, 'simulate-bearer', selectedKeyId] as const,
     queryFn: async (a) => {
-      const sk = await resolveBearer(a.platformKeyApi, selectedKeyId)
+      const sk = await resolveBearer(a.keysApi.platform, selectedKeyId)
       writeStoredPlatformKeyId(selectedKeyId)
       return sk
     },
@@ -141,7 +141,7 @@ export function useSimulateConsumeDialog(
     let sk = bearer.trim()
     if (!sk) {
       try {
-        sk = await resolveBearer(apis.platformKeyApi, selectedKeyId)
+        sk = await resolveBearer(apis.keysApi.platform, selectedKeyId)
       } catch (err) {
         setSubmitError(err instanceof Error ? err.message : '无法获取 Platform Key')
         return
@@ -171,7 +171,7 @@ export function useSimulateConsumeDialog(
       setSubmitting(false)
     }
   }, [
-    apis.platformKeyApi,
+    apis.keysApi.platform,
     bearer,
     inputTokens,
     onSuccess,

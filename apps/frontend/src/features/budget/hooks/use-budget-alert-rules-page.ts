@@ -44,7 +44,7 @@ export function useBudgetAlertRulesPage(injectedApis?: AppApis) {
   const { data: roles = [] } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.org.roles(),
-    queryFn: (api) => api.roleApi.list(),
+    queryFn: (api) => api.orgApi.roles.list(),
   })
 
   const ruleViews = useMemo(

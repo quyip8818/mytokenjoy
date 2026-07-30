@@ -11,7 +11,7 @@ import { PLATFORM_LABELS } from '@/features/org'
 
 interface StepCredentialsProps {
   platform: Platform
-  dataSourceApi: AppApis['dataSourceApi']
+  dataSourceApi: AppApis['orgApi']['dataSource']
   onConnected: () => void
   onBack: () => void
 }

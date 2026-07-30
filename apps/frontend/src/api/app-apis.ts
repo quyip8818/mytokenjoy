@@ -5,11 +5,11 @@ import { billingApi } from './billing'
 import { budgetApi } from './budget'
 import { dashboardApi } from './dashboard'
 import { devApi } from './dev'
-import { platformKeyApi, providerKeyApi } from './keys'
+import { keysApi } from './keys'
 import { meApi } from './me'
-import { modelApi, routingApi } from './models'
+import { modelsApi } from './models'
 import { notificationApi } from './notifications'
-import { dataSourceApi, departmentApi, memberApi, roleApi, syncApi } from './org'
+import { orgApi } from './org'
 import { platformApi } from './platform'
 import { sessionApi } from './session'
 
@@ -20,15 +20,9 @@ export interface AppApis {
   auditApi: typeof auditApi
   dashboardApi: typeof dashboardApi
   devApi: typeof devApi
-  modelApi: typeof modelApi
-  routingApi: typeof routingApi
-  dataSourceApi: typeof dataSourceApi
-  syncApi: typeof syncApi
-  departmentApi: typeof departmentApi
-  memberApi: typeof memberApi
-  roleApi: typeof roleApi
-  providerKeyApi: typeof providerKeyApi
-  platformKeyApi: typeof platformKeyApi
+  modelsApi: typeof modelsApi
+  orgApi: typeof orgApi
+  keysApi: typeof keysApi
   approvalApi: typeof approvalApi
   meApi: typeof meApi
   notificationApi: typeof notificationApi
@@ -43,15 +37,9 @@ export const defaultApis: AppApis = {
   auditApi,
   dashboardApi,
   devApi,
-  modelApi,
-  routingApi,
-  dataSourceApi,
-  syncApi,
-  departmentApi,
-  memberApi,
-  roleApi,
-  providerKeyApi,
-  platformKeyApi,
+  modelsApi,
+  orgApi,
+  keysApi,
   approvalApi,
   meApi,
   notificationApi,

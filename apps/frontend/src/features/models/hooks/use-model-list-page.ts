@@ -32,7 +32,7 @@ export function useModelListPage(injectedApis?: AppApis) {
   } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.models.list(),
-    queryFn: (a) => a.modelApi.list(),
+    queryFn: (a) => a.modelsApi.list(),
   })
 
   const { openWithRefresh } = useWorkflowRefresh({
@@ -60,7 +60,7 @@ export function useModelListPage(injectedApis?: AppApis) {
 
   const handleToggle = useCallback(
     async (model: ModelInfo) => {
-      await apis.modelApi.toggle(model.modelId, !model.active)
+      await apis.modelsApi.toggle(model.modelId, !model.active)
       toast.success(model.active ? '模型已禁用' : '模型已启用')
       flashRow(model.modelId)
       void refresh()
@@ -70,7 +70,7 @@ export function useModelListPage(injectedApis?: AppApis) {
 
   const handleDelete = useCallback(
     async (model: ModelInfo) => {
-      await apis.modelApi.delete(model.modelId)
+      await apis.modelsApi.delete(model.modelId)
       toast.success('模型已删除')
       flashRow(model.modelId)
       void refresh()

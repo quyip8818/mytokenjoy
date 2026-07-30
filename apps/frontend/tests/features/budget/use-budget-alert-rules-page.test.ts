@@ -39,11 +39,13 @@ function createAlertApis() {
       getProjects: vi.fn().mockResolvedValue(mockProjects),
       getTree: vi.fn().mockResolvedValue(mockBudgetTree),
     },
-    roleApi: {
-      list: vi.fn().mockResolvedValue([
-        { id: 'role-1', name: '超级管理员' },
-        { id: 'role-2', name: '组织管理员' },
-      ]),
+    orgApi: {
+      roles: {
+        list: vi.fn().mockResolvedValue([
+          { id: 'role-1', name: '超级管理员' },
+          { id: 'role-2', name: '组织管理员' },
+        ]),
+      },
     },
   })
 }

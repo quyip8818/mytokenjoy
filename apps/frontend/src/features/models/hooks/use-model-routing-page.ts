@@ -15,9 +15,9 @@ export function useModelRoutingPage(injectedApis?: AppApis) {
     queryKey: queryKeys.models.routing(),
     queryFn: async (a) => {
       const [rules, departments, models] = await Promise.all([
-        a.routingApi.getRules(),
-        a.departmentApi.getTree(),
-        a.modelApi.list(),
+        a.modelsApi.routing.getRules(),
+        a.orgApi.departments.getTree(),
+        a.modelsApi.list(),
       ])
       return { rules, departments, models }
     },
@@ -67,7 +67,7 @@ export function useModelRoutingPage(injectedApis?: AppApis) {
       if (!selectedRule) return
       setSaving(true)
       try {
-        await apis.routingApi.updateRule(selectedRule.id, {
+        await apis.modelsApi.routing.updateRule(selectedRule.id, {
           inherited: input.inherited,
           allowedModelIds: input.allowedModelIds,
           defaultModelId: input.defaultModelId,

@@ -7,7 +7,7 @@ import type {
   UpdateModelInput,
 } from './types'
 
-export const modelApi = {
+export const modelsApi = {
   list: () => request<ModelInfo[]>('/models'),
   create: (data: CreateModelInput) =>
     request<ModelInfo>('/models', { method: 'POST', body: JSON.stringify(data) }),
@@ -16,21 +16,25 @@ export const modelApi = {
   delete: (id: string) => request<void>(`/models/${id}`, { method: 'DELETE' }),
   toggle: (id: string, enabled: boolean) =>
     request<void>(`/models/${id}/toggle`, { method: 'PUT', body: JSON.stringify({ enabled }) }),
-}
 
-export const routingApi = {
-  getRules: () => request<RoutingRule[]>('/models/routing'),
-  updateRule: (
-    id: string,
-    data: {
-      allowedModelIds: string[]
-      inherited: boolean
-      defaultModelId?: string | null
-      fallbackModelId?: string | null
-    },
-  ) => request<RoutingRule>(`/models/routing/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  resolveWhitelist: (departmentId: string) =>
-    request<ResolvedWhitelist>(
-      `/models/routing/resolve?deptId=${encodeURIComponent(departmentId)}`,
-    ),
+  routing: {
+    getRules: () => request<RoutingRule[]>('/models/routing'),
+    updateRule: (
+      id: string,
+      data: {
+        allowedModelIds: string[]
+        inherited: boolean
+        defaultModelId?: string | null
+        fallbackModelId?: string | null
+      },
+    ) =>
+      request<RoutingRule>(`/models/routing/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    resolveWhitelist: (departmentId: string) =>
+      request<ResolvedWhitelist>(
+        `/models/routing/resolve?deptId=${encodeURIComponent(departmentId)}`,
+      ),
+  },
 }

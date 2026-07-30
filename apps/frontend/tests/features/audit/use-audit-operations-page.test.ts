@@ -14,8 +14,12 @@ describe('useAuditOperationsPage', () => {
       auditApi: createAuditApiMock({
         getOperations: vi.fn().mockResolvedValue(createPaginatedResponse(mockOperationLogs)),
       }),
-      memberApi: {
-        list: vi.fn().mockResolvedValue(createPaginatedResponse(mockMembers, { pageSize: 100 })),
+      orgApi: {
+        members: {
+          list: vi
+            .fn()
+            .mockResolvedValue(createPaginatedResponse(mockMembers, { pageSize: 100 })),
+        },
       },
     })
 

@@ -1,12 +1,17 @@
 import { useCallback, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useApis } from '@/api/use-apis'
 import { ApiError } from '@/api/client'
 import { queryKeys } from '@/features/query'
 
 export const accountKeys = {
   profile: ['account', 'profile'] as const,
+}
+
+function errorMessage(err: Error | null, fallback: string): string | null {
+  if (!err) return null
+  return err instanceof ApiError ? err.message : fallback
 }
 
 export function useAccountPage() {
@@ -19,119 +24,93 @@ export function useAccountPage() {
     queryFn: () => meApi.getProfile(),
   })
 
-  // --- Update Profile (name / avatar) ---
-  const [profileSaving, setProfileSaving] = useState(false)
-  const [profileError, setProfileError] = useState<string | null>(null)
-
-  const updateProfile = useCallback(
-    async (params: { name?: string; avatar?: string; alias?: string }) => {
-      setProfileSaving(true)
-      setProfileError(null)
-      try {
-        await meApi.updateProfile(params)
-        queryClient.invalidateQueries({ queryKey: accountKeys.profile })
-        if (params.alias !== undefined || params.avatar !== undefined) {
-          queryClient.invalidateQueries({ queryKey: queryKeys.session.all })
-        }
-        return true
-      } catch (err) {
-        setProfileError(err instanceof ApiError ? err.message : '保存失败')
-        return false
-      } finally {
-        setProfileSaving(false)
+  // --- Update Profile ---
+  const profileMutation = useMutation({
+    mutationFn: (params: { name?: string; avatar?: string; alias?: string }) =>
+      meApi.updateProfile(params),
+    onSuccess: (_data, params) => {
+      queryClient.invalidateQueries({ queryKey: accountKeys.profile })
+      if (params.alias !== undefined || params.avatar !== undefined) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.session.all })
       }
     },
-    [meApi, queryClient],
+  })
+
+  // ponytail: ProfileEditSection 需要 boolean 返回值来控制编辑态关闭。
+  // 升级路径：改 ProfileEditSection 为受控组件 + onSuccess 回调。
+  const updateProfile = useCallback(
+    async (params: { name?: string; avatar?: string; alias?: string }) => {
+      try {
+        await profileMutation.mutateAsync(params)
+        return true
+      } catch {
+        return false
+      }
+    },
+    [profileMutation],
   )
 
   // --- Change Password ---
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
-  const [passwordError, setPasswordError] = useState<string | null>(null)
-  const [passwordSaving, setPasswordSaving] = useState(false)
 
-  const changePassword = useCallback(
-    async (oldPassword: string | undefined, newPassword: string) => {
-      setPasswordSaving(true)
-      setPasswordError(null)
-      try {
-        await meApi.changePassword({ oldPassword, newPassword })
-        setPasswordDialogOpen(false)
-        queryClient.invalidateQueries({ queryKey: accountKeys.profile })
-        return true
-      } catch (err) {
-        setPasswordError(err instanceof ApiError ? err.message : '操作失败')
-        return false
-      } finally {
-        setPasswordSaving(false)
-      }
+  const passwordMutation = useMutation({
+    mutationFn: ({ oldPassword, newPassword }: { oldPassword?: string; newPassword: string }) =>
+      meApi.changePassword({ oldPassword, newPassword }),
+    onSuccess: () => {
+      setPasswordDialogOpen(false)
+      queryClient.invalidateQueries({ queryKey: accountKeys.profile })
     },
-    [meApi, queryClient],
+  })
+
+  // ponytail: dialog 组件 await onSubmit()，需要 promise 但不需要 return value。
+  // mutateAsync throws on error — 用 catch 吞掉让 mutation.error 接管展示。
+  const changePassword = useCallback(
+    (oldPassword: string | undefined, newPassword: string) =>
+      passwordMutation.mutateAsync({ oldPassword, newPassword }).catch(() => {}),
+    [passwordMutation],
   )
 
   // --- Change Phone ---
   const [phoneDialogOpen, setPhoneDialogOpen] = useState(false)
-  const [phoneError, setPhoneError] = useState<string | null>(null)
-  const [phoneSaving, setPhoneSaving] = useState(false)
+
+  const phoneMutation = useMutation({
+    mutationFn: ({ phone, code }: { phone: string; code: string }) =>
+      meApi.changePhone(phone, code),
+    onSuccess: () => {
+      setPhoneDialogOpen(false)
+      queryClient.invalidateQueries({ queryKey: accountKeys.profile })
+    },
+  })
 
   const changePhone = useCallback(
-    async (phone: string, code: string) => {
-      setPhoneSaving(true)
-      setPhoneError(null)
-      try {
-        await meApi.changePhone(phone, code)
-        setPhoneDialogOpen(false)
-        queryClient.invalidateQueries({ queryKey: accountKeys.profile })
-        return true
-      } catch (err) {
-        setPhoneError(err instanceof ApiError ? err.message : '操作失败')
-        return false
-      } finally {
-        setPhoneSaving(false)
-      }
-    },
-    [meApi, queryClient],
+    (phone: string, code: string) => phoneMutation.mutateAsync({ phone, code }).catch(() => {}),
+    [phoneMutation],
   )
 
   // --- Change Email ---
   const [emailDialogOpen, setEmailDialogOpen] = useState(false)
-  const [emailError, setEmailError] = useState<string | null>(null)
-  const [emailSaving, setEmailSaving] = useState(false)
+
+  const emailMutation = useMutation({
+    mutationFn: ({ email, code }: { email: string; code: string }) =>
+      meApi.changeEmail(email, code),
+    onSuccess: () => {
+      setEmailDialogOpen(false)
+      queryClient.invalidateQueries({ queryKey: accountKeys.profile })
+    },
+  })
 
   const changeEmail = useCallback(
-    async (email: string, code: string) => {
-      setEmailSaving(true)
-      setEmailError(null)
-      try {
-        await meApi.changeEmail(email, code)
-        setEmailDialogOpen(false)
-        queryClient.invalidateQueries({ queryKey: accountKeys.profile })
-        return true
-      } catch (err) {
-        setEmailError(err instanceof ApiError ? err.message : '操作失败')
-        return false
-      } finally {
-        setEmailSaving(false)
-      }
-    },
-    [meApi, queryClient],
+    (email: string, code: string) => emailMutation.mutateAsync({ email, code }).catch(() => {}),
+    [emailMutation],
   )
 
   // --- Revoke Sessions ---
   const [revokeDialogOpen, setRevokeDialogOpen] = useState(false)
-  const [revoking, setRevoking] = useState(false)
 
-  const revokeSessions = useCallback(async () => {
-    setRevoking(true)
-    try {
-      await meApi.revokeSessions()
-      setRevokeDialogOpen(false)
-      return true
-    } catch {
-      return false
-    } finally {
-      setRevoking(false)
-    }
-  }, [meApi])
+  const revokeMutation = useMutation({
+    mutationFn: () => meApi.revokeSessions(),
+    onSuccess: () => setRevokeDialogOpen(false),
+  })
 
   // --- Logout ---
   const logout = useCallback(async () => {
@@ -143,32 +122,32 @@ export function useAccountPage() {
     profile: profileQuery.data ?? null,
     profileLoading: profileQuery.isLoading,
 
-    profileSaving,
-    profileError,
+    profileSaving: profileMutation.isPending,
+    profileError: errorMessage(profileMutation.error, '保存失败'),
     updateProfile,
 
     passwordDialogOpen,
     setPasswordDialogOpen,
-    passwordError,
-    passwordSaving,
+    passwordError: errorMessage(passwordMutation.error, '操作失败'),
+    passwordSaving: passwordMutation.isPending,
     changePassword,
 
     phoneDialogOpen,
     setPhoneDialogOpen,
-    phoneError,
-    phoneSaving,
+    phoneError: errorMessage(phoneMutation.error, '操作失败'),
+    phoneSaving: phoneMutation.isPending,
     changePhone,
 
     emailDialogOpen,
     setEmailDialogOpen,
-    emailError,
-    emailSaving,
+    emailError: errorMessage(emailMutation.error, '操作失败'),
+    emailSaving: emailMutation.isPending,
     changeEmail,
 
     revokeDialogOpen,
     setRevokeDialogOpen,
-    revoking,
-    revokeSessions,
+    revoking: revokeMutation.isPending,
+    revokeSessions: () => void revokeMutation.mutate(),
 
     logout,
   }

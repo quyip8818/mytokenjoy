@@ -28,7 +28,7 @@ const targetFields = [
 
 interface StepFieldMappingProps {
   platform: Platform
-  dataSourceApi: AppApis['dataSourceApi']
+  dataSourceApi: AppApis['orgApi']['dataSource']
   onComplete: () => void
   onBack: () => void
 }

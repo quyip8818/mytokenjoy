@@ -8,11 +8,13 @@ import { waitFor } from '@testing-library/react'
 describe('useStructurePage', () => {
   it('loads department tree and members on mount', async () => {
     const apis = createMockApis({
-      departmentApi: {
-        getTree: vi.fn().mockResolvedValue(mockDepartmentTree),
-      },
-      memberApi: {
-        list: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+      orgApi: {
+        departments: {
+          getTree: vi.fn().mockResolvedValue(mockDepartmentTree),
+        },
+        members: {
+          list: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+        },
       },
     })
 
@@ -21,17 +23,19 @@ describe('useStructurePage', () => {
     await waitFor(() => {
       expect(result.current.departments).toEqual(mockDepartmentTree)
     })
-    expect(apis.departmentApi.getTree).toHaveBeenCalled()
-    expect(apis.memberApi.list).toHaveBeenCalled()
+    expect(apis.orgApi.departments.getTree).toHaveBeenCalled()
+    expect(apis.orgApi.members.list).toHaveBeenCalled()
   })
 
   it('resets page when selecting a department', async () => {
     const apis = createMockApis({
-      departmentApi: {
-        getTree: vi.fn().mockResolvedValue(mockDepartmentTree),
-      },
-      memberApi: {
-        list: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+      orgApi: {
+        departments: {
+          getTree: vi.fn().mockResolvedValue(mockDepartmentTree),
+        },
+        members: {
+          list: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+        },
       },
     })
 
@@ -65,9 +69,11 @@ describe('useStructurePage', () => {
       ])
     const create = vi.fn().mockResolvedValue(undefined)
     const apis = createMockApis({
-      departmentApi: { getTree, create },
-      memberApi: {
-        list: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+      orgApi: {
+        departments: { getTree, create },
+        members: {
+          list: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+        },
       },
     })
 

@@ -22,7 +22,7 @@ import { PLATFORM_LABELS } from '@/features/org'
 interface CredentialFormProps {
   connected: boolean
   currentPlatform: Platform | null
-  dataSourceApi: AppApis['dataSourceApi']
+  dataSourceApi: AppApis['orgApi']['dataSource']
   onSaved: () => void
 }
 

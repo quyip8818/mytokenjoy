@@ -7,8 +7,10 @@ describe('useInjectedMutation', () => {
   it('runs mutation and invalidates query keys on success', async () => {
     const updateFn = vi.fn().mockResolvedValue(undefined)
     const apis = createMockApis({
-      departmentApi: {
-        update: updateFn,
+      orgApi: {
+        departments: {
+          update: updateFn,
+        },
       },
     })
 
@@ -17,7 +19,7 @@ describe('useInjectedMutation', () => {
         useInjectedMutation({
           injectedApis: apis,
           mutationFn: async (a, variables: { id: string; name: string }) => {
-            await a.departmentApi.update(variables.id, { name: variables.name })
+            await a.orgApi.departments.update(variables.id, { name: variables.name })
           },
           invalidateKeys: [['org', 'department-tree']],
         }),
@@ -33,8 +35,10 @@ describe('useInjectedMutation', () => {
 
   it('exposes error when mutation fails', async () => {
     const apis = createMockApis({
-      departmentApi: {
-        update: vi.fn().mockRejectedValue(new Error('update failed')),
+      orgApi: {
+        departments: {
+          update: vi.fn().mockRejectedValue(new Error('update failed')),
+        },
       },
     })
 
@@ -43,7 +47,7 @@ describe('useInjectedMutation', () => {
         useInjectedMutation({
           injectedApis: apis,
           mutationFn: async (a) => {
-            await a.departmentApi.update('dept-1', { name: 'x' })
+            await a.orgApi.departments.update('dept-1', { name: 'x' })
           },
         }),
       { wrapper: createTestWrapper({ apis }) },

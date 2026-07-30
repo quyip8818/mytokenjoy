@@ -37,7 +37,7 @@ export function ModelCreateWorkflow({
     if (!canSubmit) return
     setSubmitting(true)
     try {
-      const created = await apis.modelApi.create({
+      const created = await apis.modelsApi.create({
         type: modelName.trim(),
         name: displayName.trim() || modelName.trim(),
         baseUrl: baseUrl.trim(),

@@ -7,7 +7,7 @@ import { mockModels } from '@tests/fixtures/models'
 describe('useModelListPage', () => {
   it('loads models on mount', async () => {
     const apis = createMockApis({
-      modelApi: {
+      modelsApi: {
         list: vi.fn().mockResolvedValue(mockModels),
       },
     })
@@ -16,13 +16,13 @@ describe('useModelListPage', () => {
 
     await waitForLoaded(result, 'loading')
 
-    expect(apis.modelApi.list).toHaveBeenCalled()
+    expect(apis.modelsApi.list).toHaveBeenCalled()
     expect(result.current.models.length).toBeGreaterThan(0)
   })
 
   it('filters to builtin only when not selfhosted', async () => {
     const apis = createMockApis({
-      modelApi: {
+      modelsApi: {
         list: vi.fn().mockResolvedValue(mockModels),
       },
     })
@@ -41,7 +41,7 @@ describe('useModelListPage', () => {
 
   it('returns isSelfHosted true for selfhosted company', async () => {
     const apis = createMockApis({
-      modelApi: {
+      modelsApi: {
         list: vi.fn().mockResolvedValue(mockModels),
       },
     })
@@ -58,7 +58,7 @@ describe('useModelListPage', () => {
 
   it('shows all models including custom when selfhosted', async () => {
     const apis = createMockApis({
-      modelApi: {
+      modelsApi: {
         list: vi.fn().mockResolvedValue(mockModels),
       },
     })

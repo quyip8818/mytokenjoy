@@ -36,7 +36,7 @@ export function usePlatformKeysPage(injectedApis?: AppApis) {
   } = useInjectedQuery({
     injectedApis: apis,
     queryKey: queryKeys.org.departmentTree(),
-    queryFn: (a) => a.departmentApi.getTree(),
+    queryFn: (a) => a.orgApi.departments.getTree(),
   })
 
   const {
@@ -48,7 +48,7 @@ export function usePlatformKeysPage(injectedApis?: AppApis) {
     injectedApis: apis,
     queryKey: queryKeys.keys.platformList(selectedDeptId, activeTab),
     queryFn: (a) =>
-      a.platformKeyApi
+      a.keysApi.platform
         .list({
           departmentId: selectedDeptId,
           scope: activeTab,
@@ -114,7 +114,7 @@ export function usePlatformKeysPage(injectedApis?: AppApis) {
 
   const handleDelete = useCallback(
     async (id: string) => {
-      await apis.platformKeyApi.delete(id)
+      await apis.keysApi.platform.delete(id)
       toast.success('Key 已删除')
       flashRow(id)
       void refreshKeys()

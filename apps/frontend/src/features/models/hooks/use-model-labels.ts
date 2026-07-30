@@ -10,7 +10,7 @@ export function useModelLabels(injectedApis?: AppApis) {
 
   useEffect(() => {
     let cancelled = false
-    void apis.modelApi.list().then((models) => {
+    void apis.modelsApi.list().then((models) => {
       if (!cancelled) setIndex(buildModelIndex(models))
     })
     return () => {

@@ -18,7 +18,7 @@ export function useProviderKeysPage(injectedApis?: AppApis) {
   } = useInjectedQuery({
     injectedApis: apis,
     queryKey: queryKeys.keys.provider(),
-    queryFn: (a) => a.providerKeyApi.list(),
+    queryFn: (a) => a.keysApi.provider.list(),
   })
   const { openWithRefresh } = useWorkflowRefresh({
     refresh,
@@ -29,7 +29,7 @@ export function useProviderKeysPage(injectedApis?: AppApis) {
   const handleToggle = useCallback(
     async (key: ProviderKey) => {
       const enabled = key.status !== 'active'
-      await apis.providerKeyApi.toggle(key.id, enabled)
+      await apis.keysApi.provider.toggle(key.id, enabled)
       toast.success(enabled ? 'Key 已启用' : 'Key 已禁用')
       flashRow(key.id)
       void refresh()
@@ -39,7 +39,7 @@ export function useProviderKeysPage(injectedApis?: AppApis) {
 
   const handleDelete = useCallback(
     async (id: string) => {
-      await apis.providerKeyApi.delete(id)
+      await apis.keysApi.provider.delete(id)
       toast.success('Key 已删除')
       void refresh()
     },

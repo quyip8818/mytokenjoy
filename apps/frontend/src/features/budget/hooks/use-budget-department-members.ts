@@ -24,7 +24,7 @@ export function useBudgetDepartmentMembers({
   const { data: departmentMembersResult, loading: departmentMembersLoading } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.org.members(departmentMembersQuery),
-    queryFn: (api) => api.memberApi.list(departmentMembersQuery),
+    queryFn: (api) => api.orgApi.members.list(departmentMembersQuery),
     enabled: Boolean(departmentId),
   })
 

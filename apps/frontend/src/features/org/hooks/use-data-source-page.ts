@@ -22,7 +22,7 @@ export function useDataSourcePage(injectedApis?: AppApis) {
   } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.org.dataSource(),
-    queryFn: (a) => a.dataSourceApi.getStatus(),
+    queryFn: (a) => a.orgApi.dataSource.getStatus(),
   })
 
   const phase: DataSourceWizardPhase =
@@ -50,7 +50,7 @@ export function useDataSourcePage(injectedApis?: AppApis) {
     setCompletedSteps([0, 1, 2])
     setUserPhase('connected')
     try {
-      const result = await apis.dataSourceApi.import()
+      const result = await apis.orgApi.dataSource.import()
       const successMsg = `导入完成：${result.successMembers} 名成员，${result.successDepartments} 个部门`
       if (result.failures.length === 0) {
         toast.success(successMsg)
@@ -87,9 +87,9 @@ export function useDataSourcePage(injectedApis?: AppApis) {
     loading: phase === 'loading' && loading,
     error,
     refresh,
-    dataSourceApi: apis.dataSourceApi,
-    syncApi: apis.syncApi,
-    memberApi: apis.memberApi,
+    dataSourceApi: apis.orgApi.dataSource,
+    syncApi: apis.orgApi.sync,
+    memberApi: apis.orgApi.members,
     handlePlatformSelected,
     completeStep,
     handleWizardComplete,

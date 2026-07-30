@@ -36,7 +36,7 @@ export function useStructurePage(injectedApis?: AppApis) {
   } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.org.departmentTree(),
-    queryFn: (api) => api.departmentApi.getTree(),
+    queryFn: (api) => api.orgApi.departments.getTree(),
   })
 
   const memberQueryParams = useMemo(
@@ -59,7 +59,7 @@ export function useStructurePage(injectedApis?: AppApis) {
   } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.org.members(memberQueryParams),
-    queryFn: (api) => api.memberApi.list(memberQueryParams),
+    queryFn: (api) => api.orgApi.members.list(memberQueryParams),
     placeholderData: keepPreviousData,
   })
 
@@ -110,12 +110,12 @@ export function useStructurePage(injectedApis?: AppApis) {
     try {
       if (editingMember) {
         // Sequential: update user fields first, then member fields.
-        await apis.memberApi.updateUser(editingMember.id, {
+        await apis.orgApi.members.updateUser(editingMember.id, {
           name: data.name,
           phone: data.phone,
           email: data.email,
         })
-        await apis.memberApi.update(editingMember.id, {
+        await apis.orgApi.members.update(editingMember.id, {
           alias: data.alias,
           departmentId: data.departmentId,
           employeeId: data.employeeId,
@@ -124,7 +124,7 @@ export function useStructurePage(injectedApis?: AppApis) {
         })
         toast.success(`成员「${data.name}」已更新`)
       } else {
-        await apis.memberApi.create({
+        await apis.orgApi.members.create({
           user: { name: data.name, phone: data.phone, email: data.email },
           member: {
             alias: data.alias || undefined,
@@ -160,7 +160,7 @@ export function useStructurePage(injectedApis?: AppApis) {
           : `确定启用选中的 ${ids.length} 名成员？`,
       variant: status === 'disabled' ? 'danger' : 'primary',
       onConfirm: async () => {
-        await apis.memberApi.updateStatus(ids, status)
+        await apis.orgApi.members.updateStatus(ids, status)
         setRowSelection({})
         setConfirmState((state) => ({ ...state, open: false }))
         await invalidateOrg()
@@ -176,7 +176,7 @@ export function useStructurePage(injectedApis?: AppApis) {
       variant: 'danger',
       onConfirm: async () => {
         try {
-          await apis.memberApi.delete(ids)
+          await apis.orgApi.members.delete(ids)
           setRowSelection({})
           setConfirmState((state) => ({ ...state, open: false }))
           toast.success(`已删除 ${ids.length} 名成员`)
@@ -197,7 +197,7 @@ export function useStructurePage(injectedApis?: AppApis) {
 
   const handleBatchTransfer = async () => {
     if (!transferDeptId || selectedIds.length === 0) return
-    await apis.memberApi.transferDepartment(selectedIds, transferDeptId)
+    await apis.orgApi.members.transferDepartment(selectedIds, transferDeptId)
     setTransferOpen(false)
     setTransferDeptId('')
     setRowSelection({})
@@ -217,7 +217,7 @@ export function useStructurePage(injectedApis?: AppApis) {
   const createDept = useCallback(
     async (name: string, parentId: string) => {
       try {
-        await apis.departmentApi.create({ name, parentId })
+        await apis.orgApi.departments.create({ name, parentId })
         toast.success(`部门「${name}」创建成功`)
         await invalidateOrg()
       } catch (err) {
@@ -231,7 +231,7 @@ export function useStructurePage(injectedApis?: AppApis) {
   const updateDept = useCallback(
     async (id: string, name: string) => {
       try {
-        await apis.departmentApi.update(id, { name })
+        await apis.orgApi.departments.update(id, { name })
         toast.success(`部门已更新为「${name}」`)
         await invalidateOrg()
       } catch (err) {
@@ -245,7 +245,7 @@ export function useStructurePage(injectedApis?: AppApis) {
   const deleteDept = useCallback(
     async (id: string) => {
       try {
-        await apis.departmentApi.delete(id)
+        await apis.orgApi.departments.delete(id)
         toast.success('部门已删除')
         if (selectedDept?.id === id) {
           setSelectedDept(undefined)

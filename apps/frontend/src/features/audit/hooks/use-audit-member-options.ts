@@ -5,7 +5,8 @@ export function useAuditMemberOptions(injectedApis?: AppApis) {
   const { data: members = [], loading } = useInjectedQuery({
     injectedApis,
     queryKey: queryKeys.audit.members(),
-    queryFn: (apis) => apis.memberApi.list({ page: 1, pageSize: 100 }).then((res) => res.items),
+    queryFn: (apis) =>
+      apis.orgApi.members.list({ page: 1, pageSize: 100 }).then((res) => res.items),
   })
 
   return { members, loading }

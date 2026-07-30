@@ -8,11 +8,15 @@ describe('usePlatformKeysPage', () => {
   it('loads platform keys on mount with member scope', async () => {
     const items = [{ id: 'pk-1', name: 'Admin Key', status: 'active', scope: 'member' }]
     const apis = createMockApis({
-      departmentApi: {
-        getTree: vi.fn().mockResolvedValue([]),
+      orgApi: {
+        departments: {
+          getTree: vi.fn().mockResolvedValue([]),
+        },
       },
-      platformKeyApi: {
-        list: vi.fn().mockResolvedValue({ items, total: 1 }),
+      keysApi: {
+        platform: {
+          list: vi.fn().mockResolvedValue({ items, total: 1 }),
+        },
       },
     })
 
@@ -23,8 +27,8 @@ describe('usePlatformKeysPage', () => {
       expect(result.current.keys).toEqual(items)
     })
 
-    expect(apis.departmentApi.getTree).toHaveBeenCalled()
-    expect(apis.platformKeyApi.list).toHaveBeenCalledWith({
+    expect(apis.orgApi.departments.getTree).toHaveBeenCalled()
+    expect(apis.keysApi.platform.list).toHaveBeenCalledWith({
       departmentId: undefined,
       scope: 'member',
     })
@@ -36,14 +40,18 @@ describe('usePlatformKeysPage', () => {
       { id: 'pk-2', name: 'PM Key', status: 'active', scope: 'project_member' },
     ]
     const apis = createMockApis({
-      departmentApi: {
-        getTree: vi.fn().mockResolvedValue([]),
+      orgApi: {
+        departments: {
+          getTree: vi.fn().mockResolvedValue([]),
+        },
       },
-      platformKeyApi: {
-        list: vi
-          .fn()
-          .mockResolvedValueOnce({ items: memberItems, total: 1 })
-          .mockResolvedValueOnce({ items: projectMemberItems, total: 1 }),
+      keysApi: {
+        platform: {
+          list: vi
+            .fn()
+            .mockResolvedValueOnce({ items: memberItems, total: 1 })
+            .mockResolvedValueOnce({ items: projectMemberItems, total: 1 }),
+        },
       },
     })
 
@@ -57,7 +65,7 @@ describe('usePlatformKeysPage', () => {
     await waitFor(() => {
       expect(result.current.keys).toEqual(projectMemberItems)
     })
-    expect(apis.platformKeyApi.list).toHaveBeenLastCalledWith({
+    expect(apis.keysApi.platform.list).toHaveBeenLastCalledWith({
       departmentId: undefined,
       scope: 'project_member',
     })
@@ -65,11 +73,15 @@ describe('usePlatformKeysPage', () => {
 
   it('opens create workflow with active tab scope', async () => {
     const apis = createMockApis({
-      departmentApi: {
-        getTree: vi.fn().mockResolvedValue([]),
+      orgApi: {
+        departments: {
+          getTree: vi.fn().mockResolvedValue([]),
+        },
       },
-      platformKeyApi: {
-        list: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+      keysApi: {
+        platform: {
+          list: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+        },
       },
     })
 
@@ -93,11 +105,15 @@ describe('usePlatformKeysPage', () => {
       { id: 'pk-2', name: 'Deleted Key', status: 'deleted', scope: 'member' },
     ]
     const apis = createMockApis({
-      departmentApi: {
-        getTree: vi.fn().mockResolvedValue([]),
+      orgApi: {
+        departments: {
+          getTree: vi.fn().mockResolvedValue([]),
+        },
       },
-      platformKeyApi: {
-        list: vi.fn().mockResolvedValue({ items, total: 2 }),
+      keysApi: {
+        platform: {
+          list: vi.fn().mockResolvedValue({ items, total: 2 }),
+        },
       },
     })
 

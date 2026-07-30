@@ -28,7 +28,7 @@ export function ModelPickerWorkflow({
   const [pickedIds, setPickedIds] = useState<string[]>(() => [...selectedModelIds])
 
   useEffect(() => {
-    apis.modelApi.list().then((list) => {
+    apis.modelsApi.list().then((list) => {
       let enabled = list.filter((m) => m.active)
       if (parentAllowedModelIds?.length) {
         const allowed = new Set(parentAllowedModelIds)

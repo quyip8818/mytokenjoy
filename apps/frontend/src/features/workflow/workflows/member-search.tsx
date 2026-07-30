@@ -31,7 +31,7 @@ export function MemberSearchWorkflow({
     if (!keyword.trim()) return
     setLoading(true)
     try {
-      const res = await apis.memberApi.list({ page: 1, pageSize: 30, keyword: keyword.trim() })
+      const res = await apis.orgApi.members.list({ page: 1, pageSize: 30, keyword: keyword.trim() })
       setResults(res.items.filter((m) => !excludeIds.includes(m.id)))
     } catch {
       setResults([])

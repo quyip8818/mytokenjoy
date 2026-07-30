@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { useInjectedApis } from '@/api/use-apis'
 import { useInjectedQuery } from '@/features/query/use-injected-query'
-import type { PlatformModel } from '@/api/platform'
+import type { PlatformModel } from '@/api/types'
 import { platformKeys } from '../query-keys'
 
 export function usePlatformModelsPage() {
