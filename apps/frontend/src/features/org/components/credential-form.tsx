@@ -191,9 +191,7 @@ export function CredentialForm({
             </div>
             <div>
               <Label className="mb-1">App Secret</Label>
-              <PasswordInput
-                {...register('appSecret', { required: '请输入 App Secret' })}
-              />
+              <PasswordInput {...register('appSecret', { required: '请输入 App Secret' })} />
               {errors.appSecret && (
                 <p className="text-destructive text-xs mt-1">{errors.appSecret.message}</p>
               )}

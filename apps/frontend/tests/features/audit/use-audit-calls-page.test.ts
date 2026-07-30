@@ -20,9 +20,7 @@ describe('useAuditCallsPage', () => {
       },
       orgApi: {
         members: {
-          list: vi
-            .fn()
-            .mockResolvedValue(createPaginatedResponse(mockMembers, { pageSize: 100 })),
+          list: vi.fn().mockResolvedValue(createPaginatedResponse(mockMembers, { pageSize: 100 })),
         },
       },
     })

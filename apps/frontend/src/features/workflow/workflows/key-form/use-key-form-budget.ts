@@ -55,20 +55,21 @@ export function useKeyFormBudget({
   useEffect(() => {
     if (!isCreate || scope !== 'project' || !projectId) return
     let cancelled = false
-    void Promise.all([apis.budgetApi.getProjects(), apis.keysApi.platform.list({ projectId })]).then(
-      ([groups, keysRes]) => {
-        if (cancelled) return
-        const group = groups.find((g) => g.id === projectId)
-        if (!group) {
-          setProjectBudgetRemaining(null)
-          return
-        }
-        const allocated = keysRes.items
-          .filter((k) => k.status === 'active')
-          .reduce((sum, k) => sum + k.budget, 0)
-        setProjectBudgetRemaining(Math.max(0, group.budget - group.consumed - allocated))
-      },
-    )
+    void Promise.all([
+      apis.budgetApi.getProjects(),
+      apis.keysApi.platform.list({ projectId }),
+    ]).then(([groups, keysRes]) => {
+      if (cancelled) return
+      const group = groups.find((g) => g.id === projectId)
+      if (!group) {
+        setProjectBudgetRemaining(null)
+        return
+      }
+      const allocated = keysRes.items
+        .filter((k) => k.status === 'active')
+        .reduce((sum, k) => sum + k.budget, 0)
+      setProjectBudgetRemaining(Math.max(0, group.budget - group.consumed - allocated))
+    })
     return () => {
       cancelled = true
     }
@@ -79,7 +80,11 @@ export function useKeyFormBudget({
     let cancelled = false
     void Promise.all([
       apis.budgetApi.getProjects(),
-      apis.keysApi.platform.list({ projectId, scope: 'project_member', memberId: effectiveMemberId }),
+      apis.keysApi.platform.list({
+        projectId,
+        scope: 'project_member',
+        memberId: effectiveMemberId,
+      }),
     ]).then(([groups, keysRes]) => {
       if (cancelled) return
       const group = groups.find((g) => g.id === projectId)

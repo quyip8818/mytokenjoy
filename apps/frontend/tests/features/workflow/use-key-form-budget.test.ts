@@ -43,7 +43,13 @@ describe('useKeyFormBudget', () => {
         platform: {
           list: vi.fn().mockResolvedValue({
             items: [
-              { id: 'pk-1', status: 'active', memberId: 'm1', budget: 2000, scope: 'project_member' },
+              {
+                id: 'pk-1',
+                status: 'active',
+                memberId: 'm1',
+                budget: 2000,
+                scope: 'project_member',
+              },
             ],
             total: 1,
           }),
@@ -96,7 +102,13 @@ describe('useKeyFormBudget', () => {
           list: vi.fn().mockResolvedValue({
             items: [
               { id: 'pk-1', status: 'active', budget: 2000, scope: 'project' },
-              { id: 'pk-2', status: 'active', memberId: 'm1', budget: 1500, scope: 'project_member' },
+              {
+                id: 'pk-2',
+                status: 'active',
+                memberId: 'm1',
+                budget: 1500,
+                scope: 'project_member',
+              },
               { id: 'pk-3', status: 'disabled', budget: 999, scope: 'project_member' },
             ],
             total: 3,
