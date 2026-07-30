@@ -12,3 +12,9 @@ export const platformCompaniesRoute = createRoute({
   path: '/platform/companies',
   component: lazyRouteComponent(() => import('@/routes/platform/companies')),
 })
+
+export const platformCurrenciesRoute = createRoute({
+  getParentRoute: () => authLayoutRoute,
+  path: '/platform/currencies',
+  component: lazyRouteComponent(() => import('@/routes/platform/currencies')),
+})

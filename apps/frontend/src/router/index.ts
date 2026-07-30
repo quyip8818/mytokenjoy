@@ -13,7 +13,7 @@ import { orgDataSourceRoute, orgStructureRoute, orgRolesRoute } from './routes/o
 import { auditOperationsRoute, auditCallsRoute } from './routes/audit'
 import { meKeysRoute, meUsageRoute, meSettingsRoute } from './routes/me'
 import { notificationsRoute } from './routes/notifications'
-import { platformModelsRoute, platformCompaniesRoute } from './routes/platform'
+import { platformModelsRoute, platformCompaniesRoute, platformCurrenciesRoute } from './routes/platform'
 
 const routeTree = rootRoute.addChildren([
   // Public routes
@@ -44,6 +44,7 @@ const routeTree = rootRoute.addChildren([
     notificationsRoute,
     platformModelsRoute,
     platformCompaniesRoute,
+    platformCurrenciesRoute,
   ]),
 ])
 
