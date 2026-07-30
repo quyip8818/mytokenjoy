@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/config"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
@@ -55,7 +54,7 @@ func TestGetWalletReturnsBalance(t *testing.T) {
 
 func TestGetWalletWithoutRechargeReturnsZero(t *testing.T) {
 	t.Parallel()
-	_, st := testutil.NewTestStore(t, testutil.WithBootstrapMode(config.BootstrapMinimal))
+	_, st := testutil.NewFreshTestStore(t)
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	svc := domainbilling.NewService(st, reader, nil)
 	ctx := testutil.Ctx()

@@ -21,8 +21,6 @@ type HTTPConfig struct {
 
 // DeployConfig holds deployment and environment settings.
 type DeployConfig struct {
-	BootstrapMode  string `env:"BOOTSTRAP_MODE" envDefault:"none"`
-	Seed           string `env:"SEED" envDefault:"full"`
 	SecureCookie   bool   `env:"SECURE_COOKIE" envDefault:"false"`
 	ClockAnchor    string `env:"CLOCK_ANCHOR"`
 	DeployEnv      string `env:"DEPLOY_ENV" envDefault:"local"`
@@ -185,7 +183,6 @@ func Load() (Config, error) {
 	if err := env.Parse(&cfg); err != nil {
 		return Config{}, fmt.Errorf("parse config: %w", err)
 	}
-	cfg.BootstrapMode = strings.ToLower(strings.TrimSpace(cfg.BootstrapMode))
 	cfg.DeployEnv = strings.ToLower(strings.TrimSpace(cfg.DeployEnv))
 	if err := cfg.normalize(); err != nil {
 		return Config{}, err

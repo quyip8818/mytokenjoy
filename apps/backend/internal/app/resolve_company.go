@@ -19,14 +19,10 @@ var DemoCompanyID = contract.DefaultCompanyID
 const setupCompanyIDKey = "setup_company_id"
 
 // ResolveCompanyID determines the company ID at startup.
-//   - SaaS mode → fixed DemoCompanyID (no setup needed)
-//   - Local + bootstrap mode (demo/prod/minimal) → fixed DemoCompanyID (seed will create it)
-//   - Local + none → read from system_settings; uuid.Nil means not yet initialized
+//   - SaaS mode → fixed DemoCompanyID (platform manages companies)
+//   - Local mode → read from system_settings; uuid.Nil means not yet initialized (triggers setup)
 func ResolveCompanyID(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) (uuid.UUID, error) {
 	if cfg.SupportSaas {
-		return DemoCompanyID, nil
-	}
-	if cfg.BootstrapNeedsSeed() {
 		return DemoCompanyID, nil
 	}
 	return readSetupCompanyID(ctx, pool)

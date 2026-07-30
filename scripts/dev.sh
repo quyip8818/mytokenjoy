@@ -51,7 +51,7 @@ commands:
   start saas         Start SaaS mode (PG:5510 Backend:8010 Frontend:9191)
   start all          Start both SaaS and Local in parallel
   start sms          Start sms backend + frontend
-  reset [mode]       Reset apps: pnpm reset [local|saas] [--empty|--minimal|--full]
+  reset [mode]       Reset apps: pnpm reset [local|saas]
   reset sms          Reset sms databases and seed
   reset all          Reset both apps and sms
   infra [sub]        Manage docker infra

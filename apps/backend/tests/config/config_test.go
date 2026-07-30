@@ -182,19 +182,6 @@ func TestGatewayRequiresNewAPIEnabled(t *testing.T) {
 	}
 }
 
-func TestInvalidBootstrapModeFails(t *testing.T) {
-	testutil.ApplyLocalEnv(t)
-	t.Setenv("BOOTSTRAP_MODE", "invalid")
-
-	_, err := config.Load()
-	if err == nil {
-		t.Fatal("expected error for invalid bootstrap mode")
-	}
-	if !strings.Contains(err.Error(), "BOOTSTRAP_MODE") {
-		t.Fatalf("expected BOOTSTRAP_MODE error, got %v", err)
-	}
-}
-
 func TestInvalidDeployEnvFails(t *testing.T) {
 	testutil.ApplyLocalEnv(t)
 	t.Setenv("DEPLOY_ENV", "invalid")
@@ -285,19 +272,6 @@ func TestProductionRejectsClockAnchor(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "CLOCK_ANCHOR") {
 		t.Fatalf("expected CLOCK_ANCHOR error, got %v", err)
-	}
-}
-
-func TestProductionRejectsDemoBootstrap(t *testing.T) {
-	testutil.ApplyProductionEnv(t)
-	t.Setenv("BOOTSTRAP_MODE", config.BootstrapDemo)
-
-	_, err := config.Load()
-	if err == nil {
-		t.Fatal("expected error when production uses demo bootstrap")
-	}
-	if !strings.Contains(err.Error(), "BOOTSTRAP_MODE") {
-		t.Fatalf("expected BOOTSTRAP_MODE error, got %v", err)
 	}
 }
 

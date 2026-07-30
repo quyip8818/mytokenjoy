@@ -23,7 +23,6 @@ func ApplyProductionEnv(t *testing.T) {
 	t.Helper()
 	ApplyLocalEnv(t)
 	t.Setenv("DEPLOY_ENV", config.DeployEnvProduction)
-	t.Setenv("BOOTSTRAP_MODE", config.BootstrapNone)
 	t.Setenv("SECURE_COOKIE", "true")
 	t.Setenv("NEW_API_GATEWAY_ENABLED", "true")
 	t.Setenv("LOG_DATABASE_URL", "postgres://tokenjoy:tokenjoy@127.0.0.1:5530/logs?sslmode=disable")

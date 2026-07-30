@@ -27,12 +27,7 @@ func ApplyUsageLedger(ctx context.Context, st store.Store, cfg config.Config) er
 	if err := ensureSeedLot(ctx, st); err != nil {
 		return fmt.Errorf("ensure seed lot: %w", err)
 	}
-	var snap store.Snapshot
-	if cfg.BootstrapIsMinimal() {
-		snap = snapshot.BuildMinimal(cfg)
-	} else {
-		snap = snapshot.Build(cfg)
-	}
+	snap := snapshot.Build(cfg)
 	for _, entry := range snap.UsageLedger {
 		if _, err := st.Ledger().InsertOnConflict(ctx, entry); err != nil {
 			return fmt.Errorf("seed usage ledger %s: %w", entry.ID, err)

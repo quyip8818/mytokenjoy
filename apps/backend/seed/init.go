@@ -17,33 +17,23 @@ import (
 //
 // Sequence:
 //  1. bootstrap.ApplyBootstrap — currencies, companies, permissions, roles, org (idempotent)
-//  2. if demo/minimal + empty DB → apply demo/minimal snapshot data
+//  2. SaaS mode + empty DB → apply demo snapshot data
+//
+// Local mode: bootstrap only (company created by setup flow, no demo data).
 func Init(ctx context.Context, pool *pgxpool.Pool, st store.Store, cfg config.Config) error {
-	if cfg.BootstrapIsNone() {
-		// none mode: no initialization. Error out if DB is empty.
-		empty, err := isDatabaseEmpty(ctx, pool)
-		if err != nil {
-			return err
-		}
-		if empty {
-			return fmt.Errorf("database empty: set BOOTSTRAP_MODE=prod|minimal|demo or run migrations externally")
-		}
-		return nil
-	}
-
 	// Load bootstrap config from file or defaults.
 	bsCfg, err := bootstrap.LoadConfig(os.Getenv("BOOTSTRAP_CONFIG_PATH"))
 	if err != nil {
 		return fmt.Errorf("seed init: %w", err)
 	}
 
-	// 1. Always apply bootstrap (idempotent).
+	// 1. Always apply bootstrap (idempotent): currencies, permissions, roles, org, models.
 	if err := bootstrap.ApplyBootstrap(ctx, pool, cfg, bsCfg); err != nil {
 		return fmt.Errorf("seed init: %w", err)
 	}
 
-	// 2. Conditionally apply seed data on empty DB.
-	if cfg.BootstrapIsMinimal() || cfg.BootstrapIsDemo() {
+	// 2. SaaS mode: seed demo data on first boot (empty DB).
+	if cfg.SupportSaas {
 		empty, err := isDatabaseEmpty(ctx, pool)
 		if err != nil {
 			return err
@@ -65,27 +55,15 @@ func applySeedData(ctx context.Context, pool *pgxpool.Pool, st store.Store, cfg 
 	}
 	defer tx.Rollback(ctx)
 
-	var snap store.Snapshot
-	switch {
-	case cfg.SeedIsEmpty():
-		snap = LoadEmpty(cfg)
-	case cfg.SeedIsMinimal() || cfg.BootstrapIsMinimal():
-		snap = LoadMinimal(cfg)
-	default:
-		snap = Load(cfg)
-	}
-
+	snap := Load(cfg)
 	if err := ApplyTables(ctx, tx, snap); err != nil {
 		return err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit seed tx: %w", err)
 	}
-	// Runtime demo data (usage ledger projections etc.) only for full seed.
-	if cfg.BootstrapIsDemo() && cfg.SeedIsFull() {
-		return runtime.ApplyDemo(ctx, st, cfg)
-	}
-	return nil
+	// Runtime demo data (usage ledger projections etc.)
+	return runtime.ApplyDemo(ctx, st, cfg)
 }
 
 func isDatabaseEmpty(ctx context.Context, pool *pgxpool.Pool) (bool, error) {

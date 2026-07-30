@@ -14,8 +14,8 @@ import (
 )
 
 func insertRootOrg(ctx context.Context, exec TableWriter, companyID uuid.UUID, appCfg config.Config, cfg Config) error {
-	// Demo/minimal modes provide their own full org tree via snapshot — skip bootstrap root.
-	if appCfg.BootstrapIsDemo() || appCfg.BootstrapIsMinimal() {
+	// SaaS mode provides its own full org tree via snapshot — skip bootstrap root.
+	if appCfg.SupportSaas {
 		return nil
 	}
 
@@ -29,8 +29,8 @@ func insertRootOrg(ctx context.Context, exec TableWriter, companyID uuid.UUID, a
 		return fmt.Errorf("insert root org node: %w", err)
 	}
 
-	// Only create admin in prod mode.
-	if appCfg.BootstrapIsProd() && cfg.Admin.Email != "" {
+	// Create admin member if credentials are configured (non-SaaS production deploy).
+	if cfg.Admin.Email != "" {
 		if err := insertAdminMember(ctx, exec, companyID, rootID, cfg); err != nil {
 			return err
 		}

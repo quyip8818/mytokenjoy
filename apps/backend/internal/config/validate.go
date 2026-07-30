@@ -42,9 +42,6 @@ func (c Config) validateCore() error {
 }
 
 func (c Config) validateDeploy() error {
-	if err := validateBootstrapMode(c.BootstrapMode); err != nil {
-		return err
-	}
 	if err := validateDeployEnv(c.DeployEnv); err != nil {
 		return err
 	}

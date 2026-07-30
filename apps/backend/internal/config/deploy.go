@@ -36,9 +36,6 @@ func (c Config) Clock() clock.Clock {
 }
 
 func (c Config) validateProductionContract() error {
-	if !c.BootstrapIsNone() {
-		return fmt.Errorf("BOOTSTRAP_MODE must be none in production")
-	}
 	if !c.SecureCookie {
 		return fmt.Errorf("SECURE_COOKIE must be true in production")
 	}

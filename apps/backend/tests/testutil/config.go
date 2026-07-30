@@ -39,12 +39,6 @@ func WithNewAPIBaseURL(baseURL string) ConfigOption {
 	}
 }
 
-func WithBootstrapMode(mode string) ConfigOption {
-	return func(cfg *config.Config) {
-		cfg.BootstrapMode = mode
-	}
-}
-
 func WithClockAnchor(date string) ConfigOption {
 	return func(cfg *config.Config) {
 		cfg.ClockAnchor = date
@@ -66,7 +60,6 @@ func WithSecureCookie(enabled bool) ConfigOption {
 func WithProductionContract() ConfigOption {
 	return func(cfg *config.Config) {
 		WithDeployEnv(config.DeployEnvProduction)(cfg)
-		WithBootstrapMode(config.BootstrapNone)(cfg)
 		WithSecureCookie(true)(cfg)
 		WithNewAPIEnabled(true)(cfg)
 		cfg.GatewayEnabled = true
@@ -124,7 +117,6 @@ func TestConfig(opts ...ConfigOption) config.Config {
 	cfg := config.Config{
 		DeployConfig: config.DeployConfig{
 			DeployEnv:     config.DeployEnvLocal,
-			BootstrapMode: config.BootstrapNone,
 			ClockAnchor:   defaultClockAnchor,
 			SimulateDelay: false,
 		},

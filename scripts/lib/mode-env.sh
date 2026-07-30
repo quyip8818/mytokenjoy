@@ -54,7 +54,6 @@ export LOG_DATABASE_URL="postgres://tokenjoy:tokenjoy@127.0.0.1:${PG_PORT}/logs?
 export PORT="${BACKEND_PORT}"
 export CORS_ORIGINS="http://localhost:${FRONTEND_PORT},http://localhost:${WEB_PORT}"
 export DEPLOY_ENV=local
-export BOOTSTRAP_MODE=demo
 export SUPPORT_SAAS
 export CLOCK_ANCHOR=2026-06-19
 export SECURE_COOKIE=false

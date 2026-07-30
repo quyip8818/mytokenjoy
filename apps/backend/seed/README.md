@@ -1,6 +1,7 @@
-# Seed（`BOOTSTRAP_MODE=demo` / `minimal`）
+# Seed（SaaS 模式 demo 数据）
 
-Demo / minimal 引导数据，**不**包含生产运行时逻辑。空库按 `BOOTSTRAP_MODE` 写入；非空库不覆盖。
+SaaS 模式启动时写入 demo 数据（空库首次引导），**不**包含生产运行时逻辑。非空库不覆盖。
+Local 模式不写入 demo 数据（通过 setup 流程创建企业）。
 
 | 目录        | 职责                                   |
 | ----------- | -------------------------------------- |

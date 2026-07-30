@@ -48,16 +48,16 @@ func templateStoreConfig(mode TestMode) config.Config {
 	case ModeSaaS:
 		cfg := TestConfig(
 			WithSupportSaas(true),
-			WithBootstrapMode(config.BootstrapDemo),
 			WithPlatformBootstrap("admin@tokenjoy.me", "admin1234"),
 			WithIngestEnabled(true),
 		)
 		cfg.StoreBootstrap.TestPartitionMonths = 12
 		return cfg
 	default: // ModeLocal
+		// ponytail: local template still seeds demo data (SupportSaas=true for template only)
+		// so tests have data to work with. Individual tests override SupportSaas as needed.
 		cfg := TestConfig(
-			WithSupportSaas(false),
-			WithBootstrapMode(config.BootstrapDemo),
+			WithSupportSaas(true),
 			WithIngestEnabled(true),
 		)
 		cfg.StoreBootstrap.TestPartitionMonths = 12
