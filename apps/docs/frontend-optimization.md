@@ -153,7 +153,7 @@ export const router = createRouter({
 
 ---
 
-## 四、权限模型缺少数据范围层（低优先级，需观察）
+## 四、权限模型缺少数据范围层（不需要做）
 
 ### 现状
 
@@ -161,29 +161,21 @@ export const router = createRouter({
 - **路由级**：`config/routes.ts` 声明 `requiredPermissions`，未授权路由直接不渲染/redirect
 - **组件级**：`<PermissionGate permission={...}>` 隐藏 UI 元素
 
-两者都是 **UI 可见性控制**。数据范围完全依赖后端 API 的返回范围（如 `memberId` 筛选）。
+两者都是 **UI 可见性控制**。数据范围完全依赖后端 API 的返回范围（后端 session middleware 用 `CompanyID` + `MemberID` 过滤）。
 
-### 当前是否够用？
+### 结论：当前阶段不需要做
 
-对于本系统（企业内部 LLM API 管控台），当前模型**暂时够用**：
-- 大部分列表是"管理员看全部"或"成员看自己"——后端按 session 中的身份返回对应范围
-- 没有"A 部门主管只能看本部门数据"的细粒度场景（或有但完全由后端处理）
+经详细分析：
+1. **后端已做好隔离**：`RequireSession` middleware 从 token 提取 `CompanyID` + `MemberID`，所有查询自动限定范围。前端不需要二次过滤。
+2. **唯一的 row-level 判断**：`project-detail.tsx` 用 `project.ownerId === memberId` 控制删除按钮——这是 UI 逻辑不是权限逻辑，不需要额外框架。
+3. **没有混合可见性的列表**：当前所有列表要么全部可操作（管理员），要么全部只读（成员看自己的）。不存在"部分行可编辑"的需求。
+4. **`readOnly` session flag** 已处理只读角色——`usePermissions().canWrite` 全局禁写。
 
-### 何时会痛
-
-如果出现以下需求，前端需要加数据范围感知：
-- 列表中混合展示"可操作"和"只读"行（需要 row-level permission badge）
-- 前端缓存了全量数据 + 客户端过滤（当前未做，都是服务端过滤）
-- 需要 optimistic update 但只针对有权限的行
-
-### 建议
-
-- 短期：保持现状。前端**不**做数据过滤，相信后端返回范围。在 API 层文档化这个约定。
-- 长期：如需行级权限展示，在 `api/types` 中让后端返回 `canEdit` / `canDelete` 字段（row-level capability），前端按此渲染操作按钮。不在前端做权限计算。
+**何时需要重新评估**：出现"部门主管看本部门+下级部门数据"的前端需求时。目前后端已支持这种过滤，前端无需改动。
 
 ---
 
-## 五、跨 Feature 通信健康度评估（低优先级）
+## 五、跨 Feature 通信健康度评估（不需要做）
 
 ### 现状
 
@@ -192,52 +184,35 @@ Feature 间通信有 3 种模式：
 2. **`apiEvents` 事件总线** → 仅 API 生命周期事件（unauthorized/forbidden/authzRevision），feature 不直接使用
 3. **Barrel import** → 引用其他 feature 导出的纯工具/常量/类型（不含状态）
 
-### 评估
+### 结论：不需要做
 
-这个模式**很健康**：
-- 没有 feature-to-feature 的状态共享或事件广播
-- 数据同步全靠 TanStack Query 的 invalidation（声明式、可追踪）
-- Workflow 是唯一的"协调者"角色，但其耦合是通过 callback + query key 实现，不是硬依赖
+经详细分析跨 feature 依赖图：
+- **workflow → models/org/keys/dashboard**：仅引用 labels、util 函数、类型。纯数据依赖，无状态耦合。
+- **dashboard → budget**：仅引用 `findBudgetNode`、`getBudgetProgressClass` 等纯函数。
+- **account → auth**：仅引用 `useVerifyCountdown`（一个独立 timer hook）。
+- **account → notifications**：引用 `useNotificationsPage`、`NotificationsPageShell`（settings 页面内嵌通知设置 tab）。
 
-### 唯一注意点
+所有跨 feature 引用都是：
+- 纯函数/常量/类型（无状态泄漏）
+- 通过 barrel 导入（不违反封装）
+- 单向依赖（无循环）
 
-`useWorkflowRefresh` 的 `invalidateKeys` 参数由调用方传入（如 `queryKeys.keys.all`）。这意味着"workflow 完成后刷新哪些数据"的知识分散在各 feature 的 page hook 中——这是**正确的**做法（知识在消费者处），不需要集中化。
+**没有** feature-to-feature 的全局 store 共享、事件广播、或隐式耦合。TanStack Query 的 invalidation 机制是唯一的数据同步手段——声明式、可追踪、无副作用。
 
-**结论**：不需要改动。
-
----
-
-## 六、`useAsyncFetch` 应收口到 TanStack Query（低优先级）
-
-### 现状
-
-`features/budget/hooks/use-async-fetch.ts` 是一个手工 fetch hook：
-- 用 `cancelled` flag 防止 unmount 后 setState
-- 无 cache、无 dedup、无 retry
-- 本质是 TanStack Query 的退化版
-
-当前被 2 处使用：
-- `budget-edit-member-budget.tsx`（对话框内按需加载成员预算）
-- `use-member-budgets.ts`（部门成员预算列表）
-
-### 建议
-
-用 `useInjectedQuery` + `enabled` 参数替换。传入动态 key 即可实现"按需加载"语义。
-
-**工作量**：30min，影响范围小。
+**不需要引入 event bus 或其他通信机制。**
 
 ---
 
-## 优先级总结
+## 六、已完成的优化（本轮）
 
-| 优先级 | 问题 | 影响 | 工作量 |
-|--------|------|------|--------|
-| **高** | Mutation 无 isPending 锁 | 重复提交 → 脏数据 | 2h |
-| **中** | API 不支持 abort/signal | 竞态 + 带宽浪费 | 30min 核心 + 渐进 |
-| **中** | 错误边界只有 layout 级 | 一个页面 crash 白屏全 app | 30min |
-| 低 | 权限无数据范围层 | 当前够用，未来可能需要 | 按需 |
-| 低 | useAsyncFetch 未收口 | 维护负担轻微 | 30min |
-| ✓ | 跨 feature 通信 | 健康，无需改动 | 0 |
+| 项目 | 状态 | Commit |
+|------|------|--------|
+| Mutation 防重复（budget/models/keys） | ✅ 已完成 | `c9ca33e9` |
+| API signal 支持（useInjectedQuery 传递 signal） | ✅ 已完成 | `c9ca33e9` |
+| 路由级错误隔离（defaultErrorComponent） | ✅ 已完成 | `c9ca33e9` |
+| useAsyncFetch 收口到 useQuery | ✅ 已完成 | `3e8d103b` |
+| 权限数据范围 | ✅ 不需要做 | — |
+| 跨 feature 通信 | ✅ 不需要做 | — |
 
 ---
 
@@ -249,14 +224,6 @@ Feature 间通信有 3 种模式：
 - **Workflow 作为单一 feature**：只有一个挂载点（auth-layout），不满足"通用基础设施需要多消费者"的分层前提。
 - **TanStack Query invalidation 机制**：已是前端数据同步的最佳实践。
 - **DI 模式（`useApis()`）**：测试可替换，AppApis 接口字段已精简到 13 个，注册成本低。
-
----
-
-## 执行建议
-
-1. **本周**：budget/models/keys 的 write 操作迁移到 `useMutation`（照搬 account 模式）+ `defaultErrorComponent`（合计 ~3h）
-2. **近期**：`request()` 接入 signal，搜索/筛选场景先用起来；`useAsyncFetch` 改为 `useInjectedQuery`
-3. **观察**：权限数据范围按需演进，跨 feature 通信保持现状
 
 ---
 
