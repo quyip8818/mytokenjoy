@@ -26,7 +26,7 @@ func EvaluateAt(pc PrecheckContext, model string, opts PrecheckOpts, now time.Ti
 	if domaincompany.IsGatewayBlocked(pc.Wallet.CompanyStatus) {
 		return fmt.Errorf("company not active")
 	}
-	if pc.Wallet.WalletRemainQuota < minWalletQuota {
+	if !opts.SkipWalletCheck && pc.Wallet.WalletRemainQuota < minWalletQuota {
 		return fmt.Errorf("insufficient company wallet")
 	}
 	if pc.Routing.KeyStatus != "active" {

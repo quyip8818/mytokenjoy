@@ -39,6 +39,7 @@ func TestRegisterLocalFirstRegistration(t *testing.T) {
 
 	body, _ := json.Marshal(map[string]string{
 		"name": "Local Corp", "industry": "tech", "size": "10-50",
+		"adminEmail": "admin@local-corp.test", "adminPassword": "secure-password-123",
 		"idempotencyKey": uuid.Must(uuid.NewV7()).String(),
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/platform/register-local", bytes.NewReader(body))
@@ -50,14 +51,22 @@ func TestRegisterLocalFirstRegistration(t *testing.T) {
 		t.Fatalf("T1: expected 201, got %d body=%s", rec.Code, rec.Body.String())
 	}
 	var result struct {
-		CompanyID string `json:"companyId"`
-		SyncToken string `json:"syncToken"`
+		CompanyID    string `json:"companyId"`
+		WalletUserID int64  `json:"walletUserId"`
+		PlatformKey  string `json:"platformKey"`
+		SyncToken    string `json:"syncToken"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&result); err != nil {
 		t.Fatal(err)
 	}
 	if result.CompanyID == "" {
 		t.Fatal("T1: companyId is empty")
+	}
+	if result.WalletUserID <= 0 {
+		t.Fatalf("T1: walletUserId should be positive, got %d", result.WalletUserID)
+	}
+	if result.PlatformKey == "" {
+		t.Fatal("T1: platformKey is empty")
 	}
 	if !strings.HasPrefix(result.SyncToken, "cst_") {
 		t.Fatalf("T1: syncToken should start with cst_, got %q", result.SyncToken)
@@ -75,7 +84,8 @@ func TestRegisterLocalReplayWithin60s(t *testing.T) {
 	idemKey := uuid.Must(uuid.NewV7()).String()
 
 	body, _ := json.Marshal(map[string]string{
-		"name": "Replay Corp", "idempotencyKey": idemKey,
+		"name": "Replay Corp", "adminEmail": "replay@test.local",
+		"adminPassword": "test-password-123", "idempotencyKey": idemKey,
 	})
 
 	// First call — should succeed
@@ -87,16 +97,17 @@ func TestRegisterLocalReplayWithin60s(t *testing.T) {
 		t.Fatalf("T3 first call: expected 201, got %d body=%s", rec.Code, rec.Body.String())
 	}
 
-	// Second call (immediate) — should 409
+	// Second call (immediate) — idempotent, returns 200 with same result
 	body, _ = json.Marshal(map[string]string{
-		"name": "Replay Corp", "idempotencyKey": idemKey,
+		"name": "Replay Corp", "adminEmail": "replay@test.local",
+		"adminPassword": "test-password-123", "idempotencyKey": idemKey,
 	})
 	req = httptest.NewRequest(http.MethodPost, "/api/platform/register-local", bytes.NewReader(body))
 	req.Header.Set("X-Registration-Secret", testRegistrationSecret)
 	rec = httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
-	if rec.Code != http.StatusConflict {
-		t.Fatalf("T3 replay: expected 409, got %d body=%s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusOK {
+		t.Fatalf("T3 replay: expected 200 (idempotent), got %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
@@ -107,7 +118,8 @@ func TestRegisterLocalBadSecret(t *testing.T) {
 	router := syncRouter(t)
 
 	body, _ := json.Marshal(map[string]string{
-		"name": "Bad Secret Corp", "idempotencyKey": "key1",
+		"name": "Bad Secret Corp", "adminEmail": "bad@test.local",
+		"adminPassword": "test-password-123", "idempotencyKey": "key1",
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/platform/register-local", bytes.NewReader(body))
 	req.Header.Set("X-Registration-Secret", "wrong-secret")
@@ -289,14 +301,23 @@ func TestCatalogPricingGlobalOnly(t *testing.T) {
 
 func registerAndGetToken(t *testing.T, router http.Handler) string {
 	t.Helper()
-	_, token := registerAndGetBoth(t, router)
-	return token
+	result := registerAndGetAll(t, router)
+	return result.SyncToken
 }
 
-func registerAndGetBoth(t *testing.T, router http.Handler) (companyID string, syncToken string) {
+type registerLocalTestResult struct {
+	CompanyID    string `json:"companyId"`
+	WalletUserID int64  `json:"walletUserId"`
+	PlatformKey  string `json:"platformKey"`
+	SyncToken    string `json:"syncToken"`
+}
+
+func registerAndGetAll(t *testing.T, router http.Handler) registerLocalTestResult {
 	t.Helper()
 	body, _ := json.Marshal(map[string]string{
 		"name":           "Test Corp " + uuid.Must(uuid.NewV7()).String()[:8],
+		"adminEmail":     "admin-" + uuid.Must(uuid.NewV7()).String()[:8] + "@test.local",
+		"adminPassword":  "test-password-123",
 		"idempotencyKey": uuid.Must(uuid.NewV7()).String(),
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/platform/register-local", bytes.NewReader(body))
@@ -304,15 +325,18 @@ func registerAndGetBoth(t *testing.T, router http.Handler) (companyID string, sy
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusCreated {
-		t.Fatalf("registerAndGetBoth: expected 201, got %d body=%s", rec.Code, rec.Body.String())
+		t.Fatalf("registerAndGetAll: expected 201, got %d body=%s", rec.Code, rec.Body.String())
 	}
-	var result struct {
-		CompanyID string `json:"companyId"`
-		SyncToken string `json:"syncToken"`
-	}
+	var result registerLocalTestResult
 	if err := json.NewDecoder(rec.Body).Decode(&result); err != nil {
 		t.Fatal(err)
 	}
+	return result
+}
+
+func registerAndGetBoth(t *testing.T, router http.Handler) (companyID string, syncToken string) {
+	t.Helper()
+	result := registerAndGetAll(t, router)
 	return result.CompanyID, result.SyncToken
 }
 

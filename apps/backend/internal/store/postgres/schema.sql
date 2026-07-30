@@ -437,7 +437,7 @@ CREATE TABLE IF NOT EXISTS usage_ledger (
     event_type       TEXT NOT NULL,
     idempotency_key  TEXT NOT NULL,
     segment_index    INT NOT NULL DEFAULT 0,
-    lot_id           UUID NOT NULL REFERENCES company_recharge_lots (id),
+    lot_id           UUID REFERENCES company_recharge_lots (id),
     quota_amount     BIGINT NOT NULL DEFAULT 0,
     cost             NUMERIC(18, 6) NOT NULL DEFAULT 0,
     billing_currency CHAR(3) NOT NULL,

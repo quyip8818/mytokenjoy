@@ -155,16 +155,17 @@ func handleSetupInit(
 			return
 		}
 
-		// 2. Register company: call SaaS or generate locally
-		companyID, syncToken, err := registerCompany(ctx, cfg, req, idempotencyKey, logger)
+		// 2. Register company: call SaaS (creates company + user/member + wallet + token)
+		reg, err := registerCompany(ctx, cfg, req, idempotencyKey, logger)
 		if err != nil {
 			logger.Error("register company", "error", err)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to register company: " + err.Error()})
 			return
 		}
+		companyID := reg.CompanyID
 
-		// 3. Persist setup state + admin user in a single transaction.
-		// If any step fails the whole thing rolls back — no half-initialized state.
+		// 3. Persist setup state in a single transaction.
+		// Admin user/member already created on SaaS; Local only stores settings + local admin user for login.
 		tx, err := pool.Begin(ctx)
 		if err != nil {
 			logger.Error("begin setup tx", "error", err)
@@ -188,15 +189,29 @@ func handleSetupInit(
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 			return
 		}
-		if syncToken != "" {
-			if err := setSystemSettingTx(ctx, tx, "catalog_sync_token", syncToken); err != nil {
+		if reg.SyncToken != "" {
+			if err := setSystemSettingTx(ctx, tx, "catalog_sync_token", reg.SyncToken); err != nil {
 				logger.Error("write catalog_sync_token", "error", err)
 				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 				return
 			}
 		}
+		if reg.PlatformKey != "" {
+			if err := setSystemSettingTx(ctx, tx, "saas_platform_key", reg.PlatformKey); err != nil {
+				logger.Error("write saas_platform_key", "error", err)
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
+				return
+			}
+		}
+		if reg.WalletUserID > 0 {
+			if err := setSystemSettingTx(ctx, tx, "saas_wallet_user_id", fmt.Sprintf("%d", reg.WalletUserID)); err != nil {
+				logger.Error("write saas_wallet_user_id", "error", err)
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
+				return
+			}
+		}
 
-		// 4. Create admin user (users table only — member/roles created by bootstrap)
+		// Create local admin user (for Local login — SaaS has its own copy).
 		if err := createAdminUserTx(ctx, tx, req); err != nil {
 			logger.Error("create admin user", "error", err)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
@@ -222,11 +237,19 @@ func handleSetupInit(
 	}
 }
 
+// registerResult holds the full response from SaaS register-local.
+type registerResult struct {
+	CompanyID    uuid.UUID
+	WalletUserID int64
+	PlatformKey  string
+	SyncToken    string
+}
+
 // registerCompany calls SaaS platform to register a selfhosted company.
-// Returns the company ID and sync token assigned by SaaS. Errors if SaaS is unreachable.
-func registerCompany(ctx context.Context, cfg config.Config, req setupInitRequest, idempotencyKey string, logger *slog.Logger) (uuid.UUID, string, error) {
+// SaaS creates company + admin user/member + NewAPI wallet user + unlimited token.
+func registerCompany(ctx context.Context, cfg config.Config, req setupInitRequest, idempotencyKey string, logger *slog.Logger) (registerResult, error) {
 	if strings.TrimSpace(cfg.SaasPlatformURL) == "" {
-		return uuid.Nil, "", fmt.Errorf("SAAS_PLATFORM_URL is required for setup (no offline mode)")
+		return registerResult{}, fmt.Errorf("SAAS_PLATFORM_URL is required for setup (no offline mode)")
 	}
 
 	// Call SaaS: POST /api/platform/register-local
@@ -234,6 +257,9 @@ func registerCompany(ctx context.Context, cfg config.Config, req setupInitReques
 		"name":           strings.TrimSpace(req.CompanyName),
 		"industry":       req.Industry,
 		"size":           req.Size,
+		"adminEmail":     strings.TrimSpace(req.AdminEmail),
+		"adminPassword":  req.AdminPassword,
+		"adminName":      strings.TrimSpace(req.AdminName),
 		"idempotencyKey": idempotencyKey,
 	}
 	payload, _ := json.Marshal(body)
@@ -241,7 +267,7 @@ func registerCompany(ctx context.Context, cfg config.Config, req setupInitReques
 	url := strings.TrimRight(cfg.SaasPlatformURL, "/") + "/api/platform/register-local"
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
 	if err != nil {
-		return uuid.Nil, "", fmt.Errorf("build request: %w", err)
+		return registerResult{}, fmt.Errorf("build request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("X-Registration-Secret", cfg.SaasRegistrationSecret)
@@ -249,31 +275,34 @@ func registerCompany(ctx context.Context, cfg config.Config, req setupInitReques
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(httpReq)
 	if err != nil {
-		return uuid.Nil, "", fmt.Errorf("cannot reach SaaS platform at %s: %w", cfg.SaasPlatformURL, err)
+		return registerResult{}, fmt.Errorf("cannot reach SaaS platform at %s: %w", cfg.SaasPlatformURL, err)
 	}
 	defer resp.Body.Close()
 
 	respBody, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode == http.StatusConflict {
-		// 409 = token recently issued, retry later
-		return uuid.Nil, "", fmt.Errorf("SaaS returned 409: token recently issued, retry after 60s")
-	}
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return uuid.Nil, "", fmt.Errorf("SaaS register-local returned %d: %s", resp.StatusCode, string(respBody))
+		return registerResult{}, fmt.Errorf("SaaS register-local returned %d: %s", resp.StatusCode, string(respBody))
 	}
 
-	var result struct {
-		CompanyID string `json:"companyId"`
-		SyncToken string `json:"syncToken"`
+	var parsed struct {
+		CompanyID    string `json:"companyId"`
+		WalletUserID int64  `json:"walletUserId"`
+		PlatformKey  string `json:"platformKey"`
+		SyncToken    string `json:"syncToken"`
 	}
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return uuid.Nil, "", fmt.Errorf("parse SaaS response: %w", err)
+	if err := json.Unmarshal(respBody, &parsed); err != nil {
+		return registerResult{}, fmt.Errorf("parse SaaS response: %w", err)
 	}
-	id, err := uuid.Parse(result.CompanyID)
+	id, err := uuid.Parse(parsed.CompanyID)
 	if err != nil {
-		return uuid.Nil, "", fmt.Errorf("parse company ID from SaaS: %w", err)
+		return registerResult{}, fmt.Errorf("parse company ID from SaaS: %w", err)
 	}
-	return id, result.SyncToken, nil
+	return registerResult{
+		CompanyID:    id,
+		WalletUserID: parsed.WalletUserID,
+		PlatformKey:  parsed.PlatformKey,
+		SyncToken:    parsed.SyncToken,
+	}, nil
 }
 
 // createAdminUserTx inserts a user row with bcrypt-hashed password within a transaction.

@@ -33,6 +33,11 @@ func (r *pgLedgerRepo) insertLedgerEntry(ctx context.Context, companyID uuid.UUI
 	if err != nil {
 		return false, err
 	}
+	// lot_id is nullable: non-platform channel entries have no lot reference.
+	var lotID any = entry.LotID
+	if entry.LotID == uuid.Nil {
+		lotID = nil
+	}
 	tag, err := r.db.Exec(ctx, `
 		INSERT INTO usage_ledger (
 			id, company_id, event_type, idempotency_key, segment_index, lot_id,
@@ -42,7 +47,7 @@ func (r *pgLedgerRepo) insertLedgerEntry(ctx context.Context, companyID uuid.UUI
 			call_detail, created_at
 		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
 		ON CONFLICT (company_id, idempotency_key, lot_id, occurred_at) DO NOTHING
-	`, entry.ID, companyID, entry.EventType, entry.IdempotencyKey, entry.SegmentIndex, entry.LotID,
+	`, entry.ID, companyID, entry.EventType, entry.IdempotencyKey, entry.SegmentIndex, lotID,
 		entry.QuotaAmount, entry.Cost, entry.BillingCurrency,
 		entry.DepartmentID, entry.MemberID, entry.ProjectID, entry.PlatformKeyID, entry.PlatformKeyScope,
 		entry.Source, entry.OccurredAt.UTC(), entry.PeriodKey, entry.Model, entry.InputTokens, entry.OutputTokens,

@@ -44,8 +44,8 @@ func InsertConsumeLog(ctx context.Context, st store.Store, raw store.RawConsumeL
 	query := fmt.Sprintf(`
 		INSERT INTO %s (
 			id, user_id, created_at, type, content, token_id, model_name, quota,
-			prompt_tokens, completion_tokens, use_time
-		) VALUES ($1, 0, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			prompt_tokens, completion_tokens, use_time, channel_id
+		) VALUES ($1, 0, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		ON CONFLICT (id) DO UPDATE SET
 			token_id = EXCLUDED.token_id,
 			quota = EXCLUDED.quota,
@@ -54,10 +54,11 @@ func InsertConsumeLog(ctx context.Context, st store.Store, raw store.RawConsumeL
 			prompt_tokens = EXCLUDED.prompt_tokens,
 			completion_tokens = EXCLUDED.completion_tokens,
 			use_time = EXCLUDED.use_time,
-			content = EXCLUDED.content
+			content = EXCLUDED.content,
+			channel_id = EXCLUDED.channel_id
 	`, tables.logs)
 	_, err := pool.Exec(ctx, query, raw.ID, raw.CreatedAt, store.NewAPILogTypeConsume, raw.Content, raw.TokenID, raw.ModelName, raw.Quota,
-		raw.PromptTokens, raw.CompletionTokens, raw.UseTime)
+		raw.PromptTokens, raw.CompletionTokens, raw.UseTime, raw.ChannelID)
 	return err
 }
 

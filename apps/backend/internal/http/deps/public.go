@@ -32,6 +32,7 @@ type Platform struct {
 	PlatformQuery  store.PlatformQueryRepository
 	Billing        store.BillingRepository
 	Companies      store.CompanyRepository // direct repo access for register-local
+	Users          store.UserRepository    // user creation for register-local
 }
 
 func (d Deps) Public() Public {
@@ -58,5 +59,6 @@ func (d Deps) Platform() Platform {
 		PlatformQuery:  d.Store.PlatformQuery(),
 		Billing:        d.Store.Billing(),
 		Companies:      d.Store.Company(),
+		Users:          d.Store.User(),
 	}
 }

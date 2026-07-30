@@ -21,6 +21,7 @@ import (
 const catalogModelsVersionKey = "catalog.models_version"
 const catalogPricingVersionKey = "catalog.pricing_version"
 const catalogCurrenciesVersionKey = "catalog.currencies_version"
+const catalogWalletLotsVersionKey = "catalog.wallet_lots_version"
 
 // CatalogVersions returns the current catalog version for sync clients.
 func (h *Handler) CatalogVersions(w http.ResponseWriter, r *http.Request) {
@@ -32,10 +33,12 @@ func (h *Handler) CatalogVersions(w http.ResponseWriter, r *http.Request) {
 	}
 	pricingV, _ := h.p.SystemSettings.Get(ctx, catalogPricingVersionKey)
 	currenciesV, _ := h.p.SystemSettings.Get(ctx, catalogCurrenciesVersionKey)
+	walletLotsV, _ := h.p.SystemSettings.Get(ctx, catalogWalletLotsVersionKey)
 	mv, _ := strconv.Atoi(modelsV)     // empty → 0
 	pv, _ := strconv.Atoi(pricingV)    // empty → 0
 	cv, _ := strconv.Atoi(currenciesV) // empty → 0
-	response.JSON(w, http.StatusOK, map[string]int{"models": mv, "pricing": pv, "currencies": cv})
+	wv, _ := strconv.Atoi(walletLotsV) // empty → 0
+	response.JSON(w, http.StatusOK, map[string]int{"models": mv, "pricing": pv, "currencies": cv, "walletLots": wv})
 }
 
 // catalogModelDTO is the public Catalog API response format.

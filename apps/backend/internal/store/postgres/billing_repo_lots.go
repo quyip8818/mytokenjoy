@@ -139,3 +139,35 @@ func (r *billingRepo) SumActiveLotsRemaining(ctx context.Context, companyID uuid
 	`, companyID, store.LotStatusActive).Scan(&total)
 	return total, err
 }
+
+// UpsertOrderFromSync inserts a recharge order from platform sync or skips if it already exists.
+func (r *billingRepo) UpsertOrderFromSync(ctx context.Context, order store.RechargeOrder) error {
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO company_recharge_orders (id, company_id, amount, currency, quota_per_unit, quota_granted, source, lot_kind, status, display_order_id, payment_method, created_by, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13)
+		ON CONFLICT (id) DO NOTHING
+	`, order.ID, order.CompanyID, order.Amount, order.Currency,
+		order.QuotaPerUnit, order.QuotaGranted, order.Source, order.LotKind,
+		order.Status, order.DisplayOrderID, order.PaymentMethod, uuid.Nil, order.CreatedAt)
+	if err != nil {
+		return fmt.Errorf("upsert order from sync: %w", err)
+	}
+	return nil
+}
+
+// UpsertLotFromSync inserts a lot from platform sync or updates quota_remaining/status if it already exists.
+func (r *billingRepo) UpsertLotFromSync(ctx context.Context, lot store.RechargeLot) error {
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO company_recharge_lots (id, company_id, recharge_order_id, billing_currency, lot_kind, paid_amount, quota_per_unit, quota_granted, quota_remaining, status, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+		ON CONFLICT (id) DO UPDATE SET
+			quota_remaining = EXCLUDED.quota_remaining,
+			status = EXCLUDED.status,
+			updated_at = NOW()
+	`, lot.ID, lot.CompanyID, lot.RechargeOrderID, lot.BillingCurrency, lot.LotKind,
+		lot.PaidAmount, lot.QuotaPerUnit, lot.QuotaGranted, lot.QuotaRemaining, lot.Status, lot.CreatedAt)
+	if err != nil {
+		return fmt.Errorf("upsert lot: %w", err)
+	}
+	return nil
+}

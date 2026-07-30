@@ -64,6 +64,15 @@ func (c *Client) FetchCurrencies(ctx context.Context) (*CatalogResponse[CatalogC
 	return &resp, nil
 }
 
+// FetchWalletLots fetches active lots + wallet balance for the company (requires sync token).
+func (c *Client) FetchWalletLots(ctx context.Context) (*CatalogLotsResponse, error) {
+	var resp CatalogLotsResponse
+	if err := c.doGet(ctx, "/api/platform/sync/catalog/wallet_lots", true, &resp); err != nil {
+		return nil, fmt.Errorf("catalog fetch wallet_lots: %w", err)
+	}
+	return &resp, nil
+}
+
 func (c *Client) doGet(ctx context.Context, path string, auth bool, out any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.url(path), nil)
 	if err != nil {

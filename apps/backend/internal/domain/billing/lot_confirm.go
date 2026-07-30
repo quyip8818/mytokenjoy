@@ -146,6 +146,9 @@ func (s *service) ConfirmPayment(ctx context.Context, orderID uuid.UUID) error {
 
 // syncWalletBestEffort overrides the NewAPI wallet to match the local SOT (best-effort, post-commit).
 func (s *service) syncWalletBestEffort(ctx context.Context, companyID uuid.UUID, newRemain int64) {
+	// Bump wallet_lots catalog version so Local sync picks up changes.
+	_, _ = s.store.SystemSettings().Increment(ctx, "catalog.wallet_lots_version")
+
 	if s.quotaSyncer == nil {
 		return
 	}

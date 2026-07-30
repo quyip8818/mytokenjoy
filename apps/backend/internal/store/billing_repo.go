@@ -114,4 +114,7 @@ type BillingRepository interface {
 	SetCurrencyEnabled(ctx context.Context, code string, enabled bool) error
 	ReplaceCurrencies(ctx context.Context, currencies []Currency) error
 	IsCurrencyReferenced(ctx context.Context, code string) (bool, error)
+	// Lot sync (for selfhosted catalog sync from SaaS)
+	UpsertOrderFromSync(ctx context.Context, order RechargeOrder) error
+	UpsertLotFromSync(ctx context.Context, lot RechargeLot) error
 }

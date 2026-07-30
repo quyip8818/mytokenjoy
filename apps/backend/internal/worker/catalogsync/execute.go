@@ -22,6 +22,7 @@ const (
 	keyModelsVersion     = "catalog.models_version"
 	keyPricingVersion    = "catalog.pricing_version"
 	keyCurrenciesVersion = "catalog.currencies_version"
+	keyWalletLotsVersion = "catalog.wallet_lots_version"
 )
 
 // Executor holds the dependencies for catalog sync.
@@ -93,6 +94,20 @@ func (e *Executor) Execute(ctx context.Context) error {
 			return fmt.Errorf("catalogsync sync currencies: %w", err)
 		}
 		slog.Info("catalogsync: currencies synced", "version", remote.Currencies)
+	}
+
+	// --- Wallet lots sync (version-gated) ---
+	localWalletLotsStr, _ := settings.Get(ctx, keyWalletLotsVersion)
+	localWalletLots, _ := strconv.Atoi(localWalletLotsStr)
+
+	if localWalletLots != remote.WalletLots {
+		if err := e.syncWalletLots(ctx); err != nil {
+			return fmt.Errorf("catalogsync sync wallet_lots: %w", err)
+		}
+		if err := settings.Set(ctx, keyWalletLotsVersion, strconv.Itoa(remote.WalletLots)); err != nil {
+			return fmt.Errorf("catalogsync set wallet_lots version: %w", err)
+		}
+		slog.Info("catalogsync: wallet_lots synced", "version", remote.WalletLots)
 	}
 
 	return nil
@@ -175,4 +190,79 @@ func (e *Executor) syncCurrencies(ctx context.Context) error {
 
 	// Use resp.Version (actual data version) rather than remote.Currencies.
 	return e.store.SystemSettings().Set(ctx, keyCurrenciesVersion, strconv.Itoa(resp.Version))
+}
+
+// syncWalletLots fetches active lots + wallet balance from SaaS and mirrors them locally.
+// ponytail: version-gated. Only fetched when SaaS wallet_lots_version changes (recharge or ingest).
+// This ensures the Local FIFO chain matches SaaS, so Local Ingest can consume lots identically.
+func (e *Executor) syncWalletLots(ctx context.Context) error {
+	resp, err := e.client.FetchWalletLots(ctx)
+	if err != nil {
+		return fmt.Errorf("catalogsync fetch wallet_lots: %w", err)
+	}
+
+	companyID := e.localCompanyID
+
+	// Upsert orders first (lots have FK to orders).
+	for _, remoteOrder := range resp.Orders {
+		orderID, err := uuid.Parse(remoteOrder.ID)
+		if err != nil {
+			slog.Warn("catalogsync: skip order with invalid ID", "id", remoteOrder.ID)
+			continue
+		}
+		order := store.RechargeOrder{
+			ID:             orderID,
+			CompanyID:      companyID,
+			Amount:         remoteOrder.Amount,
+			Currency:       remoteOrder.Currency,
+			QuotaPerUnit:   remoteOrder.QuotaPerUnit,
+			QuotaGranted:   remoteOrder.QuotaGranted,
+			Source:         remoteOrder.Source,
+			LotKind:        remoteOrder.LotKind,
+			Status:         remoteOrder.Status,
+			DisplayOrderID: remoteOrder.DisplayOrderID,
+			PaymentMethod:  remoteOrder.PaymentMethod,
+			CreatedAt:      time.Unix(remoteOrder.CreatedAt, 0),
+		}
+		if err := e.store.Billing().UpsertOrderFromSync(ctx, order); err != nil {
+			slog.Warn("catalogsync: order upsert failed", "orderId", orderID, "error", err)
+		}
+	}
+
+	// Upsert lots (referencing the synced orders).
+	for _, remoteLot := range resp.Data {
+		lotID, err := uuid.Parse(remoteLot.ID)
+		if err != nil {
+			slog.Warn("catalogsync: skip lot with invalid ID", "id", remoteLot.ID)
+			continue
+		}
+		orderID, _ := uuid.Parse(remoteLot.OrderID)
+		if orderID == uuid.Nil {
+			orderID = lotID // fallback: use lot ID (backward compat)
+		}
+		lot := store.RechargeLot{
+			ID:              lotID,
+			CompanyID:       companyID,
+			RechargeOrderID: orderID,
+			BillingCurrency: remoteLot.BillingCurrency,
+			LotKind:         remoteLot.LotKind,
+			PaidAmount:      remoteLot.PaidAmount,
+			QuotaPerUnit:    remoteLot.QuotaPerUnit,
+			QuotaGranted:    remoteLot.QuotaGranted,
+			QuotaRemaining:  remoteLot.QuotaRemaining,
+			Status:          remoteLot.Status,
+			CreatedAt:       time.Unix(remoteLot.CreatedAt, 0),
+		}
+		if err := e.store.Billing().UpsertLotFromSync(ctx, lot); err != nil {
+			slog.Warn("catalogsync: lot upsert failed", "lotId", lotID, "error", err)
+		}
+	}
+
+	// Overwrite wallet_remain_quota with SaaS authoritative value.
+	if err := e.store.Company().SetWalletRemainQuota(ctx, companyID, resp.WalletRemainQuota, nil); err != nil {
+		return fmt.Errorf("catalogsync set wallet: %w", err)
+	}
+
+	slog.Info("catalogsync: wallet_lots synced", "lots", len(resp.Data), "orders", len(resp.Orders), "walletRemainQuota", resp.WalletRemainQuota)
+	return nil
 }

@@ -130,6 +130,24 @@ func StartNewAPIMock(t *testing.T) *NewAPIMock {
 				"success": true,
 				"data":    map[string]any{"id": userID, "quota": quota},
 			})
+		case r.Method == http.MethodPost && r.URL.Path == "/api/token/":
+			var body struct {
+				UserID int64  `json:"user_id"`
+				Name   string `json:"name"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			m.mu.Lock()
+			m.nextUserID++ // reuse counter for token IDs
+			tokenID := m.nextUserID
+			m.mu.Unlock()
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"success": true,
+				"data": map[string]any{
+					"id": tokenID, "user_id": body.UserID,
+					"key":          fmt.Sprintf("sk-test-%d", tokenID),
+					"remain_quota": 0, "unlimited_quota": true,
+				},
+			})
 		default:
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"success":true}`))

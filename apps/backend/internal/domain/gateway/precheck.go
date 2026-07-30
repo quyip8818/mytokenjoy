@@ -23,6 +23,7 @@ type Prechecker interface {
 type PrecheckOpts struct {
 	SkipModelCheck     bool // /v1/models listing
 	SkipModelAllowlist bool // test model (source=="test") — not in allowlist, skip check
+	SkipWalletCheck    bool // selfhosted with non-platform channels — wallet not required
 }
 
 // BuildPrecheckOpts builds precheck options from request context.
@@ -66,6 +67,12 @@ func (p *PrecheckService) Run(ctx context.Context, keyHash string, model string,
 	}
 	if row == nil {
 		return PrecheckResult{}, fmt.Errorf("platform key not found")
+	}
+	// Selfhosted companies may have non-platform channels; skip wallet check
+	// so requests can route to self-managed channels even when wallet=0.
+	// SaaS Gateway is the backstop for platform-channel traffic.
+	if row.CompanyType == store.CompanyTypeSelfhosted {
+		opts.SkipWalletCheck = true
 	}
 	if err := EvaluateAt(PrecheckContextFromStore(row), model, opts, p.clock.Now()); err != nil {
 		return PrecheckResult{}, err

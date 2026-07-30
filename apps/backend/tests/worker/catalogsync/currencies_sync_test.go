@@ -24,7 +24,7 @@ func TestCurrenciesSyncTriggered(t *testing.T) {
 	globalCompanyID := cfg.TokenJoyCompanyID
 	localCompanyID := createTestCompany(t, st)
 
-	mockServer := currenciesMockServer(t, catalog.CatalogVersions{Models: 0, Pricing: 0, Currencies: 2}, []catalog.CatalogCurrency{
+	mockServer := currenciesMockServer(t, catalog.CatalogVersions{Models: 1, Pricing: 1, Currencies: 2}, []catalog.CatalogCurrency{
 		{Code: "CNY", QuotaPerUnit: 500000},
 		{Code: "USD", QuotaPerUnit: 3600000},
 	})
@@ -83,7 +83,7 @@ func TestCurrenciesSyncDisablesStale(t *testing.T) {
 	_ = st.Billing().UpsertCurrency(ctx, store.Currency{Code: "USD", QuotaPerUnit: 3600000, Enabled: true})
 
 	// Mock returns only CNY — USD should get disabled
-	mockServer := currenciesMockServer(t, catalog.CatalogVersions{Models: 0, Pricing: 0, Currencies: 2}, []catalog.CatalogCurrency{
+	mockServer := currenciesMockServer(t, catalog.CatalogVersions{Models: 1, Pricing: 1, Currencies: 2}, []catalog.CatalogCurrency{
 		{Code: "CNY", QuotaPerUnit: 500000},
 	})
 
@@ -127,7 +127,7 @@ func TestCurrenciesSyncSkipsWhenUpToDate(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/api/platform/sync/versions":
-			_ = json.NewEncoder(w).Encode(map[string]int{"models": 0, "pricing": 0, "currencies": 2})
+			_ = json.NewEncoder(w).Encode(map[string]int{"models": 1, "pricing": 1, "currencies": 2})
 		case "/api/platform/sync/catalog/currencies":
 			called = true
 			_ = json.NewEncoder(w).Encode(map[string]any{"version": 2, "data": []any{}})
@@ -162,6 +162,7 @@ func currenciesMockServer(t *testing.T, versions catalog.CatalogVersions, curren
 				"models":     versions.Models,
 				"pricing":    versions.Pricing,
 				"currencies": versions.Currencies,
+				"walletLots": versions.WalletLots,
 			})
 		case "/api/platform/sync/catalog/currencies":
 			_ = json.NewEncoder(w).Encode(map[string]any{

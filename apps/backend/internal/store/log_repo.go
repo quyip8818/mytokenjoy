@@ -16,6 +16,7 @@ var ErrConsumeLogNotFound = errors.New("consume log not found")
 type RawConsumeLog struct {
 	ID               int64
 	TokenID          int64
+	ChannelID        int64
 	Quota            int64
 	ModelName        string
 	CreatedAt        int64

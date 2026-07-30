@@ -30,7 +30,7 @@ func newLogRepo(db *pgxpool.Pool, tables logTables) *logRepo {
 
 func (r *logRepo) GetConsumeLogByID(ctx context.Context, logID int64) (*store.RawConsumeLog, error) {
 	query := fmt.Sprintf(`
-		SELECT id, token_id, quota, model_name, created_at, prompt_tokens, completion_tokens, use_time, content
+		SELECT id, token_id, COALESCE(channel_id, 0), quota, model_name, created_at, prompt_tokens, completion_tokens, use_time, content
 		FROM %s
 		WHERE id = $1 AND type = $2 AND token_id > 0
 	`, r.tables.logs)
@@ -38,7 +38,7 @@ func (r *logRepo) GetConsumeLogByID(ctx context.Context, logID int64) (*store.Ra
 
 	var raw store.RawConsumeLog
 	err := row.Scan(
-		&raw.ID, &raw.TokenID, &raw.Quota, &raw.ModelName, &raw.CreatedAt,
+		&raw.ID, &raw.TokenID, &raw.ChannelID, &raw.Quota, &raw.ModelName, &raw.CreatedAt,
 		&raw.PromptTokens, &raw.CompletionTokens, &raw.UseTime, &raw.Content,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -55,7 +55,7 @@ func (r *logRepo) GetConsumeLogsByIDs(ctx context.Context, logIDs []int64) ([]st
 		return nil, nil
 	}
 	query := fmt.Sprintf(`
-		SELECT id, token_id, quota, model_name, created_at, prompt_tokens, completion_tokens, use_time, content
+		SELECT id, token_id, COALESCE(channel_id, 0), quota, model_name, created_at, prompt_tokens, completion_tokens, use_time, content
 		FROM %s
 		WHERE id = ANY($1) AND type = $2 AND token_id > 0
 	`, r.tables.logs)
@@ -69,7 +69,7 @@ func (r *logRepo) GetConsumeLogsByIDs(ctx context.Context, logIDs []int64) ([]st
 	for rows.Next() {
 		var raw store.RawConsumeLog
 		if err := rows.Scan(
-			&raw.ID, &raw.TokenID, &raw.Quota, &raw.ModelName, &raw.CreatedAt,
+			&raw.ID, &raw.TokenID, &raw.ChannelID, &raw.Quota, &raw.ModelName, &raw.CreatedAt,
 			&raw.PromptTokens, &raw.CompletionTokens, &raw.UseTime, &raw.Content,
 		); err != nil {
 			return nil, err

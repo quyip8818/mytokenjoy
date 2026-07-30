@@ -27,24 +27,22 @@ func TestPricingVersionBump(t *testing.T) {
 	t.Parallel()
 	router, platformCookie, companyID := setupSaaSWithCompany(t)
 
-	// Initial: pricing version = 0
+	// Initial: pricing version = 1 (seeded)
 	v := fetchVersions(t, router)
-	if v.Pricing != 0 {
-		t.Fatalf("expected initial pricing version 0, got %d", v.Pricing)
-	}
+	initialPricing := v.Pricing
 
-	// Set global price → pricing version = 1
+	// Set global price → pricing version increments
 	setGlobalPrice(t, router, platformCookie, "test-model", 2.0, 8.0)
 	v = fetchVersions(t, router)
-	if v.Pricing != 1 {
-		t.Fatalf("expected pricing version 1 after SetGlobalPrice, got %d", v.Pricing)
+	if v.Pricing != initialPricing+1 {
+		t.Fatalf("expected pricing version %d after SetGlobalPrice, got %d", initialPricing+1, v.Pricing)
 	}
 
-	// Set contract price → pricing version = 2
+	// Set contract price → pricing version increments again
 	setContractPrice(t, router, platformCookie, companyID, "test-model", 1.0, 4.0)
 	v = fetchVersions(t, router)
-	if v.Pricing != 2 {
-		t.Fatalf("expected pricing version 2 after SetContractPrice, got %d", v.Pricing)
+	if v.Pricing != initialPricing+2 {
+		t.Fatalf("expected pricing version %d after SetContractPrice, got %d", initialPricing+2, v.Pricing)
 	}
 }
 
@@ -59,7 +57,7 @@ func TestExecutorPricingSyncTriggered(t *testing.T) {
 	localCompanyID := createTestCompany(t, st)
 
 	// Mock SaaS server
-	mockServer := pricingMockServer(t, catalog.CatalogVersions{Models: 0, Pricing: 1}, []catalog.CatalogPricing{
+	mockServer := pricingMockServer(t, catalog.CatalogVersions{Models: 1, Pricing: 2, Currencies: 1}, []catalog.CatalogPricing{
 		{ModelType: "gpt-4o", InputPrice: 2.0, OutputPrice: 8.0, IsContract: false},
 		{ModelType: "deepseek-chat", InputPrice: 0.5, OutputPrice: 2.0, IsContract: true},
 	})
@@ -101,8 +99,8 @@ func TestExecutorPricingSyncTriggered(t *testing.T) {
 
 	// Verify: local pricing version updated
 	vStr, _ := st.SystemSettings().Get(ctx, "catalog.pricing_version")
-	if vStr != "1" {
-		t.Errorf("expected local pricing version '1', got %q", vStr)
+	if vStr != "2" {
+		t.Errorf("expected local pricing version '2', got %q", vStr)
 	}
 }
 
@@ -126,7 +124,7 @@ func TestExecutorPricingSyncSkipsWhenUpToDate(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/api/platform/sync/versions":
-			_ = json.NewEncoder(w).Encode(map[string]int{"models": 0, "pricing": 3, "currencies": 0})
+			_ = json.NewEncoder(w).Encode(map[string]int{"models": 1, "pricing": 3, "currencies": 1})
 		case "/api/platform/sync/catalog/pricing":
 			called = true
 			_ = json.NewEncoder(w).Encode(map[string]any{"version": 3, "data": []any{}})
@@ -161,7 +159,7 @@ func TestExecutorPricingSyncWritesContractPrice(t *testing.T) {
 	globalCompanyID := cfg.TokenJoyCompanyID
 	localCompanyID := createTestCompany(t, st)
 
-	mockServer := pricingMockServer(t, catalog.CatalogVersions{Models: 0, Pricing: 1}, []catalog.CatalogPricing{
+	mockServer := pricingMockServer(t, catalog.CatalogVersions{Models: 1, Pricing: 2, Currencies: 1}, []catalog.CatalogPricing{
 		{ModelType: "gpt-4o", InputPrice: 15.0, OutputPrice: 60.0, IsContract: false},
 		{ModelType: "gpt-4o", InputPrice: 8.0, OutputPrice: 32.0, IsContract: true},
 	})
@@ -270,6 +268,7 @@ func pricingMockServer(t *testing.T, versions catalog.CatalogVersions, pricing [
 				"models":     versions.Models,
 				"pricing":    versions.Pricing,
 				"currencies": versions.Currencies,
+				"walletLots": versions.WalletLots,
 			})
 		case "/api/platform/sync/catalog/pricing":
 			_ = json.NewEncoder(w).Encode(map[string]any{

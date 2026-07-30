@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS logs (
     quota               INT NOT NULL DEFAULT 0,
     prompt_tokens       INT NOT NULL DEFAULT 0,
     completion_tokens   INT NOT NULL DEFAULT 0,
-    use_time            INT NOT NULL DEFAULT 0
+    use_time            INT NOT NULL DEFAULT 0,
+    channel_id          INT NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS reconcile_cursors (

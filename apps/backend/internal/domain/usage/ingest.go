@@ -12,19 +12,21 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
 type IngestService struct {
-	cfg         config.Config
-	store       store.Store
-	logStore    store.LogStore
-	logger      *slog.Logger
-	enqueuer    IngestJobEnqueuer
-	notifier    types.Notifier
-	budgetOps   BudgetOps
-	lotConsumer LotConsumer
-	quotaSyncer QuotaSyncer
+	cfg               config.Config
+	store             store.Store
+	logStore          store.LogStore
+	logger            *slog.Logger
+	enqueuer          IngestJobEnqueuer
+	notifier          types.Notifier
+	budgetOps         BudgetOps
+	lotConsumer       LotConsumer
+	quotaSyncer       QuotaSyncer
+	platformChannelID int64 // lazily cached; 0 = not loaded yet
 }
 
 func NewIngestService(
@@ -153,6 +155,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 	entry.PeriodKey = occurrence.String()
 
 	companyID := company.CompanyID(ctx)
+	isPlatform := s.isPlatformChannel(ctx, raw.ChannelID)
 	var consumeResult LotConsumeResult
 	var effects IngestEffects
 	err = s.store.WithTx(ctx, func(st store.Store) error {
@@ -173,14 +176,24 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		}
 
 		// 3. Consume lots (company already locked).
-		result, err := s.lotConsumer.ConsumeLotsLocked(ctx, st, co, entry.QuotaAmount)
-		if err != nil {
-			return err
+		// ponytail: only platform channel traffic consumes lots/wallet.
+		// Self-managed channels (阿里云 etc.) only record budget, not lot consumption.
+		if isPlatform {
+			result, err := s.lotConsumer.ConsumeLotsLocked(ctx, st, co, entry.QuotaAmount)
+			if err != nil {
+				return err
+			}
+			consumeResult = result
 		}
-		consumeResult = result
 
 		// 4. Insert ledger segments.
-		ledgerEntries := s.lotConsumer.LedgerSegmentsFromEntry(entry, result.Segments)
+		var ledgerEntries []types.UsageLedgerEntry
+		if len(consumeResult.Segments) > 0 {
+			ledgerEntries = s.lotConsumer.LedgerSegmentsFromEntry(entry, consumeResult.Segments)
+		} else {
+			// Non-platform channel: single ledger entry with zero lot reference.
+			ledgerEntries = []types.UsageLedgerEntry{entry}
+		}
 		inserted, err := st.Ledger().InsertSegments(ctx, ledgerEntries)
 		if err != nil {
 			return err
@@ -190,10 +203,16 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		}
 
 		// 5. Write budget_consumed — batch UPSERT for open-budget period axes.
-		// spend is Σ segment Cost (currency); never entry.QuotaAmount.
+		// spend is Σ segment Cost (currency) for platform channels,
+		// or computed from quota for non-platform channels.
 		var spend float64
-		for _, seg := range consumeResult.Segments {
-			spend += seg.Cost
+		if len(consumeResult.Segments) > 0 {
+			for _, seg := range consumeResult.Segments {
+				spend += seg.Cost
+			}
+		} else {
+			// Non-platform channel: compute cost from entry quota using default rate.
+			spend = float64(entry.QuotaAmount) / float64(common.DefaultQuotaPerUnit)
 		}
 		open, err := pkgbudget.OpenDepartmentPeriod(ctx, st.Org().Nodes(), entry.DepartmentID, s.cfg.Clock())
 		if err != nil {
@@ -254,8 +273,13 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 
 	// --- Post-commit (best-effort) ---
 
-	// Sync wallet to external gateway (NewAPI).
-	if s.quotaSyncer != nil {
+	// Bump wallet_lots catalog version so Local sync picks up consumption.
+	if isPlatform {
+		_, _ = s.store.SystemSettings().Increment(ctx, "catalog.wallet_lots_version")
+	}
+
+	// Sync wallet to external gateway (NewAPI) — only when lots were consumed.
+	if isPlatform && s.quotaSyncer != nil {
 		if walletUserID, ok := company.ResolveNewAPIWalletCompanyID(ctx, s.store.Company()); ok {
 			co, err := s.store.Company().GetByID(ctx, companyID)
 			if err == nil && co != nil {
@@ -358,6 +382,36 @@ func (s *IngestService) companyContextFromMapping(ctx context.Context, mapping *
 		return company.WithContext(ctx, company.Context{CompanyID: mapping.CompanyID}), nil
 	}
 	return company.WithContext(ctx, company.ContextFromStore(*co)), nil
+}
+
+// isPlatformChannel checks if the given channel ID is the platform (tokenjoy-upstream) channel.
+// If channelID == 0 (legacy logs without channel_id), assume platform channel (backward compat).
+// ponytail: cached lazily on first call. Value never changes at runtime (set during startup).
+func (s *IngestService) isPlatformChannel(ctx context.Context, channelID int64) bool {
+	if channelID == 0 {
+		return true // legacy: no channel info → assume platform
+	}
+	platformID := s.loadPlatformChannelID(ctx)
+	if platformID == 0 {
+		return true // not configured → all traffic is platform (SaaS mode or pre-setup)
+	}
+	return channelID == platformID
+}
+
+func (s *IngestService) loadPlatformChannelID(ctx context.Context) int64 {
+	if s.platformChannelID != 0 {
+		return s.platformChannelID
+	}
+	idStr, err := s.store.SystemSettings().Get(ctx, "platform_channel_id")
+	if err != nil || idStr == "" {
+		return 0
+	}
+	var id int64
+	if _, err := fmt.Sscanf(idStr, "%d", &id); err != nil || id <= 0 {
+		return 0
+	}
+	s.platformChannelID = id
+	return id
 }
 
 var _ Ingestor = (*IngestService)(nil)

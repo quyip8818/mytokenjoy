@@ -33,6 +33,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Group(func(r chi.Router) {
 		r.Use(httpmiddleware.RequireSyncToken(h.p.Companies))
 		r.Get("/sync/catalog/pricing", h.CatalogPricing)
+		r.Get("/sync/catalog/wallet_lots", h.CatalogWalletLots)
 	})
 
 	// Public — Local registration (guarded by X-Registration-Secret header)

@@ -36,7 +36,7 @@ func TestBootSyncAllChannels(t *testing.T) {
 		{Code: "CNY", QuotaPerUnit: 500000},
 	}
 
-	mockServer := fullCatalogMockServer(t, catalog.CatalogVersions{Models: 1, Pricing: 1, Currencies: 1}, models, pricing, currencies)
+	mockServer := fullCatalogMockServer(t, catalog.CatalogVersions{Models: 2, Pricing: 2, Currencies: 2}, models, pricing, currencies)
 
 	stub := &mock.StubAdminClient{}
 	client := catalog.NewClient(catalog.Config{BaseURL: mockServer.URL})
@@ -74,14 +74,14 @@ func TestBootSyncAllChannels(t *testing.T) {
 
 	// --- Pricing: verify written ---
 	vStr, _ := st.SystemSettings().Get(ctx, "catalog.pricing_version")
-	if vStr != "1" {
-		t.Errorf("pricing version: want '1', got %q", vStr)
+	if vStr != "2" {
+		t.Errorf("pricing version: want '2', got %q", vStr)
 	}
 
 	// --- Currencies: verify written ---
 	vStr, _ = st.SystemSettings().Get(ctx, "catalog.currencies_version")
-	if vStr != "1" {
-		t.Errorf("currencies version: want '1', got %q", vStr)
+	if vStr != "2" {
+		t.Errorf("currencies version: want '2', got %q", vStr)
 	}
 	cny, err := st.Billing().GetCurrency(ctx, "CNY")
 	if err != nil || cny == nil {
@@ -90,8 +90,8 @@ func TestBootSyncAllChannels(t *testing.T) {
 
 	// --- Models version: verify stored ---
 	vStr, _ = st.SystemSettings().Get(ctx, "catalog.models_version")
-	if vStr != "1" {
-		t.Errorf("models version: want '1', got %q", vStr)
+	if vStr != "2" {
+		t.Errorf("models version: want '2', got %q", vStr)
 	}
 }
 
@@ -145,6 +145,7 @@ func fullCatalogMockServer(t *testing.T, versions catalog.CatalogVersions, model
 				"models":     versions.Models,
 				"pricing":    versions.Pricing,
 				"currencies": versions.Currencies,
+				"walletLots": versions.WalletLots,
 			})
 		case "/api/platform/sync/catalog/models":
 			_ = json.NewEncoder(w).Encode(map[string]any{"version": versions.Models, "data": models})

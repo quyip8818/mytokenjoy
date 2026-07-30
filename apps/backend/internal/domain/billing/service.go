@@ -33,6 +33,7 @@ type Store interface {
 	Company() store.CompanyRepository
 	Models() store.ModelsRepository
 	Audit() store.AuditRepository
+	SystemSettings() store.SystemSettingsRepository
 	WithTx(ctx context.Context, fn func(store.Store) error) error
 }
 

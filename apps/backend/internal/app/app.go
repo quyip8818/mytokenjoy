@@ -82,6 +82,11 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 		return nil, err
 	}
 
+	// Local mode: ensure tokenjoy-upstream channel is configured (one-time after setup).
+	if !cfg.SupportSaas {
+		ensurePlatformChannel(ctx, cfg, st, registry.Deps.AdminPort, logger)
+	}
+
 	bgWorkers, err := buildBackgroundWorkers(cfg, logger, st, registry, holder, orgAdmin)
 	if err != nil {
 		return nil, err
