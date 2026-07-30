@@ -5,6 +5,7 @@ import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -93,8 +94,7 @@ export function ProviderKeyFormWorkflow({
         </div>
         <div className="space-y-1.5">
           <Label>API Key</Label>
-          <Input
-            type="password"
+          <PasswordInput
             value={keyValue}
             onChange={(e) => {
               setKeyValue(e.target.value)

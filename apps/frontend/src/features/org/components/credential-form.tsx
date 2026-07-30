@@ -4,6 +4,7 @@ import type { Credential, Platform } from '@/api/types'
 import type { AppApis } from '@/api/app-apis'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import {
@@ -190,8 +191,7 @@ export function CredentialForm({
             </div>
             <div>
               <Label className="mb-1">App Secret</Label>
-              <Input
-                type="password"
+              <PasswordInput
                 {...register('appSecret', { required: '请输入 App Secret' })}
               />
               {errors.appSecret && (
@@ -218,7 +218,7 @@ export function CredentialForm({
             </div>
             <div>
               <Label className="mb-1">AppSecret</Label>
-              <Input type="password" {...register('appSecret', { required: '请输入 AppSecret' })} />
+              <PasswordInput {...register('appSecret', { required: '请输入 AppSecret' })} />
               {errors.appSecret && (
                 <p className="text-destructive text-xs mt-1">{errors.appSecret.message}</p>
               )}
@@ -236,7 +236,7 @@ export function CredentialForm({
             </div>
             <div>
               <Label className="mb-1">Secret</Label>
-              <Input type="password" {...register('secret', { required: '请输入 Secret' })} />
+              <PasswordInput {...register('secret', { required: '请输入 Secret' })} />
               {errors.secret && (
                 <p className="text-destructive text-xs mt-1">{errors.secret.message}</p>
               )}

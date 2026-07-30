@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { useApis } from '@/api/use-apis'
 import { useSession } from '@/features/session'
+import { PasswordInput } from '@/components/ui/password-input'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -45,11 +46,10 @@ export default function LoginPage() {
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium">密码</label>
-            <input
-              type="password"
+            <PasswordInput
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full rounded-md border pl-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               placeholder="请输入密码"
               required
             />

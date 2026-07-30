@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { authApi } from '@/api/auth'
 import { ApiError } from '@/api/client'
@@ -102,9 +103,8 @@ export default function InviteAcceptPage() {
 
         <div className="space-y-2">
           <Label htmlFor="invite-password">密码</Label>
-          <Input
+          <PasswordInput
             id="invite-password"
-            type="password"
             autoComplete="new-password"
             placeholder="至少8位"
             value={password}
@@ -116,9 +116,8 @@ export default function InviteAcceptPage() {
 
         <div className="space-y-2">
           <Label htmlFor="invite-confirm-password">确认密码</Label>
-          <Input
+          <PasswordInput
             id="invite-confirm-password"
-            type="password"
             autoComplete="new-password"
             placeholder="再次输入密码"
             value={confirmPassword}

@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { AvatarPicker } from '@/components/ui/avatar-picker'
 import {
@@ -1016,9 +1017,8 @@ function PasswordField({
       <Label htmlFor={id} className="text-sm font-medium">
         密码
       </Label>
-      <Input
+      <PasswordInput
         id={id}
-        type="password"
         autoComplete="current-password"
         placeholder="输入密码"
         className="h-11"
@@ -1180,9 +1180,8 @@ function NewPasswordFields({
         <Label htmlFor={`${id}-pw`} className="text-sm font-medium">
           {passwordLabel}
         </Label>
-        <Input
+        <PasswordInput
           id={`${id}-pw`}
-          type="password"
           autoComplete="new-password"
           placeholder="至少 8 位"
           className="h-11"
@@ -1196,9 +1195,8 @@ function NewPasswordFields({
         <Label htmlFor={`${id}-pw-confirm`} className="text-sm font-medium">
           {confirmLabel}
         </Label>
-        <Input
+        <PasswordInput
           id={`${id}-pw-confirm`}
-          type="password"
           autoComplete="new-password"
           placeholder="再次输入密码"
           className="h-11"

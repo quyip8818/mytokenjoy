@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import {
   Dialog,
@@ -77,9 +77,8 @@ export function ChangePasswordDialog({
           {hasPassword && (
             <div className="space-y-2">
               <Label htmlFor="old-password">当前密码</Label>
-              <Input
+              <PasswordInput
                 id="old-password"
-                type="password"
                 autoComplete="current-password"
                 value={oldPassword}
                 onChange={(e) => setOldPassword(e.target.value)}
@@ -89,9 +88,8 @@ export function ChangePasswordDialog({
           )}
           <div className="space-y-2">
             <Label htmlFor="new-password">新密码</Label>
-            <Input
+            <PasswordInput
               id="new-password"
-              type="password"
               autoComplete="new-password"
               placeholder="至少 8 位"
               value={newPassword}
@@ -102,9 +100,8 @@ export function ChangePasswordDialog({
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirm-password">确认新密码</Label>
-            <Input
+            <PasswordInput
               id="confirm-password"
-              type="password"
               autoComplete="new-password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}

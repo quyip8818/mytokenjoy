@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -147,9 +148,8 @@ export function SetupForm({ submitting, error, onSubmit }: SetupFormProps) {
         <Label htmlFor="admin-password" className="text-sm font-medium">
           设置密码
         </Label>
-        <Input
+        <PasswordInput
           id="admin-password"
-          type="password"
           autoComplete="new-password"
           placeholder="至少 8 位"
           className="h-11"
@@ -165,9 +165,8 @@ export function SetupForm({ submitting, error, onSubmit }: SetupFormProps) {
         <Label htmlFor="confirm-password" className="text-sm font-medium">
           确认密码
         </Label>
-        <Input
+        <PasswordInput
           id="confirm-password"
-          type="password"
           autoComplete="new-password"
           placeholder="再次输入密码"
           className="h-11"

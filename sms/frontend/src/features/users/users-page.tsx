@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { useInjectedQuery } from '@/features/query'
 import { useApis } from '@/api/use-apis'
 import { Badge, Field } from '@/components/ui'
+import { PasswordInput } from '@/components/ui/password-input'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
 import type { User } from '@/api/auth'
@@ -227,9 +228,8 @@ export function UsersPage() {
                 />
               </Field>
               <Field label={editing ? '重置密码' : '密码'} required={!editing}>
-                <input
+                <PasswordInput
                   className="input"
-                  type="password"
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   placeholder={editing ? '留空则不修改' : '至少 6 位'}
