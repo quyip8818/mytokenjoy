@@ -59,6 +59,10 @@ func applySeedData(ctx context.Context, pool *pgxpool.Pool, st store.Store, cfg 
 	if err := ApplyTables(ctx, tx, snap); err != nil {
 		return err
 	}
+	// Seed includes platform models — set initial catalog version so sync clients see them.
+	if _, err := tx.Exec(ctx, `INSERT INTO system_settings (key, value) VALUES ('catalog.models_version', '1') ON CONFLICT (key) DO NOTHING`); err != nil {
+		return fmt.Errorf("seed catalog.models_version: %w", err)
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit seed tx: %w", err)
 	}

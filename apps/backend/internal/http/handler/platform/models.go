@@ -181,6 +181,7 @@ func (h *Handler) CreateModel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.JSON(w, http.StatusCreated, created)
+	h.bumpModelsCatalogVersion(r.Context())
 }
 
 type updateModelBody struct {
@@ -238,6 +239,7 @@ func (h *Handler) UpdateModel(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, fmt.Errorf("update model: %w", err))
 		return
 	}
+	h.bumpModelsCatalogVersion(r.Context())
 	response.JSON(w, http.StatusOK, model)
 }
 
@@ -251,6 +253,7 @@ func (h *Handler) DeleteModel(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, fmt.Errorf("delete model: %w", err))
 		return
 	}
+	h.bumpModelsCatalogVersion(r.Context())
 	response.Void(w)
 }
 
@@ -289,6 +292,8 @@ func (h *Handler) SetModelPricing(w http.ResponseWriter, r *http.Request) {
 
 // --- Platform Admin: Publish ---
 
+// PublishCatalog forces a version bump (useful for manual re-sync trigger).
+// Under normal operation, version is auto-bumped by Create/Update/Delete.
 func (h *Handler) PublishCatalog(w http.ResponseWriter, r *http.Request) {
 	newVersion, err := h.p.SystemSettings.Increment(r.Context(), catalogModelsVersionKey)
 	if err != nil {
@@ -299,6 +304,10 @@ func (h *Handler) PublishCatalog(w http.ResponseWriter, r *http.Request) {
 }
 
 // --- Helpers ---
+
+func (h *Handler) bumpModelsCatalogVersion(ctx context.Context) {
+	_, _ = h.p.SystemSettings.Increment(ctx, catalogModelsVersionKey)
+}
 
 // globalCtx returns a context with TokenJoyCompanyID set, for public endpoints
 // that need to query global models without a session.
