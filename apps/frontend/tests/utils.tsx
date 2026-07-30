@@ -87,7 +87,6 @@ function mergeApis(base: AppApis, overrides: ApiNamespaceOverrides): AppApis {
     budgetApi: withOverrides(base, 'budgetApi', overrides.budgetApi),
     auditApi: withOverrides(base, 'auditApi', overrides.auditApi),
     dashboardApi: withOverrides(base, 'dashboardApi', overrides.dashboardApi),
-    devApi: withOverrides(base, 'devApi', overrides.devApi),
     modelsApi: withOverrides(base, 'modelsApi', overrides.modelsApi),
     orgApi: withOverrides(base, 'orgApi', overrides.orgApi),
     keysApi: withOverrides(base, 'keysApi', overrides.keysApi),

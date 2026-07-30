@@ -4,7 +4,6 @@ import { authApi } from './auth'
 import { billingApi } from './billing'
 import { budgetApi } from './budget'
 import { dashboardApi } from './dashboard'
-import { devApi } from './dev'
 import { keysApi } from './keys'
 import { meApi } from './me'
 import { modelsApi } from './models'
@@ -19,7 +18,6 @@ export interface AppApis {
   budgetApi: typeof budgetApi
   auditApi: typeof auditApi
   dashboardApi: typeof dashboardApi
-  devApi: typeof devApi
   modelsApi: typeof modelsApi
   orgApi: typeof orgApi
   keysApi: typeof keysApi
@@ -36,7 +34,6 @@ export const defaultApis: AppApis = {
   budgetApi,
   auditApi,
   dashboardApi,
-  devApi,
   modelsApi,
   orgApi,
   keysApi,
