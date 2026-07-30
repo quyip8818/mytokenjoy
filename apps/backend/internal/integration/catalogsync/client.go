@@ -55,6 +55,15 @@ func (c *Client) FetchPricing(ctx context.Context) (*CatalogResponse[CatalogPric
 	return &resp, nil
 }
 
+// FetchCurrencies fetches the currencies catalog (public, no auth required).
+func (c *Client) FetchCurrencies(ctx context.Context) (*CatalogResponse[CatalogCurrency], error) {
+	var resp CatalogResponse[CatalogCurrency]
+	if err := c.doGet(ctx, "/api/platform/sync/catalog/currencies", false, &resp); err != nil {
+		return nil, fmt.Errorf("catalog fetch currencies: %w", err)
+	}
+	return &resp, nil
+}
+
 func (c *Client) doGet(ctx context.Context, path string, auth bool, out any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.url(path), nil)
 	if err != nil {

@@ -35,6 +35,8 @@ Usage tokens ──→ Quota (int64) ──→ Wallet 展示币（lot 冻结）
 
 ### 2.1 币种 / QPU
 
+> 详见 [currency-management.md](./currency-management.md) — 币种 CRUD、SaaS→Local 同步、管理 UI。
+
 | 位置                             | 作用                                              |
 | -------------------------------- | ------------------------------------------------- |
 | `currencies.quota_per_unit`      | QPU 表级 SSOT                                     |

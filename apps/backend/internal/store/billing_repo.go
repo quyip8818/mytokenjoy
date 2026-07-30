@@ -91,6 +91,7 @@ type Currency struct {
 	Code         string
 	QuotaPerUnit int64
 	Enabled      bool
+	UpdatedAt    time.Time
 }
 
 type BillingRepository interface {
@@ -106,4 +107,11 @@ type BillingRepository interface {
 	SumActiveLotsRemaining(ctx context.Context, companyID uuid.UUID) (int64, error)
 	AggregateWallet(ctx context.Context, companyID uuid.UUID) (WalletAggregate, error)
 	GetCurrency(ctx context.Context, code string) (*Currency, error)
+	// Currency CRUD + sync
+	ListEnabledCurrencies(ctx context.Context) ([]Currency, error)
+	ListAllCurrencies(ctx context.Context) ([]Currency, error)
+	UpsertCurrency(ctx context.Context, c Currency) error
+	SetCurrencyEnabled(ctx context.Context, code string, enabled bool) error
+	ReplaceCurrencies(ctx context.Context, currencies []Currency) error
+	IsCurrencyReferenced(ctx context.Context, code string) (bool, error)
 }

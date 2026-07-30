@@ -2,8 +2,9 @@ package catalogsync
 
 // CatalogVersions holds the remote version of each sync partition.
 type CatalogVersions struct {
-	Models  int `json:"models"`
-	Pricing int `json:"pricing"`
+	Models     int `json:"models"`
+	Pricing    int `json:"pricing"`
+	Currencies int `json:"currencies"`
 }
 
 // CatalogModel represents a model entry from the platform catalog.
@@ -29,4 +30,10 @@ type CatalogPricing struct {
 	InputPrice  float64 `json:"inputPrice"`
 	OutputPrice float64 `json:"outputPrice"`
 	IsContract  bool    `json:"isContract"`
+}
+
+// CatalogCurrency represents a currency entry from the platform sync API.
+type CatalogCurrency struct {
+	Code         string `json:"code"`
+	QuotaPerUnit int64  `json:"quotaPerUnit"`
 }

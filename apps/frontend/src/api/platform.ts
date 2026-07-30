@@ -60,6 +60,13 @@ export interface PlatformSetPricingInput {
   outputPrice: number
 }
 
+export interface PlatformCurrency {
+  code: string
+  quotaPerUnit: number
+  enabled: boolean
+  updatedAt: string
+}
+
 // --- API ---
 
 export const platformApi = {
@@ -72,8 +79,7 @@ export const platformApi = {
   updateModel: (id: string, data: PlatformUpdateModelInput) =>
     request<PlatformModel>(`/platform/models/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 
-  deleteModel: (id: string) =>
-    request<void>(`/platform/models/${id}`, { method: 'DELETE' }),
+  deleteModel: (id: string) => request<void>(`/platform/models/${id}`, { method: 'DELETE' }),
 
   setPricing: (id: string, data: PlatformSetPricingInput) =>
     request<void>(`/platform/models/${id}/pricing`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -84,11 +90,32 @@ export const platformApi = {
   companiesOverview: () => request<PlatformCompanyOverview[]>('/platform/companies/overview'),
 
   rechargeCompany: (id: string, amount: number) =>
-    request<void>(`/platform/companies/${id}/recharge`, { method: 'POST', body: JSON.stringify({ amount }) }),
+    request<void>(`/platform/companies/${id}/recharge`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    }),
 
   giftCompany: (id: string, amount: number) =>
-    request<void>(`/platform/companies/${id}/gift`, { method: 'POST', body: JSON.stringify({ amount }) }),
+    request<void>(`/platform/companies/${id}/gift`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    }),
 
   updateCompany: (id: string, patch: { status?: string }) =>
     request<void>(`/platform/companies/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+
+  // --- Currencies ---
+  listCurrencies: () => request<PlatformCurrency[]>('/platform/currencies'),
+
+  createCurrency: (data: { code: string; quotaPerUnit: number }) =>
+    request<PlatformCurrency>('/platform/currencies', { method: 'POST', body: JSON.stringify(data) }),
+
+  updateCurrency: (code: string, data: { quotaPerUnit: number }) =>
+    request<PlatformCurrency>(`/platform/currencies/${code}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  toggleCurrencyStatus: (code: string, enabled: boolean) =>
+    request<PlatformCurrency>(`/platform/currencies/${code}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ enabled }),
+    }),
 }

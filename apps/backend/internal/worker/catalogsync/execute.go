@@ -19,8 +19,9 @@ import (
 
 // Version keys in system_settings.
 const (
-	keyModelsVersion  = "catalog.models_version"
-	keyPricingVersion = "catalog.pricing_version"
+	keyModelsVersion     = "catalog.models_version"
+	keyPricingVersion    = "catalog.pricing_version"
+	keyCurrenciesVersion = "catalog.currencies_version"
 )
 
 // Executor holds the dependencies for catalog sync.
@@ -83,6 +84,17 @@ func (e *Executor) Execute(ctx context.Context) error {
 		slog.Info("catalogsync: pricing synced", "version", remote.Pricing)
 	}
 
+	// --- Currencies sync (independent channel) ---
+	localCurrenciesStr, _ := settings.Get(ctx, keyCurrenciesVersion) // key may not exist on first run → "" → 0
+	localCurrencies, _ := strconv.Atoi(localCurrenciesStr)
+
+	if localCurrencies != remote.Currencies {
+		if err := e.syncCurrencies(ctx); err != nil {
+			return fmt.Errorf("catalogsync sync currencies: %w", err)
+		}
+		slog.Info("catalogsync: currencies synced", "version", remote.Currencies)
+	}
+
 	return nil
 }
 
@@ -136,4 +148,31 @@ func (e *Executor) syncPricing(ctx context.Context, remoteVersion int) error {
 	}
 
 	return e.store.SystemSettings().Set(ctx, keyPricingVersion, strconv.Itoa(remoteVersion))
+}
+
+// syncCurrencies fetches currencies from the platform and replaces local data.
+func (e *Executor) syncCurrencies(ctx context.Context) error {
+	resp, err := e.client.FetchCurrencies(ctx)
+	if err != nil {
+		return fmt.Errorf("catalogsync fetch currencies: %w", err)
+	}
+
+	currencies := make([]store.Currency, 0, len(resp.Data))
+	for _, c := range resp.Data {
+		currencies = append(currencies, store.Currency{
+			Code:         c.Code,
+			QuotaPerUnit: c.QuotaPerUnit,
+			Enabled:      true,
+		})
+	}
+
+	// Wrap in tx for atomicity (upsert + disable stale).
+	if err := e.store.WithTx(ctx, func(tx store.Store) error {
+		return tx.Billing().ReplaceCurrencies(ctx, currencies)
+	}); err != nil {
+		return fmt.Errorf("catalogsync replace currencies: %w", err)
+	}
+
+	// Use resp.Version (actual data version) rather than remote.Currencies.
+	return e.store.SystemSettings().Set(ctx, keyCurrenciesVersion, strconv.Itoa(resp.Version))
 }

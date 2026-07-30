@@ -19,6 +19,13 @@ func insertSeedCurrencies(ctx context.Context, exec TableWriter) error {
 	`, common.DefaultBillingCurrency, common.DefaultQuotaPerUnit); err != nil {
 		return fmt.Errorf("seed currencies: %w", err)
 	}
+	// Seed catalog.currencies_version so Local instances trigger first sync.
+	if _, err := exec.Exec(ctx, `
+		INSERT INTO system_settings (key, value) VALUES ('catalog.currencies_version', '1')
+		ON CONFLICT (key) DO NOTHING
+	`); err != nil {
+		return fmt.Errorf("seed currencies version: %w", err)
+	}
 	return nil
 }
 

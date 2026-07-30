@@ -126,7 +126,7 @@ func TestExecutorPricingSyncSkipsWhenUpToDate(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/api/platform/sync/versions":
-			_ = json.NewEncoder(w).Encode(map[string]int{"models": 0, "pricing": 3})
+			_ = json.NewEncoder(w).Encode(map[string]int{"models": 0, "pricing": 3, "currencies": 0})
 		case "/api/platform/sync/catalog/pricing":
 			called = true
 			_ = json.NewEncoder(w).Encode(map[string]any{"version": 3, "data": []any{}})
@@ -265,8 +265,9 @@ func pricingMockServer(t *testing.T, versions catalog.CatalogVersions, pricing [
 		switch r.URL.Path {
 		case "/api/platform/sync/versions":
 			_ = json.NewEncoder(w).Encode(map[string]int{
-				"models":  versions.Models,
-				"pricing": versions.Pricing,
+				"models":     versions.Models,
+				"pricing":    versions.Pricing,
+				"currencies": versions.Currencies,
 			})
 		case "/api/platform/sync/catalog/pricing":
 			_ = json.NewEncoder(w).Encode(map[string]any{

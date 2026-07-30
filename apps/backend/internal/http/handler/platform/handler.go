@@ -27,6 +27,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	// Public read-only — Catalog sync (no auth required)
 	r.Get("/sync/versions", h.CatalogVersions)
 	r.Get("/sync/catalog/models", h.CatalogModels)
+	r.Get("/sync/catalog/currencies", h.CatalogCurrencies)
 
 	// Per-company sync token protected — contains company-isolated data
 	r.Group(func(r chi.Router) {
@@ -65,6 +66,11 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Get("/companies/{id}/pricing", h.ListContractPricing)
 		r.Put("/companies/{id}/pricing", h.SetContractPricing)
 		r.Get("/companies/{id}/pricing/{modelType}/history", h.ContractPriceHistory)
+		// Currency management
+		r.Get("/currencies", h.ListCurrencies)
+		r.Post("/currencies", h.CreateCurrency)
+		r.Put("/currencies/{code}", h.UpdateCurrency)
+		r.Patch("/currencies/{code}/status", h.ToggleCurrencyStatus)
 	})
 }
 

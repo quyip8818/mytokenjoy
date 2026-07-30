@@ -4,6 +4,7 @@ import {
   BarChart3,
   Building2,
   CheckCircle2,
+  Coins,
   Cpu,
   Database,
   FileText,
@@ -228,6 +229,15 @@ const ROUTE_DEFINITIONS_INTERNAL = [
     icon: Building2,
     requiredPermissions: [PERMISSION.PLATFORM_MANAGE],
     lazy: () => import('@/routes/platform/companies'),
+    navGroup: '平台管理',
+  },
+  {
+    key: 'platformCurrencies',
+    path: '/platform/currencies',
+    label: '汇率管理',
+    icon: Coins,
+    requiredPermissions: [PERMISSION.PLATFORM_MANAGE],
+    lazy: () => import('@/routes/platform/currencies'),
     navGroup: '平台管理',
   },
 ] as const satisfies readonly RouteDefinition[]
