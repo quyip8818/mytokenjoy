@@ -2,7 +2,11 @@ import { useQuery, type QueryKey, type UseQueryOptions } from '@tanstack/react-q
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 
-type QueryFn<T> = (apis: AppApis) => Promise<T>
+export interface QueryFnContext {
+  signal: AbortSignal
+}
+
+type QueryFn<T> = (apis: AppApis, context?: QueryFnContext) => Promise<T>
 
 export interface UseInjectedQueryOptions<T> extends Omit<
   UseQueryOptions<T, Error, T, QueryKey>,
@@ -29,7 +33,9 @@ export function useInjectedQuery<T>({
   const apis = useInjectedApis(injectedApis)
   const query = useQuery({
     queryKey,
-    queryFn: () => queryFn(apis),
+    // ponytail: 传递 signal 给 queryFn，让 TanStack Query 的 cancel 机制生效。
+    // 升级路径：各 api 文件渐进接入 { signal } → request(path, { signal })。
+    queryFn: ({ signal }) => queryFn(apis, { signal }),
     ...options,
   })
 

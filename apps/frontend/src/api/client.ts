@@ -92,6 +92,8 @@ function doRefresh(): Promise<boolean> {
 
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_PATH}${path}`
+  // ponytail: signal 通过 options 传入即可（options.signal → fetch 原生支持）。
+  // 升级路径：无需改签名，调用方传 { signal } 就行。
   const init: RequestInit = {
     credentials: 'include',
     headers: {

@@ -1,5 +1,6 @@
 import { createRouter } from '@tanstack/react-router'
 import { RouteFallback } from '@/components/layout/route-fallback'
+import { RouteErrorFallback } from '@/components/layout/route-error-fallback'
 import { rootRoute } from './root'
 import { authLayoutRoute } from './auth-layout'
 import { loginRoute, inviteAcceptRoute } from './routes/auth'
@@ -55,6 +56,7 @@ const routeTree = rootRoute.addChildren([
 export const router = createRouter({
   routeTree,
   defaultPendingComponent: RouteFallback,
+  defaultErrorComponent: RouteErrorFallback,
   basepath: import.meta.env.BASE_URL,
 })
 

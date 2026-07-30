@@ -1,8 +1,10 @@
 import { useCallback, useMemo, useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import type { ModelInfo } from '@/api/types'
+import { apiErrorMessage } from '@/lib/api-error-toast'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useCtaHighlight } from '@/hooks/use-cta-highlight'
 import { usePermissions } from '@/features/session'
@@ -58,24 +60,34 @@ export function useModelListPage(injectedApis?: AppApis) {
     [models],
   )
 
-  const handleToggle = useCallback(
-    async (model: ModelInfo) => {
-      await apis.modelsApi.toggle(model.modelId, !model.active)
+  const toggleMutation = useMutation({
+    mutationFn: (model: ModelInfo) => apis.modelsApi.toggle(model.modelId, !model.active),
+    onSuccess: (_data, model) => {
       toast.success(model.active ? '模型已禁用' : '模型已启用')
       flashRow(model.modelId)
       void refresh()
     },
-    [apis, flashRow, refresh],
-  )
+    onError: (err) => toast.error(apiErrorMessage(err, '操作失败')),
+  })
 
-  const handleDelete = useCallback(
-    async (model: ModelInfo) => {
-      await apis.modelsApi.delete(model.modelId)
+  const deleteMutation = useMutation({
+    mutationFn: (model: ModelInfo) => apis.modelsApi.delete(model.modelId),
+    onSuccess: (_data, model) => {
       toast.success('模型已删除')
       flashRow(model.modelId)
       void refresh()
     },
-    [apis, flashRow, refresh],
+    onError: (err) => toast.error(apiErrorMessage(err, '删除失败')),
+  })
+
+  const handleToggle = useCallback(
+    (model: ModelInfo) => toggleMutation.mutateAsync(model).then(() => {}).catch(() => {}),
+    [toggleMutation],
+  )
+
+  const handleDelete = useCallback(
+    (model: ModelInfo) => { deleteMutation.mutate(model) },
+    [deleteMutation],
   )
 
   const openCreate = useCallback(() => openWithRefresh('model-create'), [openWithRefresh])
@@ -99,6 +111,7 @@ export function useModelListPage(injectedApis?: AppApis) {
     rowClass,
     handleToggle,
     handleDelete,
+    mutating: toggleMutation.isPending || deleteMutation.isPending,
     openCreate,
     openEdit,
   }

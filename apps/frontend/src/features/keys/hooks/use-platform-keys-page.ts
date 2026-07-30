@@ -1,8 +1,10 @@
 import { useCallback, useMemo, useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import type { Department } from '@/api/types'
+import { apiErrorMessage } from '@/lib/api-error-toast'
 import { filterDepartmentTree } from '@/features/org'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useRowHighlight } from '@/hooks/use-row-highlight'
@@ -112,14 +114,19 @@ export function usePlatformKeysPage(injectedApis?: AppApis) {
     })
   }, [])
 
-  const handleDelete = useCallback(
-    async (id: string) => {
-      await apis.keysApi.platform.delete(id)
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apis.keysApi.platform.delete(id),
+    onSuccess: (_data, id) => {
       toast.success('Key 已删除')
       flashRow(id)
       void refreshKeys()
     },
-    [apis, flashRow, refreshKeys],
+    onError: (err) => toast.error(apiErrorMessage(err, '删除失败')),
+  })
+
+  const handleDelete = useCallback(
+    (id: string) => { deleteMutation.mutate(id) },
+    [deleteMutation],
   )
 
   const openCreateKey = useCallback(
@@ -145,6 +152,7 @@ export function usePlatformKeysPage(injectedApis?: AppApis) {
     refresh,
     rowClass,
     handleDelete,
+    deleting: deleteMutation.isPending,
     openCreateKey,
   }
 }

@@ -1,7 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useEffect } from 'react'
 import { Outlet, createRoute, useRouter, useRouterState } from '@tanstack/react-router'
-import { AppErrorBoundary } from '@/components/layout/app-error-boundary'
 import { WorkflowProvider, WorkflowPanelStack } from '@/features/workflow'
 import { Toaster } from '@/components/ui/sonner'
 import { useSession } from '@/features/session'
@@ -64,9 +63,7 @@ function AuthenticatedLayout() {
             <Header />
             <main className="flex min-h-0 flex-1 flex-col overflow-hidden p-8">
               <div className="min-h-0 flex-1 overflow-auto">
-                <AppErrorBoundary>
-                  <Outlet />
-                </AppErrorBoundary>
+                <Outlet />
               </div>
             </main>
           </div>

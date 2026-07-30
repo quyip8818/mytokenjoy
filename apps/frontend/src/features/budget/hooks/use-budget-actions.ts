@@ -1,8 +1,8 @@
 import { useCallback } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import type { AppApis } from '@/api/app-apis'
 import type { PlatformKeyScope, ProjectView, UpdateMemberBudgetInput } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
-import { withErrorToast } from '@/lib/api-error-toast'
 import { queryKeys } from '@/features/query'
 import { useWorkflowRefresh } from '@/features/workflow'
 
@@ -19,22 +19,55 @@ export function useBudgetActions({ injectedApis, refresh }: UseBudgetActionsOpti
     invalidateKeys: [queryKeys.keys.all],
   })
 
+  const updateDepartmentMutation = useMutation({
+    mutationFn: (params: { departmentId: string; data: { budget: number; reservedPool?: number } }) =>
+      apis.budgetApi.updateDepartment(params.departmentId, params.data),
+    onSuccess: () => void refresh(),
+  })
+
+  const createProjectMutation = useMutation({
+    mutationFn: (data: { name: string; budget: number; memberIds: string[]; ownerDepartmentId: string }) =>
+      apis.budgetApi.createProject(data),
+    onSuccess: () => void refresh(),
+  })
+
+  const updateProjectMutation = useMutation({
+    mutationFn: (params: {
+      groupId: string
+      data: {
+        budget?: number
+        memberIds?: string[]
+        memberBudgets?: Record<string, number>
+        ownerId?: string
+      }
+    }) => apis.budgetApi.updateProject(params.groupId, params.data),
+    onSuccess: () => void refresh(),
+  })
+
+  const deleteProjectMutation = useMutation({
+    mutationFn: (groupId: string) => apis.budgetApi.deleteProject(groupId),
+    onSuccess: () => void refresh(),
+  })
+
+  const applyAverageBudgetMutation = useMutation({
+    mutationFn: (params: { departmentId: string; data: { personalBudget: number; recursive: boolean } }) =>
+      apis.budgetApi.applyAverageBudget(params.departmentId, params.data),
+    onSuccess: () => void refresh(),
+  })
+
+  // ponytail: mutateAsync throws on error, 让调用方 try/catch 控制自己的 UI 状态（如 setDeleting）。
+  // toast 在调用方的 catch 中显示，或由调用方决定是否显示。
+  // .then(() => {}) 丢弃 API 返回值使签名为 Promise<void>。
   const updateDepartment = useCallback(
-    (departmentId: string, data: { budget: number; reservedPool?: number }) =>
-      withErrorToast(async () => {
-        await apis.budgetApi.updateDepartment(departmentId, data)
-        await refresh()
-      }, '更新部门预算失败'),
-    [apis, refresh],
+    (departmentId: string, data: { budget: number; reservedPool?: number }): Promise<void> =>
+      updateDepartmentMutation.mutateAsync({ departmentId, data }).then(() => {}),
+    [updateDepartmentMutation],
   )
 
   const createProject = useCallback(
-    (data: { name: string; budget: number; memberIds: string[]; ownerDepartmentId: string }) =>
-      withErrorToast(async () => {
-        await apis.budgetApi.createProject(data)
-        await refresh()
-      }, '创建项目失败'),
-    [apis, refresh],
+    (data: { name: string; budget: number; memberIds: string[]; ownerDepartmentId: string }): Promise<void> =>
+      createProjectMutation.mutateAsync(data).then(() => {}),
+    [createProjectMutation],
   )
 
   const updateProject = useCallback(
@@ -46,21 +79,19 @@ export function useBudgetActions({ injectedApis, refresh }: UseBudgetActionsOpti
         memberBudgets?: Record<string, number>
         ownerId?: string
       },
-    ) =>
-      withErrorToast(async () => {
-        await apis.budgetApi.updateProject(groupId, data)
-        await refresh()
-      }, '更新项目失败'),
-    [apis, refresh],
+    ): Promise<void> => updateProjectMutation.mutateAsync({ groupId, data }).then(() => {}),
+    [updateProjectMutation],
   )
 
   const deleteProject = useCallback(
-    (groupId: string) =>
-      withErrorToast(async () => {
-        await apis.budgetApi.deleteProject(groupId)
-        await refresh()
-      }, '删除项目失败'),
-    [apis, refresh],
+    (groupId: string): Promise<void> => deleteProjectMutation.mutateAsync(groupId).then(() => {}),
+    [deleteProjectMutation],
+  )
+
+  const applyAverageBudget = useCallback(
+    (departmentId: string, data: { personalBudget: number; recursive: boolean }): Promise<void> =>
+      applyAverageBudgetMutation.mutateAsync({ departmentId, data }).then(() => {}),
+    [applyAverageBudgetMutation],
   )
 
   const openCreateProjectKey = useCallback(
@@ -86,15 +117,6 @@ export function useBudgetActions({ injectedApis, refresh }: UseBudgetActionsOpti
     (memberId: string, data: UpdateMemberBudgetInput) =>
       apis.budgetApi.updateMemberBudget(memberId, data),
     [apis],
-  )
-
-  const applyAverageBudget = useCallback(
-    (departmentId: string, data: { personalBudget: number; recursive: boolean }) =>
-      withErrorToast(async () => {
-        await apis.budgetApi.applyAverageBudget(departmentId, data)
-        await refresh()
-      }, '应用均分额度失败'),
-    [apis, refresh],
   )
 
   const getDepartmentTree = useCallback(() => apis.orgApi.departments.getTree(), [apis])
@@ -141,5 +163,12 @@ export function useBudgetActions({ injectedApis, refresh }: UseBudgetActionsOpti
     getMembers,
     getAllDeptMembers,
     searchMembers,
+    // isPending flags for UI disable
+    mutating:
+      updateDepartmentMutation.isPending ||
+      createProjectMutation.isPending ||
+      updateProjectMutation.isPending ||
+      deleteProjectMutation.isPending ||
+      applyAverageBudgetMutation.isPending,
   }
 }
