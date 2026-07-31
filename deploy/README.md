@@ -45,7 +45,30 @@ deploy/
 ## 首次部署
 
 ```bash
-# 1. 初始化 ECS (装 Docker + Git + clone 仓库)
+# 一条命令搞定（初始化 ECS + 生成密码 + 上传证书 + 启动 + 初始化 NewAPI）
+./deploy/first-deploy.sh <ECS_IP> <REPO_URL>
+
+# 例:
+./deploy/first-deploy.sh 47.96.1.2 git@github.com:yourorg/mytokenjoy.git
+```
+
+脚本自动完成:
+1. 装 Docker + Git + clone 仓库
+2. 生成随机密码写入 env 文件
+3. 上传本地 `deploy/ssl/` 下的 SSL 证书
+4. `docker compose up -d --build` 启动全栈
+5. 初始化 NewAPI admin 并设置 access_token
+6. 重启 apps-backend
+
+前提：
+- 本地 `deploy/ssl/` 下有 SSL 证书（`*.pem` + `*.key`）
+- ECS 能 SSH（默认用 `~/.ssh/id_rsa`，可通过 `SSH_KEY` 环境变量覆盖）
+- ECS 能 git clone 仓库（SSH key 或 HTTPS token）
+
+如需手动分步操作:
+
+```bash
+# 1. 初始化 ECS
 REPO_URL=https://github.com/你的org/mytokenjoy.git \
   ssh root@ECS "bash -s" < deploy/setup-ecs.sh
 
