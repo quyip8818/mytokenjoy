@@ -18,7 +18,7 @@ export function OrdersPage() {
   const suppliers = useSupplierOptions()
 
   const { data, loading, filter, setFilter, search } = useFilteredQuery({
-    initialFilter: { page: 1, pageSize: 10, keyword: '', supplierId: 0, status: '' },
+    initialFilter: { page: 1, pageSize: 10, keyword: '', supplierId: '', status: '' },
     queryKeyFactory: (f) => queryKeys.orders.list(f),
     fetcher: (a, f) => a.ordersApi.list(f),
   })
@@ -27,8 +27,8 @@ export function OrdersPage() {
   const [editing, setEditing] = useState<PurchaseOrder | null>(null)
   const [form, setForm] = useState({
     orderNo: '',
-    supplierId: 0,
-    contractId: undefined as number | undefined,
+    supplierId: '',
+    contractId: undefined as string | undefined,
     totalAmount: '',
     orderDate: '',
     status: 'pending',
@@ -36,7 +36,7 @@ export function OrdersPage() {
   })
   const [saving, setSaving] = useState(false)
 
-  const deleteMut = useInjectedMutation<void, number>({
+  const deleteMut = useInjectedMutation<void, string>({
     mutationFn: (a, id) => a.ordersApi.delete(id),
     invalidateKeys: [queryKeys.orders.all],
     onSuccess: () => toast.success('删除成功'),
@@ -46,7 +46,7 @@ export function OrdersPage() {
     setEditing(null)
     setForm({
       orderNo: '',
-      supplierId: 0,
+      supplierId: '',
       contractId: undefined,
       totalAmount: '',
       orderDate: '',
@@ -133,9 +133,9 @@ export function OrdersPage() {
         <select
           className="h-9 rounded-md border px-2 text-sm"
           value={filter.supplierId}
-          onChange={(e) => search({ supplierId: Number(e.target.value) })}
+          onChange={(e) => search({ supplierId: e.target.value })}
         >
-          <option value={0}>全部供应商</option>
+          <option value="">全部供应商</option>
           {suppliers.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
@@ -246,10 +246,10 @@ export function OrdersPage() {
                 <select
                   className="input"
                   value={form.supplierId}
-                  onChange={(e) => setForm({ ...form, supplierId: Number(e.target.value) })}
+                  onChange={(e) => setForm({ ...form, supplierId: e.target.value })}
                   disabled={!!editing}
                 >
-                  <option value={0}>请选择</option>
+                  <option value="">请选择</option>
                   {suppliers.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}

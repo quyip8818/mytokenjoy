@@ -28,7 +28,7 @@ function formatAmount(amount?: number): string {
 
 export default function SupplierDetailPage() {
   const { id } = useParams({ strict: false })
-  const supplierId = Number(id)
+  const supplierId = id!
   const apis = useApis()
   const { user } = useSession()
   const canEdit = user?.role === 'admin' || user?.role === 'buyer'

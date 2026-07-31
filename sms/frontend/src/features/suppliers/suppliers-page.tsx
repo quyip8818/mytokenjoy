@@ -34,7 +34,7 @@ export function SuppliersPage() {
   })
   const [saving, setSaving] = useState(false)
 
-  const deleteMut = useInjectedMutation<void, number>({
+  const deleteMut = useInjectedMutation<void, string>({
     mutationFn: (a, id) => a.suppliersApi.delete(id),
     invalidateKeys: [queryKeys.suppliers.all],
     onSuccess: () => toast.success('删除成功'),
@@ -154,7 +154,7 @@ export function SuppliersPage() {
             {data?.items.map((s) => (
               <tr key={s.id} className="border-b last:border-0 hover:bg-muted/20">
                 <td className="px-4 py-3">
-                  <Link to={`/suppliers/${s.id}`} className="text-primary hover:underline">
+                  <Link to="/suppliers/$id" params={{ id: s.id }} className="text-primary hover:underline">
                     {s.name}
                   </Link>
                 </td>
@@ -168,7 +168,8 @@ export function SuppliersPage() {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <Link
-                    to={`/suppliers/${s.id}`}
+                    to="/suppliers/$id"
+                    params={{ id: s.id }}
                     className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-primary"
                   >
                     <Eye className="h-3.5 w-3.5" />

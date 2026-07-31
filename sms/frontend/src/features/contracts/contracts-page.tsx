@@ -34,7 +34,7 @@ export function ContractsPage() {
   const suppliers = useSupplierOptions()
 
   const { data, loading, filter, setFilter, search } = useFilteredQuery({
-    initialFilter: { page: 1, pageSize: 10, keyword: '', supplierId: 0, status: '' },
+    initialFilter: { page: 1, pageSize: 10, keyword: '', supplierId: '', status: '' },
     queryKeyFactory: (f) => queryKeys.contracts.list(f),
     fetcher: (a, f) => a.contractsApi.list(f),
   })
@@ -43,7 +43,7 @@ export function ContractsPage() {
   const [editing, setEditing] = useState<Contract | null>(null)
   const [form, setForm] = useState({
     contractNo: '',
-    supplierId: 0,
+    supplierId: '',
     title: '',
     amount: '',
     signDate: '',
@@ -57,7 +57,7 @@ export function ContractsPage() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [detail, setDetail] = useState<ContractDetail | null>(null)
 
-  const deleteMut = useInjectedMutation<void, number>({
+  const deleteMut = useInjectedMutation<void, string>({
     mutationFn: (a, id) => a.contractsApi.delete(id),
     invalidateKeys: [queryKeys.contracts.all],
     onSuccess: () => toast.success('删除成功'),
@@ -67,7 +67,7 @@ export function ContractsPage() {
     setEditing(null)
     setForm({
       contractNo: '',
-      supplierId: 0,
+      supplierId: '',
       title: '',
       amount: '',
       signDate: '',
@@ -188,9 +188,9 @@ export function ContractsPage() {
         <select
           className="h-9 rounded-md border px-2 text-sm"
           value={filter.supplierId}
-          onChange={(e) => search({ supplierId: Number(e.target.value) })}
+          onChange={(e) => search({ supplierId: e.target.value })}
         >
-          <option value={0}>全部供应商</option>
+          <option value="">全部供应商</option>
           {suppliers.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
@@ -320,10 +320,10 @@ export function ContractsPage() {
                 <select
                   className="input"
                   value={form.supplierId}
-                  onChange={(e) => setForm({ ...form, supplierId: Number(e.target.value) })}
+                  onChange={(e) => setForm({ ...form, supplierId: e.target.value })}
                   disabled={!!editing}
                 >
-                  <option value={0}>请选择</option>
+                  <option value="">请选择</option>
                   {suppliers.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}

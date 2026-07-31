@@ -26,7 +26,7 @@ export function EvaluationsPage() {
   }, [])
 
   const { data, loading, filter, setFilter, search } = useFilteredQuery({
-    initialFilter: { page: 1, pageSize: 10, supplierId: 0, period: '' },
+    initialFilter: { page: 1, pageSize: 10, supplierId: '', period: '' },
     queryKeyFactory: (f) => queryKeys.evaluations.list(f),
     fetcher: (a, f) => a.evaluationsApi.list(f),
   })
@@ -34,7 +34,7 @@ export function EvaluationsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Evaluation | null>(null)
   const [form, setForm] = useState({
-    supplierId: 0,
+    supplierId: '',
     period: '',
     quality: 80,
     performance: 80,
@@ -45,7 +45,7 @@ export function EvaluationsPage() {
   })
   const [saving, setSaving] = useState(false)
 
-  const deleteMut = useInjectedMutation<void, number>({
+  const deleteMut = useInjectedMutation<void, string>({
     mutationFn: (a, id) => a.evaluationsApi.delete(id),
     invalidateKeys: [queryKeys.evaluations.all],
     onSuccess: () => toast.success('删除成功'),
@@ -67,7 +67,7 @@ export function EvaluationsPage() {
   const openCreate = () => {
     setEditing(null)
     setForm({
-      supplierId: 0,
+      supplierId: '',
       period: '',
       quality: 80,
       performance: 80,
@@ -151,9 +151,9 @@ export function EvaluationsPage() {
         <select
           className="h-9 rounded-md border px-2 text-sm"
           value={filter.supplierId}
-          onChange={(e) => search({ supplierId: Number(e.target.value) })}
+          onChange={(e) => search({ supplierId: e.target.value })}
         >
-          <option value={0}>全部供应商</option>
+          <option value="">全部供应商</option>
           {suppliers.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
@@ -258,10 +258,10 @@ export function EvaluationsPage() {
                   <select
                     className="input"
                     value={form.supplierId}
-                    onChange={(e) => setForm({ ...form, supplierId: Number(e.target.value) })}
+                    onChange={(e) => setForm({ ...form, supplierId: e.target.value })}
                     disabled={!!editing}
                   >
-                    <option value={0}>请选择</option>
+                    <option value="">请选择</option>
                     {suppliers.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name}
