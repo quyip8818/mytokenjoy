@@ -125,7 +125,9 @@ export function usePlatformKeysPage(injectedApis?: AppApis) {
   })
 
   const handleDelete = useCallback(
-    (id: string) => { deleteMutation.mutate(id) },
+    (id: string) => {
+      deleteMutation.mutate(id)
+    },
     [deleteMutation],
   )
 

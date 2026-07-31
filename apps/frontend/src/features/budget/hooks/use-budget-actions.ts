@@ -20,14 +20,20 @@ export function useBudgetActions({ injectedApis, refresh }: UseBudgetActionsOpti
   })
 
   const updateDepartmentMutation = useMutation({
-    mutationFn: (params: { departmentId: string; data: { budget: number; reservedPool?: number } }) =>
-      apis.budgetApi.updateDepartment(params.departmentId, params.data),
+    mutationFn: (params: {
+      departmentId: string
+      data: { budget: number; reservedPool?: number }
+    }) => apis.budgetApi.updateDepartment(params.departmentId, params.data),
     onSuccess: () => void refresh(),
   })
 
   const createProjectMutation = useMutation({
-    mutationFn: (data: { name: string; budget: number; memberIds: string[]; ownerDepartmentId: string }) =>
-      apis.budgetApi.createProject(data),
+    mutationFn: (data: {
+      name: string
+      budget: number
+      memberIds: string[]
+      ownerDepartmentId: string
+    }) => apis.budgetApi.createProject(data),
     onSuccess: () => void refresh(),
   })
 
@@ -50,8 +56,10 @@ export function useBudgetActions({ injectedApis, refresh }: UseBudgetActionsOpti
   })
 
   const applyAverageBudgetMutation = useMutation({
-    mutationFn: (params: { departmentId: string; data: { personalBudget: number; recursive: boolean } }) =>
-      apis.budgetApi.applyAverageBudget(params.departmentId, params.data),
+    mutationFn: (params: {
+      departmentId: string
+      data: { personalBudget: number; recursive: boolean }
+    }) => apis.budgetApi.applyAverageBudget(params.departmentId, params.data),
     onSuccess: () => void refresh(),
   })
 
@@ -65,8 +73,12 @@ export function useBudgetActions({ injectedApis, refresh }: UseBudgetActionsOpti
   )
 
   const createProject = useCallback(
-    (data: { name: string; budget: number; memberIds: string[]; ownerDepartmentId: string }): Promise<void> =>
-      createProjectMutation.mutateAsync(data).then(() => {}),
+    (data: {
+      name: string
+      budget: number
+      memberIds: string[]
+      ownerDepartmentId: string
+    }): Promise<void> => createProjectMutation.mutateAsync(data).then(() => {}),
     [createProjectMutation],
   )
 

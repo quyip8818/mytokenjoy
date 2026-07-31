@@ -81,12 +81,18 @@ export function useModelListPage(injectedApis?: AppApis) {
   })
 
   const handleToggle = useCallback(
-    (model: ModelInfo) => toggleMutation.mutateAsync(model).then(() => {}).catch(() => {}),
+    (model: ModelInfo) =>
+      toggleMutation
+        .mutateAsync(model)
+        .then(() => {})
+        .catch(() => {}),
     [toggleMutation],
   )
 
   const handleDelete = useCallback(
-    (model: ModelInfo) => { deleteMutation.mutate(model) },
+    (model: ModelInfo) => {
+      deleteMutation.mutate(model)
+    },
     [deleteMutation],
   )
 
