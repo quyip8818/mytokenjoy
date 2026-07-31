@@ -55,3 +55,10 @@ apps/backend/server
 apps/backend/tmp/
 *.test
 
+
+# Deploy secrets (SSL certs, env overrides)
+deploy/ssl/*.pem
+deploy/ssl/*.key
+deploy/env/*.env
+!deploy/env/*.env.example
+deploy/docker-compose.local.yml
