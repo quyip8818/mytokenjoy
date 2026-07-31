@@ -227,10 +227,16 @@ func walletLotsMockServer(t *testing.T, walletLotsVersion int, orders []catalog.
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/api/platform/sync/versions":
-			// Return versions matching seed (models=1, pricing=1, currencies=1) so those are skipped.
+			// walletLots differs from local (0) to trigger sync; others match seed (1) to skip.
 			_ = json.NewEncoder(w).Encode(map[string]int{
 				"models": 1, "pricing": 1, "currencies": 1, "walletLots": walletLotsVersion,
 			})
+		case "/api/platform/sync/catalog/models":
+			_ = json.NewEncoder(w).Encode(map[string]any{"version": 1, "data": []any{}})
+		case "/api/platform/sync/catalog/pricing":
+			_ = json.NewEncoder(w).Encode(map[string]any{"version": 1, "data": []any{}})
+		case "/api/platform/sync/catalog/currencies":
+			_ = json.NewEncoder(w).Encode(map[string]any{"version": 1, "data": []any{}})
 		case "/api/platform/sync/catalog/wallet_lots":
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"version":           walletLotsVersion,

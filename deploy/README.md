@@ -1,242 +1,123 @@
-# 部署指南
+# 部署
 
-TokenJoy 三平台阿里云 ECS 部署，全镜像化方案。
+全 Docker Compose。ECS 上只装 Docker + Git。
 
-## 架构概览
+## 架构
 
 ```
-GitHub (push main)
-  → GitHub Actions: 构建 6 个 Docker 镜像
-  → 推送到阿里云 ACR
-  → SSH 到 ECS: pull + up -d
-
-ECS 内部:
-  nginx:443 ──┬── www.tokenjoy.me → web (静态)
-              ├── app.tokenjoy.me → apps-frontend → apps-backend → PG/Redis/NewAPI
-              └── sms.tokenjoy.me → sms-frontend → sms-backend → PG/Redis/NewAPI-SMS
+ECS
+└─ docker compose
+    ├─ nginx         :80/:443  SSL + 域名路由
+    ├─ apps-frontend           SPA + /api,/v1 反代 → apps-backend
+    ├─ apps-backend  :8010     Go API + LLM Gateway
+    ├─ sms-frontend            SPA + /api 反代 → sms-backend
+    ├─ sms-backend   :8020     Go API
+    ├─ web                     静态官网
+    ├─ newapi        :3000     LLM 转发
+    ├─ postgres      :5432
+    └─ redis         :6379
 ```
 
-## 目录结构
+## 文件
 
 ```
 deploy/
-├── dockerfiles/              # 各服务 Dockerfile（build context = repo root）
+├── deploy.sh              一键部署 (SSH → git pull → up --build)
+├── setup-ecs.sh           ECS 首次初始化
+├── docker-compose.yml     全服务编排
+├── nginx.conf             入口网关 (SSL 终止)
+├── init-db.sh             PG 首次初始化脚本
+├── dockerfiles/
 │   ├── apps-backend.Dockerfile
 │   ├── apps-frontend.Dockerfile
 │   ├── sms-backend.Dockerfile
 │   ├── sms-frontend.Dockerfile
-│   └── web.Dockerfile
-├── nginx/                    # Nginx 配置
-│   ├── gateway.conf          # 入口网关（SSL 终止 + 域名路由）
-│   ├── apps-frontend.conf    # apps 前端容器内（SPA + API 反代）
-│   └── sms-frontend.conf    # sms 前端容器内（SPA + API 反代）
-├── docker-compose.prod.yml   # 生产 Compose（ECS 上直接用）
-├── .dockerignore             # 构建时排除文件
-├── .env.example              # 环境变量模板
-├── deploy.sh                 # 手动部署脚本（备用）
-└── README.md                 # 本文档
+│   ├── web.Dockerfile
+│   ├── spa-proxy.conf     前端 nginx: SPA + API 反代
+│   └── spa-static.conf    前端 nginx: 纯静态
+├── env/
+│   ├── infra.env.example  基础设施密码 (PG/Redis/NewAPI)
+│   ├── apps.env.example   apps-backend 配置
+│   └── sms.env.example    sms-backend 配置
+└── ssl/                   SSL 证书 (不入 git)
 ```
 
-## 首次部署（Step by Step）
+## 首次部署
 
-### 1. 阿里云资源准备
+```bash
+# 1. 初始化 ECS (装 Docker + Git + clone 仓库)
+REPO_URL=https://github.com/你的org/mytokenjoy.git \
+  ssh root@ECS "bash -s" < deploy/setup-ecs.sh
 
-| 资源 | 操作 |
+# 2. 编辑 env
+ssh root@ECS "vi /opt/tokenjoy/src/deploy/env/infra.env"
+ssh root@ECS "vi /opt/tokenjoy/src/deploy/env/apps.env"
+ssh root@ECS "vi /opt/tokenjoy/src/deploy/env/sms.env"
+
+# 3. 上传 SSL 证书
+scp certs/*.pem certs/*.key root@ECS:/opt/tokenjoy/src/deploy/ssl/
+
+# 4. 部署
+./deploy/deploy.sh <ECS_IP>
+```
+
+## 日常部署
+
+```bash
+./deploy/deploy.sh           # 用 DEPLOY_HOST 环境变量
+./deploy/deploy.sh 47.x.x.x # 或直接传 IP
+```
+
+## 本地测试
+
+```bash
+cd deploy
+cp env/infra.env.example env/infra.env   # 填密码或保持 CHANGE_ME
+cp env/apps.env.example env/apps.env
+cp env/sms.env.example env/sms.env
+# 去掉 nginx 容器（无 SSL 证书），直接访问前端容器端口:
+docker compose --env-file env/infra.env up --build \
+  apps-frontend sms-frontend web apps-backend sms-backend postgres redis newapi
+```
+
+apps-frontend 暴露端口需加 `ports` 或用 `docker compose port` 查看。
+
+## 运维
+
+```bash
+DC="docker compose -f deploy/docker-compose.yml --env-file deploy/env/infra.env"
+
+# 状态
+ssh ECS "cd /opt/tokenjoy/src && $DC ps"
+
+# 日志
+ssh ECS "cd /opt/tokenjoy/src && $DC logs -f apps-backend --tail 100"
+
+# 回滚
+ssh ECS "cd /opt/tokenjoy/src && git checkout <sha> && $DC up -d --build"
+
+# 只重启某个服务
+ssh ECS "cd /opt/tokenjoy/src && $DC restart apps-backend"
+
+# 数据库备份
+ssh ECS "cd /opt/tokenjoy/src && $DC exec -T postgres pg_dump -U tokenjoy tokenjoy" > backup.sql
+
+# 重建 newapi (更新 patch 后)
+ssh ECS "cd /opt/tokenjoy/src && $DC up -d --build newapi"
+```
+
+## 域名
+
+| 域名 | 服务 |
 |------|------|
-| ECS | 购买 2C4G+，选 Ubuntu 22.04 或 Alibaba Cloud Linux |
-| ACR | 创建个人版实例，命名空间 `tokenjoy`，创建 6 个镜像仓库 |
-| 域名 | 三条 A 记录指向 ECS 公网 IP |
-| SSL  | 申请免费证书（每个域名一张）或使用通配符证书 |
+| app.tokenjoy.me | apps |
+| sms.tokenjoy.me | sms |
+| www.tokenjoy.me | web |
 
-ACR 镜像仓库清单：
-- `tokenjoy-apps-frontend`
-- `tokenjoy-apps-backend`
-- `tokenjoy-newapi`
-- `tokenjoy-sms-frontend`
-- `tokenjoy-sms-backend`
-- `tokenjoy-web`
-
-### 2. ECS 初始化
+## 生成密码参考
 
 ```bash
-# SSH 到 ECS
-ssh root@你的IP
-
-# 安装 Docker
-curl -fsSL https://get.docker.com | sh
-systemctl enable --now docker
-
-# 创建目录
-mkdir -p /opt/tokenjoy/{ssl,nginx,postgres-init}
-
-# 安全组：只开放 80、443、SSH(限 IP)
-```
-
-### 3. 上传配置文件
-
-在本地项目根目录执行：
-
-```bash
-SERVER="root@你的ECS_IP"
-
-# 上传 Compose 文件
-scp deploy/docker-compose.prod.yml $SERVER:/opt/tokenjoy/
-
-# 上传 nginx 入口配置
-scp deploy/nginx/gateway.conf $SERVER:/opt/tokenjoy/nginx/
-
-# 上传数据库初始化脚本
-scp scripts/postgres-init/01-create-all-dbs.sh $SERVER:/opt/tokenjoy/postgres-init/
-
-# 上传 SSL 证书（你自己准备的）
-scp ssl/*.pem ssl/*.key $SERVER:/opt/tokenjoy/ssl/
-
-# 创建 .env（从模板编辑，填入真实密码）
-scp deploy/.env.example $SERVER:/opt/tokenjoy/.env
-ssh $SERVER "vim /opt/tokenjoy/.env"  # 编辑填入真实值
-```
-
-### 4. 配置 GitHub Secrets
-
-在仓库 Settings → Secrets and variables → Actions 中添加：
-
-| Secret | 值 |
-|--------|---|
-| `ACR_USERNAME` | ACR 登录用户名 |
-| `ACR_PASSWORD` | ACR 登录密码 |
-| `DEPLOY_HOST` | ECS 公网 IP |
-| `DEPLOY_USER` | `root`（或创建专用部署用户） |
-| `SSH_PRIVATE_KEY` | SSH 私钥内容 |
-
-创建 Environment `production`（可配审批人，可选）。
-
-### 5. 首次启动
-
-推送到 main 分支，CI 会自动构建并部署。或手动触发：
-
-```bash
-# 本地构建推镜像（如果 CI 还没配好）
-docker login registry.cn-hangzhou.aliyuncs.com
-docker build -f deploy/dockerfiles/apps-backend.Dockerfile -t registry.cn-hangzhou.aliyuncs.com/tokenjoy/tokenjoy-apps-backend:latest .
-docker push registry.cn-hangzhou.aliyuncs.com/tokenjoy/tokenjoy-apps-backend:latest
-# ... 重复其他 5 个镜像
-
-# 在 ECS 上拉起
-ssh root@ECS_IP "cd /opt/tokenjoy && docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d"
-```
-
----
-
-## 日常运维
-
-### 查看服务状态
-
-```bash
-ssh ECS "cd /opt/tokenjoy && docker compose -f docker-compose.prod.yml ps"
-```
-
-### 查看日志
-
-```bash
-# 跟踪 apps 后端日志
-ssh ECS "cd /opt/tokenjoy && docker compose -f docker-compose.prod.yml logs -f apps-backend --tail 100"
-```
-
-### 手动部署指定版本
-
-```bash
-export DEPLOY_HOST=你的IP
-./deploy/deploy.sh abc12345   # 指定 git sha 前 8 位
-```
-
-### 回滚
-
-```bash
-export DEPLOY_HOST=你的IP
-./deploy/deploy.sh 上一个tag   # 用之前的 git sha
-```
-
-### 数据库备份
-
-```bash
-ssh ECS "cd /opt/tokenjoy && docker compose -f docker-compose.prod.yml exec -T postgres pg_dump -U tokenjoy tokenjoy" > backup_$(date +%Y%m%d).sql
-```
-
-### 证书续期
-
-如使用 Let's Encrypt，建议在 ECS 上装 certbot：
-
-```bash
-apt install certbot
-certbot certonly --standalone -d www.tokenjoy.me -d app.tokenjoy.me -d sms.tokenjoy.me
-# 配置 cron 每月自动续期
-echo "0 3 1 * * certbot renew --deploy-hook 'docker compose -f /opt/tokenjoy/docker-compose.prod.yml restart nginx'" | crontab -
-```
-
----
-
-## 安全检查清单
-
-- [ ] ECS 安全组：仅开放 80/443/SSH（SSH 限 IP）
-- [ ] .env 中所有密码已替换为强随机值（`openssl rand -hex 16`）
-- [ ] SSL 证书已部署且有效
-- [ ] Redis 设置了密码 + maxmemory 限制
-- [ ] PostgreSQL 不暴露公网端口
-- [ ] Docker 容器以非 root 用户运行（Go 后端已配置）
-- [ ] Nginx 开启 HSTS + 安全头
-- [ ] 日志有大小限制（10MB × 3 文件轮转）
-
----
-
-## 资源用量估算（2C4G ECS）
-
-| 服务 | 内存限制 | 实际预估 |
-|------|----------|----------|
-| PostgreSQL | 1G | 200-500MB |
-| Redis | 512M | 50-100MB |
-| NewAPI-apps | 512M | 100-200MB |
-| NewAPI-sms | 512M | 100-200MB |
-| apps-backend | 256M | 30-80MB |
-| sms-backend | 256M | 30-80MB |
-| apps-frontend (nginx) | 64M | 5-10MB |
-| sms-frontend (nginx) | 64M | 5-10MB |
-| web (nginx) | 64M | 5-10MB |
-| gateway nginx | 128M | 10-20MB |
-| **合计** | **3.3G** | **~800MB-1.2GB** |
-
-4G 内存足够。预留给操作系统约 800MB。
-
----
-
-## 升级路径
-
-| 触发条件 | 操作 |
-|----------|------|
-| 内存不够 | PG 外移到阿里云 RDS（改 .env 连接串即可） |
-| 需要 HA | 加一台 ECS + ALB 做蓝绿部署 |
-| 需要自动扩缩 | 迁移到 SAE（镜像不变，改部署目标） |
-| 想全自动 | 加 Watchtower 容器，ACR 有新镜像自动重启 |
-| 构建太慢 | CI 已配 GitHub Actions Cache，后续可加并行 job |
-
----
-
-## 故障排查
-
-```bash
-# 服务启动失败
-docker compose -f docker-compose.prod.yml logs <service-name>
-
-# 数据库连接失败
-docker compose -f docker-compose.prod.yml exec postgres psql -U tokenjoy -c "SELECT 1"
-
-# Nginx 配置错误
-docker compose -f docker-compose.prod.yml exec nginx nginx -t
-
-# 磁盘满了
-docker system df              # 查看 Docker 磁盘用量
-docker image prune -a -f     # 清理所有未使用镜像
-docker volume prune -f       # 清理未使用卷（⚠️ 注意不要删数据卷）
-
-# 内存不足
-docker stats --no-stream     # 查看各容器实时资源用量
+openssl rand -hex 16          # PG_PASSWORD, REDIS_PASSWORD, SESSION_SECRET 等
+openssl rand -hex 32          # INVITE_SECRET
+openssl rand -base64 32       # DATA_SOURCE_CREDENTIAL_KEY
 ```

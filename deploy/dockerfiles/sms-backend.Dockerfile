@@ -1,5 +1,5 @@
-# sms-backend: Go HTTP server
-# Build context: repo root (docker build -f deploy/dockerfiles/sms-backend.Dockerfile .)
+# sms-backend: Go multi-stage build
+# Context: repo root
 FROM golang:1.23-alpine AS builder
 RUN apk add --no-cache git ca-certificates
 WORKDIR /build
@@ -8,7 +8,7 @@ RUN go mod download
 COPY sms/backend/ .
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o server ./cmd/server
 
-FROM alpine:3.20
+FROM alpine:3.21
 RUN apk add --no-cache ca-certificates tzdata \
     && addgroup -S app && adduser -S app -G app
 COPY --from=builder /build/server /usr/local/bin/server
