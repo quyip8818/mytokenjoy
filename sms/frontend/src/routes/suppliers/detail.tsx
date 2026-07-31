@@ -29,23 +29,8 @@ import {
 } from '@/components/ui/dialog'
 import { ConfirmActionDialog, type ConfirmActionState } from '@/components/ui/confirm-action-dialog'
 import { PageShell } from '@/components/layout/page-shell'
+import { daysUntil, formatAmount } from '@/lib/utils'
 import type { SupplierContact } from '@/api/suppliers'
-
-function daysUntil(endDate?: string): number | null {
-  if (!endDate) return null
-  const end = new Date(endDate).getTime()
-  const now = new Date()
-  now.setHours(0, 0, 0, 0)
-  return Math.ceil((end - now.getTime()) / (24 * 3600 * 1000))
-}
-
-function formatAmount(amount?: number): string {
-  if (amount === undefined || amount === null) return '-'
-  return Number(amount).toLocaleString('zh-CN', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
-}
 
 export default function SupplierDetailPage() {
   const { id } = useParams({ strict: false })

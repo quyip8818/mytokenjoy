@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { toast } from 'sonner'
+import { useInjectedQuery, queryKeys } from '@/features/query'
 import { useApis } from '@/api/use-apis'
 import { DIMENSIONS } from '@/config/enums'
 import { Button } from '@/components/ui/button'
@@ -19,32 +20,22 @@ const DIMENSION_DESC: Record<string, string> = {
 
 export function WeightsPage() {
   const apis = useApis()
-  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [weights, setWeights] = useState<EvaluationWeight[]>([])
+  const [edits, setEdits] = useState<EvaluationWeight[] | null>(null)
 
-  useEffect(() => {
-    let cancelled = false
-    async function fetchWeights() {
-      setLoading(true)
-      try {
-        const data = await apis.evaluationsApi.getWeights()
-        if (!cancelled) setWeights(data)
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    fetchWeights()
-    return () => {
-      cancelled = true
-    }
-  }, [apis])
+  const { data: serverWeights, loading, refresh } = useInjectedQuery({
+    queryKey: queryKeys.evaluations.weights(),
+    queryFn: (a) => a.evaluationsApi.getWeights(),
+  })
+
+  // ponytail: local edits override server data; reset on fresh fetch
+  const weights = edits ?? serverWeights ?? []
 
   const totalWeight = useMemo(() => weights.reduce((sum, w) => sum + w.weight, 0), [weights])
   const isValid = Math.abs(totalWeight - 100) < 0.01
 
   const updateWeight = (dimension: string, value: number) => {
-    setWeights((prev) => prev.map((w) => (w.dimension === dimension ? { ...w, weight: value } : w)))
+    setEdits(weights.map((w) => (w.dimension === dimension ? { ...w, weight: value } : w)))
   }
 
   const handleSave = async () => {
@@ -56,8 +47,8 @@ export function WeightsPage() {
     try {
       await apis.evaluationsApi.updateWeights(weights)
       toast.success('权重配置已更新')
-      const data = await apis.evaluationsApi.getWeights()
-      setWeights(data)
+      setEdits(null)
+      refresh()
     } catch (e: any) {
       toast.error(e.message)
     } finally {

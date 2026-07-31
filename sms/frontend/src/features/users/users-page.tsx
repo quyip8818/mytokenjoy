@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useInjectedQuery } from '@/features/query'
@@ -28,19 +28,18 @@ import { NativeSelect } from '@/components/ui/native-select'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
 import type { User } from '@/api/auth'
-import type { Role } from '@/api/users'
 
 export function UsersPage() {
   const apis = useApis()
   const [keyword, setKeyword] = useState('')
-  const [roles, setRoles] = useState<Role[]>([])
-  useEffect(() => {
-    apis.usersApi.roles().then(setRoles)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+
+  const { data: roles = [] } = useInjectedQuery({
+    queryKey: ['users', 'roles'],
+    queryFn: (a) => a.usersApi.roles(),
+  })
 
   const { data, loading, refresh } = useInjectedQuery({
-    queryKey: ['users', keyword],
+    queryKey: ['users', 'list'],
     queryFn: (a) => a.usersApi.list(),
   })
 

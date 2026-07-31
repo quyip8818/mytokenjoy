@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useFilteredQuery, useInjectedMutation, queryKeys } from '@/features/query'
+import { useFilteredQuery, useInjectedQuery, useInjectedMutation, queryKeys } from '@/features/query'
 import { useSession } from '@/features/session'
 import { useSupplierOptions } from '@/features/suppliers'
 import { useApis } from '@/api/use-apis'
@@ -39,13 +39,15 @@ export function EvaluationsPage() {
   const apis = useApis()
   const suppliers = useSupplierOptions()
 
-  const [weights, setWeights] = useState<Record<string, number>>({})
-  useEffect(() => {
-    apis.evaluationsApi.getWeights().then((ws) => {
-      setWeights(Object.fromEntries(ws.map((w) => [w.dimension, w.weight])))
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const { data: weightsData } = useInjectedQuery({
+    queryKey: queryKeys.evaluations.weights(),
+    queryFn: (a) => a.evaluationsApi.getWeights(),
+  })
+  // ponytail: derive weight map from query — no local state needed
+  const weights = useMemo(
+    () => Object.fromEntries((weightsData ?? []).map((w) => [w.dimension, w.weight])),
+    [weightsData],
+  )
 
   const { data, loading, filter, setFilter, search } = useFilteredQuery({
     initialFilter: { page: 1, pageSize: 10, supplierId: '', period: '' },

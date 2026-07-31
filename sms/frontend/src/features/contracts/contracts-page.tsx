@@ -33,23 +33,8 @@ import { ConfirmActionDialog, type ConfirmActionState } from '@/components/ui/co
 import { NativeSelect } from '@/components/ui/native-select'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
+import { daysUntil, formatAmount } from '@/lib/utils'
 import type { Contract, ContractDetail, ContractAttachment } from '@/api/contracts'
-
-function daysUntil(endDate?: string): number | null {
-  if (!endDate) return null
-  const end = new Date(endDate).getTime()
-  const now = new Date()
-  now.setHours(0, 0, 0, 0)
-  return Math.ceil((end - now.getTime()) / (24 * 3600 * 1000))
-}
-
-function formatAmount(amount?: number): string {
-  if (amount === undefined || amount === null) return '-'
-  return Number(amount).toLocaleString('zh-CN', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
-}
 
 export function ContractsPage() {
   const { user } = useSession()
