@@ -6,7 +6,29 @@ import { useSession } from '@/features/session'
 import { useSupplierOptions } from '@/features/suppliers'
 import { useApis } from '@/api/use-apis'
 import { ORDER_STATUS } from '@/config/enums'
-import { StatusBadge, Field, Pagination } from '@/components/ui'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { StatusBadge } from '@/components/ui/badge'
+import { Pagination } from '@/components/ui/pagination'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { ConfirmActionDialog, type ConfirmActionState } from '@/components/ui/confirm-action-dialog'
+import { NativeSelect } from '@/components/ui/native-select'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
 import type { PurchaseOrder } from '@/api/orders'
@@ -35,6 +57,7 @@ export function OrdersPage() {
     description: '',
   })
   const [saving, setSaving] = useState(false)
+  const [confirmState, setConfirmState] = useState<ConfirmActionState | null>(null)
 
   const deleteMut = useInjectedMutation<void, string>({
     mutationFn: (a, id) => a.ordersApi.delete(id),
@@ -101,8 +124,17 @@ export function OrdersPage() {
   }
 
   const handleDelete = (row: PurchaseOrder) => {
-    if (!confirm(`确定删除订单「${row.orderNo}」吗？`)) return
-    deleteMut.mutate(row.id)
+    setConfirmState({
+      open: true,
+      title: '确认删除',
+      desc: `确定删除订单「${row.orderNo}」吗？`,
+      variant: 'danger',
+      confirmLabel: '删除',
+      onConfirm: () => {
+        deleteMut.mutate(row.id)
+        setConfirmState(null)
+      },
+    })
   }
 
   const totalPages = Math.ceil((data?.total ?? 0) / filter.pageSize)
@@ -113,25 +145,22 @@ export function OrdersPage() {
         title="采购订单"
         actions={
           canEdit ? (
-            <button
-              onClick={openCreate}
-              className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
+            <Button onClick={openCreate}>
               <Plus className="h-4 w-4" /> 新建订单
-            </button>
+            </Button>
           ) : undefined
         }
       />
 
       <div className="flex items-center gap-2">
-        <input
-          className="h-9 w-44 rounded-md border px-3 text-sm"
+        <Input
+          className="h-9 w-44"
           placeholder="订单编号"
           value={filter.keyword}
           onChange={(e) => search({ keyword: e.target.value })}
         />
-        <select
-          className="h-9 rounded-md border px-2 text-sm"
+        <NativeSelect
+          className="h-9 w-auto"
           value={filter.supplierId}
           onChange={(e) => search({ supplierId: e.target.value })}
         >
@@ -141,9 +170,9 @@ export function OrdersPage() {
               {s.name}
             </option>
           ))}
-        </select>
-        <select
-          className="h-9 rounded-md border px-2 text-sm"
+        </NativeSelect>
+        <NativeSelect
+          className="h-9 w-auto"
           value={filter.status}
           onChange={(e) => search({ status: e.target.value })}
         >
@@ -153,66 +182,60 @@ export function OrdersPage() {
               {v.label}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </div>
 
       <div className="rounded-lg border bg-white">
-        <table className="w-full text-sm">
-          <thead className="border-b bg-muted/40">
-            <tr>
-              <th className="px-4 py-3 text-left font-medium">订单编号</th>
-              <th className="px-4 py-3 text-left font-medium">供应商</th>
-              <th className="px-4 py-3 text-left font-medium">关联合同</th>
-              <th className="px-4 py-3 text-right font-medium">金额</th>
-              <th className="px-4 py-3 text-left font-medium">下单日期</th>
-              <th className="px-4 py-3 text-left font-medium">状态</th>
-              <th className="px-4 py-3 text-left font-medium">创建人</th>
-              {canEdit && <th className="px-4 py-3 text-right font-medium">操作</th>}
-            </tr>
-          </thead>
-          <tbody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>订单编号</TableHead>
+              <TableHead>供应商</TableHead>
+              <TableHead>关联合同</TableHead>
+              <TableHead className="text-right">金额</TableHead>
+              <TableHead>下单日期</TableHead>
+              <TableHead>状态</TableHead>
+              <TableHead>创建人</TableHead>
+              {canEdit && <TableHead className="text-right">操作</TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {data?.items.map((o) => (
-              <tr key={o.id} className="border-b last:border-0 hover:bg-muted/20">
-                <td className="px-4 py-3 text-muted-foreground">{o.orderNo}</td>
-                <td className="px-4 py-3">{o.supplierName ?? '-'}</td>
-                <td className="px-4 py-3 text-muted-foreground">{o.contractNo ?? '-'}</td>
-                <td className="px-4 py-3 text-right">
+              <TableRow key={o.id}>
+                <TableCell className="text-muted-foreground">{o.orderNo}</TableCell>
+                <TableCell>{o.supplierName ?? '-'}</TableCell>
+                <TableCell className="text-muted-foreground">{o.contractNo ?? '-'}</TableCell>
+                <TableCell className="text-right">
                   {o.totalAmount != null
                     ? Number(o.totalAmount).toLocaleString('zh-CN', { minimumFractionDigits: 2 })
                     : '-'}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">{o.orderDate ?? '-'}</td>
-                <td className="px-4 py-3">
+                </TableCell>
+                <TableCell className="text-muted-foreground">{o.orderDate ?? '-'}</TableCell>
+                <TableCell>
                   <StatusBadge status={o.status} map={ORDER_STATUS} />
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">{o.creatorName ?? '-'}</td>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{o.creatorName ?? '-'}</TableCell>
                 {canEdit && (
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => openEdit(o)}
-                      className="px-1.5 py-1 text-muted-foreground hover:text-primary"
-                    >
-                      <Pencil className="inline h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(o)}
-                      className="px-1.5 py-1 text-muted-foreground hover:text-red-500"
-                    >
-                      <Trash2 className="inline h-3.5 w-3.5" />
-                    </button>
-                  </td>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon-sm" onClick={() => openEdit(o)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(o)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </TableCell>
                 )}
-              </tr>
+              </TableRow>
             ))}
             {!loading && data?.items.length === 0 && (
-              <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
+              <TableRow>
+                <TableCell colSpan={8} className="py-12 text-center text-muted-foreground">
                   暂无数据
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       <Pagination
@@ -222,98 +245,102 @@ export function OrdersPage() {
         onChange={(p) => setFilter((prev) => ({ ...prev, page: p }))}
       />
 
-      {dialogOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => setDialogOpen(false)}
-        >
-          <div
-            className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="mb-4 text-lg font-semibold">{editing ? '编辑订单' : '新建订单'}</h2>
-            <div className="space-y-3">
-              <Field label="订单编号" required>
-                <input
-                  className="input"
-                  value={form.orderNo}
-                  onChange={(e) => setForm({ ...form, orderNo: e.target.value })}
-                  disabled={!!editing}
-                  placeholder="如：PO-2026-0001"
-                />
-              </Field>
-              <Field label="供应商" required>
-                <select
-                  className="input"
-                  value={form.supplierId}
-                  onChange={(e) => setForm({ ...form, supplierId: e.target.value })}
-                  disabled={!!editing}
-                >
-                  <option value="">请选择</option>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="采购金额">
-                <input
-                  className="input"
-                  type="number"
-                  step="0.01"
-                  value={form.totalAmount}
-                  onChange={(e) => setForm({ ...form, totalAmount: e.target.value })}
-                />
-              </Field>
-              <Field label="下单日期">
-                <input
-                  className="input"
-                  type="date"
-                  value={form.orderDate}
-                  onChange={(e) => setForm({ ...form, orderDate: e.target.value })}
-                />
-              </Field>
-              <Field label="状态">
-                <select
-                  className="input"
-                  value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value })}
-                >
-                  {Object.entries(ORDER_STATUS).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v.label}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="说明">
-                <textarea
-                  className="input min-h-[60px] resize-none"
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="订单说明"
-                />
-              </Field>
+      {/* 新建/编辑弹窗 */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editing ? '编辑订单' : '新建订单'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>
+                订单编号 <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                className="mt-1"
+                value={form.orderNo}
+                onChange={(e) => setForm({ ...form, orderNo: e.target.value })}
+                disabled={!!editing}
+                placeholder="如：PO-2026-0001"
+              />
             </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                onClick={() => setDialogOpen(false)}
-                className="rounded-md border px-4 py-2 text-sm"
+            <div>
+              <Label>
+                供应商 <span className="text-red-500">*</span>
+              </Label>
+              <NativeSelect
+                className="mt-1"
+                value={form.supplierId}
+                onChange={(e) => setForm({ ...form, supplierId: e.target.value })}
+                disabled={!!editing}
               >
-                取消
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                <option value="">请选择</option>
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+            <div>
+              <Label>采购金额</Label>
+              <Input
+                className="mt-1"
+                type="number"
+                step="0.01"
+                value={form.totalAmount}
+                onChange={(e) => setForm({ ...form, totalAmount: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>下单日期</Label>
+              <Input
+                className="mt-1"
+                type="date"
+                value={form.orderDate}
+                onChange={(e) => setForm({ ...form, orderDate: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>状态</Label>
+              <NativeSelect
+                className="mt-1"
+                value={form.status}
+                onChange={(e) => setForm({ ...form, status: e.target.value })}
               >
-                {saving ? '保存中...' : '保存'}
-              </button>
+                {Object.entries(ORDER_STATUS).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v.label}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+            <div>
+              <Label>说明</Label>
+              <Textarea
+                className="mt-1 min-h-[60px] resize-none"
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                placeholder="订单说明"
+              />
             </div>
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? '保存中...' : '保存'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmActionDialog
+        state={confirmState}
+        onOpenChange={(open) => !open && setConfirmState(null)}
+        onClose={() => setConfirmState(null)}
+      />
     </PageShell>
   )
 }

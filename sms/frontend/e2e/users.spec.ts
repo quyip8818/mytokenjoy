@@ -26,10 +26,11 @@ test.describe('用户管理页面', () => {
   test('新建用户对话框', async ({ authedPage: page }) => {
     await page.goto('/system/users')
     await page.getByRole('button', { name: /新建用户/ }).click()
-    await expect(page.locator('h2', { hasText: '新建用户' })).toBeVisible()
-    // 验证表单字段存在
-    await expect(page.locator('.input').nth(0)).toBeVisible()
-    await expect(page.locator('select')).toHaveCount(2)
+    await expect(page.getByRole('heading', { name: '新建用户' })).toBeVisible()
+    // 验证表单字段存在（dialog 内的 input 和 select）
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.locator('input')).toHaveCount(4) // username, realName, password, email
+    await expect(dialog.locator('select')).toHaveCount(2) // role, status
   })
 
   test('新建用户 - 空字段校验', async ({ authedPage: page }) => {
@@ -43,10 +44,12 @@ test.describe('用户管理页面', () => {
     await page.goto('/system/users')
     await page.getByRole('button', { name: /新建用户/ }).click()
 
+    const dialog = page.getByRole('dialog')
     const username = `test_${Date.now()}`
-    await page.locator('.input').nth(0).fill(username)
-    await page.locator('.input').nth(1).fill('测试用户')
-    await page.locator('input[type="password"]').fill('password123')
+    // 按顺序填写：用户名、姓名、密码
+    await dialog.locator('input').nth(0).fill(username)
+    await dialog.locator('input').nth(1).fill('测试用户')
+    await dialog.locator('input[type="password"]').fill('password123')
 
     await page.getByRole('button', { name: '保存' }).click()
     await expect(page.getByText('创建成功').first()).toBeVisible({ timeout: 5000 })
@@ -58,9 +61,10 @@ test.describe('用户管理页面', () => {
     // 点击 admin 行的编辑按钮
     const adminRow = page.locator('tr', { hasText: 'admin' }).first()
     await adminRow.locator('button').first().click()
-    await expect(page.locator('h2', { hasText: '编辑用户（admin）' })).toBeVisible()
-    // 用户名字段应禁用
-    await expect(page.locator('.input').nth(0)).toBeDisabled()
+    await expect(page.getByRole('heading', { name: /编辑用户（admin）/ })).toBeVisible()
+    // 用户名字段应禁用（dialog 内第一个 input）
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.locator('input').first()).toBeDisabled()
   })
 
   test('不能删除管理员账户', async ({ authedPage: page }) => {
@@ -73,8 +77,8 @@ test.describe('用户管理页面', () => {
   test('取消对话框', async ({ authedPage: page }) => {
     await page.goto('/system/users')
     await page.getByRole('button', { name: /新建用户/ }).click()
-    await expect(page.locator('h2', { hasText: '新建用户' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '新建用户' })).toBeVisible()
     await page.getByRole('button', { name: '取消' }).click()
-    await expect(page.locator('h2', { hasText: '新建用户' })).toBeHidden()
+    await expect(page.getByRole('heading', { name: '新建用户' })).toBeHidden()
   })
 })

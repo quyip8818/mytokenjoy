@@ -1,11 +1,13 @@
 import { useInjectedQuery, queryKeys } from '@/features/query'
 import { ORDER_STATUS } from '@/config/enums'
-import { Badge } from '@/components/ui'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
 
 export function DashboardPage() {
-  const { data: cards } = useInjectedQuery({
+  const { data: cards, loading: cardsLoading } = useInjectedQuery({
     queryKey: queryKeys.dashboard.cards(),
     queryFn: (a) => a.dashboardApi.cards(),
   })
@@ -38,137 +40,171 @@ export function DashboardPage() {
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((card) => (
-          <div key={card.label} className="rounded-lg border bg-white p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div
-                className={`h-10 w-10 rounded-lg ${card.color} flex items-center justify-center`}
-              >
-                <span className="text-lg font-bold text-white">{card.value}</span>
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{card.value}</div>
-                <div className="text-sm text-muted-foreground">{card.label}</div>
-              </div>
-            </div>
-          </div>
-        ))}
+        {cardsLoading
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-10 w-10 rounded-lg" />
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-7 w-16" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          : statCards.map((card) => (
+              <Card key={card.label}>
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`h-10 w-10 rounded-lg ${card.color} flex items-center justify-center`}
+                    >
+                      <span className="text-lg font-bold text-white">{card.value}</span>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold">{card.value}</div>
+                      <div className="text-sm text-muted-foreground">{card.label}</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* 即将到期合同 */}
-        <div className="rounded-lg border bg-white p-5 shadow-sm">
-          <h2 className="mb-3 text-sm font-semibold">30 天内到期合同</h2>
-          {!expiring || expiring.length === 0 ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">暂无即将到期的合同</div>
-          ) : (
-            <div className="space-y-2">
-              {expiring.map((c) => (
-                <div
-                  key={c.id}
-                  className="flex items-center justify-between rounded border px-3 py-2 text-sm"
-                >
-                  <div>
-                    <span className="font-medium">{c.title}</span>
-                    <span className="ml-2 text-muted-foreground">{c.supplierName}</span>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">30 天内到期合同</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!expiring || expiring.length === 0 ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                暂无即将到期的合同
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {expiring.map((c) => (
+                  <div
+                    key={c.id}
+                    className="flex items-center justify-between rounded border px-3 py-2 text-sm"
+                  >
+                    <div>
+                      <span className="font-medium">{c.title}</span>
+                      <span className="ml-2 text-muted-foreground">{c.supplierName}</span>
+                    </div>
+                    <span className="text-xs font-medium text-yellow-600">{c.endDate}</span>
                   </div>
-                  <span className="text-xs font-medium text-yellow-600">{c.endDate}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* 最近订单 */}
-        <div className="rounded-lg border bg-white p-5 shadow-sm">
-          <h2 className="mb-3 text-sm font-semibold">最近订单</h2>
-          {!recentOrders || recentOrders.length === 0 ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">暂无订单</div>
-          ) : (
-            <div className="space-y-2">
-              {recentOrders.map((o) => (
-                <div
-                  key={o.id}
-                  className="flex items-center justify-between rounded border px-3 py-2 text-sm"
-                >
-                  <div>
-                    <span className="font-medium">{o.orderNo}</span>
-                    <span className="ml-2 text-muted-foreground">{o.supplierName}</span>
-                  </div>
-                  <Badge
-                    variant={
-                      o.status === 'completed'
-                        ? 'success'
-                        : o.status === 'pending'
-                          ? 'warning'
-                          : 'default'
-                    }
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">最近订单</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!recentOrders || recentOrders.length === 0 ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">暂无订单</div>
+            ) : (
+              <div className="space-y-2">
+                {recentOrders.map((o) => (
+                  <div
+                    key={o.id}
+                    className="flex items-center justify-between rounded border px-3 py-2 text-sm"
                   >
-                    {ORDER_STATUS[o.status]?.label ?? o.status}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                    <div>
+                      <span className="font-medium">{o.orderNo}</span>
+                      <span className="ml-2 text-muted-foreground">{o.supplierName}</span>
+                    </div>
+                    <Badge
+                      variant={
+                        o.status === 'completed'
+                          ? 'success'
+                          : o.status === 'pending'
+                            ? 'warning'
+                            : 'default'
+                      }
+                    >
+                      {ORDER_STATUS[o.status]?.label ?? o.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* 图表区 */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-lg border bg-white p-5 shadow-sm">
-          <h2 className="mb-3 text-sm font-semibold">评估等级分布</h2>
-          {charts?.gradeDistribution && charts.gradeDistribution.length > 0 ? (
-            <div className="flex h-32 items-end gap-3">
-              {charts.gradeDistribution.map((item) => {
-                const max = Math.max(...charts.gradeDistribution.map((d) => d.count), 1)
-                const h = (item.count / max) * 100
-                const colors: Record<string, string> = {
-                  A: 'bg-green-500',
-                  B: 'bg-blue-500',
-                  C: 'bg-yellow-500',
-                  D: 'bg-red-500',
-                }
-                return (
-                  <div key={item.label} className="flex flex-1 flex-col items-center gap-1">
-                    <span className="text-xs font-medium">{item.count}</span>
-                    <div
-                      className={`w-full rounded-t ${colors[item.label] ?? 'bg-gray-400'}`}
-                      style={{ height: `${h}%`, minHeight: 4 }}
-                    />
-                    <span className="text-xs text-muted-foreground">{item.label}</span>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="py-8 text-center text-sm text-muted-foreground">暂无数据</div>
-          )}
-        </div>
-
-        <div className="rounded-lg border bg-white p-5 shadow-sm">
-          <h2 className="mb-3 text-sm font-semibold">各供应商模型数量</h2>
-          {charts?.modelCountBySupplier && charts.modelCountBySupplier.length > 0 ? (
-            <div className="space-y-2">
-              {charts.modelCountBySupplier.slice(0, 8).map((item) => {
-                const max = Math.max(...charts.modelCountBySupplier.map((d) => d.count), 1)
-                return (
-                  <div key={item.label} className="flex items-center gap-2 text-sm">
-                    <span className="w-20 truncate text-muted-foreground">{item.label}</span>
-                    <div className="h-4 flex-1 overflow-hidden rounded bg-muted">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">评估等级分布</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {charts?.gradeDistribution && charts.gradeDistribution.length > 0 ? (
+              <div className="flex h-32 items-end gap-3">
+                {charts.gradeDistribution.map((item) => {
+                  const max = Math.max(...charts.gradeDistribution.map((d) => d.count), 1)
+                  const h = (item.count / max) * 100
+                  const colors: Record<string, string> = {
+                    A: 'bg-green-500',
+                    B: 'bg-blue-500',
+                    C: 'bg-yellow-500',
+                    D: 'bg-red-500',
+                  }
+                  return (
+                    <div key={item.label} className="flex flex-1 flex-col items-center gap-1">
+                      <span className="text-xs font-medium">{item.count}</span>
                       <div
-                        className="h-full rounded bg-blue-500"
-                        style={{ width: `${(item.count / max) * 100}%` }}
+                        className={`w-full rounded-t ${colors[item.label] ?? 'bg-gray-400'}`}
+                        style={{ height: `${h}%`, minHeight: 4 }}
                       />
+                      <span className="text-xs text-muted-foreground">{item.label}</span>
                     </div>
-                    <span className="w-6 text-right text-xs font-medium">{item.count}</span>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="py-8 text-center text-sm text-muted-foreground">暂无数据</div>
-          )}
-        </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="py-8 text-center text-sm text-muted-foreground">暂无数据</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">各供应商模型数量</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {charts?.modelCountBySupplier && charts.modelCountBySupplier.length > 0 ? (
+              <div className="space-y-2">
+                {charts.modelCountBySupplier.slice(0, 8).map((item) => {
+                  const max = Math.max(...charts.modelCountBySupplier.map((d) => d.count), 1)
+                  return (
+                    <div key={item.label} className="flex items-center gap-2 text-sm">
+                      <span className="w-20 truncate text-muted-foreground">{item.label}</span>
+                      <div className="h-4 flex-1 overflow-hidden rounded bg-muted">
+                        <div
+                          className="h-full rounded bg-blue-500"
+                          style={{ width: `${(item.count / max) * 100}%` }}
+                        />
+                      </div>
+                      <span className="w-6 text-right text-xs font-medium">{item.count}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="py-8 text-center text-sm text-muted-foreground">暂无数据</div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </PageShell>
   )

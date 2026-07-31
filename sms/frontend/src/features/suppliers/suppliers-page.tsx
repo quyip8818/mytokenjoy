@@ -6,7 +6,29 @@ import { useFilteredQuery, useInjectedMutation, queryKeys } from '@/features/que
 import { useSession } from '@/features/session'
 import { useApis } from '@/api/use-apis'
 import { SUPPLIER_STATUS, CATEGORIES } from '@/config/enums'
-import { StatusBadge, Field, Pagination } from '@/components/ui'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { StatusBadge } from '@/components/ui/badge'
+import { Pagination } from '@/components/ui/pagination'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { ConfirmActionDialog, type ConfirmActionState } from '@/components/ui/confirm-action-dialog'
+import { NativeSelect } from '@/components/ui/native-select'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
 import type { Supplier } from '@/api/suppliers'
@@ -33,6 +55,7 @@ export function SuppliersPage() {
     description: '',
   })
   const [saving, setSaving] = useState(false)
+  const [confirmState, setConfirmState] = useState<ConfirmActionState | null>(null)
 
   const deleteMut = useInjectedMutation<void, string>({
     mutationFn: (a, id) => a.suppliersApi.delete(id),
@@ -83,8 +106,17 @@ export function SuppliersPage() {
   }
 
   const handleDelete = (row: Supplier) => {
-    if (!confirm(`确定删除供应商「${row.name}」吗？`)) return
-    deleteMut.mutate(row.id)
+    setConfirmState({
+      open: true,
+      title: '确认删除',
+      desc: `确定删除供应商「${row.name}」吗？`,
+      variant: 'danger',
+      confirmLabel: '删除',
+      onConfirm: () => {
+        deleteMut.mutate(row.id)
+        setConfirmState(null)
+      },
+    })
   }
 
   const totalPages = Math.ceil((data?.total ?? 0) / filter.pageSize)
@@ -95,25 +127,22 @@ export function SuppliersPage() {
         title="供应商管理"
         actions={
           canEdit ? (
-            <button
-              onClick={openCreate}
-              className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
+            <Button onClick={openCreate}>
               <Plus className="h-4 w-4" /> 新建供应商
-            </button>
+            </Button>
           ) : undefined
         }
       />
 
       <div className="flex items-center gap-2">
-        <input
-          className="h-9 w-48 rounded-md border px-3 text-sm"
+        <Input
+          className="h-9 w-48"
           placeholder="名称 / 编码"
           value={filter.keyword}
           onChange={(e) => search({ keyword: e.target.value })}
         />
-        <select
-          className="h-9 rounded-md border px-2 text-sm"
+        <NativeSelect
+          className="h-9 w-auto"
           value={filter.status}
           onChange={(e) => search({ status: e.target.value })}
         >
@@ -123,9 +152,9 @@ export function SuppliersPage() {
               {v.label}
             </option>
           ))}
-        </select>
-        <select
-          className="h-9 rounded-md border px-2 text-sm"
+        </NativeSelect>
+        <NativeSelect
+          className="h-9 w-auto"
           value={filter.category}
           onChange={(e) => search({ category: e.target.value })}
         >
@@ -135,73 +164,69 @@ export function SuppliersPage() {
               {c}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </div>
 
       <div className="rounded-lg border bg-white">
-        <table className="w-full text-sm">
-          <thead className="border-b bg-muted/40">
-            <tr>
-              <th className="px-4 py-3 text-left font-medium">厂商名称</th>
-              <th className="px-4 py-3 text-left font-medium">编码</th>
-              <th className="px-4 py-3 text-left font-medium">分类</th>
-              <th className="px-4 py-3 text-left font-medium">状态</th>
-              <th className="px-4 py-3 text-left font-medium">官网</th>
-              <th className="px-4 py-3 text-right font-medium">操作</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>厂商名称</TableHead>
+              <TableHead>编码</TableHead>
+              <TableHead>分类</TableHead>
+              <TableHead>状态</TableHead>
+              <TableHead>官网</TableHead>
+              <TableHead className="text-right">操作</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {data?.items.map((s) => (
-              <tr key={s.id} className="border-b last:border-0 hover:bg-muted/20">
-                <td className="px-4 py-3">
-                  <Link to="/suppliers/$id" params={{ id: s.id }} className="text-primary hover:underline">
-                    {s.name}
-                  </Link>
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">{s.code}</td>
-                <td className="px-4 py-3">{s.category ?? '-'}</td>
-                <td className="px-4 py-3">
-                  <StatusBadge status={s.status} map={SUPPLIER_STATUS} />
-                </td>
-                <td className="px-4 py-3 max-w-[180px] truncate text-muted-foreground">
-                  {s.website ?? '-'}
-                </td>
-                <td className="px-4 py-3 text-right">
+              <TableRow key={s.id}>
+                <TableCell>
                   <Link
                     to="/suppliers/$id"
                     params={{ id: s.id }}
-                    className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-primary"
+                    className="text-primary hover:underline"
                   >
-                    <Eye className="h-3.5 w-3.5" />
+                    {s.name}
                   </Link>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{s.code}</TableCell>
+                <TableCell>{s.category ?? '-'}</TableCell>
+                <TableCell>
+                  <StatusBadge status={s.status} map={SUPPLIER_STATUS} />
+                </TableCell>
+                <TableCell className="max-w-[180px] truncate text-muted-foreground">
+                  {s.website ?? '-'}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button variant="ghost" size="icon-sm" asChild>
+                    <Link to="/suppliers/$id" params={{ id: s.id }}>
+                      <Eye className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
                   {canEdit && (
                     <>
-                      <button
-                        onClick={() => openEdit(s)}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-primary"
-                      >
+                      <Button variant="ghost" size="icon-sm" onClick={() => openEdit(s)}>
                         <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(s)}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-red-500"
-                      >
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(s)}>
                         <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      </Button>
                     </>
                   )}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
             {!loading && data?.items.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
+              <TableRow>
+                <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
                   暂无数据
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       <Pagination
@@ -211,97 +236,101 @@ export function SuppliersPage() {
         onChange={(p) => setFilter((prev) => ({ ...prev, page: p }))}
       />
 
-      {dialogOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => setDialogOpen(false)}
-        >
-          <div
-            className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="mb-4 text-lg font-semibold">{editing ? '编辑供应商' : '新建供应商'}</h2>
-            <div className="space-y-3">
-              <Field label="厂商名称" required>
-                <input
-                  className="input"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="如：OpenAI"
-                />
-              </Field>
-              <Field label="厂商编码" required>
-                <input
-                  className="input"
-                  value={form.code}
-                  onChange={(e) => setForm({ ...form, code: e.target.value })}
-                  placeholder="如：OPENAI"
-                  disabled={!!editing}
-                />
-              </Field>
-              <Field label="分类">
-                <div className="flex gap-3">
-                  {CATEGORIES.map((c) => (
-                    <label key={c} className="flex items-center gap-1.5 text-sm">
-                      <input
-                        type="radio"
-                        name="category"
-                        value={c}
-                        checked={form.category === c}
-                        onChange={() => setForm({ ...form, category: c })}
-                      />
-                      {c}
-                    </label>
-                  ))}
-                </div>
-              </Field>
-              <Field label="状态">
-                <select
-                  className="input"
-                  value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value })}
-                >
-                  {Object.entries(SUPPLIER_STATUS).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v.label}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="官网">
-                <input
-                  className="input"
-                  value={form.website}
-                  onChange={(e) => setForm({ ...form, website: e.target.value })}
-                  placeholder="https://"
-                />
-              </Field>
-              <Field label="备注说明">
-                <textarea
-                  className="input min-h-[60px] resize-none"
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                />
-              </Field>
+      {/* 新建/编辑弹窗 */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editing ? '编辑供应商' : '新建供应商'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>
+                厂商名称 <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                className="mt-1"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="如：OpenAI"
+              />
             </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                onClick={() => setDialogOpen(false)}
-                className="rounded-md border px-4 py-2 text-sm"
+            <div>
+              <Label>
+                厂商编码 <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                className="mt-1"
+                value={form.code}
+                onChange={(e) => setForm({ ...form, code: e.target.value })}
+                placeholder="如：OPENAI"
+                disabled={!!editing}
+              />
+            </div>
+            <div>
+              <Label>分类</Label>
+              <div className="mt-1 flex gap-3">
+                {CATEGORIES.map((c) => (
+                  <label key={c} className="flex items-center gap-1.5 text-sm">
+                    <input
+                      type="radio"
+                      name="category"
+                      value={c}
+                      checked={form.category === c}
+                      onChange={() => setForm({ ...form, category: c })}
+                    />
+                    {c}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label>状态</Label>
+              <NativeSelect
+                className="mt-1"
+                value={form.status}
+                onChange={(e) => setForm({ ...form, status: e.target.value })}
               >
-                取消
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-              >
-                {saving ? '保存中...' : '保存'}
-              </button>
+                {Object.entries(SUPPLIER_STATUS).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v.label}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+            <div>
+              <Label>官网</Label>
+              <Input
+                className="mt-1"
+                value={form.website}
+                onChange={(e) => setForm({ ...form, website: e.target.value })}
+                placeholder="https://"
+              />
+            </div>
+            <div>
+              <Label>备注说明</Label>
+              <Textarea
+                className="mt-1 min-h-[60px] resize-none"
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+              />
             </div>
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? '保存中...' : '保存'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmActionDialog
+        state={confirmState}
+        onOpenChange={(open) => !open && setConfirmState(null)}
+        onClose={() => setConfirmState(null)}
+      />
     </PageShell>
   )
 }

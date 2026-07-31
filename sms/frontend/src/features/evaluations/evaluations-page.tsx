@@ -6,7 +6,29 @@ import { useSession } from '@/features/session'
 import { useSupplierOptions } from '@/features/suppliers'
 import { useApis } from '@/api/use-apis'
 import { EVAL_GRADE, DIMENSIONS } from '@/config/enums'
-import { Field, Pagination } from '@/components/ui'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { ConfirmActionDialog, type ConfirmActionState } from '@/components/ui/confirm-action-dialog'
+import { Pagination } from '@/components/ui/pagination'
+import { NativeSelect } from '@/components/ui/native-select'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
 import type { Evaluation } from '@/api/evaluations'
@@ -44,6 +66,7 @@ export function EvaluationsPage() {
     comment: '',
   })
   const [saving, setSaving] = useState(false)
+  const [confirmState, setConfirmState] = useState<ConfirmActionState | null>(null)
 
   const deleteMut = useInjectedMutation<void, string>({
     mutationFn: (a, id) => a.evaluationsApi.delete(id),
@@ -118,8 +141,17 @@ export function EvaluationsPage() {
   }
 
   const handleDelete = (row: Evaluation) => {
-    if (!confirm(`确定删除「${row.supplierName} · ${row.period}」的评估吗？`)) return
-    deleteMut.mutate(row.id)
+    setConfirmState({
+      open: true,
+      title: '确认删除',
+      desc: `确定删除「${row.supplierName} · ${row.period}」的评估吗？`,
+      variant: 'danger',
+      confirmLabel: '删除',
+      onConfirm: () => {
+        deleteMut.mutate(row.id)
+        setConfirmState(null)
+      },
+    })
   }
 
   const totalPages = Math.ceil((data?.total ?? 0) / filter.pageSize)
@@ -137,19 +169,16 @@ export function EvaluationsPage() {
         title="绩效评估"
         actions={
           canEdit ? (
-            <button
-              onClick={openCreate}
-              className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
-            >
+            <Button onClick={openCreate}>
               <Plus className="h-4 w-4" /> 新建评估
-            </button>
+            </Button>
           ) : undefined
         }
       />
 
       <div className="flex items-center gap-2">
-        <select
-          className="h-9 rounded-md border px-2 text-sm"
+        <NativeSelect
+          className="h-9 w-auto"
           value={filter.supplierId}
           onChange={(e) => search({ supplierId: e.target.value })}
         >
@@ -159,9 +188,9 @@ export function EvaluationsPage() {
               {s.name}
             </option>
           ))}
-        </select>
-        <input
-          className="h-9 w-40 rounded-md border px-3 text-sm"
+        </NativeSelect>
+        <Input
+          className="h-9 w-40"
           placeholder="评估周期 如 2026-Q3"
           value={filter.period}
           onChange={(e) => search({ period: e.target.value })}
@@ -169,68 +198,62 @@ export function EvaluationsPage() {
       </div>
 
       <div className="rounded-lg border bg-white">
-        <table className="w-full text-sm">
-          <thead className="border-b bg-muted/40">
-            <tr>
-              <th className="px-4 py-3 text-left font-medium">供应商</th>
-              <th className="px-4 py-3 text-left font-medium">周期</th>
-              <th className="px-4 py-3 text-center font-medium">评级</th>
-              <th className="px-4 py-3 text-right font-medium">综合分</th>
-              <th className="px-4 py-3 text-right font-medium">质量</th>
-              <th className="px-4 py-3 text-right font-medium">性能</th>
-              <th className="px-4 py-3 text-right font-medium">价格</th>
-              <th className="px-4 py-3 text-right font-medium">服务</th>
-              <th className="px-4 py-3 text-right font-medium">合规</th>
-              <th className="px-4 py-3 text-left font-medium">评估人</th>
-              {canEdit && <th className="px-4 py-3 text-right font-medium">操作</th>}
-            </tr>
-          </thead>
-          <tbody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>供应商</TableHead>
+              <TableHead>周期</TableHead>
+              <TableHead className="text-center">评级</TableHead>
+              <TableHead className="text-right">综合分</TableHead>
+              <TableHead className="text-right">质量</TableHead>
+              <TableHead className="text-right">性能</TableHead>
+              <TableHead className="text-right">价格</TableHead>
+              <TableHead className="text-right">服务</TableHead>
+              <TableHead className="text-right">合规</TableHead>
+              <TableHead>评估人</TableHead>
+              {canEdit && <TableHead className="text-right">操作</TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {data?.items.map((e) => (
-              <tr key={e.id} className="border-b last:border-0 hover:bg-muted/20">
-                <td className="px-4 py-3">{e.supplierName ?? '-'}</td>
-                <td className="px-4 py-3 text-muted-foreground">{e.period}</td>
-                <td className="px-4 py-3 text-center">
+              <TableRow key={e.id}>
+                <TableCell>{e.supplierName ?? '-'}</TableCell>
+                <TableCell className="text-muted-foreground">{e.period}</TableCell>
+                <TableCell className="text-center">
                   <span
                     className={`inline-flex rounded px-2 py-0.5 text-xs font-bold text-white ${e.grade === 'A' ? 'bg-green-500' : e.grade === 'B' ? 'bg-blue-500' : e.grade === 'C' ? 'bg-yellow-500' : 'bg-red-500'}`}
                   >
                     {e.grade}
                   </span>
-                </td>
-                <td className="px-4 py-3 text-right font-medium">{e.totalScore}</td>
-                <td className="px-4 py-3 text-right text-muted-foreground">{e.quality}</td>
-                <td className="px-4 py-3 text-right text-muted-foreground">{e.performance}</td>
-                <td className="px-4 py-3 text-right text-muted-foreground">{e.price}</td>
-                <td className="px-4 py-3 text-right text-muted-foreground">{e.service}</td>
-                <td className="px-4 py-3 text-right text-muted-foreground">{e.compliance}</td>
-                <td className="px-4 py-3 text-muted-foreground">{e.evaluatorName ?? '-'}</td>
+                </TableCell>
+                <TableCell className="text-right font-medium">{e.totalScore}</TableCell>
+                <TableCell className="text-right text-muted-foreground">{e.quality}</TableCell>
+                <TableCell className="text-right text-muted-foreground">{e.performance}</TableCell>
+                <TableCell className="text-right text-muted-foreground">{e.price}</TableCell>
+                <TableCell className="text-right text-muted-foreground">{e.service}</TableCell>
+                <TableCell className="text-right text-muted-foreground">{e.compliance}</TableCell>
+                <TableCell className="text-muted-foreground">{e.evaluatorName ?? '-'}</TableCell>
                 {canEdit && (
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => openEdit(e)}
-                      className="px-1.5 py-1 text-muted-foreground hover:text-primary"
-                    >
-                      <Pencil className="inline h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(e)}
-                      className="px-1.5 py-1 text-muted-foreground hover:text-red-500"
-                    >
-                      <Trash2 className="inline h-3.5 w-3.5" />
-                    </button>
-                  </td>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon-sm" onClick={() => openEdit(e)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(e)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </TableCell>
                 )}
-              </tr>
+              </TableRow>
             ))}
             {!loading && data?.items.length === 0 && (
-              <tr>
-                <td colSpan={11} className="px-4 py-12 text-center text-muted-foreground">
+              <TableRow>
+                <TableCell colSpan={11} className="py-12 text-center text-muted-foreground">
                   暂无数据
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       <Pagination
@@ -241,82 +264,85 @@ export function EvaluationsPage() {
       />
 
       {/* 打分弹窗 */}
-      {dialogOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => setDialogOpen(false)}
-        >
-          <div
-            className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="mb-4 text-lg font-semibold">{editing ? '修改评估' : '新建评估'}</h2>
-            <div className="flex gap-6">
-              {/* 左侧表单 */}
-              <div className="flex-1 space-y-3">
-                <Field label="供应商" required>
-                  <select
-                    className="input"
-                    value={form.supplierId}
-                    onChange={(e) => setForm({ ...form, supplierId: e.target.value })}
-                    disabled={!!editing}
-                  >
-                    <option value="">请选择</option>
-                    {suppliers.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="评估周期" required>
-                  <input
-                    className="input"
-                    value={form.period}
-                    onChange={(e) => setForm({ ...form, period: e.target.value })}
-                    placeholder="如：2026-Q3"
-                    disabled={!!editing}
-                  />
-                </Field>
-                {dims.map((d) => (
-                  <div key={d.key}>
-                    <div className="mb-1 flex items-center justify-between">
-                      <label className="text-sm font-medium">{DIMENSIONS[d.key] ?? d.label}</label>
-                      <span className="text-xs text-muted-foreground">
-                        权重 {weights[d.key] ?? '-'}%
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        value={form[d.key]}
-                        onChange={(e) => setForm({ ...form, [d.key]: Number(e.target.value) })}
-                        className="flex-1"
-                      />
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        className="w-16 rounded border px-2 py-1 text-center text-sm"
-                        value={form[d.key]}
-                        onChange={(e) => setForm({ ...form, [d.key]: Number(e.target.value) })}
-                      />
-                    </div>
-                  </div>
-                ))}
-                <Field label="评语">
-                  <textarea
-                    className="input min-h-[60px] resize-none"
-                    value={form.comment}
-                    onChange={(e) => setForm({ ...form, comment: e.target.value })}
-                    placeholder="整体评价"
-                  />
-                </Field>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editing ? '修改评估' : '新建评估'}</DialogTitle>
+          </DialogHeader>
+          <div className="flex gap-6">
+            {/* 左侧表单 */}
+            <div className="flex-1 space-y-3">
+              <div>
+                <Label>
+                  供应商 <span className="text-red-500">*</span>
+                </Label>
+                <NativeSelect
+                  className="mt-1"
+                  value={form.supplierId}
+                  onChange={(e) => setForm({ ...form, supplierId: e.target.value })}
+                  disabled={!!editing}
+                >
+                  <option value="">请选择</option>
+                  {suppliers.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </NativeSelect>
               </div>
-              {/* 右侧预览 */}
-              <div className="flex w-36 flex-col items-center justify-center rounded-lg border bg-muted/30 p-4">
+              <div>
+                <Label>
+                  评估周期 <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  className="mt-1"
+                  value={form.period}
+                  onChange={(e) => setForm({ ...form, period: e.target.value })}
+                  placeholder="如：2026-Q3"
+                  disabled={!!editing}
+                />
+              </div>
+              {dims.map((d) => (
+                <div key={d.key}>
+                  <div className="mb-1 flex items-center justify-between">
+                    <Label>{DIMENSIONS[d.key] ?? d.label}</Label>
+                    <span className="text-xs text-muted-foreground">
+                      权重 {weights[d.key] ?? '-'}%
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={form[d.key]}
+                      onChange={(e) => setForm({ ...form, [d.key]: Number(e.target.value) })}
+                      className="flex-1"
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      className="w-16 rounded border px-2 py-1 text-center text-sm"
+                      value={form[d.key]}
+                      onChange={(e) => setForm({ ...form, [d.key]: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+              ))}
+              <div>
+                <Label>评语</Label>
+                <Textarea
+                  className="mt-1 min-h-[60px] resize-none"
+                  value={form.comment}
+                  onChange={(e) => setForm({ ...form, comment: e.target.value })}
+                  placeholder="整体评价"
+                />
+              </div>
+            </div>
+            {/* 右侧预览 */}
+            <Card className="w-36">
+              <CardContent className="flex h-full flex-col items-center justify-center p-4">
                 <div className="text-xs text-muted-foreground">综合分预览</div>
                 <div className="my-2 text-3xl font-bold">{previewScore.toFixed(1)}</div>
                 <span
@@ -327,26 +353,25 @@ export function EvaluationsPage() {
                 <div className="mt-2 text-center text-xs text-muted-foreground">
                   按当前权重自动计算
                 </div>
-              </div>
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                onClick={() => setDialogOpen(false)}
-                className="rounded-md border px-4 py-2 text-sm"
-              >
-                取消
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-              >
-                {saving ? '提交中...' : '提交评估'}
-              </button>
-            </div>
+              </CardContent>
+            </Card>
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? '提交中...' : '提交评估'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmActionDialog
+        state={confirmState}
+        onOpenChange={(open) => !open && setConfirmState(null)}
+        onClose={() => setConfirmState(null)}
+      />
     </PageShell>
   )
 }

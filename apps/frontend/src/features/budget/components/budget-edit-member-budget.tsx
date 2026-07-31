@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { BudgetNode, MemberBudget, UpdateMemberBudgetInput } from '@/api/types'
 import { ApiError } from '@/api/client'
@@ -109,7 +109,10 @@ function MemberBudgetEditDialog({
 
   const queryClient = useQueryClient()
 
-  const memberBudgetKey = ['budget', 'memberBudgets', departmentId, individualMode] as const
+  const memberBudgetKey = useMemo(
+    () => ['budget', 'memberBudgets', departmentId, individualMode] as const,
+    [departmentId, individualMode],
+  )
   const enabled = open && individualMode
 
   const { data: members = emptyMemberBudgets, isLoading: loading } = useQuery({
@@ -125,7 +128,9 @@ function MemberBudgetEditDialog({
   })
 
   const replaceMembers = useCallback(
-    (next: MemberBudget[]) => { queryClient.setQueryData(memberBudgetKey, next) },
+    (next: MemberBudget[]) => {
+      queryClient.setQueryData(memberBudgetKey, next)
+    },
     [queryClient, memberBudgetKey],
   )
 

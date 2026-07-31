@@ -6,7 +6,31 @@ import { useSession } from '@/features/session'
 import { useSupplierOptions } from '@/features/suppliers'
 import { useApis } from '@/api/use-apis'
 import { CONTRACT_STATUS } from '@/config/enums'
-import { StatusBadge, Field, Pagination } from '@/components/ui'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { StatusBadge } from '@/components/ui/badge'
+import { Pagination } from '@/components/ui/pagination'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { ConfirmActionDialog, type ConfirmActionState } from '@/components/ui/confirm-action-dialog'
+import { NativeSelect } from '@/components/ui/native-select'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
 import type { Contract, ContractDetail, ContractAttachment } from '@/api/contracts'
@@ -56,6 +80,7 @@ export function ContractsPage() {
 
   const [detailOpen, setDetailOpen] = useState(false)
   const [detail, setDetail] = useState<ContractDetail | null>(null)
+  const [confirmState, setConfirmState] = useState<ConfirmActionState | null>(null)
 
   const deleteMut = useInjectedMutation<void, string>({
     mutationFn: (a, id) => a.contractsApi.delete(id),
@@ -127,8 +152,17 @@ export function ContractsPage() {
   }
 
   const handleDelete = (row: Contract) => {
-    if (!confirm(`确定删除合同「${row.title}」吗？`)) return
-    deleteMut.mutate(row.id)
+    setConfirmState({
+      open: true,
+      title: '确认删除',
+      desc: `确定删除合同「${row.title}」吗？`,
+      variant: 'danger',
+      confirmLabel: '删除',
+      onConfirm: () => {
+        deleteMut.mutate(row.id)
+        setConfirmState(null)
+      },
+    })
   }
 
   const openDetail = async (row: Contract) => {
@@ -152,12 +186,22 @@ export function ContractsPage() {
     e.target.value = ''
   }
 
-  const handleDeleteAttachment = async (att: ContractAttachment) => {
-    if (!detail || !confirm(`确定删除附件「${att.fileName}」吗？`)) return
-    await apis.contractsApi.deleteAttachment(detail.id, att.id)
-    toast.success('删除成功')
-    const d = await apis.contractsApi.detail(detail.id)
-    setDetail(d)
+  const handleDeleteAttachment = (att: ContractAttachment) => {
+    if (!detail) return
+    setConfirmState({
+      open: true,
+      title: '确认删除',
+      desc: `确定删除附件「${att.fileName}」吗？`,
+      variant: 'danger',
+      confirmLabel: '删除',
+      onConfirm: async () => {
+        await apis.contractsApi.deleteAttachment(detail!.id, att.id)
+        toast.success('删除成功')
+        const d = await apis.contractsApi.detail(detail!.id)
+        setDetail(d)
+        setConfirmState(null)
+      },
+    })
   }
 
   const totalPages = Math.ceil((data?.total ?? 0) / filter.pageSize)
@@ -168,25 +212,22 @@ export function ContractsPage() {
         title="合同管理"
         actions={
           canEdit ? (
-            <button
-              onClick={openCreate}
-              className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
+            <Button onClick={openCreate}>
               <Plus className="h-4 w-4" /> 新建合同
-            </button>
+            </Button>
           ) : undefined
         }
       />
 
       <div className="flex items-center gap-2">
-        <input
-          className="h-9 w-48 rounded-md border px-3 text-sm"
+        <Input
+          className="h-9 w-48"
           placeholder="合同编号 / 标题"
           value={filter.keyword}
           onChange={(e) => search({ keyword: e.target.value })}
         />
-        <select
-          className="h-9 rounded-md border px-2 text-sm"
+        <NativeSelect
+          className="h-9 w-auto"
           value={filter.supplierId}
           onChange={(e) => search({ supplierId: e.target.value })}
         >
@@ -196,9 +237,9 @@ export function ContractsPage() {
               {s.name}
             </option>
           ))}
-        </select>
-        <select
-          className="h-9 rounded-md border px-2 text-sm"
+        </NativeSelect>
+        <NativeSelect
+          className="h-9 w-auto"
           value={filter.status}
           onChange={(e) => search({ status: e.target.value })}
         >
@@ -208,84 +249,75 @@ export function ContractsPage() {
               {v.label}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </div>
 
       <div className="rounded-lg border bg-white">
-        <table className="w-full text-sm">
-          <thead className="border-b bg-muted/40">
-            <tr>
-              <th className="px-4 py-3 text-left font-medium">合同编号</th>
-              <th className="px-4 py-3 text-left font-medium">标题</th>
-              <th className="px-4 py-3 text-left font-medium">供应商</th>
-              <th className="px-4 py-3 text-right font-medium">金额</th>
-              <th className="px-4 py-3 text-left font-medium">到期日</th>
-              <th className="px-4 py-3 text-right font-medium">剩余</th>
-              <th className="px-4 py-3 text-left font-medium">状态</th>
-              <th className="px-4 py-3 text-right font-medium">操作</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>合同编号</TableHead>
+              <TableHead>标题</TableHead>
+              <TableHead>供应商</TableHead>
+              <TableHead className="text-right">金额</TableHead>
+              <TableHead>到期日</TableHead>
+              <TableHead className="text-right">剩余</TableHead>
+              <TableHead>状态</TableHead>
+              <TableHead className="text-right">操作</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {data?.items.map((c) => {
               const days = daysUntil(c.endDate)
               return (
-                <tr key={c.id} className="border-b last:border-0 hover:bg-muted/20">
-                  <td className="px-4 py-3 text-muted-foreground">{c.contractNo}</td>
-                  <td className="px-4 py-3">
+                <TableRow key={c.id}>
+                  <TableCell className="text-muted-foreground">{c.contractNo}</TableCell>
+                  <TableCell>
                     <button
                       onClick={() => openDetail(c)}
                       className="text-left text-primary hover:underline"
                     >
                       {c.title}
                     </button>
-                  </td>
-                  <td className="px-4 py-3">{c.supplierName ?? '-'}</td>
-                  <td className="px-4 py-3 text-right">{formatAmount(c.amount)}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{c.endDate ?? '-'}</td>
-                  <td
-                    className={`px-4 py-3 text-right text-xs font-medium ${days === null ? '' : days < 0 ? 'text-red-500' : days <= 30 ? 'text-yellow-600' : 'text-muted-foreground'}`}
+                  </TableCell>
+                  <TableCell>{c.supplierName ?? '-'}</TableCell>
+                  <TableCell className="text-right">{formatAmount(c.amount)}</TableCell>
+                  <TableCell className="text-muted-foreground">{c.endDate ?? '-'}</TableCell>
+                  <TableCell
+                    className={`text-right text-xs font-medium ${days === null ? '' : days < 0 ? 'text-red-500' : days <= 30 ? 'text-yellow-600' : 'text-muted-foreground'}`}
                   >
                     {days === null ? '-' : days < 0 ? '已过期' : `${days} 天`}
-                  </td>
-                  <td className="px-4 py-3">
+                  </TableCell>
+                  <TableCell>
                     <StatusBadge status={c.status} map={CONTRACT_STATUS} />
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => openDetail(c)}
-                      className="px-1.5 py-1 text-xs text-muted-foreground hover:text-primary"
-                    >
-                      <FileText className="inline h-3.5 w-3.5" />
-                    </button>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon-sm" onClick={() => openDetail(c)}>
+                      <FileText className="h-3.5 w-3.5" />
+                    </Button>
                     {canEdit && (
                       <>
-                        <button
-                          onClick={() => openEdit(c)}
-                          className="px-1.5 py-1 text-xs text-muted-foreground hover:text-primary"
-                        >
-                          <Pencil className="inline h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(c)}
-                          className="px-1.5 py-1 text-xs text-muted-foreground hover:text-red-500"
-                        >
-                          <Trash2 className="inline h-3.5 w-3.5" />
-                        </button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => openEdit(c)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(c)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )
             })}
             {!loading && data?.items.length === 0 && (
-              <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
+              <TableRow>
+                <TableCell colSpan={8} className="py-12 text-center text-muted-foreground">
                   暂无数据
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       <Pagination
@@ -296,228 +328,232 @@ export function ContractsPage() {
       />
 
       {/* 新建/编辑弹窗 */}
-      {dialogOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => setDialogOpen(false)}
-        >
-          <div
-            className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="mb-4 text-lg font-semibold">{editing ? '编辑合同' : '新建合同'}</h2>
-            <div className="space-y-3">
-              <Field label="合同编号" required>
-                <input
-                  className="input"
-                  value={form.contractNo}
-                  onChange={(e) => setForm({ ...form, contractNo: e.target.value })}
-                  disabled={!!editing}
-                  placeholder="如：HT-2026-001"
-                />
-              </Field>
-              <Field label="供应商" required>
-                <select
-                  className="input"
-                  value={form.supplierId}
-                  onChange={(e) => setForm({ ...form, supplierId: e.target.value })}
-                  disabled={!!editing}
-                >
-                  <option value="">请选择</option>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="合同标题" required>
-                <input
-                  className="input"
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                />
-              </Field>
-              <Field label="合同金额">
-                <input
-                  className="input"
-                  type="number"
-                  step="0.01"
-                  value={form.amount}
-                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                />
-              </Field>
-              <Field label="签订日期">
-                <input
-                  className="input"
-                  type="date"
-                  value={form.signDate}
-                  onChange={(e) => setForm({ ...form, signDate: e.target.value })}
-                />
-              </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="生效日期">
-                  <input
-                    className="input"
-                    type="date"
-                    value={form.startDate}
-                    onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                  />
-                </Field>
-                <Field label="到期日期">
-                  <input
-                    className="input"
-                    type="date"
-                    value={form.endDate}
-                    onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                  />
-                </Field>
-              </div>
-              <Field label="状态">
-                <select
-                  className="input"
-                  value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value })}
-                >
-                  {Object.entries(CONTRACT_STATUS).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v.label}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="备注">
-                <textarea
-                  className="input min-h-[60px] resize-none"
-                  value={form.remarks}
-                  onChange={(e) => setForm({ ...form, remarks: e.target.value })}
-                  placeholder="合同备注说明"
-                />
-              </Field>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editing ? '编辑合同' : '新建合同'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>
+                合同编号 <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                className="mt-1"
+                value={form.contractNo}
+                onChange={(e) => setForm({ ...form, contractNo: e.target.value })}
+                disabled={!!editing}
+                placeholder="如：HT-2026-001"
+              />
             </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                onClick={() => setDialogOpen(false)}
-                className="rounded-md border px-4 py-2 text-sm"
+            <div>
+              <Label>
+                供应商 <span className="text-red-500">*</span>
+              </Label>
+              <NativeSelect
+                className="mt-1"
+                value={form.supplierId}
+                onChange={(e) => setForm({ ...form, supplierId: e.target.value })}
+                disabled={!!editing}
               >
-                取消
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                <option value="">请选择</option>
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+            <div>
+              <Label>
+                合同标题 <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                className="mt-1"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>合同金额</Label>
+              <Input
+                className="mt-1"
+                type="number"
+                step="0.01"
+                value={form.amount}
+                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>签订日期</Label>
+              <Input
+                className="mt-1"
+                type="date"
+                value={form.signDate}
+                onChange={(e) => setForm({ ...form, signDate: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>生效日期</Label>
+                <Input
+                  className="mt-1"
+                  type="date"
+                  value={form.startDate}
+                  onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>到期日期</Label>
+                <Input
+                  className="mt-1"
+                  type="date"
+                  value={form.endDate}
+                  onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label>状态</Label>
+              <NativeSelect
+                className="mt-1"
+                value={form.status}
+                onChange={(e) => setForm({ ...form, status: e.target.value })}
               >
-                {saving ? '保存中...' : '保存'}
-              </button>
+                {Object.entries(CONTRACT_STATUS).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v.label}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+            <div>
+              <Label>备注</Label>
+              <Textarea
+                className="mt-1 min-h-[60px] resize-none"
+                value={form.remarks}
+                onChange={(e) => setForm({ ...form, remarks: e.target.value })}
+                placeholder="合同备注说明"
+              />
             </div>
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? '保存中...' : '保存'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 详情侧抽屉 */}
-      {detailOpen && detail && (
-        <div
-          className="fixed inset-0 z-50 flex justify-end bg-black/30"
-          onClick={() => setDetailOpen(false)}
-        >
-          <div
-            className="h-full w-full max-w-lg overflow-auto bg-white p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">{detail.title}</h2>
-              <button
-                onClick={() => setDetailOpen(false)}
-                className="text-lg text-muted-foreground hover:text-foreground"
-              >
-                &times;
-              </button>
-            </div>
-            <div className="mb-6 grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <span className="text-muted-foreground">编号：</span>
-                {detail.contractNo}
-              </div>
-              <div>
-                <span className="text-muted-foreground">供应商：</span>
-                {detail.supplierName}
-              </div>
-              <div>
-                <span className="text-muted-foreground">金额：</span>
-                {formatAmount(detail.amount)}
-              </div>
-              <div>
-                <span className="text-muted-foreground">状态：</span>
-                {CONTRACT_STATUS[detail.status]?.label}
-              </div>
-              <div>
-                <span className="text-muted-foreground">签订：</span>
-                {detail.signDate ?? '-'}
-              </div>
-              <div>
-                <span className="text-muted-foreground">生效：</span>
-                {detail.startDate ?? '-'}
-              </div>
-              <div>
-                <span className="text-muted-foreground">到期：</span>
-                {detail.endDate ?? '-'}
-              </div>
-              <div>
-                <span className="text-muted-foreground">备注：</span>
-                {detail.remarks ?? '-'}
-              </div>
-            </div>
-
-            <div>
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-semibold">附件 ({detail.attachments.length})</h3>
-                {canEdit && (
-                  <label className="inline-flex cursor-pointer items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground">
-                    <Upload className="h-3.5 w-3.5" /> 上传
-                    <input type="file" className="hidden" onChange={handleUpload} />
-                  </label>
-                )}
-              </div>
-              {detail.attachments.length === 0 ? (
-                <div className="py-8 text-center text-sm text-muted-foreground">暂无附件</div>
-              ) : (
-                <div className="space-y-2">
-                  {detail.attachments.map((att) => (
-                    <div
-                      key={att.id}
-                      className="flex items-center justify-between rounded border p-2.5"
-                    >
-                      <div className="flex min-w-0 items-center gap-2">
-                        <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <div className="truncate text-sm">{att.fileName}</div>
-                        <span className="text-xs text-muted-foreground">
-                          {(att.fileSize / 1024).toFixed(0)} KB
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <a
-                          href={`/api/contracts/${detail.id}/attachments/${att.id}/download`}
-                          className="p-1 text-muted-foreground hover:text-primary"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                        </a>
-                        {canEdit && (
-                          <button
-                            onClick={() => handleDeleteAttachment(att)}
-                            className="p-1 text-muted-foreground hover:text-red-500"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+      <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
+        <SheetContent className="w-full max-w-lg overflow-auto sm:max-w-lg">
+          {detail && (
+            <>
+              <SheetHeader>
+                <SheetTitle>{detail.title}</SheetTitle>
+              </SheetHeader>
+              <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-muted-foreground">编号：</span>
+                  {detail.contractNo}
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+                <div>
+                  <span className="text-muted-foreground">供应商：</span>
+                  {detail.supplierName}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">金额：</span>
+                  {formatAmount(detail.amount)}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">状态：</span>
+                  {CONTRACT_STATUS[detail.status]?.label}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">签订：</span>
+                  {detail.signDate ?? '-'}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">生效：</span>
+                  {detail.startDate ?? '-'}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">到期：</span>
+                  {detail.endDate ?? '-'}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">备注：</span>
+                  {detail.remarks ?? '-'}
+                </div>
+              </div>
+
+              <Card className="mt-6">
+                <CardHeader className="flex-row items-center justify-between pb-3">
+                  <CardTitle className="text-sm">附件 ({detail.attachments.length})</CardTitle>
+                  {canEdit && (
+                    <Button size="sm" asChild>
+                      <label className="cursor-pointer">
+                        <Upload className="h-3.5 w-3.5" /> 上传
+                        <input type="file" className="hidden" onChange={handleUpload} />
+                      </label>
+                    </Button>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  {detail.attachments.length === 0 ? (
+                    <div className="py-8 text-center text-sm text-muted-foreground">暂无附件</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {detail.attachments.map((att) => (
+                        <div
+                          key={att.id}
+                          className="flex items-center justify-between rounded border p-2.5"
+                        >
+                          <div className="flex min-w-0 items-center gap-2">
+                            <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <div className="truncate text-sm">{att.fileName}</div>
+                            <span className="text-xs text-muted-foreground">
+                              {(att.fileSize / 1024).toFixed(0)} KB
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon-sm" asChild>
+                              <a
+                                href={`/api/contracts/${detail.id}/attachments/${att.id}/download`}
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                              </a>
+                            </Button>
+                            {canEdit && (
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => handleDeleteAttachment(att)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      <ConfirmActionDialog
+        state={confirmState}
+        onOpenChange={(open) => !open && setConfirmState(null)}
+        onClose={() => setConfirmState(null)}
+      />
     </PageShell>
   )
 }
