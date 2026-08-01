@@ -28,6 +28,17 @@ need_generate() { [ ! -f "$1" ] || grep -q "CHANGE_ME" "$1" 2>/dev/null; }
 [ -f deploy/docker-compose.yml ] || { echo "错误: 请在仓库根目录执行 (cd /opt/mytokenjoy)"; exit 1; }
 echo "═══ TokenJoy 首次部署 ═══"
 
+# ─── 0. Swap（小内存 ECS 防 OOM，幂等） ───────────────────────
+if ! swapon --show | grep -q '/swapfile'; then
+  if [ ! -f /swapfile ]; then
+    fallocate -l 2G /swapfile
+    chmod 600 /swapfile
+    mkswap /swapfile
+  fi
+  swapon /swapfile
+  grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+
 # ─── 1. Docker ────────────────────────────────────────────────
 step "[1/5] Docker"
 if command -v docker &>/dev/null; then
