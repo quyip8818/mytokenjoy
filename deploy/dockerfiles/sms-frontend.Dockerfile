@@ -2,6 +2,7 @@
 # Context: repo root
 FROM node:24-alpine AS builder
 RUN corepack enable pnpm
+ENV npm_config_registry=https://registry.npmmirror.com
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./

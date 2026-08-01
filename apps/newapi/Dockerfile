@@ -2,7 +2,8 @@ ARG UPSTREAM_REF=bde9b2f44887d34ec54799ae191d50f97914359e
 
 FROM oven/bun:1-alpine@sha256:5acc90a93e91ff07bf72aa90a7c9f0fa189765aec90b47bdbf2152d2196383c0 AS upstream-src
 ARG UPSTREAM_REF
-RUN apk add --no-cache git ca-certificates
+RUN sed -i 's#https\?://dl-cdn.alpinelinux.org#https://mirrors.aliyun.com#g' /etc/apk/repositories \
+    && apk add --no-cache git ca-certificates
 WORKDIR /upstream
 RUN git clone https://github.com/QuantumNous/new-api.git . \
     && git fetch --depth 1 origin "${UPSTREAM_REF}" \
@@ -23,12 +24,14 @@ RUN mkdir -p dist && echo '<!doctype html><title>classic disabled</title>' > dis
 FROM golang:1.26.1-alpine@sha256:2389ebfa5b7f43eeafbd6be0c3700cc46690ef842ad962f6c5bd6be49ed82039 AS go-builder
 ARG UPSTREAM_REF
 ENV GO111MODULE=on CGO_ENABLED=0 GOEXPERIMENT=greenteagc
+ENV GOPROXY=https://goproxy.cn,direct
 
 ARG TARGETOS
 ARG TARGETARCH
 ENV GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64}
 
-RUN apk add --no-cache git ca-certificates
+RUN sed -i 's#https\?://dl-cdn.alpinelinux.org#https://mirrors.aliyun.com#g' /etc/apk/repositories \
+    && apk add --no-cache git ca-certificates
 
 WORKDIR /build
 RUN git clone https://github.com/QuantumNous/new-api.git . \
@@ -57,7 +60,9 @@ RUN go build -ldflags "-s -w -X 'github.com/QuantumNous/new-api/common.Version=$
 
 FROM debian:bookworm-slim@sha256:f06537653ac770703bc45b4b113475bd402f451e85223f0f2837acbf89ab020a
 
-RUN apt-get update \
+RUN sed -i 's#deb.debian.org#mirrors.aliyun.com#g' /etc/apt/sources.list.d/debian.sources 2>/dev/null; \
+    sed -i 's#deb.debian.org#mirrors.aliyun.com#g' /etc/apt/sources.list 2>/dev/null; \
+    apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates tzdata libasan8 wget curl \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates
