@@ -166,20 +166,21 @@ fi
 
 # ─── 4. 启动全栈 ──────────────────────────────────────────────
 step "[4/5] 启动服务"
-# 如果镜像已通过 push-images.sh 预加载则跳过构建，否则在 ECS 上构建
+BUILD_FLAG=""
 if docker images --format '{{.Repository}}' | grep -q "deploy-apps-backend"; then
   log "镜像已存在，跳过构建"
-  $DC up -d --remove-orphans
 else
-  log "构建镜像（首次约 5-10 分钟）..."
-  $DC up -d --build --remove-orphans
+  BUILD_FLAG="--build"
 fi
-log "等待服务就绪..."
-sleep 15
-$DC ps --format "table {{.Name}}\t{{.Status}}"
+
+# 先启动基础设施 + NewAPI（apps-backend 需要 NewAPI token 才能健康启动）
+log "启动基础设施..."
+$DC up -d $BUILD_FLAG --remove-orphans postgres redis newapi
+log "等待 NewAPI 就绪..."
+sleep 10
 
 # ─── 5. 初始化 NewAPI ─────────────────────────────────────────
-step "[5/5] NewAPI 初始化"
+step "[5/6] NewAPI 初始化"
 
 # 等就绪
 for _ in $(seq 1 30); do
@@ -192,21 +193,31 @@ if echo "$STATUS" | grep -q '"root_init":false'; then
   RESULT=$($DC exec -T newapi wget -qO- \
     --post-data="{\"username\":\"root\",\"password\":\"${NEWAPI_ROOT_PASSWORD}\",\"confirmPassword\":\"${NEWAPI_ROOT_PASSWORD}\"}" \
     --header='Content-Type: application/json' \
-    http://localhost:3000/api/setup 2>/dev/null)
-  echo "$RESULT" | grep -q '"success":true' && log "✓ admin 创建成功" || log "⚠️  响应: $RESULT"
+    http://localhost:3000/api/setup 2>/dev/null || echo '{}')
+  if echo "$RESULT" | grep -q '"success":true'; then
+    log "✓ admin 创建成功"
+  else
+    log "⚠️  响应: $RESULT"
+  fi
 else
   log "· 已初始化"
 fi
 
-# 设置 access_token
+# 设置 access_token（无条件覆盖，确保 apps-backend 能读到）
 TOKEN="sk-admin-$(openssl rand -hex 16)"
-$DC exec -T postgres psql -U tokenjoy -d newapi -c \
-  "UPDATE users SET access_token = '${TOKEN}' WHERE id = 1 AND (access_token IS NULL OR access_token = '');" \
-  >/dev/null 2>&1
-log "✓ access_token 已设置"
+if $DC exec -T postgres psql -U tokenjoy -d newapi -c \
+  "UPDATE users SET access_token = '${TOKEN}' WHERE id = 1;"; then
+  log "✓ access_token = ${TOKEN}"
+else
+  log "⚠️  access_token 设置失败（见上方错误）"
+fi
 
-$DC restart apps-backend >/dev/null 2>&1
-log "✓ apps-backend 重启完成"
+# 启动剩余服务（现在 token 已就绪，apps-backend 可以正常启动）
+step "[6/6] 启动应用服务"
+$DC up -d $BUILD_FLAG --remove-orphans
+log "等待服务就绪..."
+sleep 10
+$DC ps --format "table {{.Name}}\t{{.Status}}"
 
 # ─── 完成 ─────────────────────────────────────────────────────
 echo ""

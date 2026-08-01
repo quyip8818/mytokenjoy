@@ -6,8 +6,9 @@ set -euo pipefail
 
 SERVER_HOST="${1:-${DEPLOY_HOST:?用法: ./deploy/push-images.sh <ECS_IP> 或设置 DEPLOY_HOST}}"
 SERVER_USER="${DEPLOY_USER:-root}"
-SSH="ssh -o StrictHostKeyChecking=accept-new ${SERVER_USER}@${SERVER_HOST}"
-SCP="scp -o StrictHostKeyChecking=accept-new"
+SSH_KEY="${SSH_KEY:-~/.ssh/id_ed25519_aliyun}"
+SSH="ssh -o StrictHostKeyChecking=accept-new -i ${SSH_KEY} ${SERVER_USER}@${SERVER_HOST}"
+SCP="scp -o StrictHostKeyChecking=accept-new -i ${SSH_KEY}"
 IMAGES_DIR="/tmp/tokenjoy-images"
 REMOTE_DIR="/tmp/tokenjoy-images"
 
@@ -22,14 +23,17 @@ echo "═══ 构建并推送镜像到 ${SERVER_HOST} ═══"
 # ─── 1. 本地构建 linux/amd64 ─────────────────────────────────
 echo ""
 echo ">>> [1/3] 构建镜像 (linux/amd64)..."
-DOCKER_DEFAULT_PLATFORM=linux/amd64 $DC build
+for svc in "${SERVICES[@]}"; do
+  echo "  构建 ${svc}..."
+  DOCKER_DEFAULT_PLATFORM=linux/amd64 $DC build "${svc}"
+done
 
 # ─── 2. 导出压缩 ─────────────────────────────────────────────
 echo ""
 echo ">>> [2/3] 导出镜像..."
 rm -rf "${IMAGES_DIR}" && mkdir -p "${IMAGES_DIR}"
 for svc in "${SERVICES[@]}"; do
-  IMG=$($DC images "${svc}" --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | head -1)
+  IMG="deploy-${svc}:latest"
   echo "  ${svc} → ${IMG}"
   docker save "${IMG}" | gzip > "${IMAGES_DIR}/${svc}.tar.gz"
 done
@@ -38,7 +42,21 @@ echo "  总大小: $(du -sh ${IMAGES_DIR} | cut -f1)"
 # ─── 3. 传输 + 加载 ──────────────────────────────────────────
 echo ""
 echo ">>> [3/3] 传输到 ECS..."
-${SSH} "mkdir -p ${REMOTE_DIR}"
+${SSH} "mkdir -p ${REMOTE_DIR} /opt/mytokenjoy"
+
+# 上传 deploy 目录（ECS 运行所需的全部文件，排除本地 secrets）
+echo "  上传 deploy/ 目录..."
+rsync -az \
+  --exclude='ssl/*.pem' --exclude='ssl/*.key' \
+  --exclude='env/*.env' \
+  --exclude='push-images.sh' --exclude='deploy.sh' \
+  --exclude='docker-compose.local.yml' --exclude='dockerfiles' \
+  --exclude='README.md' \
+  -e "ssh -o StrictHostKeyChecking=accept-new -i ${SSH_KEY}" \
+  deploy/ "${SERVER_USER}@${SERVER_HOST}:/opt/mytokenjoy/deploy/"
+
+# 上传镜像
+echo "  上传镜像文件..."
 ${SCP} ${IMAGES_DIR}/*.tar.gz "${SERVER_USER}@${SERVER_HOST}:${REMOTE_DIR}/"
 
 echo "  加载镜像..."

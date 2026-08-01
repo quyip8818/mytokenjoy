@@ -18,5 +18,5 @@ COPY --from=builder /build/server /usr/local/bin/server
 USER app
 EXPOSE 8020
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \
-  CMD wget -qO- http://localhost:8020/health || exit 1
+  CMD wget -qO- http://localhost:8020/api/health || exit 1
 ENTRYPOINT ["server"]
