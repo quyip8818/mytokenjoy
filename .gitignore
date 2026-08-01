@@ -61,4 +61,3 @@ deploy/ssl/*.pem
 deploy/ssl/*.key
 deploy/env/*.env
 !deploy/env/*.env.example
-deploy/docker-compose.local.yml

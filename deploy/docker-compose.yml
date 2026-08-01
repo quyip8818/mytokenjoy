@@ -80,7 +80,8 @@ services:
       context: ..
       dockerfile: deploy/dockerfiles/apps-frontend.Dockerfile
     restart: unless-stopped
-    depends_on: [apps-backend]
+    depends_on:
+      apps-backend: { condition: service_healthy }
     logging: *logging
 
   sms-backend:
@@ -101,7 +102,8 @@ services:
       context: ..
       dockerfile: deploy/dockerfiles/sms-frontend.Dockerfile
     restart: unless-stopped
-    depends_on: [sms-backend]
+    depends_on:
+      sms-backend: { condition: service_healthy }
     logging: *logging
 
   web:
