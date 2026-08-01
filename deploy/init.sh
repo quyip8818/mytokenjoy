@@ -137,7 +137,7 @@ if [ ! -f "${CERT_DIR}/fullchain.pem" ]; then
   certbot certonly --standalone --non-interactive --agree-tos \
     --register-unsafely-without-email \
     --cert-name "${CERT_NAME}" \
-    -d "${DOMAIN_APP}" -d "${DOMAIN_SMS}" -d "${DOMAIN_WEB}"
+    -d "${DOMAIN_APP}" -d "${DOMAIN_SMS}" -d "${DOMAIN_WEB}" -d "tokenjoy.me"
   log "✓ 证书已申请"
 else
   log "· 证书已存在 (${CERT_DIR})"
