@@ -165,8 +165,15 @@ RENEW
 fi
 
 # ─── 4. 启动全栈 ──────────────────────────────────────────────
-step "[4/5] 构建并启动（首次约 5-10 分钟）"
-$DC up -d --build --remove-orphans
+step "[4/5] 启动服务"
+# 如果镜像已通过 push-images.sh 预加载则跳过构建，否则在 ECS 上构建
+if docker images --format '{{.Repository}}' | grep -q "deploy-apps-backend"; then
+  log "镜像已存在，跳过构建"
+  $DC up -d --remove-orphans
+else
+  log "构建镜像（首次约 5-10 分钟）..."
+  $DC up -d --build --remove-orphans
+fi
 log "等待服务就绪..."
 sleep 15
 $DC ps --format "table {{.Name}}\t{{.Status}}"
