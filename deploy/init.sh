@@ -49,6 +49,23 @@ else
   log "✓ 已安装"
 fi
 
+# 配置国内镜像加速（幂等）
+if [ ! -f /etc/docker/daemon.json ] || ! grep -q "registry-mirrors" /etc/docker/daemon.json 2>/dev/null; then
+  mkdir -p /etc/docker
+  cat > /etc/docker/daemon.json <<'MIRRORS'
+{
+  "registry-mirrors": [
+    "https://mirror.ccs.tencentyun.com",
+    "https://docker.m.daocloud.io"
+  ]
+}
+MIRRORS
+  systemctl restart docker
+  log "✓ 镜像加速已配置"
+else
+  log "· 镜像加速已存在"
+fi
+
 # ─── 2. 生成 env 文件 ─────────────────────────────────────────
 step "[2/5] 环境配置"
 mkdir -p deploy/env
