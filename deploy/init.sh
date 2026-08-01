@@ -116,17 +116,52 @@ else
   log "· sms.env 已存在"
 fi
 
-# ─── 3. SSL 证书 ──────────────────────────────────────────────
+# ─── 3. SSL 证书（Let's Encrypt） ─────────────────────────────
 step "[3/5] SSL 证书"
-MISSING=0
-for d in "$DOMAIN_APP" "$DOMAIN_SMS" "$DOMAIN_WEB"; do
-  [ -f "deploy/ssl/${d}.pem" ] && [ -f "deploy/ssl/${d}.key" ] || { log "⚠️  缺少 ${d}"; MISSING=1; }
-done
-if [ "$MISSING" -eq 1 ]; then
-  read -rp "  证书不全，继续? (y/N) " c
-  [[ "$c" =~ ^[yY]$ ]] || { echo "中止。上传证书到 deploy/ssl/ 后重试。"; exit 1; }
+if ! command -v certbot &>/dev/null; then
+  apt-get install -y -qq certbot
+  log "✓ certbot 已安装"
+fi
+
+# ponytail: standalone 模式申请，此时 nginx 还没启动所以 80 端口空闲。
+# 续期也用 standalone，通过 pre/post hook 短暂停启 nginx（约 5 秒中断，90 天一次）。
+CERT_NAME="tokenjoy"
+CERT_DIR="/etc/letsencrypt/live/${CERT_NAME}"
+
+if [ ! -f "${CERT_DIR}/fullchain.pem" ]; then
+  log "申请证书（需要 80 端口空闲 + DNS 已解析）..."
+  certbot certonly --standalone --non-interactive --agree-tos \
+    --register-unsafely-without-email \
+    --cert-name "${CERT_NAME}" \
+    -d "${DOMAIN_APP}" -d "${DOMAIN_SMS}" -d "${DOMAIN_WEB}"
+  log "✓ 证书已申请"
 else
-  log "✓ 齐全"
+  log "· 证书已存在 (${CERT_DIR})"
+  # 尝试续期（幂等，未到期不会操作）
+  certbot renew --quiet || true
+fi
+
+# 配置自动续期 hook：停 nginx → 续期 → 启 nginx（幂等）
+NGINX_CMD="docker compose -f /opt/mytokenjoy/deploy/docker-compose.yml --env-file /opt/mytokenjoy/deploy/env/infra.env"
+DEPLOY_HOOK="/etc/letsencrypt/renewal-hooks/deploy/restart-nginx.sh"
+if [ ! -f "${DEPLOY_HOOK}" ]; then
+  mkdir -p "$(dirname "${DEPLOY_HOOK}")"
+  cat > "${DEPLOY_HOOK}" <<HOOK
+#!/bin/bash
+${NGINX_CMD} restart nginx
+HOOK
+  chmod +x "${DEPLOY_HOOK}"
+  log "✓ 自动续期 hook 已配置"
+fi
+
+# 配置 certbot renewal 使用 standalone（停 nginx 让出 80）
+RENEWAL_CONF="/etc/letsencrypt/renewal/${CERT_NAME}.conf"
+if [ -f "${RENEWAL_CONF}" ] && ! grep -q "pre_hook" "${RENEWAL_CONF}"; then
+  cat >> "${RENEWAL_CONF}" <<RENEW
+pre_hook = ${NGINX_CMD} stop nginx
+post_hook = ${NGINX_CMD} start nginx
+RENEW
+  log "✓ 续期 pre/post hook 已配置"
 fi
 
 # ─── 4. 启动全栈 ──────────────────────────────────────────────
