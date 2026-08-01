@@ -101,7 +101,7 @@ export function ApiCompatibility({ content }: ApiCompatibilityProps) {
             <span className="text-amber-300">"tj-team-a-developer-key..."</span>,{'\n'}
             {'  '}
             <span className="text-ink-300">base_url</span>=
-            <span className="text-amber-300">"https://api.tokenjoy.me/v1"</span>){'\n'}
+            <span className="text-amber-300">"https://app.tokenjoy.me/v1"</span>){'\n'}
             <span className="text-ink-300">response</span> ={' '}
             <span className="text-ink-300">client</span>.<span className="text-cyan-300">chat</span>
             .<span className="text-cyan-300">completions</span>.
