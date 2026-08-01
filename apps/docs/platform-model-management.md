@@ -197,7 +197,7 @@ token_issued_at  TIMESTAMPTZ  -- 签发时间，60s 防重窗口判断
 ### 配置
 
 ```env
-CATALOG_SYNC_URL=https://app.tokenjoy.com
+CATALOG_SYNC_URL=https://app.tokenjoy.me
 CATALOG_SYNC_INTERVAL_SEC=300
 ```
 

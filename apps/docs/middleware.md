@@ -121,7 +121,7 @@ RATE_LIMIT_DRY_RUN=false   # 观察模式: 只记录不拦截
 ```bash
 # HTTP
 PORT=8010
-CORS_ORIGINS=https://app.tokenjoy.com
+CORS_ORIGINS=https://app.tokenjoy.me
 REQUEST_TIMEOUT_SEC=30
 ACCESS_LOG_SLOW_THRESHOLD_MS=5000
 

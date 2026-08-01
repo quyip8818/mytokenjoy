@@ -5,9 +5,9 @@ import { Logo } from '@/shared/Logo'
 import { cn } from '@/shared/cn'
 import { useScrollThreshold } from '@/shared/useScrollThreshold'
 
-const AUTH_EMBED_URL = import.meta.env.VITE_AUTH_EMBED_URL || 'https://app.tokenjoy.com/embed.html'
-const APP_ORIGIN = import.meta.env.VITE_APP_ORIGIN || 'https://app.tokenjoy.com'
-const APP_URL = import.meta.env.VITE_APP_URL || 'https://app.tokenjoy.com'
+const AUTH_EMBED_URL = import.meta.env.VITE_AUTH_EMBED_URL || 'https://app.tokenjoy.me/embed.html'
+const APP_ORIGIN = import.meta.env.VITE_APP_ORIGIN || 'https://app.tokenjoy.me'
+const APP_URL = import.meta.env.VITE_APP_URL || 'https://app.tokenjoy.me'
 
 type AuthMode = 'login' | 'register'
 

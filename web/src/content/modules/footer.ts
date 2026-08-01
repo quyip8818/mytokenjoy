@@ -2,7 +2,7 @@ import type { FooterContent } from '@/content/types'
 
 export const footerContent: FooterContent = {
   description: '企业级大模型智能管理平台。聚合调度 · 统一掌控,让每一次 AI 调用都令人愉悦。',
-  email: 'contact@tokenjoy.com',
+  email: 'contact@tokenjoy.me',
   copyright: '© 2026 Tokenjoy. All rights reserved.',
   icpNumber: '浙ICP备2026056029号',
   icpUrl: 'https://beian.miit.gov.cn/',

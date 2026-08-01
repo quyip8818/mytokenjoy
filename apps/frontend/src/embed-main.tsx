@@ -7,7 +7,7 @@ const params = new URLSearchParams(window.location.search)
 const mode = params.get('mode') === 'register' ? 'register' : 'login'
 
 function handleSuccess() {
-  const origin = import.meta.env.VITE_WEB_ORIGIN || 'https://www.tokenjoy.com'
+  const origin = import.meta.env.VITE_WEB_ORIGIN || 'https://www.tokenjoy.me'
   if (window.parent !== window) {
     window.parent.postMessage({ type: 'auth:success' }, origin)
   } else {

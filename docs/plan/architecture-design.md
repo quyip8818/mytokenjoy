@@ -457,7 +457,7 @@ NEW_API_WEBHOOK_SECRET=xxx
 NEW_API_GATEWAY_ENABLED=true
 
 # ─── local 专属 ───
-CATALOG_SYNC_URL=https://app.tokenjoy.com
+CATALOG_SYNC_URL=https://app.tokenjoy.me
 CATALOG_SYNC_COMPANY_ID=uuid
 CATALOG_SYNC_API_KEY=secret
 CATALOG_SYNC_INTERVAL_SEC=300

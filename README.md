@@ -127,7 +127,7 @@ pnpm start:web           # 启动官网 dev server (port 5175)
 
 - **认证集成**：登录/注册通过 iframe 嵌入 App 的 `/embed.html` 独立入口（Vite 多入口，不加载主 SPA 的 router/providers）
 - **postMessage 协议**：iframe 认证成功后发 `{ type: 'auth:success' }` 通知官网跳转
-- **部署域名**：`www.tokenjoy.com`（App 在 `app.tokenjoy.com`，Cookie 共享 `.tokenjoy.com`）
+- **部署域名**：`www.tokenjoy.me`（App 在 `app.tokenjoy.me`，Cookie 共享 `.tokenjoy.me`）
 - **联调**：需同时运行 `pnpm start`（App）+ `pnpm start:web`（官网）
 
 ### Reset 机制
@@ -172,7 +172,7 @@ pnpm start:web           # 启动官网 dev server (port 5175)
 | tokenjoy/frontend | apps/frontend/ | 客户 |
 | tokenjoy/backend | apps/backend/ | 客户 |
 | tokenjoy/newapi | apps/newapi/ | 客户 |
-| tokenjoy/web | web/ | 公开（www.tokenjoy.com） |
+| tokenjoy/web | web/ | 公开（www.tokenjoy.me） |
 | sms-ui | sms/frontend/ | 仅内部 |
 | sms-backend | sms/backend/ | 仅内部 |
 | sms-newapi | sms/newapi/ | 仅内部 |

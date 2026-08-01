@@ -274,7 +274,7 @@ LOCAL_REGISTRATION_SECRET=<hex-32-bytes>    # 空值 = 不开放注册
 ### Local 侧新增
 
 ```
-SAAS_PLATFORM_URL=https://platform.tokenjoy.com
+SAAS_PLATFORM_URL=https://platform.tokenjoy.me
 SAAS_REGISTRATION_SECRET=<same-secret>
 SETUP_OFFLINE_MODE=false                    # true = 跳过远程注册，本地生成 UUID
 ```

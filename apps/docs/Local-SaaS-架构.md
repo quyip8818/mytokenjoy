@@ -242,7 +242,7 @@ Catalog Sync Worker（每 5min，River PeriodicJob）:
 ```
 Local NewAPI Channel 配置（自动）:
   name: tokenjoy-upstream
-  base_url: https://platform.tokenjoy.com/v1
+  base_url: https://platform.tokenjoy.me/v1
   key: sk-company-xxx
   models: [从 Catalog Sync 获取]
 ```
