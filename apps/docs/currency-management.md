@@ -26,7 +26,7 @@ FK 约束：`companies.billing_currency REFERENCES currencies(currency)` — 币
 
 | 概念 | 说明 |
 |------|------|
-| `quota_per_unit` (QPU) | 1 单位法币对应多少内部 quota。默认 `1 CNY = 500,000 quota` |
+| `quota_per_unit` (QPU) | 1 单位法币对应多少内部 quota。bootstrap 主流程默认 `1 CNY = 500,000 quota`（可经 `BOOTSTRAP_CONFIG_PATH` 覆盖） |
 | 快照 | 充值时 QPU 锁入 lot，后续 QPU 变更不影响已有 lot |
 | enabled | 禁用后该币种不可用于新充值，已有 lot 不受影响 |
 | SOT | SaaS 模式下 currencies 表由 SaaS 实例维护，Local 通过 CatalogSync 拉取 |
@@ -88,8 +88,10 @@ currencies 由 seed 初始化，后续手动修改数据库或扩展管理接口
 
 ### 5.2 Local 同步流程
 
+该 Periodic job **仅在非 SaaS（Local/独立部署）模式下注册运行**（`!cfg.SupportSaas`）；SaaS 侧不跑这个 worker。
+
 ```
-Executor.Execute() — 每 5 分钟
+Executor.Execute() — 每 5 分钟（默认，CATALOG_SYNC_INTERVAL_SEC 可覆盖）
   ├─ FetchVersions → remote.Currencies
   ├─ 比较 local system_settings["catalog.currencies_version"]
   │   相同 → 跳过
@@ -163,11 +165,14 @@ t4: 消耗 lot1 时 display = quota / 500,000
 
 ## 9. Seed 与初始状态
 
-| 环境 | seed 行为 | catalog.currencies_version |
-|------|-----------|---------------------------|
-| SaaS | 插入 CNY + 写 version=1 | 1 |
-| Local | 插入 CNY（fallback） | 0（不写，触发首次同步） |
-| 独立 | 插入 CNY | 不涉及 |
+两条独立 seed 路径，QPU 默认值不同：
+
+| 路径 | 触发时机 | CNY QPU 默认值 | 来源 |
+|------|----------|---------------|------|
+| `seed/bootstrap`（`ApplyBootstrap` → `insertCurrencies`） | **每次启动**都执行（幂等） | `500,000` | `bootstrap.Config.Billing.QuotaPerUnit`，可经 `BOOTSTRAP_CONFIG_PATH` YAML 覆盖 |
+| `seed/apply`（`insertSeedCurrencies`） | 仅 SaaS 模式且库为空时（demo 数据） | `10,000` | `common.DefaultQuotaPerUnit`（运行期兜底常量，也用于 `entry_load.go` 查不到 currency 行时的 fallback） |
+
+两条路径 `ON CONFLICT DO UPDATE`，后执行的会覆盖前者的 QPU 值。`catalog.currencies_version` 由 `seedCatalogVersions` 统一初始化为 `1`（`ON CONFLICT DO NOTHING`，仅首次生效）。
 
 ---
 

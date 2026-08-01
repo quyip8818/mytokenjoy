@@ -2,6 +2,8 @@
 
 分析对象：`apps/frontend`、`apps/web`、`sms/frontend`
 
+> **实施现状：** `packages/ui-utils` 目录已创建但为空（scaffold 未落地内容），`cn()` 重复仍分散在三个包各自的 `lib/utils.ts` / `shared/cn.ts` 中，未被抽取消费。`packages/query`、`packages/api-core` 尚未创建。以下建议均为**未实施**待办，`packages/` 下目前只有 `contracts/`（权限/通知契约）在实际使用。
+
 ## 现状
 
 | 包 | 定位 | 关键依赖 |

@@ -4,8 +4,8 @@
 | ----- | --------------------------------------------------------------------------------------------------- |
 | 状态  | **已实施（P0–P2）**；P3 生产错挂修复待维护窗                                                        |
 | 方案  | 单一运营 Admin AT + Admin 代建 Token，`user_id` = `newapi_wallet_company_id`                        |
-| Patch | [`0002-admin-token-contract.patch`](../apps/newapi/patches/new-api/0002-admin-token-contract.patch) |
-| 上游  | [`UPSTREAM_REF`](../apps/newapi/patches/new-api/UPSTREAM_REF)                                       |
+| Patch | [`0002-admin-token-contract.patch`](../newapi/patches/new-api/0002-admin-token-contract.patch) |
+| 上游  | [`UPSTREAM_REF`](../newapi/patches/new-api/UPSTREAM_REF)                                       |
 
 ## 行为
 
@@ -37,10 +37,10 @@ TopUp(W) / UpdateToken(by id) 同属 W
 
 | 层     | 路径                                                                                           |
 | ------ | ---------------------------------------------------------------------------------------------- |
-| Patch  | `apps/newapi/patches/new-api/0003-…` + Dockerfile apply                                        |
+| Patch  | `apps/newapi/patches/new-api/0002-admin-token-contract.patch` + Dockerfile apply               |
 | Client | `integration/newapi/token.go`：`validateCreatedToken`；错归属尽力 Delete                       |
 | Port   | `adminport.TokenResult.UserID`                                                                 |
-| Sync   | `newapisync/platformkey/create.go`：wallet id 必填；persist 失败 `deleteRemoteTokenBestEffort` |
+| Sync   | `integration/newapisync/platformkey/create.go`：wallet id 必填；persist 失败 `deleteRemoteTokenBestEffort` |
 
 已删除：Create 后 `findTokenByName`（列 Admin 自有 Token）主路径。
 
@@ -61,9 +61,6 @@ bash apps/newapi/scripts/build-image.sh
 cd apps/backend && go test -tags=testhook ./tests/integration/newapi/... ./tests/domain/adminport/... -count=1
 ```
 
-## 决策
+## 决策依据
 
-| 日期       |                                             |
-| ---------- | ------------------------------------------- |
-| 2026-07-14 | 选 A；排除 impersonation / 「全挂运营」终态 |
-| 2026-07-14 | P0–P2 落地；文档收为 as-built               |
+选方案 A（单一运营 Admin AT + Admin 代建 Token），排除 impersonation 与「全挂运营账号」终态；P0–P2 已落地，本文档收为 as-built。

@@ -10,10 +10,10 @@
 
 | 指标       | 用户看到                           | 后端字段                                                     | 用途                   |
 | ---------- | ---------------------------------- | ------------------------------------------------------------ | ---------------------- |
-| **展示币** | 钱包余额、CallLog 费用、看板 Spend | `balances[]`、`ledger.display_amount`、`buckets.display_cost` | 财务闭合；入账时冻结   |
+| **展示币** | 钱包余额、CallLog 费用、看板 Spend | `balances[]`、`usage_ledger.cost`、`usage_buckets.cost` | 财务闭合；入账时冻结   |
 | **Quota**  | 预算/Key 额度（UI 换算成「元」）   | `wallet_remain_quota`、`budget_*`、`key.budget`              | Gateway、预算、ingest  |
 
-默认：`1 CNY = 500,000 quota`（`DefaultQuotaPerUnit`，与 `currencies` seed 对齐）。
+默认：`1 CNY = 10,000 quota`（`DefaultQuotaPerUnit`，与 `currencies` seed 对齐）。
 
 易错：**量纲混用**（填 ¥ 当 quota 提交 → ×500000）、**二次换算**（对已是展示币再 ÷QPU）。
 
@@ -30,8 +30,8 @@ Usage tokens ──→ Quota (int64) ──→ Wallet 展示币（lot 冻结）
 | 世界   | 含义                 | 典型字段                                          | 改公司币后现算？ |
 | ------ | -------------------- | ------------------------------------------------- | ---------------- |
 | Usage  | token / 次数         | `input_tokens` / `output_tokens`                  | —                |
-| Quota  | 内部统一货币 (int64) | `wallet_remain_quota`、`ledger.amount`、`budget_*` | 不换币          |
-| Wallet | lot 成本价 + 冻结    | `ledger.display_amount`、`buckets.display_cost`   | **否**           |
+| Quota  | 内部统一货币 (int64) | `wallet_remain_quota`、`usage_ledger.quota_amount`、`budget_*` | 不换币          |
+| Wallet | lot 成本价 + 冻结    | `usage_ledger.cost`、`usage_buckets.cost`   | **否**           |
 
 ### 2.1 币种 / QPU
 
@@ -234,7 +234,7 @@ company_recharge_lots ──1:N──→ usage_ledger (debit segments)
 entry.Amount = raw.Quota                    (NewAPI 日志直通，零转换)
 display_amount = take / lot.quota_per_unit  (FIFO 冻结)
 quota_granted = Round(amount × QPU)
-DefaultQuotaPerUnit = 500000
+DefaultQuotaPerUnit = 10000
 ```
 
 **闭环验证：**

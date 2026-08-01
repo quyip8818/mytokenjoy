@@ -41,11 +41,11 @@
 | 同步频率/开始时间配置 | ✅ | `SyncConfig` + Worker `org_sync` |
 | Diff（新增/移除/改名） | ✅ | |
 | 删除保护阈值 → 终止同步 | ✅ | |
-| 超阈值通知超管（邮箱 + IM） | ⚠️ | `NOTIFY_WEBHOOK_URL` + Email/SMS/InApp 渠道可达；**IM Bot 未实现** |
+| 超阈值通知超管（邮箱 + IM） | ⚠️ | `NotifySyncThresholdExceeded` 调用未设置 `RecipientID`（零值 UUID），实际未真正投递到任何管理员；**IM Bot 也未实现** |
 | 同步日志 | ✅ | `SyncLog` |
 | 手动数据不受同步影响 | ✅ | `source` 字段区分 |
 
-**缺失：** IM Bot 通知渠道。Email/SMS 已有 Channel 实现（Resend + 阿里云），配置后即可投递。
+**缺失：** 1) 修复 `NotifySyncThresholdExceeded` 收件人解析（查询本企业超管+组织管理员逐个发送）；2) IM Bot 通知渠道。
 
 ---
 
@@ -97,15 +97,16 @@
 | PRD 要求 | 状态 | 现状 |
 |---------|------|------|
 | 配置多预警阈值 CRUD | ✅ | `AlertRules` CRUD + 启用/禁用 + 按部门/项目配置 |
-| 运行时触发预警通知 | ✅ | `CheckBudgetAlerts` → `AlertPublisher` → `notification.Service.DispatchAsync`；按 category `budget_alert` 默认走 Email + InApp |
+| 运行时触发预警通知 | ⚠️ | `CheckBudgetAlerts` → `AlertPublisher` → `notification.Service.DispatchAsync`；事件硬编码 `Priority=normal`，fallback 链只有 `[InApp]`，**实际只投递站内通知**，Email 不会触发 |
 | 100% 阻断请求 | ✅ | `OverrunService` 评估 → 禁用 Key → Gateway `ErrBudgetExhausted` |
 | 自定义阻断文案 `blockMessage` | ⚠️ | `overrun_policy.block_message` 存库；**Gateway 返回固定 error string，未读取该字段** |
-| 通知方式：邮箱 + IM | ⚠️ | Email Channel (Resend) 就绪；InApp + Webhook 可达；**IM Bot 未实现** |
+| 通知方式：邮箱 + IM | ❌ | Email Channel (Resend) 代码就绪，但预警/阻断事件因 priority 硬编码为 normal 实际不会走到 Email；IM Bot 未实现 |
 
 **缺失：**
 
 1. Gateway 消费 `blockMessage` 自定义文案返回给调用方
-2. IM Bot 通知渠道
+2. 预警/阻断事件按严重程度设置 `Metadata.Priority`（当前硬编码 normal，只达 InApp）
+3. IM Bot 通知渠道
 
 ---
 
@@ -159,12 +160,12 @@
 
 | PRD 要求 | 状态 | 现状 |
 |---------|------|------|
-| OpenAI API 格式（chat/completions、completions、embeddings） | ✅ | `allowedGatewayPaths` 含 4 条路径 |
+| OpenAI API 格式（chat/completions、completions、embeddings、models） | ✅ | `allowedGatewayPaths` 含 4 条路径 |
 | Anthropic API 格式（`/v1/messages`） | ❌ | `allowedGatewayPaths` 不含 `/v1/messages`；未做适配 |
 | Key 无效 → 401 | ✅ | `http.StatusUnauthorized` |
 | Key 禁用 → 403 | ✅ | Precheck `platform key inactive` → 403 |
 | 模型不在绑定范围 → 403 | ✅ | Precheck `model not allowed` → 403 |
-| 额度不足 → 429 | ⚠️ | 返回 HTTP **403** + `insufficient member or key quota`（PRD 要求 429） |
+| 额度不足 → 429 | ⚠️ | 返回 HTTP **403** + `ErrBudgetExhausted`（"insufficient member or key quota"，PRD 要求 429） |
 | 供应商不可用 → 502 | ✅ | Reverse proxy upstream error |
 | 按实际 token 异步计费 | ✅ | Webhook → `usage_ledger` |
 
@@ -235,20 +236,24 @@ PRD 在 US-03、US-08、US-10 多处要求通知。整体现状：
 
 **前端通知中心**：路由 `/me/settings`（含通知偏好管理）、SSE 实时推送。
 
+**运行时投递缺口**：所有生产触发点（`usage_alert.go` 预算预警、`overrun.go` 超限阻断、`handler_admin.go` 组织同步保护）构造事件时均**硬编码** `Metadata.Priority = normal`，而非按事件严重程度动态设置。`normal` 对应 fallback 链只有 `[InApp]`，因此这三类事件**无论 Email/SMS 是否配置齐全，实际都只投递站内通知**。这是"代码逻辑上打算投递"与"运行时实际投递"之间的差距，非渠道基础设施缺失。
+
 **通知事件覆盖情况**：
 
 | 场景 | 状态 | 说明 |
 |------|------|------|
-| 成员邀请 | ✅ | `sendInviteNotifications` → SMS + Email 真实投递 |
-| 预算预警 | ✅ | `CheckBudgetAlerts` → `AlertPublisher` → Email + InApp |
-| 超限阻断 | ✅ | `notifyOverrun` → InApp + Webhook |
-| 同步保护阈值 | ⚠️ | Webhook 可达；Email/SMS 需配置 |
+| 成员邀请 | ✅ | `sendInviteNotifications` → SMS + Email，走 `SendDirect` 不经过优先级链，不受上述缺口影响 |
+| 预算预警 | ⚠️ | `CheckBudgetAlerts` → `AlertPublisher` 逻辑上目标 Email + InApp；因 priority 硬编码 normal，实际只达 InApp |
+| 超限阻断 | ⚠️ | `notifyOverrun` 逻辑上无特定渠道限定；因 priority 硬编码 normal，实际只达 InApp |
+| 同步保护阈值 | ❌ | 除渠道降级问题外，`NotifySyncThresholdExceeded` 还**未设置 `RecipientID`**（零值 UUID），无真实收件人，日志记录产生但无人可见 |
 | 审批提交/通过/拒绝 | ❌ | Engine 无通知 dispatch |
 
 **缺失汇总：**
 
-1. IM Bot 投递渠道（飞书机器人/钉钉工作通知/企微应用消息）
-2. 审批流程全事件通知（提交、通过、拒绝）
+1. 预算预警/超限阻断按事件严重程度设置 `Metadata.Priority`（如超限阻断应为 critical，才能触发 Email/SMS）
+2. 修复 `NotifySyncThresholdExceeded` 收件人解析（查询本企业超管+组织管理员逐个发送）
+3. IM Bot 投递渠道（飞书机器人/钉钉工作通知/企微应用消息）
+4. 审批流程全事件通知（提交、通过、拒绝）
 
 ---
 
@@ -258,12 +263,14 @@ PRD 在 US-03、US-08、US-10 多处要求通知。整体现状：
 
 | PRD 要求 | 后端 | 前端 |
 |---------|------|------|
-| 平台登录 `POST /platform/auth/login` | ✅ | ❌ 无 `/platform/login` 路由 |
-| 企业列表 / 创建 / 状态变更 | ✅ 8 端点已实现 | ❌ 无 `/platform/*` 页面 |
-| 代充 / 赠送 / 调账 | ✅ | ❌ |
-| 全局 Channel 管理 | ✅ | ❌ |
+| 平台登录 `POST /platform/auth/login` | ✅ | ⚠️ 无独立 `/platform/login` 路由；平台管理员复用企业面 `/login` |
+| 企业列表 / 创建 / 状态变更 | ✅ | ✅ `/platform/companies` |
+| 代充 / 赠送 / 调账 | ✅ | ✅（`/platform/companies` 页内操作） |
+| 全局 Channel 管理 | ✅ | ⚠️ 无独立页面（`platformApi` 已封装 `ListChannels`/`CreateChannel`） |
+| 模型目录管理 | ✅ | ✅ `/platform/models` |
+| 币种管理 | ✅ | ✅ `/platform/currencies` |
 
-**缺失：** 整个平台运营控制台前端（路由 + 页面 + `platformApi`）。
+**剩余缺口：** 独立 `/platform/login` 入口页；全局 Channel 管理 UI。
 
 ---
 
@@ -299,32 +306,34 @@ PRD 在 US-03、US-08、US-10 多处要求通知。整体现状：
 | 1 | Gateway 自定义 `blockMessage` 文案返回 | US-08 | 存库但 Gateway 返回固定 error string |
 | 2 | Anthropic `/v1/messages` 路径支持 | US-12 | PRD 明确要求双格式 |
 | 3 | Gateway 超限返回 HTTP 429 | US-12 | 当前返回 403，需状态码规范化 |
+| 4 | 预警/阻断事件 Priority 硬编码为 normal | US-08 | 导致 Email/SMS 实际不生效，只达 InApp，用户感知为"没收到预警" |
 
 ### P1 — 核心体验
 
 | # | 差距 | 关联 US | 说明 |
 |---|------|---------|------|
-| 4 | 审批通知（审批人 + 申请人） | US-10 | Engine 无通知 dispatch，审批流程断裂 |
-| 5 | IM Bot 通知渠道 | 横切 | 所有通知场景均缺 IM |
+| 5 | 审批通知（审批人 + 申请人） | US-10 | Engine 无通知 dispatch，审批流程断裂 |
+| 6 | 修复同步保护阈值通知收件人 | US-03 | `RecipientID` 为零值 UUID，无人可见 |
+| 7 | IM Bot 通知渠道 | 横切 | 所有通知场景均缺 IM |
 
 ### P2 — 产品完整性
 
 | # | 差距 | 关联 US | 说明 |
 |---|------|---------|------|
-| 6 | 钉钉 Provider 实现 | US-01 | 前端就绪，后端缺 |
-| 7 | 企微 Provider 实现 | US-01 | 同上 |
-| 8 | SaaS 平台运营前端 | 平台运营 | 后端 8 端点已有 |
-| 9 | 审计 Excel 导出 | US-14 | 当前仅 CSV |
+| 8 | 钉钉 Provider 实现 | US-01 | 前端就绪，后端缺 |
+| 9 | 企微 Provider 实现 | US-01 | 同上 |
+| 10 | SaaS 平台运营前端剩余页面 | 平台运营 | 企业/模型/币种管理已实现；独立登录入口页、全局 Channel 管理 UI 缺 |
+| 11 | 审计 Excel 导出 | US-14 | 当前仅 CSV |
 
 ### P3 — 长期演进
 
 | # | 差距 | 关联 | 说明 |
 |---|------|------|------|
-| 10 | 审计归档（热存 → 对象存储） | US-14 | 全在 Postgres |
-| 11 | 调用全文留存（output 原文） | US-14 | 首版有意不做 |
-| 12 | OIDC / SSO | 安全 | |
-| 13 | 真实支付渠道 | SaaS | |
-| 14 | 企业自定义 Channel | SaaS | |
+| 12 | 审计归档（热存 → 对象存储） | US-14 | 全在 Postgres |
+| 13 | 调用全文留存（output 原文） | US-14 | 首版有意不做 |
+| 14 | OIDC / SSO | 安全 | |
+| 15 | 真实支付渠道 | SaaS | |
+| 16 | 企业自定义 Channel | SaaS | |
 
 ### 🚫 明确不做
 
@@ -357,7 +366,7 @@ PRD 在 US-03、US-08、US-10 多处要求通知。整体现状：
 |------|---------|---------|------|
 | 计费单位 | 人民币（元） | 内部 **point** + lot 钱包；UI `÷ PPU` 换算展示 | 精度与多币种扩展 |
 | Key 存储 | `key_value` | `key_hash` 鉴权；`fullKey` 仅创建/轮转时返回一次 | 安全 |
-| 超限行为 | 80%/90% 预警 + 100% 阻断 | 预警通知已投递（Email + InApp）；阻断为禁用 Key | 渠道暂缺 IM ≠ 逻辑缺 |
+| 超限行为 | 80%/90% 预警 + 100% 阻断 | 预警/阻断逻辑已实现；但通知因 Priority 硬编码 normal 实际只达 InApp（非有意设计，是待修复的 P0 缺口，见八） | 阻断策略本身（禁用 Key）是有意设计；通知渠道降级是 bug 而非设计 |
 | 审批人 | 直属 TL | 拥有 `budget:approve` 权限的管理员 | 更灵活 |
 | 登录方式 | 邮箱密码 | 手机/邮箱 + 密码 + 验证码（双因子就绪） | 国内场景适配 |
 | API 契约 | PRD 附录列举 | **权威**：[Frontend.md](./Frontend.md) §5 + `api/types/` | PRD 附录已声明 |

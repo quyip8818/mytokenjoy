@@ -225,22 +225,24 @@ func advisoryLockID(mode TestMode) int64 {
 
 #### `pgschema.go` — `templateStoreConfig` 按 mode 参数化
 
+**已实现（`apps/backend/tests/testutil/pgschema.go`）：**
+
 ```go
 func templateStoreConfig(mode TestMode) config.Config {
     switch mode {
     case ModeSaaS:
         cfg := TestConfig(
             WithSupportSaas(true),
-            WithBootstrapMode(config.BootstrapDemo),
             WithPlatformBootstrap("admin@tokenjoy.me", "admin1234"),
             WithIngestEnabled(true),
         )
         cfg.StoreBootstrap.TestPartitionMonths = 12
         return cfg
     default: // ModeLocal
+        // ponytail: local template 仍用 SupportSaas=true 写 demo 数据，
+        // 让 template 里有数据可用；单个测试再按需覆盖 SupportSaas。
         cfg := TestConfig(
-            WithSupportSaas(false),
-            WithBootstrapMode(config.BootstrapDemo),
+            WithSupportSaas(true),
             WithIngestEnabled(true),
         )
         cfg.StoreBootstrap.TestPartitionMonths = 12
@@ -249,7 +251,7 @@ func templateStoreConfig(mode TestMode) config.Config {
 }
 ```
 
-签名显式接收 mode 参数，和 `EnsureTemplateDB` 对齐，不依赖隐式 env 读取。
+签名显式接收 mode 参数，和 `EnsureTemplateDB` 对齐，不依赖隐式 env 读取。**实现与原设计的差异**：Local 模板并未用 `WithSupportSaas(false)`，而是同样用 `true` 写入 demo 数据以保证模板内有数据可测，单个测试用例再按需覆盖回 `SupportSaas=false`。
 
 #### `skip.go`（新增）
 

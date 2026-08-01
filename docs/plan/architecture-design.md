@@ -1,6 +1,15 @@
-# TokenJoy 平台架构设计
+# TokenJoy 平台架构设计（早期概览，已被更精确的文档取代）
 
-> 状态：目标态设计。各模块标注「已实现 / 待实现」。
+> **状态：早期目标态设计草案，多处结构性描述已与实际实现不符，仅保留核心判断（一份代码/一个 binary/`SUPPORT_SAAS` 切换、platform_admin 为模型定价 SOT）作为历史参考。**
+>
+> 权威文档请参阅：[apps/docs/Backend-架构.md](../../apps/docs/Backend-架构.md)（实际分层/目录结构）、[apps/docs/Local-SaaS-架构.md](../../apps/docs/Local-SaaS-架构.md)（Local↔SaaS 协作机制）。
+>
+> 与实际代码的主要偏差（供追溯参考，不代表当前或计划中的实现）：
+> - 本文档设想的独立 `internal/platform/` 子树不存在；platform 相关代码实际扁平放在 `internal/http/handler/platform/`
+> - 本文档设想的"Usage Reporter"（local 定期上报用量到 saas）机制不存在；实际总 key 消耗直接记在 SaaS wallet 上，天然可见，无需额外上报
+> - "Impersonate"（platform_admin 切换到任意 company context）未实现
+> - 数据库表设计（`wallets`、`wallet_transactions`、`budgets`、`recharge_records`、`notifications`、`audit_logs`）与实际 schema 表名不符，实际用的是 `companies`、`company_recharge_orders`、`company_recharge_lots`、`org_nodes`、`platform_keys`、`usage_ledger`、`usage_buckets`、`budget_consumed`、`approval_requests`、`notification_log`、`operation_logs` 等
+> - 第 14 节"迁移路线"的 Phase 1-4 均未按本文档设想的路径执行，实际架构通过不同路径达成了等价目标
 
 ---
 

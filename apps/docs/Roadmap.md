@@ -13,8 +13,8 @@ PRD 与当前实现的差距。**工程待办**见 [plan/plan.md](./plan/plan.md
 | US-01 飞书凭证          | ✅   | `integration/datasource/feishu`                     |
 | US-01 钉钉 / 企微       | ❌   | 类型与前端表单已支持；后端 `platform not supported` |
 | US-02–03 导入与定时同步 | ✅   | 飞书全量/增量；Worker `org_sync`                    |
-| US-03 删除保护阈值通知  | ⚠️   | 超阈值终止同步已实现；仅 Webhook 通知               |
-| US-04 邀请成员激活      | ⚠️   | API 存邀请态；无真实邮件/短信                       |
+| US-03 删除保护阈值通知  | ⚠️   | 超阈值终止同步已实现；`Send()` 未设收件人，实际未真正投递（[Notification.md](./Notification.md) 已知缺口） |
+| US-04 邀请成员激活      | ✅   | SMS（阿里云）+ Email（Resend）真实投递；前端 `/invite/accept` 页面完整 |
 | SaaS 企业超管邀请       | ✅   | `company_invites` + `accept-invite`                 |
 
 ---
@@ -24,8 +24,8 @@ PRD 与当前实现的差距。**工程待办**见 [plan/plan.md](./plan/plan.md
 | PRD                           | 状态 | 说明                                          |
 | ----------------------------- | ---- | --------------------------------------------- |
 | US-07 逐级预算 / Budget Group | ✅   |                                               |
-| US-08 阈值预警 80%/90%        | ❌   | `alert_rules` 仅 CRUD；无 Worker              |
-| US-08 超限阻断文案            | ⚠️   | `overrun_policy.blockMessage` 仅存库          |
+| US-08 阈值预警 80%/90%        | ✅   | `CheckBudgetAlerts`（Ingest post-commit）→ `AlertPublisher` → 通知投递 |
+| US-08 超限阻断文案            | ⚠️   | `overrun_policy.blockMessage` 仅存库；Gateway 返回固定 error string |
 | 运行时超限封禁                | ⚠️   | `consumed >= budget` 硬封 Key；不读阈值百分比 |
 
 ---
@@ -35,9 +35,9 @@ PRD 与当前实现的差距。**工程待办**见 [plan/plan.md](./plan/plan.md
 | PRD                     | 状态 | 说明                                                                                                 |
 | ----------------------- | ---- | ---------------------------------------------------------------------------------------------------- |
 | US-10 Key / 额度审批    | ✅   |                                                                                                      |
-| US-10 IM 通知审批人     | ❌   |                                                                                                      |
+| US-10 IM 通知审批人     | ❌   | `approval.Engine` 全流程（提交/通过/拒绝）无 Notifier 调用                                            |
 | US-11 成员自主 Key      | ✅   |                                                                                                      |
-| US-12 API 调用与 NewAPI | ⚠️   | 需 `NEW_API_ENABLED` + NewAPI 栈；Gateway 精确 path 白名单已落地；联调签字见 [plan/plan.md](./plan/plan.md) §1 |
+| US-12 API 调用与 NewAPI | ⚠️   | 需 `NEW_API_ENABLED` + NewAPI 栈；Gateway 白名单仅 OpenAI 4 路径（无 Anthropic `/v1/messages`）；额度不足返回 403（PRD 要求 429） |
 
 ---
 
@@ -57,7 +57,7 @@ PRD 与当前实现的差距。**工程待办**见 [plan/plan.md](./plan/plan.md
 
 | 能力                   | 状态 | 说明                           |
 | ---------------------- | ---- | ------------------------------ |
-| 预警 / 超限 / 同步通知 | ⚠️   | `NOTIFY_WEBHOOK_URL` 出站 only |
+| 预警 / 超限 / 同步通知 | ✅   | Email（Resend）+ SMS（阿里云）+ InApp + Webhook 渠道就绪；预算预警 / 超限阻断已接线；同步保护通知未真正投递（见 §1） |
 | IM 跟随数据源平台      | ❌   |                                |
 
 ---
@@ -68,10 +68,10 @@ PRD 与当前实现的差距。**工程待办**见 [plan/plan.md](./plan/plan.md
 | -------------------------- | ---- | -------------------------------------------------------------------------------------- |
 | `POST /auth/login`         | ✅   | ✅                                                                                     |
 | `POST /auth/logout`        | ✅   | ✅（`authApi.logout`）                                                                 |
-| `POST /auth/accept-invite` | ✅   | ⚠️ 无独立页 / API 封装                                                                 |
-| `/billing/*`               | ✅   | ⚠️ 仅 `/wallet` 路由（无 `/billing` redirect）；`confirm` 与 `recharge-records` 已接入 |
+| `POST /auth/accept-invite` | ✅   | ✅ 独立路由 `/invite/accept` + `authApi.acceptInvite` 封装                             |
+| `/billing/*`               | ✅   | ✅ `/billing` 路由；`confirm` 与 `recharge-records` 已接入                             |
 | 成员工作台 `/me/*`         | ✅   | ✅（3 路由 + `meApi`；见 [Frontend.md](./Frontend.md) §3）                             |
-| `/platform/*`              | ✅   | ❌                                                                                     |
+| `/platform/*`              | ✅   | ✅ `/platform/models`、`/platform/companies`、`/platform/currencies`；无独立 `/platform/login`（复用企业面登录） |
 
 ---
 
@@ -87,8 +87,8 @@ PRD 与当前实现的差距。**工程待办**见 [plan/plan.md](./plan/plan.md
 | 全部业务路由 Session + capability | ✅   | 统一 `ReadRoutes`                                          |
 | UI stale 策略                     | ✅   | revision 头 / focus / broadcast / 403                      |
 | `POST /api/auth/login`            | ✅   | 前后端均已接入                                             |
-| Billing 前端                      | ⚠️   | `/wallet` + `PermissionGate`；`totalConsumed` 等待真账单域 |
-| 平台 JWT                          | ✅   | 独立 `PLATFORM_SESSION_SECRET`                             |
+| Billing 前端                      | ⚠️   | `/billing` + `PermissionGate`；`totalConsumed` 等待真账单域 |
+| 平台 JWT                          | ✅   | 复用企业面同一 `SESSION_SECRET`；靠 `TokenJoyCompanyID` + `platform:manage` 区分       |
 | E2E 完整登录流程 spec             | ⚠️   | `auth.ts` helper 已有；spec 仅未登录重定向                 |
 
 ---
@@ -110,7 +110,7 @@ PRD 与当前实现的差距。**工程待办**见 [plan/plan.md](./plan/plan.md
 | OIDC / SSO              | ❌   |
 | 支付渠道真实对接        | ❌   |
 | `package_id` 自动改配额 | ❌   |
-| 一人多企业              | ❌   |
+| 一人多企业              | ✅   |
 | 企业自定义 Channel      | ❌   |
 
 ---

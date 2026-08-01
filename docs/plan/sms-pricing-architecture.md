@@ -1,6 +1,10 @@
-# SMS 定价架构分析
+# SMS 定价架构分析（已过时，SMS 定价链路已移除）
 
-## 计费链路
+> **状态：已过时。** SMS 与 tokenjoy 之间的模型/定价同步链路已于 commit `616ed6c1`（2026-07-29，`refactor(sms): remove NewAPI integration and model management`）完全移除。SMS 现在职责收窄为纯供应商/合同/订单/评估管理，`sms/backend/internal/domain` 只剩 auth/contract/dashboard/evaluation/order/supplier/types/user 8 个域，无 model/newapisync 域；`sms/backend/schema.sql` 无 `models` 表。以下内容仅作历史参考，`customer_pricing` 差异化定价方案未曾实现且不再计划实现。
+
+---
+
+## 计费链路（历史，已移除）
 
 ```
 sms-newapi (ModelRatio/CompletionRatio)

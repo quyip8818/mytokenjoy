@@ -290,12 +290,12 @@ BatchImport 对每行执行同样逻辑。
 
 ### 9.3 加密 Token
 
-AES-GCM 对称加密，密钥 `INVITE_SECRET`（`internal/pkg/invitetoken`）。
+XOR 加密（HMAC-SHA256 派生密钥流）+ 4 字节截断 MAC，密钥 `INVITE_SECRET`（`internal/pkg/invitetoken`）。为兼容短信长度限制（阿里云变量 ≤35 字符）刻意做成 18 字符紧凑 token；预留升级路径为 AES-GCM（若字符预算允许 50+ 字符）。
 
-**payload**：`{ "code": "invite_code", "ch": "sms|email|admin_link", "exp": timestamp }`
+**明文**：9 字节 `[8字节 code][1字节 channel]`（`channel` 为单字符：`s`=sms、`e`=email、`a`=admin_link），**不含** exp——过期只在 DB 侧 `expires_at` 校验。
 
-- Token 不可伪造（AES-GCM 认证加密）
-- 过期双重校验（token.exp + DB expires_at）
+- Token 不可伪造（HMAC MAC 校验）
+- 过期校验依赖 DB `expires_at`
 - 一次性使用（accepted_at 标记后不可重复）
 
 ### 9.4 AcceptInvite
@@ -363,12 +363,7 @@ POST /auth/accept-invite { inviteCode, password, name? }
 
 ### 11.1 认证策略
 
-`AUTH_PRIMARY` 切换主认证路径（`phone` / `email`），两条对等。
-
-| 策略 | 登录方式 | 注册方式 |
-|------|---------|---------|
-| `phone` | 手机号 + 短信验证码 | 手机验证 → 创建企业 |
-| `email` | 邮箱 + 密码 或 邮箱 + OTP | 邮箱验证 → 创建企业 |
+SaaS 模式（`SUPPORT_SAAS=true`）下手机号与邮箱两种验证码登录方式**同时并存**于同一登录页，无单一"主认证路径"开关（`AUTH_PRIMARY` 不存在）。用户按拥有的联系方式任选一种验证码登录/注册。
 
 ### 11.2 登录分流
 
@@ -384,28 +379,27 @@ POST /auth/accept-invite { inviteCode, password, name? }
 
 ### 11.3 注册流程
 
-1. 验证手机/邮箱 → `POST /auth/register/init`（创建 User + Register Session）
-2. 设置密码 + 公司名 → `POST /auth/register/company`（创建 Trial 企业 + issueTokenPair）
+1. 验证手机/邮箱 → `POST /auth/register/init`（创建/校验 User + Register Session；若命中待处理邀请返回 `choose`）
+2. 有邀请 → `POST /auth/register/accept`（接受邀请加入已有企业）；无邀请 → `POST /auth/register/company`（创建 Trial 企业 + issueTokenPair）
 
 创建的是真实企业（`type=trial`），数据永久保留。
 
-### 11.4 多企业切换
+### 11.4 多企业选择（登录时）
 
-`POST /auth/switch-company { companyId }` → 校验 user 有目标 company 的 active member → 重新 issueTokenPair。
+`POST /auth/select-company { companyId }` 依赖 Register Session（登录/验证码验证后签发的临时 cookie），校验 user 有目标 company 的 active member → issueTokenPair。**不是**运行时切换已登录企业的功能——登录后要换企业需重新登录。
 
 ### 11.5 SaaS API 端点
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/auth/capabilities` | 前端渲染决策（primaryAuth, registrationEnabled） |
-| POST | `/auth/otp/send` | 发送验证码 |
-| POST | `/auth/otp/verify` | 验证 → 分流 |
-| POST | `/auth/select-company` | 多企业选择 |
+| POST | `/auth/verify-code/send` | 发送验证码 |
+| POST | `/auth/verify-code/verify` | 验证 → 分流（enter/select_company/choose/create_company/not_found） |
+| POST | `/auth/select-company` | 登录时多企业选择（依赖 Register Session） |
 | POST | `/auth/register/init` | 注册初始化 |
-| POST | `/auth/register/company` | 创建公司（含密码） |
-| POST | `/auth/switch-company` | 切换企业 |
-| GET | `/auth/setup-status` | 私有化检查（RequireLocal） |
-| POST | `/auth/setup` | 私有化初始化（RequireLocal） |
+| POST | `/auth/register/accept` | 接受邀请注册 |
+| POST | `/auth/register/company` | 创建公司（Trial） |
+| GET  | `/api/setup/status` | 私有化 setup 进度检查（独立临时 setup server，非 `/auth` 下） |
+| POST | `/api/setup/init` | 私有化初始化（独立临时 setup server） |
 
 ### 11.6 OTP 服务
 
@@ -419,13 +413,13 @@ POST /auth/accept-invite { inviteCode, password, name? }
 | 每日上限 | 10 次/target |
 | 验证尝试 | 最多 5 次，超过锁定 15 分钟 |
 
-Redis 存储：
+Redis 存储（带 channel 维度，`channel` 为 `sms` / `email`）：
 
 ```
-sms:code:{target}      → code, TTL 5min
-sms:lock:{target}      → "1", TTL 60s
-sms:daily:{target}     → counter, TTL 到当日 24:00
-sms:attempts:{target}  → counter, TTL 15min
+vc:code:{channel}:{address}      → code, TTL 5min
+vc:lock:{channel}:{address}      → "1", TTL 60s
+vc:daily:{channel}:{address}     → counter, TTL 到当日 24:00
+vc:attempts:{channel}:{address}  → counter, TTL 15min
 ```
 
 ### 11.7 Token 机制
@@ -438,20 +432,22 @@ sms:attempts:{target}  → counter, TTL 15min
 
 ---
 
-## 12. Trial 免费试用
+## 12. Trial / Demo 免费试用
 
 ### 12.1 模拟资金
 
-注册时灌入 `LotKindMock` lot（`SeedTrialCredit`）。Gateway allowlist 仅含 mock 模型 → 真实模型自然被 403。Mock lot 正常 FIFO 消费，看板可见。
+注册时灌入 `LotKindMock` lot（`domain/billing.SeedTrialCredit`）。Gateway 对 `test-model` 有独立准入检查，仅 `demo`/`trial`/`testing` 类型公司可调用；`trial`/`demo` 账户仍可调用真实模型（走 mock lot 消耗）。Mock lot 正常 FIFO 消费，看板可见。
 
-### 12.2 升级（Trial → Standard）
+### 12.2 升级（Trial/Demo → Standard）
 
-```sql
-UPDATE recharge_lots SET status='expired' WHERE company_id=$1 AND lot_kind='mock' AND status='active';
-UPDATE companies SET wallet_remain_quota=(SELECT SUM(quota_remaining) FROM recharge_lots WHERE company_id=$1 AND status='active'), type='standard' WHERE id=$1;
-```
+`domain/company.Service.UpgradeToStandard`（`internal/domain/company/service.go`），事务内：
 
-升级后：Key allowlist 解锁全部模型，充值解锁，mock lot expired。
+1. 锁定 company 行（`LockForUpdate`，与并发 ingest 串行）
+2. `UpdateType` → `standard`
+3. `ExpireMockLots`：过期该企业全部 mock lot
+4. `SumActiveLotsRemaining` 重算剩余 → `SetWalletRemainQuota`
+
+commit 后：失效 precheck 缓存（立即拒绝 test-model）+ best-effort 同步 NewAPI wallet。只允许 `trial` 或 `demo` 类型升级，`standard` 类型调用会报错。
 
 ### 12.3 功能限制
 
@@ -468,29 +464,30 @@ UPDATE companies SET wallet_remain_quota=(SELECT SUM(quota_remaining) FROM recha
 
 ### 13.1 部署拓扑
 
-`www.tokenjoy.com`（官网）+ `app.tokenjoy.com`（App）+ `api.tokenjoy.com`（API）。Cookie Domain `.tokenjoy.com` 共享 session。
+`www.tokenjoy.me`（官网）+ App 主域（`/api` 同域路径），共享 `.tokenjoy.me` Cookie Domain。官网通过 iframe 嵌入独立构建入口（`embed.html`），与 App 之间用 `postMessage` 通信，不是独立 npm 包分发。
 
 ### 13.2 组件
 
 ```tsx
-<AuthPopup open defaultMode="login|register" apiBase="/api" closable onSuccess onClose />
+<AuthPopup open defaultMode="login|register" closable onSuccess onClose />
 ```
 
 - 内部状态机：login tab（phone_verify → enter/select/choose/not_found）+ register tab（phone → info → success）
 - 自带 API client（纯 fetch + credentials:include），不依赖 App React Query
-- App 内通过 `SessionGate` 自动弹出（未登录时 FakeDashboard 背景 + AuthPopup 覆盖）
-- 官网通过 `@tokenjoy/auth-popup` npm 包引入
+- App 内通过 `AuthUnauthorizedBridge` 监听 401 跳转独立 `/login` 路由（**无** `SessionGate` 组件）
 
 ### 13.3 前端文件
 
 ```
 features/auth/
 ├── components/auth-popup.tsx       — 统一认证弹窗
+├── components/auth-card.tsx        — 登录/注册表单卡片
 ├── components/fake-dashboard.tsx   — 登录背景装饰
 └── hooks/use-verify-countdown.ts
 
 routes/auth/login.tsx               — FakeDashboard + AuthPopup(closable=false)
-routes/auth/invite-accept.tsx       — 邀请激活页
+routes/auth/invite-accept.tsx       — 邀请激活页（路由 /invite/accept）
+embed-main.tsx / embed.html         — 官网 iframe 嵌入独立构建入口
 ```
 
 ---
@@ -503,10 +500,11 @@ routes/auth/invite-accept.tsx       — 邀请激活页
 |----|------|------|
 | `standard` | SaaS 正式付费 | SaaS |
 | `trial` | SaaS 免费试用 | SaaS |
+| `demo` | 演示账号 | SaaS |
 | `selfhosted` | 私有化部署 | 非 SaaS |
 | `testing` | 开发/CI | 开发环境 |
 
-仅允许 `trial → standard` 流转。
+允许 `trial → standard` 与 `demo → standard` 流转（`UpgradeToStandard`）。
 
 ### 14.2 SaaS vs 私有化
 

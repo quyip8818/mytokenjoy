@@ -178,13 +178,15 @@ flowchart LR
 
 ---
 
-## 5. Ingest 与 Projector
+## 5. Ingest（同事务写账，终态无独立 Projector）
 
 ```text
-IngestRaw
-  ├─ OccurrenceDepartmentPeriod(OccurredAt) → entry.PeriodKey → ledger
-  ├─ InsertTx budget_projection               → budget.Projector 异步写 budget_consumed（开账 period）
-  └─ usage_buckets                         ← dashboard.Projector（OccurredAt）
+IngestRaw（单事务）
+  ├─ OccurrenceDepartmentPeriod(OccurredAt) → entry.PeriodKey → usage_ledger
+  ├─ OpenDepartmentPeriod(cfg.Clock())     → IncrementConsumedBatch → budget_consumed（开账 period，同事务）
+  └─ DecrementBatch → combined_key_remain（同事务）
+
+usage_buckets ← dashboard.Projector（看门狗每小时检测 lag 后异步触发，按 OccurredAt 聚合）
 ```
 
 ```mermaid
@@ -194,13 +196,15 @@ flowchart TB
   Build --> Entry[OccurredAt]
   Entry --> Occ[OccurrenceDepartmentPeriod]
   Clock[cfg.Clock] --> Open[OpenDepartmentPeriod]
-  Occ --> Ledger[Insert ledger]
-  Ledger --> Enq[InsertTx budget_projection]
-  Enq --> Proj[budget.Projector → budget_consumed]
-  Entry --> DashProj[dashboard.Projector → buckets]
+  Occ --> Ledger[Insert usage_ledger]
+  Open --> Inc[IncrementConsumedBatch]
+  Ledger --> Inc
+  Inc --> BC[(budget_consumed 同事务)]
+  Inc --> CK[(combined_key_remain 同事务)]
+  Entry --> DashProj[dashboard.Projector → usage_buckets 异步]
 ```
 
-读路径（预检、预算树、Key used、超支）只拿 `Open*` / `Load*(..., Clock)`，不读发生轨来做门禁。Gateway 预检读 `gateway_soft_remain`（Projector 批末刷新）。
+读路径（预检、预算树、Key used、超支）只拿 `Open*` / `Load*(..., Clock)`，不读发生轨来做门禁。Gateway 预检读 `platform_keys.combined_key_remain`（Rebalance / Ingest 同事务刷新）。
 
 ---
 
@@ -211,7 +215,7 @@ flowchart TB
 | `CLOCK_ANCHOR`    | 可选 `YYYY-MM-DD`；空 = 系统时钟；**生产禁止**                       |
 | `cfg.Clock()`     | 空锚点 → `System()`；有锚点 → `Fixed(UTC 零点)`                      |
 | 域代码            | 只调 `cfg.Clock()` / 注入的 `clock.Clock`，不读 env                  |
-| demo              | 建议 `BOOTSTRAP_MODE=demo` + `CLOCK_ANCHOR`，让种子与门禁同月        |
+| demo              | `SUPPORT_SAAS=true` + 空库自动写 demo 快照；本地联调建议加 `CLOCK_ANCHOR`，让种子与门禁同月 |
 | `Snapshot.SeedAt` | `clock.NowUTC(cfg.Clock())`；缺则 seed 开账快照 fail-fast            |
 | seed 开账快照     | `RootPeriodKey(nodes, SeedAt)`                                       |
 | seed ledger       | `OccurrenceSnapshotKey(PeriodMonthly, OccurredAt)`（可与开账月不同） |
@@ -245,11 +249,10 @@ internal/pkg/budget/
   cost_range.go              看板 Resolve / PreviousRange
   snapshotload.go            Load* 读消耗
 
-domain/usage/ingest.go       ledger + 入队 budget_projection
-domain/budget/budget_projector.go  ApplyIncrement(..., OpenBudgetPeriod)
-domain/gateway/precheck.go     LoadPrecheckContext + Evaluate（gateway_soft + limit）
+domain/usage/ingest.go       同事务写 ledger + IncrementConsumedBatch(budget_consumed)
+domain/gateway/precheck.go     LoadPrecheckContext + Evaluate（combined_key_remain + limit）
 domain/budget/overrun.go     开账超支
-infra/river/                 月切 Periodic monthly_rebalance
+infra/river/                 月切 Periodic + tenant_watchdog
 
 seed/snapshot/*.go           SeedAt、ledger OccurrenceSnapshotKey
 seed/apply/tables.go         RootPeriodKey → budget_consumed
@@ -288,7 +291,7 @@ flowchart TB
 | 手段                                    | 作用                                                                                           |
 | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `OpenBudgetPeriod` / `OccurrencePeriod` | 类型上区分开账 vs 发生                                                                         |
-| Ingest 写 ledger + 入队                 | consumed 只经 `budget.Projector`（开账 `OpenBudgetPeriod`）                                    |
+| Ingest 同事务写 consumed                 | 只经 `IncrementConsumedBatch`（开账 `OpenBudgetPeriod`），无独立异步 Projector                    |
 | `OccurredAtFromPayload`                 | 缺事件时间 fail                                                                                |
 | `make lint-clock`                       | 禁 `SnapshotKey(...time.Now)`；`domain/{budget,gateway,newapisync,usage}` 禁直调 `SnapshotKey` |
 
@@ -299,9 +302,8 @@ flowchart TB
 | 账本跟 OccurredAt                       | `TestIngestStoresLedgerPeriodKey`                                                                                                                 |
 | 跨月：consumed 跟 Clock                 | `TestIngestSnapshotUsesNowPeriodForMonthlyOrg`                                                                                                    |
 | 缺 OccurredAt                           | `TestOccurredAtFromPayloadRejectsMissing`                                                                                                         |
-| 锚点预检                                | `TestPrecheckUsesClockAnchorForPeriodKey`                                                                                                         |
 | 树与工厂同月                            | `TestOpenBudgetPeriodAlignsTreeAndDepartmentFactory`                                                                                              |
-| seed 快照跟 Clock、ledger 跟 OccurredAt | `TestSeedBudgetSnapshotsAlignWithClockAnchor`                                                                                                     |
+| seed 快照跟 Clock、ledger 跟 OccurredAt | `TestSeedBudgetConsumedAlignWithClockAnchor`（`tests/seed/clock_align_test.go`）                                                                  |
 | Load\* 开账月跟 Clock                   | `TestLoadPlatformKeysWithUsedResolvesDepartmentPeriod`、`TestLoadProjectsWithConsumedUsesOpenPeriod`（用 `clock.Fixed`，勿改 `org_nodes.period`） |
 | 生产禁锚点                              | `TestProductionRejectsClockAnchor`                                                                                                                |
 

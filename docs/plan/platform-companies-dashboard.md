@@ -1,6 +1,10 @@
 # Platform 企业管理看板
 
-> 在 platform admin 中新增企业列表页，展示所有公司的财务概览和钱包状态。
+> **状态：已实现。** 后端 `GET /api/platform/companies/overview`（`handler/platform/companies_overview.go`）+ `PlatformQueryRepository`（`SumMonthlyCost`/`CountActiveMembers`）+ 前端 `/platform/companies` 页面均按本文档设计落地。
+>
+> **与设计的差异**：后端返回的 `wallet` 对象含 `overdraft`（透支额度）和 `totalConsumed`（累计消耗）字段，但前端表格（`platform-companies-page-shell.tsx`）只渲染了公司名称/类型/状态/余额/赠送余额/累计充值/本月消耗/成员数/操作，未展示透支额度和累计消耗两列——数据后端已齐全，仅前端展示层做了精简。
+>
+> 以下正文保留原设计供参考。
 
 ---
 

@@ -37,12 +37,12 @@
 
 | 层              | 路径                                       | 职责                                                                                          |
 | --------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| **Domain port** | `domain/adminport/`                        | `Port` 接口：`CreateToken` / `UpdateToken` / `TopUp` / `GetUserQuota` / `RebuildAbilities` 等 |
-| **Adapter**     | `integration/newapi/admin_port_adapter.go` | 唯一 HTTP 实现，映射厂商 Admin API                                                            |
+| **Domain port** | `domain/adminport/`                        | `Port` 接口：`CreateToken` / `UpdateToken` / `GetToken` / `ManageUser`（`set_quota`）/ `RebuildAbilities` 等 |
+| **Adapter**     | `integration/newapi/client.go` + `selfhealing.go` | `Client` 为唯一 HTTP 实现，映射厂商 Admin API；外层包 `SelfHealingPort`，401 时自动重读 token 重试 |
 | **纯换算**      | `pkg/budget/`                              | point 计算、chain remain；domain 可直接引用                                                   |
 | **Wallet 读**   | `company.WalletService`                    | 依赖最小 `NewAPIWalletReader`；`adminport.Port` 满足接口；组合根注入 `adminPort`              |
 
-装配：`compose_infra.go` → `newapi.NewAdminPortAdapter(client)` → `buildDomainServices` 注入 `NewAPISync`、`billing`、`budget.Rebalance`、`models`、`company`。
+装配：`compose_infra.go` 的 `buildAdminPort` 直连 NewAPI 库读取 token → `newapi.NewClient` 包 `SelfHealingPort` → `compose_domain.go` 的 `buildServiceRegistry` 注入 `NewAPISync`、`models`、`company`。**注意：** `budget.RebalanceService` 不注入 `adminPort`——NewAPI token 为 `unlimited_quota`，Rebalance 只重算本地 `combined_key_remain`（见 [Backend-预算.md](./Backend-预算.md) §8）。
 
 ---
 
@@ -65,7 +65,7 @@
 | 变量                         | 默认    | 说明                                                                                                                   |
 | ---------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `DEPLOY_ENV`                 | `local` | `local` / `staging` / `production`；`production` 触发生产契约校验                                                      |
-| `BOOTSTRAP_MODE`             | `none`  | `none` / `prod` / `minimal` / `demo`；空库引导策略                                                                     |
+| `SUPPORT_SAAS`               | `false` | `true`=SaaS 多租户（空库自动写 demo 快照）；`false`=单租户私有化（setup 流程产出 `cfg.CompanyID`）                     |
 | `SECURE_COOKIE`              | `false` | Set-Cookie Secure；`production` 下必须为 `true`                                                                        |
 | `CLOCK_ANCHOR`               | 空      | 可选 `YYYY-MM-DD`；固定看板「今天」与种子参考日期；账期语义见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) |
 | `DATA_SOURCE_CREDENTIAL_KEY` | 必填    | 数据源凭证加密密钥（32 字节 hex 或 base64）                                                                            |
@@ -121,7 +121,7 @@ apps/backend/
 ├── internal/
 │   ├── app/                 # DI 组合根（compose_* + registry）
 │   ├── config/
-│   ├── identity/            # sessiontoken、credentials、authz、httpx
+│   ├── identity/            # sessiontoken、credentials、authz、httpx、registertoken、secrets、verifycode
 │   ├── domain/
 │   │   ├── org/             # 组织域（见下）；对外仍 domain/org.Service
 │   │   │   ├── core/        # Deps、provision、authz bump
@@ -133,13 +133,16 @@ apps/backend/
 │   │   ├── dashboard/       # 看板只读聚合
 │   │   ├── audit/           # 操作审计、调用审计读模型
 │   │   ├── usage/           # Ingest、projection、Reader
-│   │   ├── newapisync/      # NewAPISync（platformkey/、provision/、policy/、outbox/ 子包）— 位于 integration/
 │   │   ├── adminport/       # NewAPI Admin 领域端口（Port 接口 + 输入类型）
 │   │   ├── grants/          # 预设角色常量 + Normalizer 接口
 │   │   ├── gateway/         # GatewayService + Precheck（/v1 数据面）
 │   │   ├── company/         # 企业、开户、邀请
-│   │   ├── billing/         # 充值、lot 钱包、wallet_sync
+│   │   ├── billing/         # 充值、lot 钱包
 │   │   │   └── lot/         # lot 写 SSOT（consume / ledger）
+│   │   ├── approval/        # 统一审批引擎
+│   │   ├── notification/    # 通知领域类型
+│   │   ├── pricing/         # 定价计算
+│   │   ├── port/            # 跨域端口（KeySyncPort、OverrunKeyControl 等）
 │   │   └── memberanalytics/ # 成员工作台只读聚合（GET /me/*）
 │   ├── http/
 │   │   ├── router.go
@@ -148,29 +151,29 @@ apps/backend/
 │   │   ├── middleware/
 │   │   └── httputil/、response/
 │   ├── infra/
-│   │   ├── jobs/            # Job 参数 + Enqueuer
-│   │   ├── river/           # River client + workers（薄壳调 domain）
-│   │   ├── ingest/          # 入账 worker
+│   │   ├── jobs/            # Job kind 常量 SSOT + Enqueuer
+│   │   ├── river/           # River client + workers（薄壳调 domain；唯一异步队列）
+│   │   ├── scheduler/       # L2 due 查询 + 看门狗批量入队
 │   │   ├── budgetcheck/     # Gateway Precheck 预算校验
 │   │   ├── permission/
+│   │   ├── ratelimit/
+│   │   ├── gatewaymetrics/、ingestmetrics/
 │   │   └── notification/
 │   ├── integration/
 │   │   ├── newapi/
 │   │   ├── newapisync/          # NewAPISync 实现（platformkey/provision/outbox/policy/provider/ports）
-│   │   ├── datasource/feishu/
-│   │   ├── platform/
-│   │   └── sms/
+│   │   ├── datasource/feishu/、dingtalk/
+│   │   └── catalogsync/         # SaaS→Local 目录同步（models/pricing/currencies/wallet_lots）
 │   ├── adapter/
 │   │   ├── bridge/              # 跨域适配（usage→alert、usage→billing、usage→budget）
 │   │   └── enqueue/             # 域 JobEnqueuer 端口适配（budget/dashboard/newapisync/org/usage_ingest）
 │   ├── worker/
-│   │   ├── pricingsync/         # 定价同步 worker
-│   │   └── smssync/             # SMS 模型同步 worker
-│   ├── pkg/                 # budget/、org/、common/、ctxcompany/、clock/、invitetoken/、modelcatalog/
+│   │   └── catalogsync/         # CatalogSync worker（取代旧 pricingsync/smssync）
+│   ├── pkg/                 # budget/、org/、common/、ctxcompany/、clock/、invitetoken/、modelcatalog/、baseurl/、ratelimit/、tree/
 │   └── store/               # postgres/（usage_aggregate.go；*_repo_<主题>.go）
 ├── seed/                    # demo 引导与契约（见 [Backend-架构.md](./Backend-架构.md) §5.3）
 ├── tests/
-│   ├── testutil/            # 根 + org/saas/http/gateway/budget/worker 子包（budget/ = budgetfix）
+│   ├── testutil/            # 根 + budget/gateway/http/newapisync/org/pg/river/saas/mock 子包
 │   ├── http/middleware/     # middleware 单元（chi + stub）
 │   ├── pkg/
 │   ├── domain/<域>/         # helpers_test.go + 主题测试文件
@@ -179,7 +182,7 @@ apps/backend/
 └── Makefile
 ```
 
-**结构基线：** 分层不变；domain 并行访问 Store 与端口（Job 类：六域 `ports.go` + `adapter/enqueue/.go`）；lot 写 SSOT 在 `domain/billing/lot/`；middleware 经 `identity/authz.RevisionReader`；
+**结构基线：** 分层不变；domain 并行访问 Store 与端口（Job 类：五域 `ports.go` + `adapter/enqueue/.go`）；lot 写 SSOT 在 `domain/billing/lot/`；middleware 经 `identity/authz.RevisionReader`；
 
 ### 3.1 文件命名与拆分
 
@@ -288,7 +291,8 @@ type Store interface {
     Session() SessionRepository
     Approval() ApprovalRepository
     Logs() LogStore
-    // + SchedulerLock, TenantBackgroundState, RiverJob, ProjectionCursors, etc.
+    // + SchedulerLock, TenantBackgroundState, RiverJob, ProjectionCursors,
+    //   NotificationPreference, ModelPricing, SystemSettings, PlatformQuery, etc.
     WithTx(ctx context.Context, fn func(Store) error) error
 }
 ```
@@ -297,11 +301,11 @@ type Store interface {
 
 | 模式     | 条件                               | 说明                                                                                                                |
 | -------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Postgres | `DATABASE_URL` 必填                | 主库 37 表 + 可选日志库 3 表，见 [Backend-存储架构.md](./Backend-存储架构.md)                                       |
+| Postgres | `DATABASE_URL` 必填                | 主库 38 表 + River 5 表 + 可选日志库 3 表，见 [Backend-存储架构.md](./Backend-存储架构.md)                                       |
 | 测试隔离 | `testhook` + per-schema PostgreSQL | 见 [Backend-架构.md](./Backend-架构.md) §5；`testhook_registry.go` 提供 `BuildRegistry()` / `MustNewAPISync()` 等无 HTTP 装配 |
 
 - Schema：`internal/store/postgres/schema.sql`（`go:embed`）；启动全量 apply。
-- Bootstrap：`postgres.New` → applySchema → `seed.Init`（`none` 空库失败；`prod` 写 bootstrap 数据 + reconcile grants；`minimal`/`demo` 额外写入 snapshot；`demo` 追加 `runtime.ApplyDemo`）；每次启动 bootstrap 幂等执行 + reconcile 补齐 preset role grants。见 [Backend-配置架构.md](./Backend-配置架构.md) §5。
+- Bootstrap：`postgres.New` → applySchema → `seed.Init`（幂等写入 currencies/权限/角色/组织/模型；`SUPPORT_SAAS=true` 且库为空时追加 demo 快照 + `runtime.ApplyDemo`；单租户由 setup 流程一次性初始化）。见 [Backend-配置架构.md](./Backend-配置架构.md) §5。
 - 企业域读写经 `pkg/ctxcompany` 注入 `company_id`；平台面全局表（`provider_keys`、`companies`）例外。
 - `OrgRepository` 实现按职责拆为多文件（`org_repo.go` + `org_repo_members.go` / `org_repo_roles.go` / `org_repo_integration.go`），接口不变。
 
@@ -387,22 +391,21 @@ flowchart TB
   subgraph lifecycle [PlatformKey 生命周期]
     KEYS[keys.Service] --> LC[NewAPISync]
     LC --> AP[adminport.Port]
-    AP --> ADP[admin_port_adapter]
+    AP --> ADP[newapi.Client + SelfHealingPort]
     ADP --> NA_API[NewAPI Admin API]
     LC --> OB_R[outbox channel=newapi_sync]
   end
 
   subgraph ingest [消耗入账]
-    WH[webhook enqueue] --> Q[(ingest_jobs 日志库)]
-    Q --> INGW[infra/ingest.Worker]
+    WH[webhook] -->|InsertUnique| RJ
+    RJ[(river_job kind=ingest)] --> INGW[river/workers.IngestWorker]
     INGW --> ING[usage.IngestService]
-    COMP[reconcile 水位] --> INGW
+    RECW[river/workers.IngestReconcileWorker] --> ING
+    PER1[Periodic reconcile] --> RECW
     ING --> LEDGER[(usage_ledger)]
-    ING -->|InsertTx| RJ
   end
 
   subgraph river [River Client]
-    RJ[(river_job)]
     RJ --> W[infra/river/workers]
     W --> DOM[domain handlers]
     PER[PeriodicJob] --> RJ
@@ -419,7 +422,7 @@ flowchart TB
 | `PrecheckService`  | `domain/gateway`                          | `LoadPrecheckContext` + `Evaluate()`（纯内存预检，含模型白名单检查） |
 | `GatewayService`   | `domain/gateway`                          | `/v1` 鉴权 + Precheck + 反代 NewAPI                                  |
 
-**`adminport.Port` 消费者：** `newapisync`、`models.Service`（RebuildAbilities + ListModelPricing + UpsertModelRatio）、`company.Service`（CreateUser）、`pricingsync.Worker`（UpdateOption）。
+**`adminport.Port` 消费者：** `newapisync`、`models.Service`（RebuildAbilities + ListModelPricing + UpsertModelRatio）、`company.Service`（CreateUser）、`catalogsync.Worker`（UpdateOption）。
 
 **NewAPISync 子接口（嵌入组合，DI 收窄）：**
 
@@ -437,34 +440,29 @@ flowchart TB
 | `app` 装配                | `Lifecycle`（上述全部 + `NewAPIGate`）                     |
 
 
-### 7.1 后台运行时（简化后）
+### 7.1 后台运行时（as-built）
 
-**仅两个组件**（详见 [Backend-离线任务.md](./Backend-离线任务.md)）：
+**单一异步栈**：全部离线工作都是 River job（详见 [Backend-离线任务.md](./Backend-离线任务.md)）。
 
-| 组件                  | 职责                                                 |
-| --------------------- | ---------------------------------------------------- |
-| `infra/ingest.Worker` | 日志库 pending + reconcile 水位（`scheduler_locks`） |
-| `infra/river.Client`  | 全部 `river_job`：claim、retry、Periodic 扇出        |
+| 组件                 | 职责                                                        |
+| -------------------- | ----------------------------------------------------------- |
+| `infra/river.Client` | 全部 `river_job`：claim、retry、Periodic 扇出（唯一异步入口） |
 
 ```mermaid
 flowchart LR
-  subgraph ingest [ingest.Worker]
-    P[ProcessPending]
-    R[ProcessReconcile]
-  end
-
   subgraph river [river.Client]
+    ING[ingest]
+    IRC[ingest_reconcile]
     NS[newapi_sync]
-    WS[wallet_sync]
-    BP[budget_projection]
     RB[rebalance]
     OV[overrun]
-    FAN[Periodic org_sync / reconcile fanout]
+    DP[dashboard_project]
+    FAN[Periodic tenant_watchdog / ingest_reconcile]
   end
 
-  WH[webhook] --> P
-  P --> ING[Ingest]
-  ING -->|InsertTx| BP
+  WH[webhook] -->|Insert| ING
+  FAN --> IRC
+  ING --> LEDGER[(usage_ledger + budget_consumed)]
 ```
 
 
@@ -479,9 +477,8 @@ flowchart TB
   subgraph write [写入路径]
     NA[NewAPI settle] --> WH[webhook] --> ING[ingest]
     ING --> UL[(usage_ledger)]
-    ING -->|InsertTx| BP[budget_projection]
-    BP --> BC[(budget_consumed)]
-    PER[Periodic] --> DP[dashboard_project] --> UB[(usage_buckets)]
+    ING -->|同事务| BC[(budget_consumed)]
+    WD[看门狗 1h 检测 lag] --> DP[dashboard_project] --> UB[(usage_buckets)]
   end
   subgraph read [只读路径]
     API["GET /dashboard/*"]
@@ -557,27 +554,27 @@ HTTP JSON **camelCase**；DB **snake_case**。
 | **计费与预算**   | `billing`、`billing/lot`、`budget`、`usage`                    | 充值 lot、双轴预算、入账与投影        |
 | **数据面与同步** | `gateway`、`keys`、`newapisync`、`adminport`                   | `/v1` 预检、PlatformKey、NewAPI Admin |
 | **只读聚合**     | `dashboard`、`memberanalytics`、`audit`、`models`              | 看板、工作台、审计、模型目录          |
-| **异步运行时**   | `infra/ingest`、`infra/jobs`、`infra/scheduler`、`infra/river` | 两条异步线 + 看门狗                   |
+| **异步运行时**   | `infra/jobs`、`infra/scheduler`、`infra/river` | 单一 River 队列 + 看门狗                   |
 | **横切**         | `config`、`store`、`pkg/*`、`integration/*`                    | 配置、持久化、纯函数、外部适配        |
 
 模块级依赖：只读聚合 → 可读计费/租户；数据面 → 可读计费（预检）；异步 → 调 domain 公开 Processor；`integration/*` 实现 port。
 
 ### 11.3 组合根 `app/`（as-built）
 
-21 个文件、单包 `package app`，按装配阶段命名：
+16 个文件、单包 `package app`，按装配阶段命名：
 
 | 前缀        | 含义                                            |
 | ----------- | ----------------------------------------------- |
 | `compose_*` | 装配阶段（infra → domain → http → worker）      |
 
-装配链路：`cmd/server` → `app.New` → `openStore` → `assembleRegistry`（`compose_infra` → `compose_domain` → `registry`）→ `buildBackgroundWorkers` → `http.NewRouter`。
+装配链路：`cmd/server` → `app.New` → `openStore` → `assembleRegistry`（`buildInfraWithStore` → `buildServiceRegistry`）→ `buildBackgroundWorkers` → `http.NewRouter`。
 
 **注入 SSOT（查找改 DI 时从这里开始）：**
 
 | 阶段                      | 文件                             |
 | ------------------------- | -------------------------------- |
 | 外部适配 / 横切 infra     | `compose_infra.go`               |
-| 域服务构造                | `compose_domain_wire.go`         |
+| 域服务构造                | `compose_domain.go`（原 `compose_domain_wire.go`） |
 | HTTP + Gateway + Identity | `compose_http.go`、`registry.go` |
 | 后台 worker               | `compose_worker.go`              |
 | Job 端口适配              | `adapter/enqueue/*.go`                      |
@@ -586,14 +583,13 @@ HTTP JSON **camelCase**；DB **snake_case**。
 
 ```text
 infra/
-├── jobs/          # 10 kind 常量 SSOT + kinds_*.go + enqueue
+├── jobs/          # kind 常量 SSOT（catalog.go）+ kinds_*.go + enqueue
 ├── scheduler/     # L2 due 查询 + 看门狗批量入队
-├── river/         # client + periodic/watchdog + workers/
-├── ingest/        # 线 A（pending + reconcile）
+├── river/         # client + periodic/watchdog + workers/（含 ingest / ingest_reconcile）
 └── budgetcheck/   # Gateway 软缓存
 ```
 
-禁止回退：不新增 `*_fanout` Periodic；调度 SSOT = `tenant_background_state` + `tenant_watchdog`。
+禁止回退：不新增 `*_fanout` Periodic；不重建独立日志库轮询 worker；调度 SSOT = `tenant_background_state` + `tenant_watchdog`。
 
 ---
 
@@ -609,25 +605,26 @@ rg '\.Store\b'                 apps/backend/internal/http/handler/  # handler �
 rg 'fanout'                    apps/backend/internal/infra/river/periodic/
 ```
 
-### 12.2 领域端口（Job enqueuer · 6 域）
+### 12.2 领域端口（Job enqueuer · 5 域）
 
 | 端口                         | 定义                               | 适配器                   |
 | ---------------------------- | ---------------------------------- | ------------------------ |
-| `billing.JobEnqueuer`        | `domain/billing/ports.go`          | `adapter/enqueue/budget.go`    |
 | `budget.JobEnqueuer`         | `domain/budget/ports.go`           | `adapter/enqueue/budget.go`     |
 | `usage.IngestJobEnqueuer`    | `domain/usage/ports.go`            | `adapter/enqueue/usage_ingest.go`      |
 | `dashboard.JobEnqueuer`      | `domain/dashboard/ports.go`        | `adapter/enqueue/dashboard.go`  |
 | `newapisync.SyncJobEnqueuer` | `integration/newapisync/ports/ports.go` | `adapter/enqueue/newapisync.go` |
 | `remote.JobEnqueuer`         | `domain/org/remote/ports.go`       | `adapter/enqueue/org.go`        |
 
-**其它端口：** `adminport.Port`、`types.Notifier`、`GatewaySoftCache`、`datasource.Provider`、`authz.RevisionReader`。
+billing 域没有独立入队端口——充值只走 post-commit `QuotaSyncer.ManageUser` 实时覆盖 NewAPI，不入队 River job。
+
+**其它端口：** `adminport.Port`、`types.Notifier`、`budgetcheck.Store`、`datasource.Provider`、`authz.RevisionReader`。
 
 ### 12.3 钱包与 lot 边界
 
 | 名称              | 路径                                                      |
 | ----------------- | --------------------------------------------------------- |
 | **Lot 写 SSOT**   | `domain/billing/lot/`（FIFO 消费、`wallet_remain_quota`） |
-| **Billing 域**    | `domain/billing/`（充值、展示、wallet_sync）              |
+| **Billing 域**    | `domain/billing/`（充值、展示；wallet override 为 post-commit 实时 HTTP，非异步 job） |
 | **WalletService** | `domain/company/`（NewAPI quota 读；依赖 `QuotaReader`）  |
 | **Usage 聚合**    | `store/postgres/usage_aggregate.go` → `UsageRepository`   |
 
@@ -645,12 +642,12 @@ rg 'fanout'                    apps/backend/internal/infra/river/periodic/
 | 问题      | 入口                                                                           |
 | --------- | ------------------------------------------------------------------------------ |
 | 进程启动  | `cmd/server/main.go` → `app.New`                                               |
-| 装配总线  | `assemble.go` → `compose_infra` → `compose_domain` → `registry`                |
+| 装配总线  | `assemble.go` → `buildInfraWithStore`（compose_infra.go） → `buildServiceRegistry`（compose_domain.go） |
 | HTTP 路由 | `http/router.go` → `handler/register.go`                                       |
 | 域服务 DI | `compose_domain_wire.go`                                                       |
-| 后台任务  | `compose_worker.go`（ingest + river）                                          |
+| 后台任务  | `compose_worker.go`（River Client 唯一异步栈）                                          |
 | Job 入队  | domain 端口 → `adapter/enqueue/` → `infra/jobs`                                          |
-| 看门狗    | `compose_watchdog.go` → `scheduler.RunOnce`；周期 `river/periodic/watchdog.go` |
+| 看门狗    | `compose_watchdog.go` → `scheduler.RunOnce`；周期注册 `river/periodic/jobs.go`（`BuildPeriodicJobs`），执行体 `river/workers/watchdog.go` |
 | 测试装配  | `testhook_registry.go` + `tests/testutil`                                      |
 
 

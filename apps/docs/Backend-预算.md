@@ -91,7 +91,7 @@ flowchart TB
 
 ---
 
-## 2. SSOT 与读写路径（终态）
+## 2a. SSOT 与读写路径（as-built）
 
 | 层             | 存储                                     | 写入                                      | 读方                               |
 | -------------- | ---------------------------------------- | ----------------------------------------- | ---------------------------------- |
@@ -100,29 +100,29 @@ flowchart TB
 | **展示投影**   | `usage_buckets`                          | `dashboard.Projector`（看门狗小时级触发） | hour/day 看板                      |
 | **冷矫正**     | 同上累计表                               | `budget_reconcile` 窗口 `SetConsumed`     | 修漂移                             |
 
-终态：**无** `budget_projection` / 游标 budget Projector。
+**无** `budget_projection` / 游标 budget Projector——consumed 在 Ingest 同事务写入。
 
 ```mermaid
 flowchart LR
-  WH[Webhook] -->|EnqueuePending| Q[(ingest_jobs)]
-  Q --> ING[IngestService]
-  COMP[补偿轮询] --> ING
+  WH[Webhook] -->|InsertIngest| RJ[(river_job kind=ingest)]
+  RJ --> ING[IngestService]
+  COMP[reconcile Periodic] --> ING
   ING --> UL[(usage_ledger)]
   ING --> BC[(budget_consumed)]
   ING --> CK[(combined_key_remain)]
-  ING --> DP[dashboard_project]
-  ING --> WS[wallet_sync]
+  ING -.->|post-commit HTTP| WS[wallet override]
+  WD[看门狗 1h] --> DP[dashboard_project]
   DP --> UB[(usage_buckets)]
   CK -->|仅可能触顶| OV[overrun_可选]
 ```
 
-### 2.1 入账路径（终态）
+### 2.1 入账路径（as-built）
 
 1. NewAPI settle → 共享 `logs` → webhook / reconcile → `IngestByLogID`
 2. 归因 + `BuildCallSettledEntry`（幂等键 `newapi:{log_id}`）
-3. `store.WithTx`：ledger → FIFO lot → **`ApplyIncrement(budget_consumed)`** → **`DecrementBatch(combined_key_remain)`** → 入队 `wallet_sync`
-4. 可选：轻量预判后才 `InsertOverrun`；**不**入队 `budget_projection`、`dashboard_project`（由看门狗驱动）
-5. rebalance / 重 overrun：async；多数 Ingest 零 budget job
+3. `store.WithTx`：ledger → FIFO lot → **`IncrementConsumedBatch(budget_consumed)`** → **`DecrementBatch(combined_key_remain)`**
+4. 可选：轻量预判后才 `InsertOverrun`；**不**入队 `dashboard_project`（由看门狗驱动）
+5. commit 后：post-commit 直接 HTTP override NewAPI wallet（不经过 river_job）；rebalance：async 按需，多数 Ingest 零 budget job
 
 ### 2.2 `budget_consumed` 三轴（Ingest 内）
 
@@ -137,7 +137,7 @@ flowchart LR
 | 3      | `member` += cost                   | 仅 `member` scope                                  |
 | —      | 无 org_node 轴                     | 部门报表用 ledger                                  |
 | 同事务 | `combined_key_remain`              | 预检热读                                           |
-| 提交后 | 告警可直做；overrun/rebalance 按需 | 见 [Backend-离线任务.md](./Backend-离线任务.md) §5 |
+| 提交后 | 告警直做；wallet override 直做；overrun/rebalance 按需 | 见 [Backend-离线任务.md](./Backend-离线任务.md) §5 |
 
 父节点 **limit**：`org_nodes.budget`。看板桶：`dashboard.Projector`（看门狗每小时触发）。
 
@@ -220,7 +220,7 @@ sequenceDiagram
   participant C as 调用方
   participant GW as Gateway
   participant NA as NewAPI
-  participant Q as ingest_jobs
+  participant RJ as river_job(ingest)
   participant W as Worker
   participant ING as 入账
 
@@ -231,14 +231,13 @@ sequenceDiagram
   end
   GW->>NA: 透传 /v1/*
   NA-->>C: 响应
-  NA->>Q: Webhook 入队 pending
+  NA->>RJ: Webhook 触发 InsertIngest
   NA-->>NA: 200 accepted
-  W->>Q: ClaimPending
+  W->>RJ: River claim
   W->>ING: IngestByLogID
   ING->>ING: 账本 + lot + consumed + combined_key
   Note over ING: consumed 在 Ingest 同事务写入
-  ING->>W: rebalance / overrun（按需）
-  W->>NA: UpdateToken
+  ING->>W: rebalance（重算本地 combined_key）/ overrun（按需）
   W->>W: 超限则 Disable Key
 ```
 
@@ -254,10 +253,10 @@ sequenceDiagram
 | ------------------------- | ------------------------------------------------------ |
 | 企业 active               | `companies.status`                                     |
 | 钱包 ≥ 预估               | `wallet_remain_quota`                                  |
-| Key / personal / 项目未超 | `gateway_soft_remain` + limit（`LoadPrecheckContext`） |
+| Key / personal / 项目未超 | `combined_key_remain` + limit（`LoadPrecheckContext`） |
 | 模型与 Key 状态           | allowlist、`platform_keys.status`                      |
 
-NewAPI quota 与 `wallet_sync` **不参与**热路径预检；Gateway 读 Postgres `wallet_remain_quota` 与 `gateway_soft_*`；漂移由异步 `wallet_sync` 与对账消化。
+NewAPI quota **不参与**热路径预检；Gateway 读 Postgres `wallet_remain_quota` 与 `combined_key_remain`；漂移由 Rebalance 与 budget reconcile 消化。
 
 ---
 
@@ -267,32 +266,33 @@ NewAPI quota 与 `wallet_sync` **不参与**热路径预检；Gateway 读 Postgr
 flowchart TB
   UL[(usage_ledger 事实)]
   BS[(budget_consumed 三轴)]
-  GS[gateway_soft_*]
+  CK[combined_key_remain]
   UB[(usage_buckets 看板)]
   CFG[配置表 limit]
 
   ING[入账] --> UL
   ING -->|同事务| BS
+  ING -->|同事务| CK
   WD[看门狗 1h] --> DP[dashboard_project] --> UB
   CFG --> GW[预检]
-  GS --> GW
+  CK --> GW
   BS --> UI[预算树 / Key 列表]
   UL --> AUD[审计]
   UB --> DASH[看板]
 ```
 
-| 存储                           | 职责                                                                       |
-| ------------------------------ | -------------------------------------------------------------------------- |
-| `usage_ledger`                 | 消耗 SSOT；幂等 `newapi:{log_id}`                                          |
-| `budget_consumed`              | 三轴 `platform_key` · `member` · `project`；部门报表读 `usage_ledger` 聚合 |
-| `platform_keys.gateway_soft_*` | Gateway 预检软剩余（Reconcile 刷新）                                       |
-| `usage_buckets`                | 按小时聚合，供趋势图                                                       |
-| 组织树 / 成员 / Key / 组       | 仅存 limit                                                                 |
+| 存储                             | 职责                                                                       |
+| -------------------------------- | -------------------------------------------------------------------------- |
+| `usage_ledger`                   | 消耗 SSOT；幂等 `newapi:{log_id}`                                          |
+| `budget_consumed`                | 三轴 `platform_key` · `member` · `project`；部门报表读 `usage_ledger` 聚合 |
+| `platform_keys.combined_key_remain` | Gateway 预检缓存剩余（Ingest / Rebalance 同事务刷新）                    |
+| `usage_buckets`                  | 按小时聚合，供趋势图                                                       |
+| 组织树 / 成员 / Key / 组         | 仅存 limit                                                                 |
 
 | 读场景                 | 数据源                                                |
 | ---------------------- | ----------------------------------------------------- |
 | 预算树 limit、Key 已用 | `org_nodes.budget` 等配置 + `budget_consumed`（三轴） |
-| Gateway 预检           | `gateway_soft_remain` + limit                         |
+| Gateway 预检           | `combined_key_remain` + limit                         |
 | 看板趋势               | `usage_buckets`                                       |
 | 调用审计               | `usage_ledger`                                        |
 | 分钟级短趋势           | `usage_ledger` 聚合                                   |
@@ -301,25 +301,25 @@ flowchart TB
 
 ---
 
-## 7. 入账与累计（终态）
+## 7. 入账与累计
 
 ```mermaid
 flowchart LR
   NA[NewAPI 结算] --> LOGS[(logs 库)]
-  LOGS --> WH[Webhook / reconcile 补偿]
+  LOGS --> WH[Webhook / reconcile Periodic]
   WH --> ING[Ingest]
   ING --> TX[单事务]
   TX --> L[usage_ledger]
   TX --> F[FIFO 扣 lot]
   TX --> BC[budget_consumed]
   TX --> CK[combined_key_remain]
-  TX --> Q[dashboard_plus_wallet_wake]
+  ING -.->|post-commit| WS[wallet override]
 ```
 
 1. 结算日志 → Webhook 或补偿 → 按 mapping 归因
-2. 单事务：账本 → lot → **consumed + combined_key** → 入队 wallet_sync
-3. overrun / rebalance：**按需**异步（多数跳过）；见 [Backend-离线任务.md](./Backend-离线任务.md)
-4. 失败走 `ingest_jobs` 重试
+2. 单事务：账本 → lot → **consumed + combined_key**
+3. commit 后：直接 HTTP override wallet；overrun / rebalance：**按需**异步（多数跳过）；见 [Backend-离线任务.md](./Backend-离线任务.md)
+4. 失败走 River 重试（kind=`ingest`）
 
 `usage_buckets` 由 `dashboard.Projector` 独立维护（看门狗每小时检测 lag 触发）。账期见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。
 
@@ -327,30 +327,29 @@ flowchart LR
 
 ## 8. Rebalance
 
-在 Key 变更、月切、budget reconcile 后，将组织侧「还能花多少」换算为 NewAPI `remain_quota` 并 `UpdateToken`。
+NewAPI token 为 `unlimited_quota`（无需同步远端配额）；Rebalance 只做**本地重算**：按轴拉取相关 Platform Key 的 mapping，重新计算 `combined_key_remain` 并写回 Postgres + 刷新 Redis 缓存，供 Gateway 预检读取。**不调用 NewAPI Admin API**。
 
 ```mermaid
 flowchart LR
   EVT[触发事件] --> RJ[river_job rebalance]
-  AJ --> RB[RebalanceService]
-  RB --> CALC[ComputeRemainForMapping → ToNewAPIUnits]
-  CALC --> NA[UpdateToken]
+  RJ --> RB[RebalanceService.ProcessAxis]
+  RB --> LOAD[按轴加载 mapping]
+  LOAD --> CALC[ComputeGatewaySummaryUpdates]
+  CALC --> DB[(combined_key_remain)]
+  DB --> CACHE[刷新 Redis]
 ```
 
-| `axis_kind`  | 触发                                                              |
-| ------------ | ----------------------------------------------------------------- |
-| member       | approval 通过、入账带成员（`member` scope）                       |
-| project      | project 删除、入账命中项目                                        |
-| platform_key | Key 创建 / 变更                                                   |
-| company      | 月切（`EnsureMonthRebalance`）、budget reconcile、newapisync 完成 |
+| `axis_kind` | 触发                                                                          |
+| ----------- | ------------------------------------------------------------------------------ |
+| member      | 额度审批通过、成员改预算、project 删除后释放成员 Key                          |
+| project     | 入账命中项目（budget reconcile 修复后按 company 轴统一重算，不单独触发 project 轴） |
+| company     | 月切（`EnsureMonthRebalance`）、budget reconcile 修复后                       |
 
-**充值不触发 rebalance**（充值只涨钱包，不影响月度限额；Gateway 独立检查 `wallet_remain_quota`）。
+**充值不触发 rebalance**（充值只涨钱包，不影响月度限额；Gateway 独立检查 `wallet_remain_quota`）。**Key 创建/变更** 走同步的 `RefreshPlatformKeyCombined`，不经过 river_job 队列。**`platform_key` 不是 rebalance 轴**；`newapisync.EnqueueRebalanceAxis` 已实现但当前无调用点。
 
 （**已移除** `org_node` rebalance 触发；部门触顶仅 notify。）
 
 去重：`dedupe_key = axis_kind:axis_id`。
-
-**计算逻辑：** `ComputeRemainForMapping` 按 key scope 计算月度限额剩余（point），经 `ToNewAPIUnits` 换为 NewAPI 通道配额。不与 wallet 做 min；wallet 约束由 Gateway precheck 独立保障。
 
 ---
 
@@ -398,8 +397,7 @@ sequenceDiagram
 
   U->>B: 创建并确认订单
   B->>DB: lot + wallet_remain_quota
-  B->>DB: wallet_sync 入队
-  B->>NA: TopUp / SetUserQuota
+  B->>NA: post-commit set_quota override
 ```
 
 充值不改 `org_nodes.budget`；**不触发 rebalance**（月度限额不变，wallet 约束由 Gateway 独立保障）。钱包闭合见 [Backend-计费模式.md](./Backend-计费模式.md)。
@@ -414,8 +412,8 @@ sequenceDiagram
 | 成员可分给 Key     | personal_budget − Σ已分配 Key budget                                           |
 | 成员本账期已用     | `budget_consumed` member 轴                                                    |
 | 组可分给 Key       | 组 budget − 组 consumed − Σ组内 Key budget                                     |
-| NewAPIKey 可用上限 | `ComputeRemainForMapping` → `ToNewAPIUnits`（纯月度限额剩余，不含 wallet）     |
-| 企业硬顶           | Gateway precheck 独立检查 `wallet_remain_quota`；与 per-key `RemainQuota` 解耦 |
+| `combined_key_remain` | `ComputeGatewaySummaryUpdates`（纯月度限额剩余，不含 wallet；NewAPI token unlimited 无需同步）     |
+| 企业硬顶           | Gateway precheck 独立检查 `wallet_remain_quota`；与 `combined_key_remain` 解耦 |
 
 ---
 
@@ -427,11 +425,11 @@ sequenceDiagram
 | 入账与 ledger                                | `domain/usage`                                                        |
 | 预算 / consumed 写入                         | `domain/budget`（Ingest 同事务 `ApplyIncrement`）                     |
 | 看板 buckets 投影                            | `domain/dashboard`                                                    |
-| Rebalance                                    | `domain/budget/rebalance`（`adminport.Port` 更新 token）              |
-| NewAPI Admin 边界                            | `domain/adminport` + `integration/newapi/admin_port_adapter.go`       |
+| Rebalance                                    | `domain/budget/rebalance.go`（纯本地重算 `combined_key_remain`，不调 NewAPI）  |
+| NewAPI Admin 边界                            | `domain/adminport` + `integration/newapi/client.go` + `selfhealing.go` |
 | Quota 换算                                   | `pkg/budget`                                                     |
 | Key 额度校验                                 | `domain/keys` + `pkg/budget`                                          |
-| Gateway 软缓存                               | `domain/budget/gateway_summary.go` + `infra/budgetcheck`              |
+| Gateway 缓存                                 | `domain/budget/gateway_summary.go` + `infra/budgetcheck`              |
 | consumed 加载                                | `pkg/budget` + `store.BudgetConsumed()`                               |
 | Gateway 预检                                 | `domain/gateway`                                                      |
 | 充值                                         | `domain/billing`                                                      |
@@ -447,8 +445,9 @@ sequenceDiagram
 
 | 项         | 现状                                                        | 建议                                          |
 | ---------- | ----------------------------------------------------------- | --------------------------------------------- |
-| 百分比预警 | `alert_rules` 仅 CRUD，无运行时 Worker                      | 入账或定时任务按阈值发通知；与 PRD US-08 对齐 |
 | 超限文案   | `overrun_policy.blockMessage` 已存库，Precheck 返回通用错误 | Gateway 拒绝时读取并返回配置文案              |
+
+**已实现（从此表移除）：** 百分比预警已运行时接线——`usage.IngestService.IngestRaw` post-commit 调 `CheckBudgetAlerts`，按 `alert_rules` 阈值判定并经 `AlertPublisher` → `notification.Service.DispatchAsync` 投递（Email + InApp）。
 
 ### 应优化（可靠性 / 可观测）
 
@@ -472,7 +471,7 @@ sequenceDiagram
 | 项                     | 说明                                                             |
 | ---------------------- | ---------------------------------------------------------------- |
 | 双轴模型               | 钱包与组织预算分离是当前设计，运行正常                           |
-| `budget_consumed` 三轴 | consumed SSOT；Gateway 读 `gateway_soft_*`；与 Overrun / UI 一致 |
+| `budget_consumed` 三轴 | consumed SSOT；Gateway 读 `combined_key_remain`；与 Overrun / UI 一致 |
 | 自然月账期             | `period_key` 机制已满足按月清零                                  |
 | 充值不涨部门 budget    | 产品约定，非缺陷                                                 |
 
@@ -491,7 +490,7 @@ sequenceDiagram
 | `project` | Key 剩余, 项目剩余 |
 | `project_member` | Key 剩余, 子额度剩余, 项目剩余 |
 
-各剩余 = limit - consumed（limit=0 表示不设上限，跳过）。**不参与预检**：未分配余量、部门报表、预留池。企业钱包在网关层独立检查。
+各剩余 = limit - consumed。**仅 `platform_key` 轴**在 `limit=0` 时跳过该候选（不设上限）；member/project/project_member 三个 scope 的候选无条件计入，`limit=0` 时会钳到 `remain=0`（硬拦截）。**不参与预检**：未分配余量、部门报表、预留池。企业钱包在网关层独立检查。
 
 ### 14.2 消耗入账轴（ConsumptionDeltas）
 

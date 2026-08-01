@@ -1,7 +1,5 @@
 # Middleware 架构
 
-> 最后更新：2026-07-16
-
 ---
 
 ## Middleware 链
@@ -157,22 +155,25 @@ internal/http/middleware/
 ├── company_resolve.go     CompanyResolve
 ├── cors.go                CORS
 ├── logger_context.go      LoggerContext / LoggerFromContext
-├── platform_auth.go       PlatformAuth
+├── require_platform.go    RequirePlatformAdmin
+├── mode_guard.go          RequireSaaS / RequireLocal
 ├── rate_limit.go          RateLimitTenant / RateLimitLogin / RateLimitLoginPaths
 ├── recover.go             Recover
 ├── requestid.go           RequestID / RequestIDFromContext
 ├── routes.go              SessionRoutes / ReadRoutes helpers
 ├── security_headers.go    SecurityHeaders
 ├── session.go             RequireSession
-├── sync_trigger.go        AllowSyncTrigger
+├── sync_trigger.go        AllowSyncTrigger（数据源同步触发鉴权）
 └── timeout.go             RequestTimeout
 
-internal/infra/ratelimit/
+internal/pkg/ratelimit/
 ├── limiter.go             Limiter 接口 + RedisLimiter
-├── memory.go             MemoryLimiter (本地 fallback)
-├── open.go               Open() 工厂
-├── response.go           WriteHeaders / WriteRejection
-└── scripts.go            Lua 脚本 (token bucket + sliding window)
+├── memory.go              MemoryLimiter (本地 fallback)
+└── response.go            WriteHeaders / WriteRejection
+
+internal/infra/ratelimit/
+├── open.go                Open() 工厂
+└── scripts.go             Lua 脚本 (token bucket + sliding window)
 
 internal/domain/gateway/
 ├── gateway_service.go     Transport 调优 + per-key rate limit + reverse proxy

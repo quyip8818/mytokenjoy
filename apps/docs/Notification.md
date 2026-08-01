@@ -12,8 +12,8 @@
                             │                  │
                             │ 1. Render        │──▶ Log Channel (slog)
                             │ 2. Load Prefs    │──▶ In-App Channel (DB + SSE)
-                            │ 3. Quiet Hours   │──▶ Email Channel (SMTP)
-                            │ 4. Resolve Ch.   │──▶ SMS Channel (Twilio)
+                            │ 3. Quiet Hours   │──▶ Email Channel (Resend)
+                            │ 4. Resolve Ch.   │──▶ SMS Channel (阿里云)
                             │ 5. Rate Limit    │──▶ Webhook Channel (HTTP)
                             │ 6. Deliver       │
                             └──────────────────┘
@@ -42,8 +42,8 @@
 | `log`     | slog.Info                      | 始终                                     | 审计日志，不面向用户                   |
 | `in_app`  | 写 notification_log + SSE push | 始终                                     | 用户 Inbox 展示                        |
 | `webhook` | HTTP POST                      | `NOTIFY_WEBHOOK_URL` 非空                | 兼容旧逻辑                             |
-| `email`   | net/smtp                       | `SMTP_HOST` + `SMTP_FROM` 非空           | 通过 RecipientResolver 查 member email |
-| `sms`     | Twilio REST API                | `TWILIO_ACCOUNT_SID` + token + from 非空 | 通过 RecipientResolver 查 member phone |
+| `email`   | Resend API                     | `RESEND_API_KEY` + `RESEND_FROM` 非空    | 通过 RecipientResolver 查 member email；模板托管在 Resend Dashboard |
+| `sms`     | 阿里云短信（dysmsapi）         | `ALIYUN_SMS_ACCESS_KEY_ID` + secret + `ALIYUN_SMS_SIGN_NAME` 非空 | 通过 RecipientResolver 查 member phone；模板为阿里云短信模板 Code |
 
 ### 优先级 Fallback 链
 
@@ -55,6 +55,8 @@ low:       In-App
 ```
 
 当某渠道未配置或用户关闭偏好时自动跳过，沿链路向下。critical 级别无渠道可用时强制 In-App。
+
+**已知缺口：** 生产触发点（预算预警 `usage_alert.go`、超限阻断 `overrun.go`→`Notifier.Send()`、组织同步保护 `handler_admin.go` 同款 `Send()`）构造 `Event`/`Notification` 时都**硬编码** `Metadata.Priority = PriorityNormal`，并非按事件严重程度（如超限阻断本应是 critical）动态设置。`normal` 对应 fallback 链只有 `[InApp]`——这些事件目前**只投递站内通知**，即使 Email/SMS 配置齐全也不会触发。`webhook` 不在任何优先级链里，永远不会被 Dispatch 命中。
 
 ## 用户偏好
 
@@ -103,8 +105,8 @@ internal/
 │   ├── channel_log.go        # Log 渠道
 │   ├── channel_inapp.go      # In-App 渠道（DB + SSE）
 │   ├── channel_webhook.go    # Webhook 渠道
-│   ├── channel_email.go      # Email 渠道（SMTP）
-│   ├── channel_sms.go        # SMS 渠道（Twilio）
+│   ├── channel_email.go      # Email 渠道（Resend）
+│   ├── channel_sms.go        # SMS 渠道（阿里云）
 │   ├── renderer.go           # 消息渲染
 │   ├── recipient.go          # RecipientResolver（memberID → email/phone）
 │   ├── ratelimit.go          # 频率限制
@@ -136,10 +138,14 @@ src/
 │   │   ├── notification-center.tsx      # /notifications 页面主体
 │   │   ├── notification-list-item.tsx   # 单条通知组件
 │   │   └── notification-empty-state.tsx # 空状态
+│   ├── components/
+│   │   └── notifications-page-shell.tsx # 偏好设置面板（渲染在设置页 tab 里）
 │   ├── hooks/
 │   │   ├── use-notification-connection.ts  # SSE EventSource
 │   │   ├── use-notifications.ts            # Popover 列表 + 未读数
+│   │   ├── use-notifications-page.ts       # 偏好设置页数据
 │   │   ├── use-notification-inbox.ts       # 通知中心页面数据
+│   │   ├── use-notification-capabilities.ts # 已配置渠道查询
 │   │   └── use-notify.ts                   # toast fallback
 │   ├── lib/
 │   │   ├── category-config.ts         # 类别→图标/颜色映射
@@ -160,9 +166,7 @@ src/
 | GET    | `/api/notifications`                   | 通知列表（cursor 分页 + 分组） |
 | GET    | `/api/notifications/unread-count`      | 未读数量           |
 | PATCH  | `/api/notifications/:id/read`          | 标记已读           |
-| POST   | `/api/notifications/read-all`          | 全部已读           |
 | POST   | `/api/notifications/:id/archive`       | 归档               |
-| POST   | `/api/notifications/archive-all`       | 批量归档           |
 | POST   | `/api/notifications/:id/unarchive`     | 取消归档           |
 | POST   | `/api/notifications/:id/delete`        | 软删除             |
 | POST   | `/api/notifications/:id/undelete`      | 撤销删除           |
@@ -181,17 +185,15 @@ src/
 # Webhook (可选)
 NOTIFY_WEBHOOK_URL=
 
-# Email (配置后自动启用 email channel)
-SMTP_HOST=
-SMTP_PORT=587
-SMTP_USER=
-SMTP_PASS=
-SMTP_FROM=
+# Email (配置后自动启用 email channel，Resend)
+RESEND_API_KEY=
+RESEND_FROM=
 
-# SMS (配置后自动启用 sms channel)
-TWILIO_ACCOUNT_SID=
-TWILIO_AUTH_TOKEN=
-TWILIO_FROM_NUMBER=
+# SMS (配置后自动启用 sms channel，阿里云短信)
+ALIYUN_SMS_ACCESS_KEY_ID=
+ALIYUN_SMS_ACCESS_KEY_SECRET=
+ALIYUN_SMS_SIGN_NAME=
+ALIYUN_SMS_ENDPOINT=dysmsapi.aliyuncs.com
 ```
 
 ## 数据库表
@@ -312,7 +314,7 @@ type SSEEvent struct {
 | `limit` | int | 20 | 每页条数（max 100） |
 | `cursor` | string | — | 游标（RFC3339Nano UTC） |
 | `category` | string | — | 按类别筛选 |
-| `status` | string | all | `unread` / `read` / all |
+| `status` | string | `""` | `unread` / `read` / 空表示全部 |
 | `archived` | bool | false | 查已归档列表 |
 | `grouped` | bool | true | 是否分组返回 |
 | `group_key` | string | — | 指定组内详情 |
@@ -321,6 +323,10 @@ type SSEEvent struct {
 
 ## 已实现通知事件
 
+> `templates/*.html` 仅为本地备份参考，代码不直接渲染这些文件——真实 Email 模板托管在 Resend Dashboard，SMS 模板是阿里云短信模板 Code，代码里只维护 ID/Code 映射（`templates.go`）。
+>
+> 由于当前所有触发点都硬编码 `Metadata.Priority = normal`（见 §渠道"已知缺口"），下列"渠道"一栏描述的是**代码逻辑上打算投递的目标渠道**；实际运行时均**只会投递到 InApp**。
+
 ### 组织同步删除保护超阈值
 
 **触发**：定时/手动同步 Diff 计算完毕，待删除成员数 > `deleteMemberThreshold` 或部门数 > `deleteDepartmentThreshold`。
@@ -328,37 +334,33 @@ type SSEEvent struct {
 **行为**：
 1. 不执行任何变更
 2. 写入 SyncLog（result=failure）
-3. 通知本企业所有超级管理员 + 组织管理员
+3. 调 `NotifySyncThresholdExceeded` 发送通知
 
-**渠道**：站内通知始终投递 + 按 SyncConfig 配置的 `notifyPhone`/`notifyEmail`/`notifyIm`。
+**已知缺口**：`Send()` 调用未设置 `RecipientID`（默认零值 UUID），代码里并没有查询"本企业所有超级管理员+组织管理员"再逐个发送的逻辑；payload 里塞的 `notifyPhone`/`notifyEmail`/`notifyIm` 全代码库无处读取，是死数据。实际效果是产生一条收件人为空 UUID 的日志记录，真实用户看不到。
 
-**通知内容**：标题"组织同步保护触发"，正文含待删除数量、阈值、建议操作。actionUrl → `/org/data-source`。
-
-**代码入口**：`domain/org/core/notify.go` → `NotifySyncThresholdExceeded`；模板 `templates/sync-threshold-exceeded.html`。
+**代码入口**：`domain/org/core/notify.go` → `NotifySyncThresholdExceeded`。
 
 ### 预算预警
 
 **触发**：Ingest commit 后 `CheckBudgetAlerts` 检测 touched department 的阈值。
 
-**渠道**：按 `alert_rules.notify_role_ids` 解析收件人，走 category `budget_alert` 默认 Email + InApp。
+**收件人解析**：按 `alert_rules.notify_role_ids` 解析收件人，category 为 `budget_alert`。
 
-**代码入口**：`domain/budget/alert_publisher.go`；模板 `templates/budget-alert.html`。
+**代码入口**：`domain/budget/alert_publisher.go`。
 
 ### 超限阻断
 
 **触发**：OverrunService 禁用 Key 后。
 
-**渠道**：InApp + Webhook。
-
-**代码入口**：`domain/budget/overrun.go` → `notifyOverrun`；模板 `templates/overrun-blocked.html`。
+**代码入口**：`domain/budget/overrun.go` → `notifyOverrun`。
 
 ### 成员邀请
 
 **触发**：CreateMember / BatchImport / BatchInvite。
 
-**渠道**：SMS（阿里云）+ Email（Resend），含注册链接。
+**渠道**：SMS（阿里云）+ Email（Resend），含注册链接（此路径走 `SendDirect`，不经过优先级 fallback 链，不受上述缺口影响）。
 
-**代码入口**：`domain/org/structure/member_mutate.go` → `sendInviteNotifications`；模板 `templates/company-invite.html`。
+**代码入口**：`domain/org/structure/member_mutate.go` → `sendInviteNotifications`。
 
 ---
 

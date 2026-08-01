@@ -864,13 +864,13 @@ erDiagram
 
 ## 附录：契约对齐状态
 
-管理面 REST（**82** 端点）以 [Frontend.md](./Frontend.md) 为准；企业面 16 页均已对接。**不含 US-15（合规审查）**；SaaS 后端 11 端点已实现、前端未接入。
+管理面 REST 端点以 [Frontend.md](./Frontend.md) §5.4 为准；企业面 21 条路由（`ROUTE_DEFINITIONS`）均已对接，`AppApis` 含 13 个顶层命名空间。**不含 US-15（合规审查）**；SaaS 扩展（`/platform/*`、`/auth/*`、`/billing/*`）后端已实现，前端 `platformApi`/`authApi`/`billingApi` 均已接入，唯一缺口是独立 `/platform/login` 页（平台管理员目前复用企业面 `/login`），详见 [Frontend.md](./Frontend.md) §5.9.6。
 
 | 文档                         | 职责                 |
 | ---------------------------- | -------------------- |
 | [Frontend.md](./Frontend.md) | 端点与类型权威来源   |
 | [Roadmap.md](./Roadmap.md)   | PRD 与实现的剩余差距 |
 
-**契约不覆盖（由其他系统承担）：** IM/邮件通知、审计归档基础设施。企业开户、NewAPI、企业钱包与 SaaS API 见 [Backend-架构.md](./Backend-架构.md) §2、[Backend-架构.md](./Backend-架构.md)。
+**契约不覆盖（由其他系统承担）：** IM 通知渠道（未实现）、审计归档基础设施。企业开户、NewAPI、企业钱包与 SaaS API 见 [Backend-架构.md](./Backend-架构.md) §2。
 
 PRD 或契约变更时，先更新 [Frontend.md](./Frontend.md) 与 `api/types/`，再同步 [Roadmap.md](./Roadmap.md)。

@@ -57,10 +57,10 @@ TokenJoy 支持两种部署模式：
 
 ```
 GET /api/platform/sync/versions
-响应: { "models": 3, "pricing": 2 }
+响应: { "models": 3, "pricing": 2, "currencies": 1, "walletLots": 1 }
 ```
 
-返回当前模型和定价的发布版本号。Worker 分别和本地版本比较，相同则跳过。
+返回当前模型、定价、币种、wallet_lots 的发布版本号。Worker 分别和本地版本比较，相同则跳过。
 
 ```
 GET /api/platform/sync/catalog/models
@@ -95,7 +95,7 @@ Header: Authorization: Bearer cst_<hex64>
 }
 ```
 
-返回全局价 + 该公司合同价合并结果。合同价覆盖同 modelType 的全局价。`isContract=true` 表示该价格来自公司专属合同。`version` 字段为当前 `catalog.pricing_version` 值。
+返回全局价 + 该公司合同价合并结果。合同价覆盖同 modelType 的全局价。`isContract=true` 表示该价格来自公司专属合同。`version` 字段为当前 `catalog.pricing_version` 值。同一 sync token 保护组下还有 `GET /sync/catalog/wallet_lots`（wallet lot 目录同步）。
 
 鉴权由 `RequireSyncToken` 中间件完成：从 `Authorization: Bearer cst_xxx` 提取 token → SHA-256 hash → 查 `companies.sync_token_hash` → 验公司 status=active → 注入 companyID 到 context。
 
@@ -104,12 +104,11 @@ Header: Authorization: Bearer cst_<hex64>
 ```
 POST /api/platform/register-local
 Header: X-Registration-Secret: <shared_secret>
-Body: { "name", "industry", "size", "idempotencyKey" }
-响应 201: { "companyId": "uuid", "syncToken": "cst_..." }
-响应 409: token 刚签发（60s 内），使用已有 token
+Body: { "name", "industry", "size", "adminEmail", "adminPassword", "adminName"?, "idempotencyKey" }
+响应 201: { "companyId": "uuid", "walletUserId": number, "platformKey": "sk-...", "syncToken": "cst_..." }
 ```
 
-公司创建幂等（同 idempotencyKey 不重复建），每次签发新 sync token 并覆盖旧 hash。60 秒防重窗口防止网络重试覆盖有效 token。
+公司创建幂等：同 `idempotencyKey` 重复调用直接返回上次持久化的结果（`system_settings` key `register_local:<idempotencyKey>` 存储），**不会**重新签发或覆盖已有 sync token。
 
 ### Platform Admin API（需要登录 + `platform:manage` 权限）
 
@@ -123,8 +122,10 @@ Body: { "name", "industry", "size", "idempotencyKey" }
 | POST | `/api/platform/catalog/publish` | 发布模型目录（models version +1） |
 | GET | `/api/platform/pricing` | 全局定价列表 |
 | PUT | `/api/platform/pricing` | 设全局定价（自动 bump pricing version） |
+| GET | `/api/platform/pricing/:modelType/history` | 全局价时间线 |
 | GET | `/api/platform/companies/:id/pricing` | 某公司合同价列表 |
 | PUT | `/api/platform/companies/:id/pricing` | 设合同价（自动 bump pricing version） |
+| GET | `/api/platform/companies/:id/pricing/:modelType/history` | 合同价时间线 |
 
 创建模型时的请求体：
 ```json
@@ -166,9 +167,11 @@ Append-only 价格时间线。唯一约束 `(company_id, model_type, effective_f
 |-----|------|
 | `catalog.models_version` | 模型目录发布版本号（手动 Publish bump） |
 | `catalog.pricing_version` | 定价版本号（SetGlobalPrice/SetContractPrice 自动 bump） |
+| `catalog.currencies_version` | 币种版本号（币种 CRUD 自动 bump） |
+| `catalog.wallet_lots_version` | wallet lot 目录版本号 |
 | `catalog_sync_token` | Local 侧的 sync token 明文（setup 写入） |
 | `setup_company_id` | Local 侧注册获得的 companyId（setup 写入） |
-| `register_local:<idempotencyKey>` | 注册幂等映射 → companyId |
+| `register_local:<idempotencyKey>` | 注册幂等映射 → 完整注册结果 JSON（companyId/walletUserId/platformKey/syncToken） |
 
 版本号的 `Increment` 方法使用原子 SQL：
 
@@ -290,6 +293,10 @@ Platform 只有一个 channel（`tokenjoy`），指向 SaaS gateway。不做动�
 | Platform handler（CRUD + Catalog API） | `internal/http/handler/platform/models.go` |
 | Platform pricing handler | `internal/http/handler/platform/pricing.go` |
 | Catalog pricing sync endpoint | `internal/http/handler/platform/catalog_pricing.go` |
+| Catalog wallet lots sync endpoint | `internal/http/handler/platform/catalog_lots.go` |
+| 币种管理 + 同步端点 | `internal/http/handler/platform/currencies.go` |
+| 公司总览 | `internal/http/handler/platform/companies_overview.go` |
+| Local 注册端点 | `internal/http/handler/platform/register_local.go` |
 | 路由注册（中间件分层） | `internal/http/handler/platform/handler.go` |
 | RequireSyncToken 中间件 | `internal/http/middleware/sync_token.go` |
 | Pricing domain service | `internal/domain/pricing/service.go` |

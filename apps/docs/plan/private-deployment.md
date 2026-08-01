@@ -1,6 +1,13 @@
-# 私有化部署 + 定价管理
+# 私有化部署 + 定价管理（早期方案，已被取代）
 
-> 状态：待实现
+> **状态：早期设计草案，未实现，且已被现行架构取代——仅作历史参考，不再是待办。**
+>
+> 本文档设想的「独立云端 Model Config Service」（专门的模型配置微服务 + `DEPLOY_MODE` 环境变量 + `MODEL_CONFIG_SERVICE_URL`）在代码库中不存在。实际落地的私有化架构是 [Local-SaaS-架构.md](../Local-SaaS-架构.md) 描述的方案：单一制品通过 `SUPPORT_SAAS` flag 区分 SaaS/私有化模式，私有化侧通过 `Catalog Sync Worker`（4 通道：models/pricing/currencies/wallet_lots）直接对接 SaaS 平台的 `/api/platform/sync/*` 端点，无需额外部署一个独立的 Model Config Service。
+>
+> 如需了解当前私有化部署的真实架构，请阅读 [Local-SaaS-架构.md](../Local-SaaS-架构.md)。本文档以下内容保留仅供追溯设计演变，不代表当前或计划中的实现方向。
+
+---
+
 > 私有化客户独立运行 TokenJoy + 本地 NewAPI，通过云端 Model Config Service 获取模型目录与定价。
 
 ---

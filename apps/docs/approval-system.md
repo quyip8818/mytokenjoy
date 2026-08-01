@@ -146,7 +146,7 @@ type Handler interface {
 
 ```sql
 CREATE TABLE approval_requests (
-    id              UUID PRIMARY KEY,
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     company_id      UUID NOT NULL REFERENCES companies(id),
     type            TEXT NOT NULL,
     status          TEXT NOT NULL DEFAULT 'pending',

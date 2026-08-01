@@ -33,6 +33,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | [auth-system.md](./auth-system.md)                         | 认证架构、成员状态机、邀请注册流程、Member/User 数据边界     |
 | [middleware.md](./middleware.md)                            | Middleware 链、Rate Limiting、Timeout                        |
 | [权限管理.md](./权限管理.md)                               | Identity JWT + PDP、RBAC、manifest 契约                      |
+| [platform-permission-isolation.md](./platform-permission-isolation.md) | Platform 权限纵深防御：Session/Router/Middleware 三层隔离 |
 | [Notification.md](./Notification.md)                       | 多渠道通知系统、数据模型规范、已实现通知事件、UI 规范        |
 | [approval-system.md](./approval-system.md)                 | 统一审批引擎：Engine + Handler 模式、4 种审批类型            |
 | [命名规范与一致性治理.md](./命名规范与一致性治理.md)       | 全链路命名规则、领域映射表                                   |
@@ -79,37 +80,23 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 
 ## 常用命令
 
+命令速查表（含端口、reset 详解、就绪层级）以 [本地开发-启动优化.md](./本地开发-启动优化.md) 为 **SSOT**，此处仅列最常用的几条：
+
 ```bash
 pnpm install
 
-# ─── apps（TokenJoy 客户侧） ───
-pnpm start            # 全栈：ensure-infra + backend + frontend + mock
-pnpm reset            # 重置 apps 库（local 模式）
-pnpm reset saas       # 重置 apps 库（SaaS 多租户模式）
-pnpm infra            # Docker 基础设施（postgres:5510 + redis:6310 + newapi）
-pnpm infra:down       # 停止基础设施
+pnpm start            # 启动 apps，默认 local 模式
+pnpm start:saas       # 启动 apps saas 模式
+pnpm start:all        # 并行启动 local + saas
+pnpm reset            # 重置 apps 库（默认 local，可传 local/saas）
+pnpm infra            # 启动两套 Docker 基础设施（saas + local）
 
-# ─── sms（内部运营） ───
-pnpm start sms        # 启动 sms（backend + frontend）
-pnpm reset sms        # 重置 sms 库
-
-# ─── 全部 ───
-pnpm start all        # 并行启动 apps + sms
-pnpm reset all        # 重置全部
-
-# ─── 测试 ───
-pnpm test             # apps 全量测试
-pnpm test:sms         # sms 全量测试
-pnpm test:integration # apps 后端集成测试（需 pnpm infra）
+pnpm test             # apps 全量测试（frontend + backend）
+pnpm test:integration # apps 后端集成测试
 pnpm test:e2e         # apps 前端 E2E
+pnpm lint             # apps + web + sms 全量 lint
 
-# ─── 质量 ───
-pnpm lint             # apps lint
-pnpm lint:sms         # sms lint
-pnpm verify           # CI：lint + test + build
-pnpm verify gate      # 全链路网关冒烟
+# sms 独立命令见 scripts/dev-sms.sh：bash scripts/dev-sms.sh start / reset
 ```
 
-## CI
-
-`.github/workflows/ci.yml`：`verify` job（含 postgres service，执行 `pnpm verify`）。
+**没有** `pnpm verify`、`pnpm verify gate`、`pnpm lint:sms` 这些命令，`package.json` 未定义。

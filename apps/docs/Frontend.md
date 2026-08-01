@@ -85,9 +85,7 @@ React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix
 
 [`config/routes.ts`](../apps/frontend/src/config/routes.ts) 以 **`ROUTE_DEFINITIONS`** 为唯一源，派生 `ROUTES`、`APP_ROUTES` 等。
 
-当前 **16** 个管理台业务页：dashboard（cost、usage）、org（3）、budget（2：index、alerts）、keys（4）、models（2）、wallet（1）、audit（2）。钱包路由为 `/wallet`（无 `/billing` 重定向）。
-
-**成员工作台**（`MEMBER_ROUTE_DEFINITIONS`，与上表分开计数）：`/me`、`/me/keys`、`/me/call-logs`；API 命名空间 `meApi`（`api/me.ts`）。
+单一 **`ROUTE_DEFINITIONS`** 数组（无独立 `MEMBER_ROUTE_DEFINITIONS`）共 21 条路由，按 `navGroup` 分组：数据看板（2）、凭证管理（3）、模型管理（2）、预算与财务（3：`/budget`、`/budget/alerts`、`/billing`）、组织与权限（3）、审计（2）、我的（3：`/me/keys`、`/me/usage`、`/me/settings`）、平台管理（3：`/platform/models`、`/platform/companies`、`/platform/currencies`，仅 `platform:manage` 可见）。钱包路由为 `/billing`。
 
 新增页面：在 `ROUTE_DEFINITIONS` 加一条 → `features/{domain}/hooks/use-{page}-page.ts` + shell → `routes/{domain}/{page}.tsx` 薄入口。
 
@@ -96,14 +94,14 @@ React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix
 ## 4. API 层与页面架构
 
 - `api/client.ts`：`request()`、`ApiError`、`buildQuery()`；`credentials: 'include'`
-- `app-apis.ts`：`AppApis` + `defaultApis`（**19** 命名空间；仍缺 `platformApi`）
+- `app-apis.ts`：`AppApis` + `defaultApis`（**13** 个顶层命名空间；子资源如数据源/同步/部门/角色/供应商 Key/平台 Key/路由 嵌套在 `orgApi`/`keysApi`/`modelsApi` 内部，非独立命名空间）
 - 生产 `AppProviders`（`components/layout/app-providers.tsx`）注入 `defaultApis`；测试 `createMockApis()`
 
 **薄页面 → 页面 Hook → 展示组件**：Hook 用 `useApis()`、`useInjectedQuery` + `queryKeys`；组件 props 受控。
 
 **Workflow：** `features/workflow/` Zustand 侧滑栈；`workflows/{name}.tsx` + `definitions/` 注册。
 
-**SaaS 部分接入：** 企业面 `authApi`（login/logout）、`billingApi`（wallet/recharge/confirm）与 `/wallet` 页已接入；`accept-invite` 与 `/platform/*` 仍无前端。见 §5.9.6、[Roadmap.md](./Roadmap.md)。
+**SaaS 接入现状：** 企业面 `authApi`（login/logout/accept-invite）、`billingApi`（wallet/recharge/confirm）与 `/billing` 页已接入；`accept-invite` 已有独立路由 `/invite/accept`；`platformApi` 已接入并有 `/platform/models`、`/platform/companies`、`/platform/currencies` 三个页面；唯一缺失是独立 `/platform/login` 页（平台管理员目前复用企业面 `/login`）。见 §5.9.6、[Roadmap.md](./Roadmap.md)。
 
 ---
 
@@ -122,7 +120,7 @@ React + Vite、TanStack Query、React Router、Zustand（仅 workflow）、Radix
 | 模块                    | 路径                                   | 职责                                                                |
 | ----------------------- | -------------------------------------- | ------------------------------------------------------------------- |
 | `client.ts`             | `api/client.ts`                        | `request()`、`ApiError`、`buildQuery()`、`setUnauthorizedHandler()` |
-| `app-apis.ts`           | `api/app-apis.ts`                      | `AppApis` 接口与 `defaultApis` 聚合（19 个命名空间）                |
+| `app-apis.ts`           | `api/app-apis.ts`                      | `AppApis` 接口与 `defaultApis` 聚合（13 个顶层命名空间，见 §5.6）    |
 | `api-context.ts`        | `api/api-context.ts`                   | `ApiContext` React Context                                          |
 | `context.tsx`           | `api/context.tsx`                      | `ApiProvider` 注入                                                  |
 | `use-apis.ts`           | `api/use-apis.ts`                      | `useApis()`、`useInjectedApis()`                                    |
@@ -297,7 +295,7 @@ HTTP 非 2xx 时，body 应包含：
 
 ### 5.4 端点清单
 
-路径均相对于 `API_BASE_PATH`（`/api`）。共 **82** 个企业面业务端点（§5.4.1–§5.4.8：session → audit + `/me/dashboard`；不含 §5.9 的 auth/billing/platform 扩展）。类型详情见 §5.5。
+路径均相对于 `API_BASE_PATH`（`/api`）。§5.4.1–§5.4.8 覆盖 session → audit + `/me/dashboard`（不含 §5.9 的 auth/billing/platform 扩展）；下表为主要端点，非逐条穷举。类型详情见 §5.5。
 
 #### 5.4.1 Session
 
@@ -551,7 +549,7 @@ HTTP 非 2xx 时，body 应包含：
 | POST | `/me/revoke-sessions` | —                               | `void`                  |
 | GET  | `/me/login-activity`  | query: `limit?`, `offset?`      | `LoginActivityResponse` |
 
-路由见 §3 `MEMBER_ROUTE_DEFINITIONS`；布局 `MemberLayout`。
+路由见 §3（`ROUTE_DEFINITIONS` 中「我的」分组：`/me/keys`、`/me/usage`、`/me/settings`）；布局 `MemberLayout`。
 
 ---
 
@@ -708,11 +706,11 @@ HTTP 非 2xx 时，body 应包含：
 
 ### 5.6 AppApis 聚合
 
-[`app-apis.ts`](../apps/frontend/src/api/app-apis.ts) 中 `defaultApis` 包含 **19** 个命名空间（仍缺 `platformApi`，见 §5.9）：
+[`app-apis.ts`](../apps/frontend/src/api/app-apis.ts) 中 `defaultApis` 包含 **13** 个顶层命名空间：
 
-`sessionApi`, `authApi`, `billingApi`, `dataSourceApi`, `syncApi`, `departmentApi`, `memberApi`, `roleApi`, `budgetApi`, `providerKeyApi`, `platformKeyApi`, `approvalApi`, `modelApi`, `routingApi`, `dashboardApi`, `auditApi`, `meApi`, `notificationApi`, `devApi`, `notificationApi`, `devApi`
+`sessionApi`, `authApi`, `billingApi`, `budgetApi`, `auditApi`, `dashboardApi`, `modelsApi`, `orgApi`, `keysApi`, `approvalApi`, `meApi`, `notificationApi`, `platformApi`
 
-所有 HTTP 调用均经 `client.request()`，无其他 `fetch('/api/...')` 直连。
+`orgApi`（数据源/同步/部门/角色）、`keysApi`（供应商 Key/平台 Key）、`modelsApi`（模型/路由）内部按子资源分组，不是独立顶层命名空间。所有 HTTP 调用均经 `client.request()`，无其他 `fetch('/api/...')` 直连。
 
 ---
 
@@ -763,11 +761,9 @@ HTTP 非 2xx 时，body 应包含：
 
 产品模型：**企业（Company）** = 一家公司；**成员（User）** = 企业内员工。计费双轴（企业钱包 + 部门 budget）、Gateway、平台鉴权详见 [Backend-预算.md](./Backend-预算.md) §2、[Backend-架构.md](./Backend-架构.md) §2。
 
-**共 11 个端点**（路径均相对于 `API_BASE_PATH`）。
-
 #### 5.9.1 企业面：认证
 
-客户端：[`auth.ts`](../apps/frontend/src/api/auth.ts)。`login` / `logout` 已接入 `AppApis`；`accept-invite` 尚无前端封装与路由。
+客户端：[`auth.ts`](../apps/frontend/src/api/auth.ts)。`login` / `logout` / `accept-invite` 均已接入 `AppApis`，`accept-invite` 有独立路由 `/invite/accept`。
 
 | 方法 | 路径                  | Body                         | 响应                   | 说明                                                     |
 | ---- | --------------------- | ---------------------------- | ---------------------- | -------------------------------------------------------- |
@@ -779,7 +775,7 @@ HTTP 非 2xx 时，body 应包含：
 
 #### 5.9.2 企业面：计费
 
-客户端：[`billing.ts`](../apps/frontend/src/api/billing.ts)。`getWallet` / `recharge` / `confirmRecharge` 已接入 `use-wallet-page`。
+客户端：[`billing.ts`](../apps/frontend/src/api/billing.ts)。`getWallet` / `recharge` / `confirmRecharge` 已接入 `/billing` 页 hook。
 
 | 方法 | 路径                             | Body / 查询                  | 响应            | 权限               | 说明                                |
 | ---- | -------------------------------- | ---------------------------- | --------------- | ------------------ | ----------------------------------- |
@@ -819,19 +815,13 @@ HTTP 非 2xx 时，body 应包含：
 
 #### 5.9.3 平台面：认证
 
-后端已实现；前端尚无 `platformApi` / 平台路由。
+后端已实现；前端 `platformApi`（`api/platform.ts`）已接入，但暂无独立 `/platform/login` 页——平台管理员目前复用企业面 `/login`。
 
-| 方法 | 路径                   | Body                  | 响应              | 说明                             |
-| ---- | ---------------------- | --------------------- | ----------------- | -------------------------------- |
-| POST | `/platform/auth/login` | `{ email, password }` | `PlatformSession` | 写入 `tokenjoy_platform_session` |
+| 方法 | 路径                   | Body                  | 响应              | 说明                                     |
+| ---- | ---------------------- | --------------------- | ----------------- | ---------------------------------------- |
+| POST | `/platform/auth/login` | `{ email, password }` | `SessionContext`  | 复用企业面同一 Cookie `tokenjoy_session_member`；靠 `companyId == TokenJoyCompanyID` + `platform:manage` 区分 |
 
-**`PlatformSession`**
-
-| 字段       | 类型                            | 说明         |
-| ---------- | ------------------------------- | ------------ |
-| `operator` | `{ id: string; email: string }` | 平台运营账号 |
-
-其余 `/platform/*` 须携带平台 Session；`SUPPORT_SAAS=false` 时返回 404。
+其余 `/platform/*` 须携带该权限的 Session；`SUPPORT_SAAS=false` 时返回 404。
 
 #### 5.9.4 平台面：企业与 Channel
 
@@ -878,14 +868,14 @@ HTTP 非 2xx 时，body 应包含：
 
 | 项                   | 后端                                                       | 前端 `AppApis`                            | 控制台页面                         |
 | -------------------- | ---------------------------------------------------------- | ----------------------------------------- | ---------------------------------- |
-| 企业面 §5.4 域 API   | 已实现                                                     | 已接入（19 命名空间，缺 `platformApi`）   | 16 管理台业务页 + 3 成员工作台路由 |
+| 企业面 §5.4 域 API   | 已实现                                                     | 已接入（13 顶层命名空间）                 | 21 条路由（见 §3）                 |
 | `auth/login`         | 已实现                                                     | `authApi.login`                           | `/login`                           |
 | `auth/logout`        | 已实现                                                     | `authApi.logout`                          | —                                  |
-| `auth/accept-invite` | 已实现                                                     | 未接入                                    | 无 `/invite/accept`                |
-| `billing/wallet`     | 已实现                                                     | `billingApi.getWallet`                    | `/wallet`                          |
-| `billing/recharge`   | 已实现                                                     | `billingApi.recharge` + `confirmRecharge` | `/wallet`（充值 create → confirm） |
-| `platform/*`         | 已实现（`SUPPORT_SAAS=true`）；含 recharge / gift / adjust | 未接入                                    | 无 `/platform/login`               |
-| `billing:*` 权限     | 已挂 Authz                                                 | `permission-keys.ts` 已含                 | `PermissionGate` 已用于 `/wallet`  |
+| `auth/accept-invite` | 已实现                                                     | `authApi.acceptInvite`                    | `/invite/accept`                   |
+| `billing/wallet`     | 已实现                                                     | `billingApi.getWallet`                    | `/billing`                         |
+| `billing/recharge`   | 已实现                                                     | `billingApi.recharge` + `confirmRecharge` | `/billing`（充值 create → confirm） |
+| `platform/*`         | 已实现（`SUPPORT_SAAS=true`）；含 recharge / gift / adjust | `platformApi` 已接入                      | `/platform/models`、`/platform/companies`、`/platform/currencies`；无独立 `/platform/login` |
+| `billing:*` 权限     | 已挂 Authz                                                 | `permission-keys.ts` 已含                 | `PermissionGate` 已用于 `/billing`  |
 
 > **钱包类型：** `WalletView` 含 `billingCurrency`、`balances[]`（按币种 `balance` / `totalTopup` / `totalConsumed`）、`walletRemainQuota`（int64 quota）、`giftQuota`、`overdraftQuota`、`totalRequests`。同币种满足 `totalTopup - totalConsumed = balance`。
 

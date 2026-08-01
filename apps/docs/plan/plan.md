@@ -1,14 +1,14 @@
 # TokenJoy 工程待办（Plan）
 
 > **定位**：上线前 fix / 功能点 / 联调与发布门禁的 **唯一 backlog**。完成即删除条目，不留 `[x]`。  
-> **关联**：[Roadmap.md](./Roadmap.md)（产品差距）· [Frontend.md](./Frontend.md)（架构与契约）· [Backend-架构.md](../Backend-架构.md)
+> **关联**：[Roadmap.md](../Roadmap.md)（产品差距）· [Frontend.md](../Frontend.md)（架构与契约）· [Backend-架构.md](../Backend-架构.md)
 
 ---
 
 ## 维护约定
 
 1. 新待办只写入本文；禁止再开 `*-计划.md` / `*-下一步.md`
-2. 产品级 ❌ 能力（钉钉、OIDC、真实支付等）只维护在 [Roadmap.md](./Roadmap.md)
+2. 产品级 ❌ 能力（钉钉、OIDC、真实支付等）只维护在 [Roadmap.md](../Roadmap.md)
 3. 架构现状见 Backend* 文档。
 
 ---
@@ -19,8 +19,7 @@
 
 ### Fix
 
-- [ ] **通知 `NOTIFY_WEBHOOK_URL` 失败可观测** — HTTP 失败勿对调用方一律 `return nil`
-- [ ] **Update 严格 Remote-first（可选）** — `UpdatePlatformKey` 现为 DB-first + Sync + 回滚；若上线要求铁律一致则改为先 Remote
+- [ ] **Toggle 严格 Remote-first 的回滚缺口** — `TogglePlatformKey` 先调远程再写本地，本地写失败时无回滚（`UpdatePlatformKey` 已有 DB-first + Sync + 回滚，两者策略不一致）
 
 ### 联调签字（自动化）
 
@@ -57,9 +56,9 @@ pnpm verify                # lint + test + build（含 Go 单测；E2E 用 test:
 
 ### 审批通过 + NewAPISync 同步跨事务一致性
 
-- [ ] **（可选 / 延后）** 完整 outbox / `provisioning` 状态（与 `OutboxKindCreateKey` 一致）；sync 失败补偿已实现（`revertKeyApproval`）
+- [ ] **（可选 / 延后）** 完整 outbox / `provisioning` 状态机（当前无任何 outbox 表或机制）；sync 失败补偿已实现（`KeyApprovalHandler.Compensate`，`domain/keys/approval_handler.go`）
 
-**验收：** 完整 outbox 统一为后续迭代；当前 NewAPI 失败时审批回 pending、可重试
+**验收：** 完整 outbox 统一为后续迭代；当前 NewAPI 失败时审批回 `failed`、可 `Retry`
 
 ### 种子数据契约
 
@@ -69,7 +68,7 @@ pnpm verify                # lint + test + build（含 Go 单测；E2E 用 test:
 
 ## §4 前端（上线前 / 建议）
 
-约定见 [Frontend.md](./Frontend.md) §2。**不恢复 MSW**。
+约定见 [Frontend.md](../Frontend.md) §2。**不恢复 MSW**。
 
 ### 工程优化
 
@@ -134,7 +133,7 @@ pnpm -F @tokenjoy/frontend test:e2e -- keys models audit wallet member
 
 ### 权限手工 QA
 
-见 [权限管理.md](./权限管理.md) §12.3：
+见 [权限管理.md](../权限管理.md) §12.3：
 
 - [ ] 首屏仅 1 次 `GET /api/session`
 - [ ] 角色变更后 nav 更新（无需 F5）
@@ -144,7 +143,7 @@ pnpm -F @tokenjoy/frontend test:e2e -- keys models audit wallet member
 
 ## §6 长期产品差距
 
-钉钉/企微、IM 审批通知、预算阈值 Worker、OIDC、真实支付、`/platform/*` 前端、热存归档等见 [Roadmap.md](./Roadmap.md)。
+钉钉/企微、IM 通知渠道、OIDC、真实支付、热存归档等见 [Roadmap.md](../Roadmap.md)。
 
 ---
 
@@ -154,6 +153,8 @@ pnpm -F @tokenjoy/frontend test:e2e -- keys models audit wallet member
 
 - `platform_keys` 行数 > **500**
 - `GET /keys/platform` P99 > **300ms**
+
+**现状确认：** `KeysRepository.PlatformKeys()` 仍为全量加载 + 内存筛选/enrich（未做任何 SQL 层筛选或分页），以下任务均未开始。
 
 | #   | 任务                | 技术方向                                            |
 | --- | ------------------- | --------------------------------------------------- |
@@ -176,6 +177,6 @@ pnpm -F @tokenjoy/frontend test:e2e -- keys models audit wallet member
 
 ## §8 异步预算投影与离线任务
 
-设计见 [Backend-离线任务.md](./Backend-离线任务.md)、[Backend-预算.md](./Backend-预算.md)。
+设计见 [Backend-离线任务.md](../Backend-离线任务.md)、[Backend-预算.md](../Backend-预算.md)。
 
 ---
