@@ -25,7 +25,6 @@ FROM golang:1.26.1-alpine@sha256:2389ebfa5b7f43eeafbd6be0c3700cc46690ef842ad962f
 ARG UPSTREAM_REF
 ENV GO111MODULE=on CGO_ENABLED=0 GOEXPERIMENT=greenteagc
 ENV GOPROXY=https://goproxy.cn,direct
-ENV GOMEMLIMIT=1GiB
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -57,7 +56,7 @@ RUN git apply /tmp/0004-sk-prefix-key-format.patch
 COPY --from=web-default /upstream/web/default/dist ./web/default/dist
 COPY --from=web-classic /upstream/web/classic/dist ./web/classic/dist
 
-RUN go build -p 1 -ldflags "-s -w -X 'github.com/QuantumNous/new-api/common.Version=$(cat VERSION)'" -o new-api
+RUN go build -ldflags "-s -w -X 'github.com/QuantumNous/new-api/common.Version=$(cat VERSION)'" -o new-api
 
 FROM debian:bookworm-slim@sha256:f06537653ac770703bc45b4b113475bd402f451e85223f0f2837acbf89ab020a
 

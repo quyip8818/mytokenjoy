@@ -28,17 +28,6 @@ need_generate() { [ ! -f "$1" ] || grep -q "CHANGE_ME" "$1" 2>/dev/null; }
 [ -f deploy/docker-compose.yml ] || { echo "错误: 请在仓库根目录执行 (cd /opt/mytokenjoy)"; exit 1; }
 echo "═══ TokenJoy 首次部署 ═══"
 
-# ─── 0. Swap（小内存 ECS 防 OOM，幂等） ───────────────────────
-if ! swapon --show | grep -q '/swapfile'; then
-  if [ ! -f /swapfile ]; then
-    fallocate -l 2G /swapfile
-    chmod 600 /swapfile
-    mkswap /swapfile
-  fi
-  swapon /swapfile
-  grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
-fi
-
 # ─── 1. Docker ────────────────────────────────────────────────
 step "[1/5] Docker"
 if command -v docker &>/dev/null; then
@@ -176,22 +165,8 @@ RENEW
 fi
 
 # ─── 4. 启动全栈 ──────────────────────────────────────────────
-step "[4/5] 构建并启动"
-# ponytail: 逐个构建避免小内存 ECS OOM。升级路径：加内存后去掉 --parallel 1。
-log "构建 newapi..."
-$DC build newapi
-log "构建 apps-backend..."
-$DC build apps-backend
-log "构建 apps-frontend..."
-$DC build apps-frontend
-log "构建 sms-backend..."
-$DC build sms-backend
-log "构建 sms-frontend..."
-$DC build sms-frontend
-log "构建 web..."
-$DC build web
-log "启动所有服务..."
-$DC up -d --remove-orphans
+step "[4/5] 构建并启动（首次约 5-10 分钟）"
+$DC up -d --build --remove-orphans
 log "等待服务就绪..."
 sleep 15
 $DC ps --format "table {{.Name}}\t{{.Status}}"
