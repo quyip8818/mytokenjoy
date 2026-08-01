@@ -29,8 +29,17 @@ fi
 # ─── 1. 装 Docker ─────────────────────────────────────────────
 echo ">>> [1/6] 检查 Docker..."
 if ! command -v docker &>/dev/null; then
-  echo "  安装 Docker..."
-  curl -fsSL https://get.docker.com | sh
+  echo "  安装 Docker（阿里云镜像）..."
+  # ponytail: 国内 ECS 无法访问 get.docker.com，用阿里云镜像 + noble 包（Docker CE 尚未为 26.04 发包）
+  apt-get update -qq
+  apt-get install -y -qq ca-certificates curl gnupg
+  install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg
+  chmod a+r /etc/apt/keyrings/docker.gpg
+  echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://mirrors.aliyun.com/docker-ce/linux/ubuntu noble stable" \
+    > /etc/apt/sources.list.d/docker.list
+  apt-get update -qq
+  apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-compose-plugin
   systemctl enable --now docker
   echo "  ✓ Docker 已安装"
 else
