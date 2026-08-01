@@ -13,8 +13,8 @@ set -euo pipefail
 DOMAIN_APP="${DOMAIN_APP:-app.tokenjoy.me}"
 DOMAIN_SMS="${DOMAIN_SMS:-sms.tokenjoy.me}"
 DOMAIN_WEB="${DOMAIN_WEB:-www.tokenjoy.me}"
-NEWAPI_ROOT_PASSWORD="${NEWAPI_ROOT_PASSWORD:-$(openssl rand -hex 8)}"
 DC="docker compose -f deploy/docker-compose.yml --env-file deploy/env/infra.env"
+CTR_NEWAPI="deploy-newapi-1"
 
 # ─── 工具函数 ─────────────────────────────────────────────────
 log()  { echo "  $*"; }
@@ -76,11 +76,15 @@ PG_PASSWORD=$(gen)
 REDIS_PASSWORD=$(gen)
 NEWAPI_SESSION_SECRET=$(gen)
 WEBHOOK_SECRET=$(gen)
+NEWAPI_ROOT_PASSWORD=$(openssl rand -hex 8)
 EOF
   log "✓ infra.env"
 else
   log "· infra.env 已存在"
 fi
+
+# 从 infra.env 读取 NEWAPI_ROOT_PASSWORD（确保跟创建时一致）
+NEWAPI_ROOT_PASSWORD=$(grep '^NEWAPI_ROOT_PASSWORD=' deploy/env/infra.env | cut -d= -f2)
 
 if need_generate deploy/env/apps.env; then
   cat > deploy/env/apps.env <<EOF
@@ -184,13 +188,13 @@ step "[5/6] NewAPI 初始化"
 
 # 等就绪
 for _ in $(seq 1 30); do
-  $DC exec -T newapi wget -qO- http://localhost:3000/api/setup 2>/dev/null | grep -q '"success"' && break
+  docker exec "${CTR_NEWAPI}" wget -qO- http://localhost:3000/api/setup 2>/dev/null | grep -q '"success"' && break
   sleep 2
 done
 
-STATUS=$($DC exec -T newapi wget -qO- http://localhost:3000/api/setup 2>/dev/null || echo '{}')
+STATUS=$(docker exec "${CTR_NEWAPI}" wget -qO- http://localhost:3000/api/setup 2>/dev/null || echo '{}')
 if echo "$STATUS" | grep -q '"root_init":false'; then
-  RESULT=$($DC exec -T newapi wget -qO- \
+  RESULT=$(docker exec "${CTR_NEWAPI}" wget -qO- \
     --post-data="{\"username\":\"root\",\"password\":\"${NEWAPI_ROOT_PASSWORD}\",\"confirmPassword\":\"${NEWAPI_ROOT_PASSWORD}\"}" \
     --header='Content-Type: application/json' \
     http://localhost:3000/api/setup 2>/dev/null || echo '{}')
@@ -203,13 +207,23 @@ else
   log "· 已初始化"
 fi
 
-# 设置 access_token（无条件覆盖，确保 apps-backend 能读到）
-TOKEN="sk-admin-$(openssl rand -hex 16)"
-if $DC exec -T postgres psql -U tokenjoy -d newapi -c \
-  "UPDATE users SET access_token = '${TOKEN}' WHERE id = 1;"; then
-  log "✓ access_token = ${TOKEN}"
+# 设置 access_token（通过 NewAPI API 生成，不直接写数据库）
+# 登录获取 session
+LOGIN_RESP=$(docker exec "${CTR_NEWAPI}" curl -sf \
+  -c /tmp/cookies -b /tmp/cookies \
+  -X POST http://localhost:3000/api/user/login \
+  -H 'Content-Type: application/json' \
+  -d "{\"username\":\"root\",\"password\":\"${NEWAPI_ROOT_PASSWORD}\"}" 2>/dev/null || echo '{}')
+
+if echo "$LOGIN_RESP" | grep -q '"success":true'; then
+  # 获取 token（NewAPI 自动生成 access_token 写入数据库）
+  docker exec "${CTR_NEWAPI}" curl -sf \
+    -b /tmp/cookies \
+    -H "New-Api-User: 1" \
+    http://localhost:3000/api/user/token >/dev/null 2>&1
+  log "✓ access_token 已通过 API 生成"
 else
-  log "⚠️  access_token 设置失败（见上方错误）"
+  log "⚠️  NewAPI 登录失败: $LOGIN_RESP"
 fi
 
 # 启动剩余服务（现在 token 已就绪，apps-backend 可以正常启动）
