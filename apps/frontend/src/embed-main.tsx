@@ -6,19 +6,35 @@ import { AuthCard } from '@/features/auth'
 const params = new URLSearchParams(window.location.search)
 const mode = params.get('mode') === 'register' ? 'register' : 'login'
 
-function handleSuccess() {
-  const origin = import.meta.env.VITE_WEB_ORIGIN || 'https://www.tokenjoy.me'
+// ponytail: embed 只在父窗口 iframe 内运行，postMessage 用 '*'。
+// 安全边界在接收方（Navbar 校验 e.origin），不在发送方。
+// 升级路径：如需收紧，部署时用 CSP frame-ancestors 限制谁能 iframe 本页。
+function postToParent(data: object) {
   if (window.parent !== window) {
-    window.parent.postMessage({ type: 'auth:success' }, origin)
+    window.parent.postMessage(data, '*')
+  }
+}
+
+function handleSuccess() {
+  if (window.parent !== window) {
+    postToParent({ type: 'auth:success' })
   } else {
     window.location.href = '/'
   }
 }
 
+function reportHeight() {
+  postToParent({ type: 'auth:resize', height: document.documentElement.scrollHeight })
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <div className="flex min-h-screen items-center justify-center bg-white">
-      <AuthCard defaultMode={mode} onSuccess={handleSuccess} />
-    </div>
+    <AuthCard defaultMode={mode} onSuccess={handleSuccess} />
   </StrictMode>,
 )
+
+requestAnimationFrame(() => {
+  reportHeight()
+  const observer = new ResizeObserver(reportHeight)
+  observer.observe(document.body)
+})

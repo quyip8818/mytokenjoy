@@ -23,6 +23,7 @@ export function Navbar({ content, scrollThreshold = 20 }: NavbarProps) {
   // --- Auth iframe dialog state ---
   const [authOpen, setAuthOpen] = useState(false)
   const [authMode, setAuthMode] = useState<AuthMode>('login')
+  const [iframeHeight, setIframeHeight] = useState(480)
 
   const openAuth = useCallback((mode: AuthMode) => {
     setAuthMode(mode)
@@ -32,6 +33,7 @@ export function Navbar({ content, scrollThreshold = 20 }: NavbarProps) {
 
   const closeAuth = useCallback(() => {
     setAuthOpen(false)
+    setIframeHeight(480)
   }, [])
 
   useEffect(() => {
@@ -42,6 +44,9 @@ export function Navbar({ content, scrollThreshold = 20 }: NavbarProps) {
       if (e.data?.type === 'auth:success') {
         closeAuth()
         window.location.href = APP_URL
+      }
+      if (e.data?.type === 'auth:resize' && typeof e.data.height === 'number') {
+        setIframeHeight(e.data.height)
       }
     }
 
@@ -146,31 +151,31 @@ export function Navbar({ content, scrollThreshold = 20 }: NavbarProps) {
         </div>
       </nav>
 
-      {/* 预加载 iframe（隐藏），点击时切换为可见 */}
-      <div
-        className={cn(
-          'fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-150',
-          authOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
-        )}
-      >
-        <div className="absolute inset-0 bg-black/50" onClick={closeAuth} />
-        <div className="relative w-[480px] max-w-[95vw] h-[640px] max-h-[90vh] rounded-2xl overflow-hidden shadow-2xl">
-          <button
-            type="button"
-            onClick={closeAuth}
-            className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-            aria-label="关闭"
+      {/* Auth iframe modal */}
+      {authOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={closeAuth} />
+          <div
+            className="relative w-[480px] max-w-[95vw] max-h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-white transition-[height] duration-150"
+            style={{ height: `${iframeHeight}px` }}
           >
-            <X className="w-4 h-4" />
-          </button>
+            <button
+              type="button"
+              onClick={closeAuth}
+              className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              aria-label="关闭"
+            >
+              <X className="w-4 h-4" />
+            </button>
 
-          <iframe
-            src={`${AUTH_EMBED_URL}?mode=${authMode}`}
-            className="w-full h-full border-0"
-            title="TokenJoy 认证"
-          />
+            <iframe
+              src={`${AUTH_EMBED_URL}?mode=${authMode}`}
+              className="w-full h-full border-0"
+              title="TokenJoy 认证"
+            />
+          </div>
         </div>
-      </div>
+      )}
     </>
   )
 }
