@@ -13,7 +13,7 @@ type EntryBuildReader interface {
 	Audit() store.AuditRepository
 	Org() store.OrgRepository
 	Keys() store.KeysRepository
-	ModelPricing() store.ModelPricingRepository
+	ModelDiscount() store.ModelDiscountRepository
 	Billing() store.BillingRepository
 	Company() store.CompanyRepository
 }

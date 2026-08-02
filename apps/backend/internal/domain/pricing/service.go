@@ -3,15 +3,15 @@ package pricing
 import (
 	"context"
 	"log/slog"
-	"time"
 
-	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-// Service manages model pricing (TJ as SOT) and best-effort syncs to NewAPI.
+// Service manages global pricing (models.input_price/output_price) and best-effort syncs to NewAPI.
+// Contract/discount pricing is handled by model_discount, not this service.
 type Service struct {
 	store  store.Store
 	client adminport.Port // nullable — NewAPI sync
@@ -26,17 +26,9 @@ func NewService(cfg config.Config, st store.Store, client adminport.Port) *Servi
 // clients know to re-pull.
 const keyPricingVersion = "catalog.pricing_version"
 
-// SetGlobalPrice inserts a global price row and best-effort syncs to NewAPI.
-func (s *Service) SetGlobalPrice(ctx context.Context, modelType string, input, output float64, note string) error {
-	row := store.ModelPricingRow{
-		CompanyID:     s.cfg.TokenJoyCompanyID,
-		ModelType:     modelType,
-		InputPrice:    input,
-		OutputPrice:   output,
-		EffectiveFrom: time.Now(),
-		Note:          note,
-	}
-	if err := s.store.ModelPricing().Insert(ctx, row); err != nil {
+// SetGlobalPrice updates models.input_price/output_price and best-effort syncs to NewAPI.
+func (s *Service) SetGlobalPrice(ctx context.Context, modelType string, input, output float64) error {
+	if err := s.store.Models().UpdatePrice(ctx, s.cfg.TokenJoyCompanyID, modelType, input, output); err != nil {
 		return err
 	}
 	// Best-effort push to NewAPI cache.
@@ -50,68 +42,38 @@ func (s *Service) SetGlobalPrice(ctx context.Context, modelType string, input, o
 	return nil
 }
 
-// SetContractPrice inserts a per-company contract price row.
-// Not pushed to NewAPI — gateway has only one global ratio set, no per-company support.
-// Contract pricing difference is realized at TJ ingest time (applyTJPricing).
-func (s *Service) SetContractPrice(ctx context.Context, companyID uuid.UUID, modelType string, input, output float64, note string) error {
-	row := store.ModelPricingRow{
-		CompanyID:     companyID,
-		ModelType:     modelType,
-		InputPrice:    input,
-		OutputPrice:   output,
-		EffectiveFrom: time.Now(),
-		Note:          note,
+// ListGlobalPricing returns current global prices for all models (from models table).
+func (s *Service) ListGlobalPricing(ctx context.Context) ([]types.ModelInfo, error) {
+	all, err := s.store.Models().ModelsByCompany(ctx, s.cfg.TokenJoyCompanyID)
+	if err != nil {
+		return nil, err
 	}
-	if err := s.store.ModelPricing().Insert(ctx, row); err != nil {
-		return err
+	// Only return models with pricing set.
+	var out []types.ModelInfo
+	for _, m := range all {
+		if m.InputPrice > 0 || m.OutputPrice > 0 {
+			out = append(out, m)
+		}
 	}
-	// Bump pricing version for CatalogSync clients.
-	_, _ = s.store.SystemSettings().Increment(ctx, keyPricingVersion)
-	return nil
+	return out, nil
 }
 
-// ListGlobalPricing returns current global prices for all models.
-func (s *Service) ListGlobalPricing(ctx context.Context) ([]store.ModelPricingRow, error) {
-	return s.store.ModelPricing().CurrentPricesBatch(ctx, s.cfg.TokenJoyCompanyID, time.Now())
-}
-
-// ListContractPricing returns current contract prices for a company.
-func (s *Service) ListContractPricing(ctx context.Context, companyID uuid.UUID) ([]store.ModelPricingRow, error) {
-	return s.store.ModelPricing().CurrentPricesBatch(ctx, companyID, time.Now())
-}
-
-// PriceHistory returns the full price timeline for a company+model.
-func (s *Service) PriceHistory(ctx context.Context, companyID uuid.UUID, modelType string) ([]store.ModelPricingRow, error) {
-	return s.store.ModelPricing().History(ctx, companyID, modelType)
-}
-
-// FullSyncToNewAPI pushes all current global prices to NewAPI (cron job).
+// FullSyncToNewAPI pushes all current global prices to NewAPI (periodic job).
 func (s *Service) FullSyncToNewAPI(ctx context.Context) error {
 	if s.client == nil {
 		return nil
 	}
-	prices, err := s.store.ModelPricing().CurrentPricesBatch(ctx, s.cfg.TokenJoyCompanyID, time.Now())
+	models, err := s.store.Models().ModelsByCompany(ctx, s.cfg.TokenJoyCompanyID)
 	if err != nil {
 		return err
 	}
-	for _, p := range prices {
-		if err := s.client.UpsertModelRatio(ctx, p.ModelType, p.InputPrice, p.OutputPrice); err != nil {
-			slog.Warn("full sync pricing failed", "model", p.ModelType, "error", err)
+	for _, m := range models {
+		if m.InputPrice <= 0 && m.OutputPrice <= 0 {
+			continue
+		}
+		if err := s.client.UpsertModelRatio(ctx, m.Type, m.InputPrice, m.OutputPrice); err != nil {
+			slog.Warn("full sync pricing failed", "model", m.Type, "error", err)
 		}
 	}
 	return nil
-}
-
-// ResolvePrice returns the effective price for a company+model at a given time.
-// Falls back to global price if no contract price exists.
-func (s *Service) ResolvePrice(ctx context.Context, companyID uuid.UUID, modelType string, at time.Time) (*store.ModelPricingRow, error) {
-	p, err := s.store.ModelPricing().CurrentPrice(ctx, companyID, modelType, at)
-	if err != nil {
-		return nil, err
-	}
-	if p != nil {
-		return p, nil
-	}
-	// Fallback to global price.
-	return s.store.ModelPricing().CurrentPrice(ctx, s.cfg.TokenJoyCompanyID, modelType, at)
 }

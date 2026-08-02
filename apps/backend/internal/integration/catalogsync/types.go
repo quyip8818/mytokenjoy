@@ -4,6 +4,7 @@ package catalogsync
 type CatalogVersions struct {
 	Models     int `json:"models"`
 	Pricing    int `json:"pricing"`
+	Discounts  int `json:"discounts"`
 	Currencies int `json:"currencies"`
 	WalletLots int `json:"walletLots"`
 }
@@ -25,12 +26,17 @@ type CatalogResponse[T any] struct {
 	Data    []T `json:"data"`
 }
 
-// CatalogPricing represents a pricing entry from the platform sync API.
+// CatalogPricing represents a global pricing entry (no per-company contract).
 type CatalogPricing struct {
 	ModelType   string  `json:"modelType"`
 	InputPrice  float64 `json:"inputPrice"`
 	OutputPrice float64 `json:"outputPrice"`
-	IsContract  bool    `json:"isContract"`
+}
+
+// CatalogDiscount represents a per-company discount entry from the platform sync API.
+type CatalogDiscount struct {
+	ModelType string  `json:"modelType"` // exact model type or "*" for wildcard
+	Discount  float64 `json:"discount"`  // multiplier: 0.8 = 20% off
 }
 
 // CatalogCurrency represents a currency entry from the platform sync API.

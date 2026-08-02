@@ -97,14 +97,15 @@ func (r *pgModelsRepo) InsertModel(ctx context.Context, model types.ModelInfo) (
 		INSERT INTO models (
 			company_id, provider, type, name, description, endpoint,
 			api_key, endpoint_model_name,
-			max_context, max_tokens, active, capabilities, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+			max_context, max_tokens, active, capabilities,
+			input_price, output_price, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
 		RETURNING model_id
 	`, companyID, model.Provider, model.Type, model.Name,
 		model.Description, model.Endpoint,
 		model.ApiKey, model.EndpointModelName,
 		model.MaxContext, model.MaxTokens, model.Active,
-		capabilities).Scan(&modelID)
+		capabilities, model.InputPrice, model.OutputPrice).Scan(&modelID)
 	if err != nil {
 		return types.ModelInfo{}, fmt.Errorf("insert model: %w", err)
 	}
@@ -132,13 +133,15 @@ func (r *pgModelsRepo) UpdateModel(ctx context.Context, model types.ModelInfo) e
 			max_tokens = $11,
 			active = $12,
 			capabilities = $13,
+			input_price = $14,
+			output_price = $15,
 			updated_at = NOW()
 		WHERE model_id = $1 AND company_id = $2
 	`, model.ID, companyID, model.Provider, model.Type, model.Name,
 		model.Description, model.Endpoint,
 		model.ApiKey, model.EndpointModelName,
 		model.MaxContext, model.MaxTokens, model.Active,
-		capabilities)
+		capabilities, model.InputPrice, model.OutputPrice)
 	if err != nil {
 		return fmt.Errorf("update model %d: %w", model.ID, err)
 	}
@@ -175,6 +178,29 @@ func (r *pgModelsRepo) DeleteModel(ctx context.Context, modelID uuid.UUID) error
 }
 
 var _ store.ModelsRepository = (*pgModelsRepo)(nil)
+
+func (r *pgModelsRepo) ModelsByCompany(ctx context.Context, companyID uuid.UUID) ([]types.ModelInfo, error) {
+	return r.queryModels(ctx, `
+		SELECT `+modelSelectColumns+`
+		FROM models
+		WHERE company_id = $1
+		ORDER BY model_id
+	`, companyID)
+}
+
+func (r *pgModelsRepo) UpdatePrice(ctx context.Context, companyID uuid.UUID, modelType string, inputPrice, outputPrice float64) error {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE models SET input_price = $3, output_price = $4, updated_at = NOW()
+		WHERE company_id = $1 AND type = $2
+	`, companyID, modelType, inputPrice, outputPrice)
+	if err != nil {
+		return fmt.Errorf("update price %s: %w", modelType, err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("model %s not found for company", modelType)
+	}
+	return nil
+}
 
 func (r *pgModelsRepo) SyncFromPlatform(ctx context.Context, companyID uuid.UUID, models []types.ModelInfo) error {
 	// ponytail: grab a batch timestamp once, use it for all upserts.

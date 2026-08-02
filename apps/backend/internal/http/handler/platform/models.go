@@ -13,13 +13,13 @@ import (
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/http/response"
 	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
-	"github.com/tokenjoy/backend/internal/store"
 )
 
 // --- Catalog API (public, no auth) ---
 
 const catalogModelsVersionKey = "catalog.models_version"
 const catalogPricingVersionKey = "catalog.pricing_version"
+const catalogDiscountsVersionKey = "catalog.discounts_version"
 const catalogCurrenciesVersionKey = "catalog.currencies_version"
 const catalogWalletLotsVersionKey = "catalog.wallet_lots_version"
 
@@ -32,13 +32,15 @@ func (h *Handler) CatalogVersions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pricingV, _ := h.p.SystemSettings.Get(ctx, catalogPricingVersionKey)
+	discountsV, _ := h.p.SystemSettings.Get(ctx, catalogDiscountsVersionKey)
 	currenciesV, _ := h.p.SystemSettings.Get(ctx, catalogCurrenciesVersionKey)
 	walletLotsV, _ := h.p.SystemSettings.Get(ctx, catalogWalletLotsVersionKey)
 	mv, _ := strconv.Atoi(modelsV)     // empty → 0
 	pv, _ := strconv.Atoi(pricingV)    // empty → 0
+	dv, _ := strconv.Atoi(discountsV)  // empty → 0
 	cv, _ := strconv.Atoi(currenciesV) // empty → 0
 	wv, _ := strconv.Atoi(walletLotsV) // empty → 0
-	response.JSON(w, http.StatusOK, map[string]int{"models": mv, "pricing": pv, "currencies": cv, "walletLots": wv})
+	response.JSON(w, http.StatusOK, map[string]int{"models": mv, "pricing": pv, "discounts": dv, "currencies": cv, "walletLots": wv})
 }
 
 // catalogModelDTO is the public Catalog API response format.
@@ -116,19 +118,8 @@ func (h *Handler) ListModels(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Merge pricing from model_pricing table.
-	priceMap := h.globalPriceMap(ctx)
-
-	result := make([]types.ModelInfoWithPricing, 0, len(global))
-	for _, m := range global {
-		item := types.ModelInfoWithPricing{ModelInfo: m}
-		if p, ok := priceMap[m.Type]; ok {
-			item.InputPrice = p.InputPrice
-			item.OutputPrice = p.OutputPrice
-		}
-		result = append(result, item)
-	}
-	response.JSON(w, http.StatusOK, result)
+	// Prices are now directly on ModelInfo — no separate merge needed.
+	response.JSON(w, http.StatusOK, global)
 }
 
 func (h *Handler) CreateModel(w http.ResponseWriter, r *http.Request) {
@@ -163,6 +154,8 @@ func (h *Handler) CreateModel(w http.ResponseWriter, r *http.Request) {
 		Active:       true,
 		Capabilities: capabilities,
 		MaxContext:   maxContext,
+		InputPrice:   body.InputPrice,
+		OutputPrice:  body.OutputPrice,
 	}
 	if model.Name == "" {
 		model.Name = model.Type
@@ -174,13 +167,9 @@ func (h *Handler) CreateModel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write pricing to model_pricing table (TJ is SOT) + best-effort NewAPI push.
+	// Best-effort push to NewAPI (gateway cache).
 	if body.InputPrice > 0 || body.OutputPrice > 0 {
-		if err := h.p.PricingSvc.SetGlobalPrice(r.Context(), body.Type, body.InputPrice, body.OutputPrice, ""); err != nil {
-			_ = h.p.Models.DeleteModel(r.Context(), created.ID)
-			httputil.WriteError(w, fmt.Errorf("set pricing: %w", err))
-			return
-		}
+		_ = h.p.PricingSvc.SetGlobalPrice(r.Context(), body.Type, body.InputPrice, body.OutputPrice)
 	}
 
 	response.JSON(w, http.StatusCreated, created)
@@ -286,7 +275,7 @@ func (h *Handler) SetModelPricing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.p.PricingSvc.SetGlobalPrice(r.Context(), model.Type, body.InputPrice, body.OutputPrice, ""); err != nil {
+	if err := h.p.PricingSvc.SetGlobalPrice(r.Context(), model.Type, body.InputPrice, body.OutputPrice); err != nil {
 		httputil.WriteError(w, fmt.Errorf("set pricing: %w", err))
 		return
 	}
@@ -316,16 +305,6 @@ func (h *Handler) bumpModelsCatalogVersion(ctx context.Context) {
 // that need to query global models without a session.
 func (h *Handler) globalCtx(ctx context.Context) context.Context {
 	return ctxcompany.With(ctx, ctxcompany.Info{CompanyID: h.p.Cfg.TokenJoyCompanyID})
-}
-
-// globalPriceMap loads current global prices into a map keyed by model_type.
-func (h *Handler) globalPriceMap(ctx context.Context) map[string]store.ModelPricingRow {
-	prices, _ := h.p.PricingSvc.ListGlobalPricing(ctx)
-	m := make(map[string]store.ModelPricingRow, len(prices))
-	for _, p := range prices {
-		m[p.ModelType] = p
-	}
-	return m
 }
 
 func primaryCapability(caps []string) string {

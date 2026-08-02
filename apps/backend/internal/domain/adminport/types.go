@@ -69,10 +69,9 @@ type UserResult struct {
 	ID int64
 }
 
-// --- Pricing (NewAPI cache — deprecated for business reads) ---
+// --- Pricing (NewAPI cache — read-only) ---
 
-// Deprecated: ModelPricing is the NewAPI ratio format. TJ model_pricing table is now SOT.
-// Retained for ListModelPricing interface compatibility.
+// ModelPricing is the NewAPI ratio format, used by ListModelPricing for debug/audit.
 type ModelPricing struct {
 	ModelName       string
 	ModelRatio      float64

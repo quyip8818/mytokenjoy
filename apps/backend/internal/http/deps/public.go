@@ -28,6 +28,7 @@ type Platform struct {
 	AdminPort      adminport.Port
 	PricingSvc     *domainpricing.Service
 	Models         store.ModelsRepository
+	ModelDiscount  store.ModelDiscountRepository
 	SystemSettings store.SystemSettingsRepository
 	PlatformQuery  store.PlatformQueryRepository
 	Billing        store.BillingRepository
@@ -55,6 +56,7 @@ func (d Deps) Platform() Platform {
 		AdminPort:      d.AdminPort,
 		PricingSvc:     d.PricingSvc,
 		Models:         d.Store.Models(),
+		ModelDiscount:  d.Store.ModelDiscount(),
 		SystemSettings: d.Store.SystemSettings(),
 		PlatformQuery:  d.Store.PlatformQuery(),
 		Billing:        d.Store.Billing(),

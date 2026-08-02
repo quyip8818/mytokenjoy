@@ -111,8 +111,8 @@ func (s *txStore) SystemSettings() store.SystemSettingsRepository {
 	return &pgSystemSettingsRepo{db: s.tx}
 }
 
-func (s *txStore) ModelPricing() store.ModelPricingRepository {
-	return &modelPricingRepo{db: s.tx}
+func (s *txStore) ModelDiscount() store.ModelDiscountRepository {
+	return &modelDiscountRepo{db: s.tx}
 }
 
 func (s *txStore) PlatformQuery() store.PlatformQueryRepository {

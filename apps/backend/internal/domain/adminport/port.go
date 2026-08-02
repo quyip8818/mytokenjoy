@@ -23,8 +23,7 @@ type Port interface {
 	ManageUser(ctx context.Context, userID int64, action string, value int64) error
 
 	// --- Pricing (NewAPI cache sync) ---
-	// Deprecated: ListModelPricing reads from NewAPI option store. TJ model_pricing table is now SOT.
-	// Retained for interface compatibility and debug/audit tooling.
+	// ListModelPricing reads from NewAPI option store (debug/audit tooling).
 	ListModelPricing(ctx context.Context) ([]ModelPricing, error)
 	UpdateOption(ctx context.Context, key, value string) error
 	// UpsertModelRatio pushes price→ratio to NewAPI (gateway pre-deduction cache).

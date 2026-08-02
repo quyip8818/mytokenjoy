@@ -21,6 +21,7 @@ import (
 const (
 	keyModelsVersion     = "catalog.models_version"
 	keyPricingVersion    = "catalog.pricing_version"
+	keyDiscountsVersion  = "catalog.discounts_version"
 	keyCurrenciesVersion = "catalog.currencies_version"
 	keyWalletLotsVersion = "catalog.wallet_lots_version"
 )
@@ -85,6 +86,17 @@ func (e *Executor) Execute(ctx context.Context) error {
 		slog.Info("catalogsync: pricing synced", "version", remote.Pricing)
 	}
 
+	// --- Discounts sync (independent channel) ---
+	localDiscountsStr, _ := settings.Get(ctx, keyDiscountsVersion)
+	localDiscounts, _ := strconv.Atoi(localDiscountsStr)
+
+	if localDiscounts != remote.Discounts {
+		if err := e.syncDiscounts(ctx, remote.Discounts); err != nil {
+			return fmt.Errorf("catalogsync sync discounts: %w", err)
+		}
+		slog.Info("catalogsync: discounts synced", "version", remote.Discounts)
+	}
+
 	// --- Currencies sync (independent channel) ---
 	localCurrenciesStr, _ := settings.Get(ctx, keyCurrenciesVersion) // key may not exist on first run → "" → 0
 	localCurrencies, _ := strconv.Atoi(localCurrenciesStr)
@@ -130,39 +142,43 @@ func (e *Executor) syncModels(ctx context.Context, models []catalog.CatalogModel
 	return e.store.Models().SyncFromPlatform(ctx, e.globalCompanyID, infos)
 }
 
-// syncPricing fetches pricing from the dedicated endpoint and writes to model_pricing.
-// isContract determines which companyID the row belongs to.
+// syncPricing fetches global pricing and updates models.input_price/output_price.
 func (e *Executor) syncPricing(ctx context.Context, remoteVersion int) error {
 	resp, err := e.client.FetchPricing(ctx)
 	if err != nil {
 		return fmt.Errorf("catalogsync fetch pricing: %w", err)
 	}
 
-	now := time.Now()
 	for _, p := range resp.Data {
-		companyID := e.globalCompanyID
-		if p.IsContract {
-			companyID = e.localCompanyID
-		}
+		// Update model's price columns directly.
+		_ = e.store.Models().UpdatePrice(ctx, e.globalCompanyID, p.ModelType, p.InputPrice, p.OutputPrice)
 
-		row := store.ModelPricingRow{
-			CompanyID:     companyID,
-			ModelType:     p.ModelType,
-			InputPrice:    p.InputPrice,
-			OutputPrice:   p.OutputPrice,
-			EffectiveFrom: now,
-		}
-		_ = e.store.ModelPricing().Insert(ctx, row) // ON CONFLICT skip
-
-		// Global prices → best-effort push to local NewAPI (gateway cache).
-		if !p.IsContract {
-			if err := e.port.UpsertModelRatio(ctx, p.ModelType, p.InputPrice, p.OutputPrice); err != nil {
-				slog.Warn("catalogsync: newapi pricing push failed", "model", p.ModelType, "error", err)
-			}
+		// Best-effort push to local NewAPI (gateway cache).
+		if err := e.port.UpsertModelRatio(ctx, p.ModelType, p.InputPrice, p.OutputPrice); err != nil {
+			slog.Warn("catalogsync: newapi pricing push failed", "model", p.ModelType, "error", err)
 		}
 	}
 
 	return e.store.SystemSettings().Set(ctx, keyPricingVersion, strconv.Itoa(remoteVersion))
+}
+
+// syncDiscounts fetches per-company discount coefficients and writes to model_discount.
+func (e *Executor) syncDiscounts(ctx context.Context, remoteVersion int) error {
+	resp, err := e.client.FetchDiscounts(ctx)
+	if err != nil {
+		return fmt.Errorf("catalogsync fetch discounts: %w", err)
+	}
+
+	for _, d := range resp.Data {
+		row := store.ModelDiscountRow{
+			CompanyID: e.localCompanyID,
+			ModelType: d.ModelType,
+			Discount:  d.Discount,
+		}
+		_ = e.store.ModelDiscount().Insert(ctx, row)
+	}
+
+	return e.store.SystemSettings().Set(ctx, keyDiscountsVersion, strconv.Itoa(remoteVersion))
 }
 
 // syncCurrencies fetches currencies from the platform and replaces local data.

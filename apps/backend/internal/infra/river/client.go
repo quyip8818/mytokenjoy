@@ -14,6 +14,7 @@ import (
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
+	domainpricing "github.com/tokenjoy/backend/internal/domain/pricing"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
@@ -49,6 +50,7 @@ type Deps struct {
 	BulkEnqueuer         *scheduler.BulkEnqueuer
 	NotificationRegistry *notification.Registry
 	CatalogSyncExecutor  *catalogsync.Executor // nil if catalog sync disabled
+	PricingSvc           *domainpricing.Service // pricing full sync to NewAPI
 	DisablePeriodic      bool                  // tests: skip periodic registration
 }
 
@@ -92,6 +94,9 @@ func registerWorkers(deps Deps) *river.Workers {
 	}
 	if deps.CatalogSyncExecutor != nil {
 		river.AddWorker(workersBundle, workers.NewCatalogSyncWorker(deps.CatalogSyncExecutor))
+	}
+	if deps.PricingSvc != nil {
+		river.AddWorker(workersBundle, workers.NewPricingFullSyncWorker(deps.PricingSvc))
 	}
 	return workersBundle
 }

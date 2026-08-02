@@ -58,7 +58,7 @@ type Store interface {
 	NotificationPreference() NotificationPreferenceRepository
 	Session() SessionRepository
 	Approval() ApprovalRepository
-	ModelPricing() ModelPricingRepository
+	ModelDiscount() ModelDiscountRepository
 	SystemSettings() SystemSettingsRepository
 	PlatformQuery() PlatformQueryRepository
 	Logs() LogStore

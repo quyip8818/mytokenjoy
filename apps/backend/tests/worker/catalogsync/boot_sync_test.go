@@ -30,7 +30,7 @@ func TestBootSyncAllChannels(t *testing.T) {
 		{ModelID: "claude-3.5-sonnet", DisplayName: "Claude 3.5 Sonnet", Provider: "anthropic", Capabilities: []string{"chat"}, MaxContext: 200000},
 	}
 	pricing := []catalog.CatalogPricing{
-		{ModelType: "gpt-4o", InputPrice: 2.5, OutputPrice: 10.0, IsContract: false},
+		{ModelType: "gpt-4o", InputPrice: 2.5, OutputPrice: 10.0},
 	}
 	currencies := []catalog.CatalogCurrency{
 		{Code: "CNY", QuotaPerUnit: 500000},

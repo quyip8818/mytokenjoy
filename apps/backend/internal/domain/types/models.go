@@ -26,18 +26,12 @@ type ModelInfo struct {
 	Active            bool      `json:"active"`
 	Capabilities      []string  `json:"capabilities"`
 	Source            string    `json:"source"` // "manual" | "platform" | "seed"
+	InputPrice        float64   `json:"inputPrice"`
+	OutputPrice       float64   `json:"outputPrice"`
 }
 
 func (m ModelInfo) IsCustom() bool {
 	return m.Provider == ProviderCustom
-}
-
-// ModelInfoWithPricing extends ModelInfo with pricing data fetched from NewAPI.
-// These prices are NOT persisted in TJ's models table — NewAPI is the SOT for pricing.
-type ModelInfoWithPricing struct {
-	ModelInfo
-	InputPrice  float64 `json:"inputPrice"`
-	OutputPrice float64 `json:"outputPrice"`
 }
 
 type ModelRef struct {

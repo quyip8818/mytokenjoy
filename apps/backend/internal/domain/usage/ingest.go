@@ -12,7 +12,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -145,8 +144,8 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 		return err
 	}
 
-	// Override raw.Quota with TJ-calculated quota from model_pricing.
-	entry = ApplyTJPricing(entry, snap, s.cfg.TokenJoyCompanyID)
+	// Override raw.Quota with discount coefficient from model_discount.
+	entry = ApplyDiscount(entry, snap.Discounts)
 
 	occurrence, err := pkgbudget.OccurrenceDepartmentPeriodFromTree(snap.OrgTree, entry.DepartmentID, entry.OccurredAt)
 	if err != nil {
@@ -211,8 +210,8 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 				spend += seg.Cost
 			}
 		} else {
-			// Non-platform channel: compute cost from entry quota using default rate.
-			spend = float64(entry.QuotaAmount) / float64(common.DefaultQuotaPerUnit)
+			// Non-platform channel: compute cost from entry quota using company QPU.
+			spend = float64(entry.QuotaAmount) / float64(snap.QuotaPerUnit)
 		}
 		open, err := pkgbudget.OpenDepartmentPeriod(ctx, st.Org().Nodes(), entry.DepartmentID, s.cfg.Clock())
 		if err != nil {

@@ -19,7 +19,7 @@ TokenJoy 支持两种部署模式：
 |---|---|---|
 | 谁管理模型 | platform admin（UI 操作） | 自动同步（catalogsync worker） |
 | 模型数据来源 | platform admin 手动 CRUD | 从 SaaS Catalog API 拉取 |
-| 定价来源 | platform admin 设定 → `model_pricing` 表 | 独立 pricing sync 通道从 SaaS 同步 |
+| 定价来源 | platform admin 设定 → `models.input_price/output_price` | 独立 pricing sync 通道从 SaaS 同步 |
 | TokenJoyCompany | 存在，platform admin 属于此公司 | 存在但无人登录 |
 | Platform handler | 启用（SaaS only） | 不启用 |
 | catalogsync worker | 不启用 | 启用 |
@@ -148,13 +148,13 @@ Body: { "name", "industry", "size", "adminEmail", "adminPassword", "adminName"?,
 
 全局模型的 `company_id = TokenJoyCompanyID`，`source = 'platform'`。
 
-**models 表不存价格。** 价格存在 `model_pricing` 表（见 `model-pricing.md`）。
+**models 表存价格。** `input_price`/`output_price` 列存全局展示价。折扣存在 `model_discount` 表。
 
 模型同步使用 `catalog_synced_at` 时间戳列做 diff-disable：同步批次内所有 model 设同一个 batch timestamp，批次结束后把 timestamp 更早的 platform model 标记为 inactive。
 
-### model_pricing 表
+### model_discount 表
 
-Append-only 价格时间线。唯一约束 `(company_id, model_type, effective_from)`。
+Append-only 折扣系数表。按 `(company_id, model_type, effective_from DESC)` 查询当前生效折扣。
 
 - 全局价：`company_id = TokenJoyCompanyID`
 - 合同价：`company_id = <具体公司 ID>`
@@ -224,9 +224,8 @@ Sync token 由 setup 流程自动获取并存入 `system_settings` 表（key: `c
    - 相同 → 跳过
    - 不同 → GET /sync/catalog/pricing (Bearer cst_xxx)
      → 遍历返回数据：
-       - isContract=false → 写入 model_pricing (company_id=globalCompanyID)
-                          + push NewAPI gateway cache
-       - isContract=true  → 写入 model_pricing (company_id=localCompanyID)
+       - 更新 models.input_price/output_price
+       - push NewAPI gateway cache (UpsertModelRatio)
      → 更新本地 catalog.pricing_version
 ```
 
@@ -305,7 +304,7 @@ Platform 只有一个 channel（`tokenjoy`），指向 SaaS gateway。不做动�
 | Catalog sync types | `internal/integration/catalogsync/types.go` |
 | Worker 组装（compose） | `internal/app/compose_worker.go` |
 | SyncFromPlatform（models 表 upsert） | `internal/store/postgres/models_repo_crud.go` |
-| ModelPricing repo | `internal/store/postgres/model_pricing_repo.go` |
+| ModelDiscount repo | `internal/store/postgres/model_discount_repo.go` |
 | Company repo（含 sync token 方法） | `internal/store/postgres/company_repo.go` |
 | SystemSettings.Increment | `internal/store/postgres/system_settings_repo.go` |
 | 配置字段 | `internal/config/config.go` → PlatformConfig |

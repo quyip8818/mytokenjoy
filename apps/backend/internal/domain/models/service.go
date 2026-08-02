@@ -18,7 +18,7 @@ import (
 
 type Service interface {
 	ListModels(ctx context.Context) ([]types.ModelInfo, error)
-	ListModelsWithPricing(ctx context.Context) ([]types.ModelInfoWithPricing, error)
+	ListModelsWithPricing(ctx context.Context) ([]types.ModelInfo, error)
 	CreateModel(ctx context.Context, input types.CreateModelInput) (types.ModelInfo, error)
 	UpdateModel(ctx context.Context, id uuid.UUID, input types.UpdateModelInput) (types.ModelInfo, error)
 	DeleteModel(ctx context.Context, id uuid.UUID) error
@@ -32,7 +32,6 @@ type Service interface {
 type Store interface {
 	Models() store.ModelsRepository
 	Org() store.OrgRepository
-	ModelPricing() store.ModelPricingRepository
 }
 
 type service struct {
@@ -100,6 +99,8 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 		MaxTokens:         input.MaxTokens,
 		Active:            true,
 		Capabilities:      capabilities,
+		InputPrice:        input.InputPrice,
+		OutputPrice:       input.OutputPrice,
 	}
 	if err := s.validateModelProviderTypeAvailable(ctx, types.ProviderCustom, input.Type); err != nil {
 		return types.ModelInfo{}, err
@@ -108,21 +109,8 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 	if err != nil {
 		return types.ModelInfo{}, mapModelPersistError(err)
 	}
-	// Write pricing to model_pricing table (TJ is SOT for pricing).
-	// Custom models use the tenant's company_id.
+	// Price stored directly on the model row; best-effort push to NewAPI.
 	if input.InputPrice > 0 || input.OutputPrice > 0 {
-		companyID := company.CompanyID(ctx)
-		row := store.ModelPricingRow{
-			CompanyID:   companyID,
-			ModelType:   input.Type,
-			InputPrice:  input.InputPrice,
-			OutputPrice: input.OutputPrice,
-		}
-		if err := s.store.ModelPricing().Insert(ctx, row); err != nil {
-			_ = s.store.Models().DeleteModel(ctx, created.ID)
-			return types.ModelInfo{}, fmt.Errorf("create model pricing: %w", err)
-		}
-		// Best-effort push to NewAPI (gateway cache).
 		if s.client != nil {
 			_ = s.client.UpsertModelRatio(ctx, input.Type, input.InputPrice, input.OutputPrice)
 		}
@@ -159,33 +147,17 @@ func (s *service) UpdateModel(ctx context.Context, id uuid.UUID, input types.Upd
 	if input.EndpointModelName != nil && existing.IsCustom() {
 		existing.EndpointModelName = input.EndpointModelName
 	}
-	// Write pricing to model_pricing if changed.
+	// Update price directly on model row.
 	if input.InputPrice != nil || input.OutputPrice != nil {
-		companyID := company.CompanyID(ctx)
-		// Resolve current prices from model_pricing for merge.
-		var curInput, curOutput float64
-		if cur, err := s.store.ModelPricing().CurrentPrice(ctx, companyID, existing.Type, time.Now()); err == nil && cur != nil {
-			curInput = cur.InputPrice
-			curOutput = cur.OutputPrice
-		}
 		if input.InputPrice != nil {
-			curInput = *input.InputPrice
+			existing.InputPrice = *input.InputPrice
 		}
 		if input.OutputPrice != nil {
-			curOutput = *input.OutputPrice
-		}
-		row := store.ModelPricingRow{
-			CompanyID:   companyID,
-			ModelType:   existing.Type,
-			InputPrice:  curInput,
-			OutputPrice: curOutput,
-		}
-		if err := s.store.ModelPricing().Insert(ctx, row); err != nil {
-			return types.ModelInfo{}, fmt.Errorf("update model pricing: %w", err)
+			existing.OutputPrice = *input.OutputPrice
 		}
 		// Best-effort push to NewAPI (gateway cache).
 		if s.client != nil {
-			_ = s.client.UpsertModelRatio(ctx, existing.Type, curInput, curOutput)
+			_ = s.client.UpsertModelRatio(ctx, existing.Type, existing.InputPrice, existing.OutputPrice)
 		}
 	}
 	if input.MaxContext != nil {
@@ -400,39 +372,7 @@ func (s *service) UpdateRoutingRule(
 	return common.EnrichRoutingRule(updated, catalog), nil
 }
 
-func (s *service) ListModelsWithPricing(ctx context.Context) ([]types.ModelInfoWithPricing, error) {
-	models, err := s.store.Models().Models(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	active := modelcatalog.FilterActive(modelcatalog.FilterVisible(models))
-	result := make([]types.ModelInfoWithPricing, len(active))
-	for i := range active {
-		result[i] = types.ModelInfoWithPricing{ModelInfo: active[i]}
-	}
-
-	// Load pricing from model_pricing table (TJ is SOT).
-	now := time.Now()
-	companyID := company.CompanyID(ctx)
-
-	globalPrices, _ := s.store.ModelPricing().CurrentPricesBatch(ctx, s.cfg.TokenJoyCompanyID, now)
-	contractPrices, _ := s.store.ModelPricing().CurrentPricesBatch(ctx, companyID, now)
-
-	// Build map: contract > global
-	priceMap := make(map[string]store.ModelPricingRow, len(globalPrices)+len(contractPrices))
-	for _, p := range globalPrices {
-		priceMap[p.ModelType] = p
-	}
-	for _, p := range contractPrices {
-		priceMap[p.ModelType] = p // contract overrides global
-	}
-
-	for i := range result {
-		if p, ok := priceMap[result[i].Type]; ok {
-			result[i].InputPrice = p.InputPrice
-			result[i].OutputPrice = p.OutputPrice
-		}
-	}
-	return result, nil
+func (s *service) ListModelsWithPricing(ctx context.Context) ([]types.ModelInfo, error) {
+	// Prices are now stored directly on models table — no separate pricing lookup needed.
+	return s.ListModels(ctx)
 }

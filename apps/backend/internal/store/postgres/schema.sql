@@ -165,6 +165,8 @@ CREATE TABLE IF NOT EXISTS models (
     active       BOOLEAN NOT NULL DEFAULT TRUE,
     capabilities TEXT[] NOT NULL DEFAULT '{}',
     source       TEXT NOT NULL DEFAULT 'manual',
+    input_price  NUMERIC(12,6) NOT NULL DEFAULT 0,
+    output_price NUMERIC(12,6) NOT NULL DEFAULT 0,
     catalog_synced_at TIMESTAMPTZ,
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (company_id, provider, type)
@@ -669,18 +671,16 @@ CREATE TABLE IF NOT EXISTS system_settings (
     value TEXT NOT NULL
 );
 
--- Model pricing: append-only price timeline. TJ is SOT for all pricing.
-CREATE TABLE IF NOT EXISTS model_pricing (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id      UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
-    model_type      VARCHAR(128) NOT NULL,
-    input_price     NUMERIC(12,6) NOT NULL,
-    output_price    NUMERIC(12,6) NOT NULL,
-    effective_from  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    note            TEXT NOT NULL DEFAULT '',
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (company_id, model_type, effective_from)
+-- Model discount: append-only per-company discount coefficients.
+CREATE TABLE IF NOT EXISTS model_discount (
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id     UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    model_type     TEXT NOT NULL,
+    discount       NUMERIC(5,4) NOT NULL DEFAULT 1.0,
+    effective_from TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    note           TEXT NOT NULL DEFAULT '',
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_model_pricing_current
-    ON model_pricing (company_id, model_type, effective_from DESC);
+CREATE INDEX IF NOT EXISTS idx_model_discount_current
+    ON model_discount (company_id, model_type, effective_from DESC);

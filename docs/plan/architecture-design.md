@@ -388,8 +388,8 @@ apps/backend/
 
 | 表 | saas 写入 | saas 读取 | local |
 |----|:---:|:---:|:---:|
-| models | platform_admin | 所有用户 | Catalog Sync 写入 |
-| model_pricing | platform_admin | 所有用户 | Catalog Sync 写入 |
+| models | platform_admin | 所有用户 | Catalog Sync 写入（含 input_price/output_price） |
+| model_discount | platform_admin | 所有用户 | Catalog Sync 写入 |
 
 ### 9.2 NewAPI 侧（内部，不对外）
 

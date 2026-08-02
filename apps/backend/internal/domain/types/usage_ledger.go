@@ -27,6 +27,7 @@ type UsageCallDetail struct {
 	PreviewSnippet  string  `json:"previewSnippet"`
 	InputPrice      float64 `json:"inputPrice,omitempty"`
 	OutputPrice     float64 `json:"outputPrice,omitempty"`
+	Discount        float64 `json:"discount,omitempty"`
 	ContractPricing bool    `json:"contractPricing,omitempty"`
 }
 

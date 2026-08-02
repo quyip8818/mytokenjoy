@@ -2,7 +2,6 @@ package usage
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/company"
@@ -12,11 +11,10 @@ import (
 )
 
 type EntryBuildSnapshot struct {
-	Catalog        []types.ModelInfo
-	OrgTree        []types.OrgNode
-	CompanyPricing []store.ModelPricingRow // contract prices for the company
-	GlobalPricing  []store.ModelPricingRow // global platform prices
-	QuotaPerUnit   int64                   // company billing QPU
+	Catalog      []types.ModelInfo
+	OrgTree      []types.OrgNode
+	Discounts    []store.ModelDiscountRow // per-company discount coefficients
+	QuotaPerUnit int64                    // company billing QPU
 }
 
 func LoadEntryBuildSnapshot(ctx context.Context, deps EntryBuildReader, tokenJoyCompanyID uuid.UUID) (EntryBuildSnapshot, error) {
@@ -30,23 +28,16 @@ func LoadEntryBuildSnapshot(ctx context.Context, deps EntryBuildReader, tokenJoy
 	}
 
 	companyID := company.CompanyID(ctx)
-	now := time.Now()
 
-	companyPricing, _ := deps.ModelPricing().CurrentPricesBatch(ctx, companyID, now)
-
-	var globalPricing []store.ModelPricingRow
-	if tokenJoyCompanyID != companyID {
-		globalPricing, _ = deps.ModelPricing().CurrentPricesBatch(ctx, tokenJoyCompanyID, now)
-	}
+	discounts, _ := deps.ModelDiscount().CurrentDiscounts(ctx, companyID)
 
 	qpu := resolveQPU(ctx, deps, companyID)
 
 	return EntryBuildSnapshot{
-		Catalog:        catalog,
-		OrgTree:        tree,
-		CompanyPricing: companyPricing,
-		GlobalPricing:  globalPricing,
-		QuotaPerUnit:   qpu,
+		Catalog:      catalog,
+		OrgTree:      tree,
+		Discounts:    discounts,
+		QuotaPerUnit: qpu,
 	}, nil
 }
 

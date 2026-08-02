@@ -46,11 +46,20 @@ func (c *Client) FetchModels(ctx context.Context) (*CatalogResponse[CatalogModel
 	return &resp, nil
 }
 
-// FetchPricing fetches the per-company pricing catalog (requires sync token).
+// FetchPricing fetches the global pricing catalog (requires sync token).
 func (c *Client) FetchPricing(ctx context.Context) (*CatalogResponse[CatalogPricing], error) {
 	var resp CatalogResponse[CatalogPricing]
 	if err := c.doGet(ctx, "/api/platform/sync/catalog/pricing", true, &resp); err != nil {
 		return nil, fmt.Errorf("catalog fetch pricing: %w", err)
+	}
+	return &resp, nil
+}
+
+// FetchDiscounts fetches per-company discount coefficients (requires sync token).
+func (c *Client) FetchDiscounts(ctx context.Context) (*CatalogResponse[CatalogDiscount], error) {
+	var resp CatalogResponse[CatalogDiscount]
+	if err := c.doGet(ctx, "/api/platform/sync/catalog/discounts", true, &resp); err != nil {
+		return nil, fmt.Errorf("catalog fetch discounts: %w", err)
 	}
 	return &resp, nil
 }

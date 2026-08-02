@@ -199,7 +199,7 @@ Catalog Sync Worker（每 5min，River PeriodicJob）:
 
   3. 比较本地 catalog.pricing_version vs 远端
      → 不同 → GET /api/platform/sync/catalog/pricing （需要 sync token）
-     → 更新本地 model_pricing 表
+     → 更新本地 models.input_price/output_price + push NewAPI ratio
      → 存本地 version
 
   4. 比较本地 catalog.currencies_version vs 远端

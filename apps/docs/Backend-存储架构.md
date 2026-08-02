@@ -90,7 +90,7 @@ flowchart TB
 | `Company()` / `User()` / `Invite()` / `Billing()`     | 租户与充值                                                               |
 | `PlatformQuery()`                                     | 平台面跨租户只读查询                                                     |
 | `Approval()`                                          | `approval_requests`                                                      |
-| `SystemSettings()` / `ModelPricing()`                 | `system_settings`, `model_pricing`                                       |
+| `SystemSettings()` / `ModelDiscount()`                | `system_settings`, `model_discount`                                      |
 | `TenantBackgroundState()` / `ProjectionCursors()`     | `tenant_background_state`, `projection_cursors`                          |
 | `Notification()` / `NotificationPreference()`         | `notification_log`, `notification_preferences`                          |
 | `SchedulerLock()` / `Logs()`                          | `scheduler_locks`, 日志库三表                                            |
@@ -215,7 +215,7 @@ flowchart LR
 | 组织   | `org_nodes`, `members`, `roles`, `permissions`, `member_roles`, `org_integration`, `org_sync_logs`, `org_import_failures`                                                 |
 | 预算   | `projects`, `project_members`, `budget_consumed`, `overrun_policy`, `alert_rules`, `alert_rule_notify_roles`, `approval_requests`                                          |
 | 密钥   | `provider_keys`, `platform_keys`, `platform_key_mappings`                                                                                                                  |
-| 模型   | `models`, `model_pricing`, `model_allowlist`（`models` 同表承载平台源与租户自有模型，读取并集）                                                                            |
+| 模型   | `models`, `model_discount`, `model_allowlist`（`models` 同表承载平台源与租户自有模型，读取并集；`models.input_price/output_price` 存全局展示价）                             |
 | 审计   | `audit_settings`, `operation_logs`, `usage_ledger`                                                                                                                        |
 | 运行面 | `usage_buckets`, `scheduler_locks`, `notification_log`, `notification_preferences`, `tenant_background_state`, `projection_cursors`, `system_settings`                    |
 | 身份   | `users`, `sessions`                                                                                                                                                        |
