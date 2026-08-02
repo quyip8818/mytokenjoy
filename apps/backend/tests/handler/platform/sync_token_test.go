@@ -228,5 +228,3 @@ func registerAndGetAll(t *testing.T, router http.Handler) registerLocalTestResul
 	}
 	return result
 }
-
-

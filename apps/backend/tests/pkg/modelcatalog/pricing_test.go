@@ -37,11 +37,11 @@ func TestPriceFromRatio(t *testing.T) {
 func TestRatioFromPrice(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name            string
-		inputPrice      float64
-		outputPrice     float64
-		wantModelRatio  float64
-		wantCompletion  float64
+		name           string
+		inputPrice     float64
+		outputPrice    float64
+		wantModelRatio float64
+		wantCompletion float64
 	}{
 		{name: "gpt-4o typical", inputPrice: 2.5, outputPrice: 10.0, wantModelRatio: 1.25, wantCompletion: 4.0},
 		{name: "equal price", inputPrice: 2.0, outputPrice: 2.0, wantModelRatio: 1.0, wantCompletion: 1.0},

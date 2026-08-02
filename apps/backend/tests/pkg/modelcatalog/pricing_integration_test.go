@@ -219,8 +219,8 @@ func TestListModelsWithPricingMerges(t *testing.T) {
 	t.Parallel()
 	client := &pricingTracker{
 		pricingData: []adminport.ModelPricing{
-			{ModelName: "gpt-4o", ModelRatio: 1.25, CompletionRatio: 4.0},       // input=2.5, output=10.0
-			{ModelName: "claude-3.5", ModelRatio: 0.75, CompletionRatio: 5.0},   // input=1.5, output=7.5
+			{ModelName: "gpt-4o", ModelRatio: 1.25, CompletionRatio: 4.0},     // input=2.5, output=10.0
+			{ModelName: "claude-3.5", ModelRatio: 0.75, CompletionRatio: 5.0}, // input=1.5, output=7.5
 		},
 	}
 	seed := []types.ModelInfo{
