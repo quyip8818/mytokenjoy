@@ -64,6 +64,9 @@ init.sh 自动完成：
 ## 全量重置
 
 ```bash
+# local
+./deploy/reset.sh 47.99.63.146
+
 # ECS 上
 cd /opt/mytokenjoy
 docker compose -f deploy/docker-compose.yml --env-file deploy/env/infra.env down -v
