@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/http/response"
+	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -19,16 +20,17 @@ type pricingDTO struct {
 	OutputPrice float64 `json:"outputPrice"`
 }
 
-// ListGlobalPricing returns all current global prices (from models table).
+// ListGlobalPricing returns all current global prices from NewAPI (SOT).
 func (h *Handler) ListGlobalPricing(w http.ResponseWriter, r *http.Request) {
-	models, err := h.p.PricingSvc.ListGlobalPricing(r.Context())
+	ratios, err := h.p.AdminPort.ListModelPricing(r.Context())
 	if err != nil {
 		httputil.WriteError(w, err)
 		return
 	}
-	out := make([]pricingDTO, len(models))
-	for i, m := range models {
-		out[i] = pricingDTO{ModelType: m.Type, InputPrice: m.InputPrice, OutputPrice: m.OutputPrice}
+	out := make([]pricingDTO, 0, len(ratios))
+	for _, r := range ratios {
+		inputPrice, outputPrice := modelcatalog.PriceFromRatio(r.ModelRatio, r.CompletionRatio)
+		out = append(out, pricingDTO{ModelType: r.ModelName, InputPrice: inputPrice, OutputPrice: outputPrice})
 	}
 	response.JSON(w, http.StatusOK, out)
 }
@@ -39,7 +41,7 @@ type setPricingInput struct {
 	OutputPrice float64 `json:"outputPrice"`
 }
 
-// SetGlobalPricing updates global price for a model.
+// SetGlobalPricing updates global price for a model (writes to NewAPI SOT).
 func (h *Handler) SetGlobalPricing(w http.ResponseWriter, r *http.Request) {
 	var body setPricingInput
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -54,10 +56,11 @@ func (h *Handler) SetGlobalPricing(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "prices must be non-negative")
 		return
 	}
-	if err := h.p.PricingSvc.SetGlobalPrice(r.Context(), body.ModelType, body.InputPrice, body.OutputPrice); err != nil {
+	if err := h.p.AdminPort.UpsertModelRatio(r.Context(), body.ModelType, body.InputPrice, body.OutputPrice); err != nil {
 		httputil.WriteError(w, err)
 		return
 	}
+	h.bumpPricingVersion(r.Context())
 	response.Void(w)
 }
 

@@ -165,8 +165,6 @@ CREATE TABLE IF NOT EXISTS models (
     active       BOOLEAN NOT NULL DEFAULT TRUE,
     capabilities TEXT[] NOT NULL DEFAULT '{}',
     source       TEXT NOT NULL DEFAULT 'manual',
-    input_price  NUMERIC(12,6) NOT NULL DEFAULT 0,
-    output_price NUMERIC(12,6) NOT NULL DEFAULT 0,
     catalog_synced_at TIMESTAMPTZ,
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (company_id, provider, type)

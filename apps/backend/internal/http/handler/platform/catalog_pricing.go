@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/http/response"
+	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 )
 
 // catalogPricingDTO is a model price entry in the sync response.
@@ -18,6 +19,7 @@ type catalogPricingDTO struct {
 }
 
 // CatalogPricing returns global pricing for the authenticated sync company.
+// ponytail: reads from NewAPI (SOT) in real-time, no DB cache.
 func (h *Handler) CatalogPricing(w http.ResponseWriter, r *http.Request) {
 	_, ok := httpmiddleware.SyncCompanyIDFromContext(r.Context())
 	if !ok {
@@ -27,18 +29,19 @@ func (h *Handler) CatalogPricing(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	models, err := h.p.PricingSvc.ListGlobalPricing(ctx)
+	ratios, err := h.p.AdminPort.ListModelPricing(ctx)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
 	}
 
-	out := make([]catalogPricingDTO, 0, len(models))
-	for _, m := range models {
+	out := make([]catalogPricingDTO, 0, len(ratios))
+	for _, r := range ratios {
+		inputPrice, outputPrice := modelcatalog.PriceFromRatio(r.ModelRatio, r.CompletionRatio)
 		out = append(out, catalogPricingDTO{
-			ModelType:   m.Type,
-			InputPrice:  m.InputPrice,
-			OutputPrice: m.OutputPrice,
+			ModelType:   r.ModelName,
+			InputPrice:  inputPrice,
+			OutputPrice: outputPrice,
 		})
 	}
 

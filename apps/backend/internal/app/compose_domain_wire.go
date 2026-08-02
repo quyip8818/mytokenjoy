@@ -18,7 +18,6 @@ import (
 	domainmemberanalytics "github.com/tokenjoy/backend/internal/domain/memberanalytics"
 	domainmodels "github.com/tokenjoy/backend/internal/domain/models"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
-	domainpricing "github.com/tokenjoy/backend/internal/domain/pricing"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
@@ -83,10 +82,6 @@ func wireCompany(cfg config.Config, i infra, grants domaingrants.Normalizer) dom
 
 func wireBilling(i infra, reader domainusage.Reader) domainbilling.Service {
 	return domainbilling.NewService(i.store, reader, i.adminPort)
-}
-
-func wirePricing(cfg config.Config, i infra) *domainpricing.Service {
-	return domainpricing.NewService(cfg, i.store, i.adminPort)
 }
 
 func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, budget domainbudget.Service) domainmemberanalytics.Service {

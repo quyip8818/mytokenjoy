@@ -141,7 +141,6 @@ apps/backend/
 │   │   │   └── lot/         # lot 写 SSOT（consume / ledger）
 │   │   ├── approval/        # 统一审批引擎
 │   │   ├── notification/    # 通知领域类型
-│   │   ├── pricing/         # 定价计算
 │   │   ├── port/            # 跨域端口（KeySyncPort、OverrunKeyControl 等）
 │   │   └── memberanalytics/ # 成员工作台只读聚合（GET /me/*）
 │   ├── http/

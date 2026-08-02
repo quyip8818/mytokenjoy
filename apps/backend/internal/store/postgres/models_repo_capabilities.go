@@ -52,7 +52,6 @@ func scanModelRow(rows pgx.Rows) (types.ModelInfo, error) {
 		&item.ApiKey, &item.EndpointModelName,
 		&item.MaxContext, &item.MaxTokens, &item.Active,
 		&item.Capabilities, &item.Source,
-		&item.InputPrice, &item.OutputPrice,
 	)
 	return item, err
 }
@@ -65,7 +64,6 @@ func scanModelQueryRow(row scannable) (*types.ModelInfo, error) {
 		&item.ApiKey, &item.EndpointModelName,
 		&item.MaxContext, &item.MaxTokens, &item.Active,
 		&item.Capabilities, &item.Source,
-		&item.InputPrice, &item.OutputPrice,
 	)
 	if err == pgx.ErrNoRows {
 		return nil, nil

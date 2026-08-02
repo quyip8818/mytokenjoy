@@ -78,7 +78,6 @@ func buildServiceRegistry(cfg config.Config, i infra, logger *slog.Logger, holde
 			IngestMetrics:       ingestMetricsRecorder(cfg),
 			CompanySvc:          wireCompany(cfg, i, grants),
 			BillingSvc:          wireBilling(i, reader),
-			PricingSvc:          wirePricing(cfg, i),
 			MemberAnalyticsSvc:  wireMemberAnalytics(cfg, reader, budgetSvc),
 			CompanyGate:         i.companyGate,
 			ApprovalEngine:      wireApprovalEngine(i, logger, keysSvc, budgetSvc),

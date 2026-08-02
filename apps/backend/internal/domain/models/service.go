@@ -99,8 +99,6 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 		MaxTokens:         input.MaxTokens,
 		Active:            true,
 		Capabilities:      capabilities,
-		InputPrice:        input.InputPrice,
-		OutputPrice:       input.OutputPrice,
 	}
 	if err := s.validateModelProviderTypeAvailable(ctx, types.ProviderCustom, input.Type); err != nil {
 		return types.ModelInfo{}, err
@@ -109,7 +107,7 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 	if err != nil {
 		return types.ModelInfo{}, mapModelPersistError(err)
 	}
-	// Price stored directly on the model row; best-effort push to NewAPI.
+	// Push price to NewAPI (SOT) — not stored in DB.
 	if input.InputPrice > 0 || input.OutputPrice > 0 {
 		if s.client != nil {
 			_ = s.client.UpsertModelRatio(ctx, input.Type, input.InputPrice, input.OutputPrice)
@@ -147,17 +145,18 @@ func (s *service) UpdateModel(ctx context.Context, id uuid.UUID, input types.Upd
 	if input.EndpointModelName != nil && existing.IsCustom() {
 		existing.EndpointModelName = input.EndpointModelName
 	}
-	// Update price directly on model row.
+	// Update price in NewAPI (SOT) — not stored in DB.
+	// ponytail: both prices required together (no partial update from DB since prices aren't stored).
 	if input.InputPrice != nil || input.OutputPrice != nil {
+		var inputPrice, outputPrice float64
 		if input.InputPrice != nil {
-			existing.InputPrice = *input.InputPrice
+			inputPrice = *input.InputPrice
 		}
 		if input.OutputPrice != nil {
-			existing.OutputPrice = *input.OutputPrice
+			outputPrice = *input.OutputPrice
 		}
-		// Best-effort push to NewAPI (gateway cache).
 		if s.client != nil {
-			_ = s.client.UpsertModelRatio(ctx, existing.Type, existing.InputPrice, existing.OutputPrice)
+			_ = s.client.UpsertModelRatio(ctx, existing.Type, inputPrice, outputPrice)
 		}
 	}
 	if input.MaxContext != nil {
@@ -373,6 +372,26 @@ func (s *service) UpdateRoutingRule(
 }
 
 func (s *service) ListModelsWithPricing(ctx context.Context) ([]types.ModelInfo, error) {
-	// Prices are now stored directly on models table — no separate pricing lookup needed.
-	return s.ListModels(ctx)
+	models, err := s.ListModels(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// ponytail: merge prices from NewAPI (SOT) in real-time. Failure is non-fatal — returns models without prices.
+	if s.client == nil {
+		return models, nil
+	}
+	ratios, err := s.client.ListModelPricing(ctx)
+	if err != nil {
+		return models, nil
+	}
+	modelcatalog.MergePricing(models, toRatioEntries(ratios))
+	return models, nil
+}
+
+func toRatioEntries(ratios []adminport.ModelPricing) []modelcatalog.RatioEntry {
+	out := make([]modelcatalog.RatioEntry, len(ratios))
+	for i, r := range ratios {
+		out[i] = modelcatalog.RatioEntry{ModelName: r.ModelName, ModelRatio: r.ModelRatio, CompletionRatio: r.CompletionRatio}
+	}
+	return out
 }

@@ -9,7 +9,6 @@ import (
 
 type ModelsRepository interface {
 	Models(ctx context.Context) ([]types.ModelInfo, error)
-	ModelsByCompany(ctx context.Context, companyID uuid.UUID) ([]types.ModelInfo, error)
 	ModelByType(ctx context.Context, modelType string) (*types.ModelInfo, error)
 	ModelByProviderType(ctx context.Context, provider, modelType string) (*types.ModelInfo, error)
 	GlobalModelByProviderType(ctx context.Context, provider, modelType string) (*types.ModelInfo, error)
@@ -17,7 +16,6 @@ type ModelsRepository interface {
 	ModelByIDs(ctx context.Context, modelIDs []int64) ([]types.ModelInfo, error)
 	InsertModel(ctx context.Context, model types.ModelInfo) (types.ModelInfo, error)
 	UpdateModel(ctx context.Context, model types.ModelInfo) error
-	UpdatePrice(ctx context.Context, companyID uuid.UUID, modelType string, inputPrice, outputPrice float64) error
 	DeleteModel(ctx context.Context, modelID uuid.UUID) error
 	// SyncFromPlatform atomically upserts source='platform' models and disables stale ones for a company.
 	SyncFromPlatform(ctx context.Context, companyID uuid.UUID, models []types.ModelInfo) error

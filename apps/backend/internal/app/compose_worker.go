@@ -72,7 +72,6 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 		BulkEnqueuer:         bulk,
 		NotificationRegistry: reg.Infra.notificationSvc.Registry(),
 		CatalogSyncExecutor:  catalogExecutor,
-		PricingSvc:           reg.PricingSvc,
 		DisablePeriodic:      !cfg.RiverPeriodicEnabled,
 	}, logger)
 	if err != nil {

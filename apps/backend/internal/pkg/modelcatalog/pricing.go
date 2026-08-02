@@ -1,5 +1,7 @@
 package modelcatalog
 
+import "github.com/tokenjoy/backend/internal/domain/types"
+
 // PriceFromRatio converts NewAPI model_ratio and completion_ratio into display
 // prices (元/1M tokens) used by the backend model catalog.
 //
@@ -23,4 +25,31 @@ func RatioFromPrice(inputPrice, outputPrice float64) (modelRatio, completionRati
 	modelRatio = inputPrice / 2
 	completionRatio = outputPrice / inputPrice
 	return modelRatio, completionRatio
+}
+
+// MergePricing enriches models with display prices converted from NewAPI ratios.
+// Models without a matching ratio entry keep zero price.
+// ponytail: shared merge logic used by models service and platform handler.
+func MergePricing(models []types.ModelInfo, ratios []RatioEntry) {
+	if len(ratios) == 0 {
+		return
+	}
+	priceMap := make(map[string][2]float64, len(ratios))
+	for _, r := range ratios {
+		input, output := PriceFromRatio(r.ModelRatio, r.CompletionRatio)
+		priceMap[r.ModelName] = [2]float64{input, output}
+	}
+	for i := range models {
+		if p, ok := priceMap[models[i].Type]; ok {
+			models[i].InputPrice = p[0]
+			models[i].OutputPrice = p[1]
+		}
+	}
+}
+
+// RatioEntry is the minimal data needed from NewAPI pricing (avoids importing adminport).
+type RatioEntry struct {
+	ModelName       string
+	ModelRatio      float64
+	CompletionRatio float64
 }

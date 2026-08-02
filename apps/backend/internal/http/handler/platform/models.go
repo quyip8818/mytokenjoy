@@ -13,6 +13,7 @@ import (
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/http/response"
 	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
+	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 )
 
 // --- Catalog API (public, no auth) ---
@@ -118,7 +119,8 @@ func (h *Handler) ListModels(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Prices are now directly on ModelInfo — no separate merge needed.
+	// Merge prices from NewAPI (SOT).
+	h.mergePricing(r.Context(), global)
 	response.JSON(w, http.StatusOK, global)
 }
 
@@ -154,8 +156,6 @@ func (h *Handler) CreateModel(w http.ResponseWriter, r *http.Request) {
 		Active:       true,
 		Capabilities: capabilities,
 		MaxContext:   maxContext,
-		InputPrice:   body.InputPrice,
-		OutputPrice:  body.OutputPrice,
 	}
 	if model.Name == "" {
 		model.Name = model.Type
@@ -167,9 +167,10 @@ func (h *Handler) CreateModel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Best-effort push to NewAPI (gateway cache).
+	// Push price to NewAPI (SOT).
 	if body.InputPrice > 0 || body.OutputPrice > 0 {
-		_ = h.p.PricingSvc.SetGlobalPrice(r.Context(), body.Type, body.InputPrice, body.OutputPrice)
+		_ = h.p.AdminPort.UpsertModelRatio(r.Context(), body.Type, body.InputPrice, body.OutputPrice)
+		h.bumpPricingVersion(r.Context())
 	}
 
 	response.JSON(w, http.StatusCreated, created)
@@ -275,10 +276,11 @@ func (h *Handler) SetModelPricing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.p.PricingSvc.SetGlobalPrice(r.Context(), model.Type, body.InputPrice, body.OutputPrice); err != nil {
+	if err := h.p.AdminPort.UpsertModelRatio(r.Context(), model.Type, body.InputPrice, body.OutputPrice); err != nil {
 		httputil.WriteError(w, fmt.Errorf("set pricing: %w", err))
 		return
 	}
+	h.bumpPricingVersion(r.Context())
 	response.Void(w)
 }
 
@@ -299,6 +301,24 @@ func (h *Handler) PublishCatalog(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) bumpModelsCatalogVersion(ctx context.Context) {
 	_, _ = h.p.SystemSettings.Increment(ctx, catalogModelsVersionKey)
+}
+
+func (h *Handler) bumpPricingVersion(ctx context.Context) {
+	_, _ = h.p.SystemSettings.Increment(ctx, catalogPricingVersionKey)
+}
+
+// mergePricing enriches models with prices from NewAPI (SOT).
+// ponytail: best-effort — failure leaves prices at 0 (non-fatal).
+func (h *Handler) mergePricing(ctx context.Context, models []types.ModelInfo) {
+	ratios, err := h.p.AdminPort.ListModelPricing(ctx)
+	if err != nil || len(ratios) == 0 {
+		return
+	}
+	entries := make([]modelcatalog.RatioEntry, len(ratios))
+	for i, r := range ratios {
+		entries[i] = modelcatalog.RatioEntry{ModelName: r.ModelName, ModelRatio: r.ModelRatio, CompletionRatio: r.CompletionRatio}
+	}
+	modelcatalog.MergePricing(models, entries)
 }
 
 // globalCtx returns a context with TokenJoyCompanyID set, for public endpoints

@@ -199,7 +199,7 @@ Catalog Sync Worker（每 5min，River PeriodicJob）:
 
   3. 比较本地 catalog.pricing_version vs 远端
      → 不同 → GET /api/platform/sync/catalog/pricing （需要 sync token）
-     → 更新本地 models.input_price/output_price + push NewAPI ratio
+     → push NewAPI ratio（UpsertModelRatio）
      → 存本地 version
 
   4. 比较本地 catalog.currencies_version vs 远端
@@ -369,7 +369,7 @@ Setup 时的管理员邮箱+密码同时在 SaaS 创建 User + Member：
 
 | 数据 | SOT | Local 怎么获取 |
 |------|-----|---------------|
-| 模型目录 + 定价 | SaaS | Catalog Sync models + pricing 通道 |
+| 模型目录 + 定价 | SaaS（定价 SOT 在 NewAPI ratio store） | Catalog Sync models + pricing 通道（pricing 只 push NewAPI，不写 DB） |
 | 公司 TokenJoy 余额 | SaaS (`wallet_remain_quota` + lot 体系) | Catalog Sync wallet_lots 通道（含 lot 列表镜像） |
 | 公司 TokenJoy 总消耗 | SaaS | SaaS Ingest 按总 key 记账 |
 | 组织预算 (budget/limit) | Local | 管理员在 Local 设置 |
@@ -433,7 +433,7 @@ SaaS `system_settings`（自动维护）：
 | key | bump 时机 | 说明 |
 |-----|-----------|------|
 | `catalog.models_version` | 创建/更新/删除模型 + PublishCatalog | 模型目录版本 |
-| `catalog.pricing_version` | SetGlobalPrice / SetContractPrice | 定价版本 |
+| `catalog.pricing_version` | SetGlobalPricing / SetModelPricing / CreateModel（有价时） | 定价版本 |
 | `catalog.currencies_version` | 创建/更新币种 | 币种版本 |
 | `catalog.wallet_lots_version` | 充值（CreditFromLot）/ Ingest 扣 lot | wallet lots 版本 |
 

@@ -142,7 +142,8 @@ func (e *Executor) syncModels(ctx context.Context, models []catalog.CatalogModel
 	return e.store.Models().SyncFromPlatform(ctx, e.globalCompanyID, infos)
 }
 
-// syncPricing fetches global pricing and updates models.input_price/output_price.
+// syncPricing fetches global pricing and pushes to local NewAPI (SOT).
+// ponytail: no DB write — NewAPI is the single source of truth for prices.
 func (e *Executor) syncPricing(ctx context.Context, remoteVersion int) error {
 	resp, err := e.client.FetchPricing(ctx)
 	if err != nil {
@@ -150,10 +151,6 @@ func (e *Executor) syncPricing(ctx context.Context, remoteVersion int) error {
 	}
 
 	for _, p := range resp.Data {
-		// Update model's price columns directly.
-		_ = e.store.Models().UpdatePrice(ctx, e.globalCompanyID, p.ModelType, p.InputPrice, p.OutputPrice)
-
-		// Best-effort push to local NewAPI (gateway cache).
 		if err := e.port.UpsertModelRatio(ctx, p.ModelType, p.InputPrice, p.OutputPrice); err != nil {
 			slog.Warn("catalogsync: newapi pricing push failed", "model", p.ModelType, "error", err)
 		}
