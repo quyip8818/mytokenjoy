@@ -56,6 +56,7 @@ export interface UpdateModelInput {
   maxContext?: number
   maxTokens?: number
   capabilities?: string[]
+  deprecated?: boolean
 }
 
 export interface RoutingRule {

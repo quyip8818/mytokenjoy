@@ -29,7 +29,7 @@ export function WeightsPage() {
   })
 
   // ponytail: local edits override server data; reset on fresh fetch
-  const weights = edits ?? serverWeights ?? []
+  const weights = useMemo(() => edits ?? serverWeights ?? [], [edits, serverWeights])
 
   const totalWeight = useMemo(() => weights.reduce((sum, w) => sum + w.weight, 0), [weights])
   const isValid = Math.abs(totalWeight - 100) < 0.01

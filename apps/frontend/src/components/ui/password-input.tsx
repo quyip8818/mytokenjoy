@@ -25,7 +25,7 @@ function PasswordInput({
       <button
         type="button"
         tabIndex={-1}
-        aria-label={visible ? '隐藏密码' : '显示密码'}
+        aria-label={visible ? '隐藏明文' : '显示明文'}
         onClick={() => setVisible((v) => !v)}
         disabled={disabled}
         className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none disabled:pointer-events-none"
