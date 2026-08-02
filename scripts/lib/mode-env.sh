@@ -77,6 +77,15 @@ export SAAS_PLATFORM_URL="http://127.0.0.1:8010"
 export SAAS_REGISTRATION_SECRET="dev-local-registration-secret"
 export LOCAL_REGISTRATION_SECRET="dev-local-registration-secret"
 
+# --- Secrets from .env (RESEND, ALIYUN, etc.) ---
+# mode-env.sh sets structure; .env adds secrets that shouldn't be hardcoded here.
+if [[ -f "${ROOT}/apps/backend/.env" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  . "${ROOT}/apps/backend/.env"
+  set +a
+fi
+
 # --- Frontend ---
 export VITE_API_PROXY_TARGET="http://localhost:${BACKEND_PORT}"
 export VITE_DEV_PORT="${FRONTEND_PORT}"

@@ -77,9 +77,7 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store,
 }
 
 func buildVerifyCodeService(cfg config.Config, notifier verifycode.Notifier, logger *slog.Logger) *verifycode.Service {
-	if !cfg.SupportSaas {
-		return nil
-	}
+	// ponytail: 验证码登录是通用功能（local/saas 均需要），仅自主注册受 SaaS 限制。
 	svc, err := verifycode.NewService(verifycode.Config{
 		RedisURL:   cfg.RedisURL,
 		SkipVerify: cfg.SkipVerifyCode,
