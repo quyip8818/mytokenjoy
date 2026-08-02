@@ -106,13 +106,18 @@ func TestLocalSaaSRegisterAndSyncLots(t *testing.T) {
 	_ = localCfg
 
 	// Seed the company row in local DB (mimics what bootstrap would do after setup).
+	// Bootstrap already creates this company via insertCompanies when cfg.CompanyID is set,
+	// so we only update it if needed.
 	now := time.Now().UTC()
 	localCo := store.Company{
 		ID: companyID, Name: "E2E Local Corp", Type: store.CompanyTypeSelfhosted,
 		Status: store.CompanyStatusActive, CreatedAt: now, UpdatedAt: now,
 	}
 	if err := localStore.Company().Create(context.Background(), localCo); err != nil {
-		t.Fatal(err)
+		// Bootstrap may have already created it — ignore duplicate.
+		if existing, getErr := localStore.Company().GetByID(context.Background(), companyID); getErr != nil || existing == nil {
+			t.Fatal(err)
+		}
 	}
 
 	// Run catalog sync executor (lots sync).

@@ -1,6 +1,9 @@
 package lot
 
-import "github.com/tokenjoy/backend/internal/domain/types"
+import (
+	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/domain/types"
+)
 
 func LedgerSegmentsFromEntry(base types.UsageLedgerEntry, segs []Segment) []types.UsageLedgerEntry {
 	out := make([]types.UsageLedgerEntry, 0, len(segs))
@@ -13,6 +16,7 @@ func LedgerSegmentsFromEntry(base types.UsageLedgerEntry, segs []Segment) []type
 		entry.Cost = seg.Cost
 		entry.BillingCurrency = seg.BillingCurrency
 		if i > 0 {
+			entry.ID = uuid.Must(uuid.NewV7())
 			entry.CallDetail = types.UsageCallDetail{}
 		}
 		out = append(out, entry)
