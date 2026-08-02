@@ -101,7 +101,7 @@ export function KeyFormWorkflow({
     let cancelled = false
     const resolve = async () => {
       const allModels = await apis.modelsApi.list()
-      const enabled = allModels.filter((m) => m.active)
+      const enabled = allModels.filter((m) => !m.deprecated)
       const allowedIds = await resolveAllModels()
       if (!allowedIds) return enabled
       const allowed = new Set(allowedIds)
@@ -114,7 +114,7 @@ export function KeyFormWorkflow({
       .catch(() => {
         // Fallback: show all active models rather than stuck on "加载中"
         if (!cancelled) {
-          void apis.modelsApi.list().then((all) => setAvailableModels(all.filter((m) => m.active)))
+          void apis.modelsApi.list().then((all) => setAvailableModels(all.filter((m) => !m.deprecated)))
         }
       })
     return () => {

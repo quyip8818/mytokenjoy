@@ -16,3 +16,5 @@ export { isBuiltinModel } from './lib/model-kind'
 export { isCustomModel } from './lib/model-kind'
 // consumed by: workflow/key-form, workflow/approval-submit — shared inline model multi-select
 export { InlineModelPicker } from './components/inline-model-picker'
+// consumed by: platform/models (shared model table component)
+export { ModelTable } from './components/model-table'

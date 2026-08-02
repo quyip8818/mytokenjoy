@@ -18,8 +18,8 @@ func TestValidateModelIDsForMember_AllowedModel(t *testing.T) {
 	departments := []types.Department{{ID: d1, Name: "Dept"}}
 	rules := []types.RoutingRule{{NodeID: d1, AllowedModelIDs: []uuid.UUID{model1, model2}}}
 	models := []types.ModelInfo{
-		{ID: model1, Type: "gpt-4", Active: true},
-		{ID: model2, Type: "claude", Active: true},
+		{ID: model1, Type: "gpt-4", Deprecated: false},
+		{ID: model2, Type: "claude", Deprecated: false},
 	}
 	errMsg := common.ValidateModelIDsForMember(m1, []uuid.UUID{model1}, members, departments, rules, models, "模型不可用")
 	if errMsg != nil {
@@ -37,8 +37,8 @@ func TestValidateModelIDsForMember_BlockedModel(t *testing.T) {
 	departments := []types.Department{{ID: d1, Name: "Dept"}}
 	rules := []types.RoutingRule{{NodeID: d1, AllowedModelIDs: []uuid.UUID{model1}}}
 	models := []types.ModelInfo{
-		{ID: model1, Type: "gpt-4", Active: true},
-		{ID: model2, Type: "claude", Active: true},
+		{ID: model1, Type: "gpt-4", Deprecated: false},
+		{ID: model2, Type: "claude", Deprecated: false},
 	}
 	errMsg := common.ValidateModelIDsForMember(m1, []uuid.UUID{model2}, members, departments, rules, models, "模型不可用")
 	if errMsg == nil {
@@ -57,8 +57,8 @@ func TestValidateModelIDsForMember_EmptyWhitelist(t *testing.T) {
 	model2 := uuid.MustParse("00000000-0000-7000-0000-000000000102")
 	members := []types.Member{{ID: m1, DepartmentID: d1}}
 	models := []types.ModelInfo{
-		{ID: model1, Type: "gpt-4", Active: true},
-		{ID: model2, Type: "claude", Active: true},
+		{ID: model1, Type: "gpt-4", Deprecated: false},
+		{ID: model2, Type: "claude", Deprecated: false},
 	}
 	errMsg := common.ValidateModelIDsForMember(m1, []uuid.UUID{model1}, members, nil, nil, models, "模型不可用")
 	if errMsg != nil {
@@ -96,9 +96,9 @@ func TestWhitelistInheritance_ChildNarrowsFromParent(t *testing.T) {
 		{NodeID: dChild, AllowedModelIDs: []uuid.UUID{model1, model2}, Inherited: true},
 	}
 	models := []types.ModelInfo{
-		{ID: model1, Type: "gpt-4", Active: true},
-		{ID: model2, Type: "claude", Active: true},
-		{ID: model3, Type: "deepseek", Active: true},
+		{ID: model1, Type: "gpt-4", Deprecated: false},
+		{ID: model2, Type: "claude", Deprecated: false},
+		{ID: model3, Type: "deepseek", Deprecated: false},
 	}
 	member := []types.Member{{ID: mChild, DepartmentID: dChild}}
 	if errMsg := common.ValidateModelIDsForMember(mChild, []uuid.UUID{model1}, member, departments, rules, models, "模型不可用"); errMsg != nil {
@@ -147,9 +147,9 @@ func TestResolveDeptAllowedModelIDs_InheritedFromParent(t *testing.T) {
 		{NodeID: dParent, AllowedModelIDs: []uuid.UUID{model1, model2}},
 	}
 	models := []types.ModelInfo{
-		{ID: model1, Type: "gpt-4", Active: true},
-		{ID: model2, Type: "claude", Active: true},
-		{ID: model3, Type: "other", Active: true},
+		{ID: model1, Type: "gpt-4", Deprecated: false},
+		{ID: model2, Type: "claude", Deprecated: false},
+		{ID: model3, Type: "other", Deprecated: false},
 	}
 	allowed := common.ResolveDeptAllowedModelIDs(dChild, departments, rules, models)
 	if len(allowed) != 2 {

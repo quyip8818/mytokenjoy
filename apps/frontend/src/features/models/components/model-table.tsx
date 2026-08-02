@@ -17,7 +17,7 @@ export interface ModelTableRow {
   provider: string
   inputPrice: number
   outputPrice: number
-  active: boolean
+  deprecated: boolean
 }
 
 interface ModelTableProps<T extends ModelTableRow> {
@@ -76,7 +76,7 @@ export function ModelTable<T extends ModelTableRow>({
             key={model.modelId}
             className={cn(
               'group transition-colors',
-              !model.active && 'opacity-45',
+              model.deprecated && 'opacity-45',
               rowClass?.(model),
             )}
           >

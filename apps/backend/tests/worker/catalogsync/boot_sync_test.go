@@ -58,10 +58,10 @@ func TestBootSyncAllChannels(t *testing.T) {
 	}
 	var foundGPT, foundClaude bool
 	for _, m := range allModels {
-		if m.Type == "gpt-4o" && m.Provider == "openai" && m.Active {
+		if m.Type == "gpt-4o" && m.Provider == "openai" && !m.Deprecated {
 			foundGPT = true
 		}
-		if m.Type == "claude-3.5-sonnet" && m.Provider == "anthropic" && m.Active {
+		if m.Type == "claude-3.5-sonnet" && m.Provider == "anthropic" && !m.Deprecated {
 			foundClaude = true
 		}
 	}

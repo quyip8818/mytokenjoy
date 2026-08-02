@@ -68,10 +68,10 @@ func (h *Handler) CatalogModels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Only include active platform-managed global models.
+	// Only include non-deprecated platform-managed global models.
 	var active []types.ModelInfo
 	for _, m := range models {
-		if m.Active && m.CompanyID == h.p.Cfg.TokenJoyCompanyID && m.Source == "platform" {
+		if !m.Deprecated && m.CompanyID == h.p.Cfg.TokenJoyCompanyID && m.Source == "platform" {
 			active = append(active, m)
 		}
 	}
@@ -153,7 +153,7 @@ func (h *Handler) CreateModel(w http.ResponseWriter, r *http.Request) {
 		Type:         body.Type,
 		Name:         body.Name,
 		Source:       "platform",
-		Active:       true,
+		Deprecated:   false,
 		Capabilities: capabilities,
 		MaxContext:   maxContext,
 	}
@@ -181,7 +181,7 @@ type updateModelBody struct {
 	Name         *string  `json:"name"`
 	Type         *string  `json:"type"`
 	Provider     *string  `json:"provider"`
-	Active       *bool    `json:"active"`
+	Deprecated   *bool    `json:"deprecated"`
 	Capabilities []string `json:"capabilities"`
 	MaxContext   *int     `json:"maxContext"`
 }
@@ -218,8 +218,8 @@ func (h *Handler) UpdateModel(w http.ResponseWriter, r *http.Request) {
 	if body.Provider != nil {
 		model.Provider = *body.Provider
 	}
-	if body.Active != nil {
-		model.Active = *body.Active
+	if body.Deprecated != nil {
+		model.Deprecated = *body.Deprecated
 	}
 	if body.Capabilities != nil {
 		model.Capabilities = body.Capabilities

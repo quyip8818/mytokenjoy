@@ -61,9 +61,10 @@ export function useModelListPage(injectedApis?: AppApis) {
   )
 
   const toggleMutation = useMutation({
-    mutationFn: (model: ModelInfo) => apis.modelsApi.toggle(model.modelId, !model.active),
+    mutationFn: (model: ModelInfo) =>
+      apis.modelsApi.update(model.modelId, { deprecated: !model.deprecated }),
     onSuccess: (_data, model) => {
-      toast.success(model.active ? '模型已禁用' : '模型已启用')
+      toast.success(model.deprecated ? '模型已恢复' : '模型已下线')
       flashRow(model.modelId)
       void refresh()
     },

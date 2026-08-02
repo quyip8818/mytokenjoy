@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS models (
     endpoint_model_name TEXT,
     max_context  INT NOT NULL DEFAULT 0,
     max_tokens   INT NOT NULL DEFAULT 0,
-    active       BOOLEAN NOT NULL DEFAULT TRUE,
+    deprecated   BOOLEAN NOT NULL DEFAULT FALSE,
     capabilities TEXT[] NOT NULL DEFAULT '{}',
     source       TEXT NOT NULL DEFAULT 'manual',
     catalog_synced_at TIMESTAMPTZ,

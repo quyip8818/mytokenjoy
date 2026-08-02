@@ -90,7 +90,7 @@ func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 		Type:         "gpt-roundtrip",
 		Name:         "GPT RoundTrip",
 		MaxContext:   128000,
-		Active:       true,
+		Deprecated:   false,
 		Capabilities: []string{"chat"},
 	})
 	if err != nil {

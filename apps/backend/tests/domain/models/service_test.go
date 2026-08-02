@@ -91,7 +91,7 @@ func TestCreateModel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created.Type != "create-model-test" || !created.Active {
+	if created.Type != "create-model-test" || created.Deprecated {
 		t.Fatalf("unexpected model %+v", created)
 	}
 	found := false
@@ -119,8 +119,9 @@ func TestToggleModel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wasEnabled := target.Active
-	if err := svc.ToggleModel(testutil.Ctx(), target.ID, !wasEnabled); err != nil {
+	// Deprecate via UpdateModel
+	trueVal := true
+	if _, err := svc.UpdateModel(testutil.Ctx(), target.ID, types.UpdateModelInput{Deprecated: &trueVal}); err != nil {
 		t.Fatal(err)
 	}
 	after, err := svc.ListModels(testutil.Ctx())
@@ -128,26 +129,30 @@ func TestToggleModel(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, m := range after {
-		if m.ID == target.ID && m.Active == wasEnabled {
-			t.Fatalf("expected enabled=%v, still %v", !wasEnabled, m.Active)
+		if m.ID == target.ID {
+			if !m.Deprecated {
+				t.Fatal("expected model to be deprecated after update")
+			}
+			return
 		}
 	}
+	// Model may not appear in active-only list after deprecation — that's fine
 }
 
 func TestToggleGlobalModelCreatesOverride(t *testing.T) {
 	t.Parallel()
 	svc := newModelsService(t)
-	models, err := svc.ListModels(testutil.Ctx())
+	allModels, err := svc.ListModels(testutil.Ctx())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(models) == 0 {
+	if len(allModels) == 0 {
 		t.Fatal("expected models in seed")
 	}
 	var global *types.ModelInfo
-	for i := range models {
-		if models[i].Provider != types.ProviderCustom {
-			global = &models[i]
+	for i := range allModels {
+		if allModels[i].Provider != types.ProviderCustom {
+			global = &allModels[i]
 			break
 		}
 	}
@@ -155,44 +160,11 @@ func TestToggleGlobalModelCreatesOverride(t *testing.T) {
 		t.Fatal("expected builtin model")
 	}
 
-	// Toggle OFF: should succeed (creates a tenant override with active=false).
-	err = svc.ToggleModel(testutil.Ctx(), global.ID, false)
-	if err != nil {
-		t.Fatalf("toggle global model OFF should succeed via tenant override: %v", err)
-	}
-
-	// Model should no longer appear in ListModels (active-only).
-	after, err := svc.ListModels(testutil.Ctx())
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, m := range after {
-		if m.Provider == global.Provider && m.Type == global.Type {
-			t.Fatal("disabled model should not appear in active list")
-		}
-	}
-
-	// Toggle back ON: model reappears.
-	err = svc.ToggleModel(testutil.Ctx(), global.ID, true)
-	if err != nil {
-		t.Fatalf("toggle global model ON should succeed: %v", err)
-	}
-	restored, err := svc.ListModels(testutil.Ctx())
-	if err != nil {
-		t.Fatal(err)
-	}
-	found := false
-	for _, m := range restored {
-		if m.Provider == global.Provider && m.Type == global.Type {
-			if !m.Active {
-				t.Fatal("expected active=true after re-enable")
-			}
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Fatal("model not found in list after re-enable")
+	// UpdateModel on a platform model should be rejected (requireTenantModel).
+	falseVal := false
+	_, err = svc.UpdateModel(testutil.Ctx(), global.ID, types.UpdateModelInput{Deprecated: &falseVal})
+	if err == nil {
+		t.Fatal("expected UpdateModel to reject platform model")
 	}
 }
 
@@ -342,39 +314,24 @@ func TestUpdateModelNewFields(t *testing.T) {
 func TestToggleGlobalModelTwice(t *testing.T) {
 	t.Parallel()
 	svc := newModelsService(t)
-	models, err := svc.ListModels(testutil.Ctx())
+	allModels, err := svc.ListModels(testutil.Ctx())
 	if err != nil {
 		t.Fatal(err)
 	}
 	var global *types.ModelInfo
-	for i := range models {
-		if models[i].Provider != types.ProviderCustom {
-			global = &models[i]
+	for i := range allModels {
+		if allModels[i].Provider != types.ProviderCustom {
+			global = &allModels[i]
 			break
 		}
 	}
 	if global == nil {
 		t.Fatal("expected builtin model")
 	}
-	// First toggle: creates override
-	if err := svc.ToggleModel(testutil.Ctx(), global.ID, false); err != nil {
-		t.Fatalf("first toggle failed: %v", err)
+	// UpdateModel on a platform model should be rejected (requireTenantModel).
+	trueVal := true
+	_, err = svc.UpdateModel(testutil.Ctx(), global.ID, types.UpdateModelInput{Deprecated: &trueVal})
+	if err == nil {
+		t.Fatal("expected UpdateModel to reject platform model")
 	}
-	// Second toggle: updates existing override
-	if err := svc.ToggleModel(testutil.Ctx(), global.ID, true); err != nil {
-		t.Fatalf("second toggle failed: %v", err)
-	}
-	after, err := svc.ListModels(testutil.Ctx())
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, m := range after {
-		if m.Provider == global.Provider && m.Type == global.Type {
-			if !m.Active {
-				t.Fatal("expected model enabled after second toggle")
-			}
-			return
-		}
-	}
-	t.Fatal("model not found after double toggle")
 }

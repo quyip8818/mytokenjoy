@@ -26,7 +26,7 @@ export function useModelRoutingPage(injectedApis?: AppApis) {
   const rules: RoutingRule[] = useMemo(() => data?.rules ?? [], [data?.rules])
   const departments: Department[] = useMemo(() => data?.departments ?? [], [data?.departments])
   const models: ModelInfo[] = useMemo(
-    () => (data?.models ?? []).filter((m) => m.active),
+    () => (data?.models ?? []).filter((m) => !m.deprecated),
     [data?.models],
   )
 

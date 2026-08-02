@@ -21,7 +21,6 @@ type Service interface {
 	ListModelsWithPricing(ctx context.Context) ([]types.ModelInfo, error)
 	CreateModel(ctx context.Context, input types.CreateModelInput) (types.ModelInfo, error)
 	UpdateModel(ctx context.Context, id uuid.UUID, input types.UpdateModelInput) (types.ModelInfo, error)
-	ToggleModel(ctx context.Context, id uuid.UUID, enabled bool) error
 	ListRoutingRules(ctx context.Context) ([]types.RoutingRule, error)
 	ResolveRouting(ctx context.Context, deptID uuid.UUID) (types.ResolvedWhitelist, error)
 	UpdateRoutingRule(ctx context.Context, id uuid.UUID, input types.UpdateRoutingRuleInput) (types.RoutingRule, error)
@@ -59,7 +58,7 @@ func (s *service) ListModels(ctx context.Context) ([]types.ModelInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	return modelcatalog.FilterActive(modelcatalog.FilterVisible(all)), nil
+	return modelcatalog.FilterNotDeprecated(modelcatalog.FilterVisible(all)), nil
 }
 
 func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput) (types.ModelInfo, error) {
@@ -96,7 +95,7 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 		EndpointModelName: endpointModelName,
 		MaxContext:        maxContext,
 		MaxTokens:         input.MaxTokens,
-		Active:            true,
+		Deprecated:        false,
 		Capabilities:      capabilities,
 	}
 	if err := s.validateModelProviderTypeAvailable(ctx, types.ProviderCustom, input.Type); err != nil {
@@ -167,60 +166,13 @@ func (s *service) UpdateModel(ctx context.Context, id uuid.UUID, input types.Upd
 	if input.Capabilities != nil {
 		existing.Capabilities = append([]string{}, input.Capabilities...)
 	}
+	if input.Deprecated != nil {
+		existing.Deprecated = *input.Deprecated
+	}
 	if err := s.store.Models().UpdateModel(ctx, *existing); err != nil {
 		return types.ModelInfo{}, mapModelPersistError(err)
 	}
 	return *existing, nil
-}
-
-func (s *service) ToggleModel(ctx context.Context, id uuid.UUID, enabled bool) error {
-	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
-		return err
-	}
-	model, err := s.store.Models().ModelByID(ctx, id)
-	if err != nil {
-		return err
-	}
-	if model == nil {
-		return domain.NotFound("Not found")
-	}
-
-	// Global (builtin) model: create a tenant-level override copy with the desired enabled state.
-	// DedupeEffective will pick the tenant copy over the global one.
-	if model.CompanyID == s.cfg.TokenJoyCompanyID {
-		// Cannot enable a globally inactive (platform-delisted) model.
-		if enabled && !model.Active {
-			return domain.Validation("model has been delisted and cannot be enabled")
-		}
-		override := *model
-		override.Active = enabled
-		if _, err := s.store.Models().InsertModel(ctx, override); err != nil {
-			// If tenant override already exists (duplicate provider+type), update it instead.
-			existing, findErr := s.store.Models().ModelByProviderType(ctx, model.Provider, model.Type)
-			if findErr != nil || existing == nil {
-				return mapModelPersistError(err)
-			}
-			existing.Active = enabled
-			if updateErr := s.store.Models().UpdateModel(ctx, *existing); updateErr != nil {
-				return mapModelPersistError(updateErr)
-			}
-		}
-		return nil
-	}
-
-	// Tenant override path: check the global model's active state before allowing re-enable.
-	if enabled {
-		globalModel, err := s.store.Models().GlobalModelByProviderType(ctx, model.Provider, model.Type)
-		if err == nil && globalModel != nil && !globalModel.Active {
-			return domain.Validation("model has been delisted and cannot be enabled")
-		}
-	}
-
-	model.Active = enabled
-	if err := s.store.Models().UpdateModel(ctx, *model); err != nil {
-		return mapModelPersistError(err)
-	}
-	return nil
 }
 
 func (s *service) ListRoutingRules(ctx context.Context) ([]types.RoutingRule, error) {

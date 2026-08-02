@@ -41,7 +41,7 @@ func TestSyncFromPlatform_DeactivatesStaleModels(t *testing.T) {
 	}
 	platformCount := 0
 	for _, m := range all {
-		if m.Source == "platform" && m.Active {
+		if m.Source == "platform" && !m.Deprecated {
 			platformCount++
 		}
 	}
@@ -69,7 +69,7 @@ func TestSyncFromPlatform_DeactivatesStaleModels(t *testing.T) {
 		if m.Source != "platform" {
 			continue
 		}
-		if m.Active {
+		if !m.Deprecated {
 			activeCount++
 		} else {
 			inactiveModel = &all[i]
@@ -83,8 +83,8 @@ func TestSyncFromPlatform_DeactivatesStaleModels(t *testing.T) {
 	}
 }
 
-// TestToggleModel_RejectsEnablingGloballyInactiveModel verifies that ToggleModel
-// refuses to enable a model whose global row is inactive (platform-delisted).
+// TestToggleModel_RejectsEnablingGloballyInactiveModel verifies that UpdateModel
+// rejects platform models (requireTenantModel check).
 func TestToggleModel_RejectsEnablingGloballyInactiveModel(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
@@ -112,14 +112,15 @@ func TestToggleModel_RejectsEnablingGloballyInactiveModel(t *testing.T) {
 	if err != nil || model == nil {
 		t.Fatalf("expected to find global model: err=%v model=%v", err, model)
 	}
-	if model.Active {
+	if !model.Deprecated {
 		t.Fatal("expected model to be inactive after empty sync")
 	}
 
-	// Try to toggle it to enabled — should be rejected.
-	err = svc.ToggleModel(ctx, model.ID, true)
+	// UpdateModel on a platform model should be rejected (requireTenantModel).
+	trueVal := true
+	_, err = svc.UpdateModel(ctx, model.ID, types.UpdateModelInput{Deprecated: &trueVal})
 	if err == nil {
-		t.Fatal("expected ToggleModel to reject enabling a globally inactive model")
+		t.Fatal("expected UpdateModel to reject platform model")
 	}
 }
 
@@ -164,8 +165,9 @@ func TestListModels_ExcludesInactiveButRoutingStillEnriches(t *testing.T) {
 		t.Fatal("IDModel1 not found")
 	}
 
-	// Toggle it off.
-	if err := svc.ToggleModel(ctx, target.ID, false); err != nil {
+	// Toggle it off via UpdateModel (target is a custom/tenant model).
+	trueVal := true
+	if _, err := svc.UpdateModel(ctx, target.ID, types.UpdateModelInput{Deprecated: &trueVal}); err != nil {
 		t.Fatal(err)
 	}
 

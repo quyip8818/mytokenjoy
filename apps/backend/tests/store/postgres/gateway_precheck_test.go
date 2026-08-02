@@ -84,7 +84,7 @@ func TestGatewayPrecheck_InactiveModelStillAllowed(t *testing.T) {
 	if err != nil || model == nil {
 		t.Fatalf("failed to find model: err=%v", err)
 	}
-	model.Active = false
+	model.Deprecated = true
 	if err := fx.Store.Models().UpdateModel(fx.Ctx, *model); err != nil {
 		t.Fatalf("failed to deactivate model: %v", err)
 	}

@@ -15,7 +15,7 @@ export interface ModelInfo {
   outputPrice: number
   maxContext: number
   maxTokens: number
-  active: boolean
+  deprecated: boolean
   capabilities: string[]
 }
 
@@ -28,7 +28,7 @@ export interface ModelRef {
   type: string
   name: string
   provider: ProviderType
-  active: boolean
+  deprecated: boolean
 }
 
 export interface CreateModelInput {

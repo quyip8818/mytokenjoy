@@ -20,7 +20,7 @@ function refsFromRule(rule: RoutingRule): ModelRef[] {
     type: `#${modelId}`,
     name: `#${modelId}`,
     provider: 'custom',
-    active: true,
+    deprecated: false,
   }))
 }
 
@@ -48,7 +48,7 @@ export function WhitelistConfigWorkflow({
           type: `#${id}`,
           name: `#${id}`,
           provider: 'custom' as const,
-          active: true,
+          deprecated: false,
         },
     )
   }, [modelIds, rule.allowedModels])

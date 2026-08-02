@@ -24,11 +24,11 @@ func FilterVisible(models []types.ModelInfo) []types.ModelInfo {
 	return out
 }
 
-// FilterActive returns only active models (active == true).
-func FilterActive(models []types.ModelInfo) []types.ModelInfo {
+// FilterNotDeprecated returns only non-deprecated models (deprecated == false).
+func FilterNotDeprecated(models []types.ModelInfo) []types.ModelInfo {
 	out := make([]types.ModelInfo, 0, len(models))
 	for i := range models {
-		if models[i].Active {
+		if !models[i].Deprecated {
 			out = append(out, models[i])
 		}
 	}

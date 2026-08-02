@@ -37,8 +37,8 @@ export function usePlatformModelsPage() {
   const handleToggle = useCallback(
     async (model: PlatformModel) => {
       try {
-        await apis.platformApi.updateModel(model.modelId, { active: !model.active })
-        toast.success(model.active ? '模型已禁用' : '模型已启用')
+        await apis.platformApi.updateModel(model.modelId, { deprecated: !model.deprecated })
+        toast.success(model.deprecated ? '模型已恢复' : '模型已下线')
         void refresh()
       } catch (e: unknown) {
         toast.error(e instanceof Error ? e.message : '操作失败')

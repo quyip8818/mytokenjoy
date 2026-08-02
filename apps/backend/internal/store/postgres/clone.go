@@ -97,7 +97,7 @@ func cloneModels(items []types.ModelInfo) []types.ModelInfo {
 		cloned := types.ModelInfo{
 			ID: model.ID, CompanyID: model.CompanyID, Provider: model.Provider, Type: model.Type,
 			Name: model.Name, Description: model.Description,
-			MaxContext: model.MaxContext, Active: model.Active,
+			MaxContext: model.MaxContext, Deprecated: model.Deprecated,
 			Capabilities: append([]string{}, model.Capabilities...),
 		}
 		if model.Endpoint != nil {

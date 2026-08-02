@@ -97,14 +97,14 @@ func (r *pgModelsRepo) InsertModel(ctx context.Context, model types.ModelInfo) (
 		INSERT INTO models (
 			company_id, provider, type, name, description, endpoint,
 			api_key, endpoint_model_name,
-			max_context, max_tokens, active, capabilities,
+			max_context, max_tokens, deprecated, capabilities,
 			updated_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
 		RETURNING model_id
 	`, companyID, model.Provider, model.Type, model.Name,
 		model.Description, model.Endpoint,
 		model.ApiKey, model.EndpointModelName,
-		model.MaxContext, model.MaxTokens, model.Active,
+		model.MaxContext, model.MaxTokens, model.Deprecated,
 		capabilities).Scan(&modelID)
 	if err != nil {
 		return types.ModelInfo{}, fmt.Errorf("insert model: %w", err)
@@ -131,14 +131,14 @@ func (r *pgModelsRepo) UpdateModel(ctx context.Context, model types.ModelInfo) e
 			endpoint_model_name = $9,
 			max_context = $10,
 			max_tokens = $11,
-			active = $12,
+			deprecated = $12,
 			capabilities = $13,
 			updated_at = NOW()
 		WHERE model_id = $1 AND company_id = $2
 	`, model.ID, companyID, model.Provider, model.Type, model.Name,
 		model.Description, model.Endpoint,
 		model.ApiKey, model.EndpointModelName,
-		model.MaxContext, model.MaxTokens, model.Active,
+		model.MaxContext, model.MaxTokens, model.Deprecated,
 		capabilities)
 	if err != nil {
 		return fmt.Errorf("update model %d: %w", model.ID, err)
@@ -170,12 +170,12 @@ func (r *pgModelsRepo) SyncFromPlatform(ctx context.Context, companyID uuid.UUID
 			caps = []string{}
 		}
 		_, err := r.db.Exec(ctx, `
-			INSERT INTO models (company_id, provider, type, name, source, active, capabilities, max_context, catalog_synced_at, updated_at)
-			VALUES ($1, $2, $3, $4, 'platform', TRUE, $5, $6, $7, $7)
+			INSERT INTO models (company_id, provider, type, name, source, deprecated, capabilities, max_context, catalog_synced_at, updated_at)
+			VALUES ($1, $2, $3, $4, 'platform', FALSE, $5, $6, $7, $7)
 			ON CONFLICT (company_id, provider, type) DO UPDATE SET
 				name = EXCLUDED.name,
 				source = 'platform',
-				active = TRUE,
+				deprecated = FALSE,
 				capabilities = EXCLUDED.capabilities,
 				max_context = EXCLUDED.max_context,
 				catalog_synced_at = $7,
@@ -188,8 +188,8 @@ func (r *pgModelsRepo) SyncFromPlatform(ctx context.Context, companyID uuid.UUID
 
 	// Step 2: Deactivate stale platform models — those not touched by this batch.
 	_, err := r.db.Exec(ctx, `
-		UPDATE models SET active = FALSE, updated_at = $2
-		WHERE company_id = $1 AND source = 'platform' AND active = TRUE
+		UPDATE models SET deprecated = TRUE, updated_at = $2
+		WHERE company_id = $1 AND source = 'platform' AND deprecated = FALSE
 			AND (catalog_synced_at IS NULL OR catalog_synced_at < $2)
 	`, companyID, batchTS)
 	if err != nil {

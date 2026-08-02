@@ -27,7 +27,7 @@ export interface PlatformModel {
   inputPrice: number
   outputPrice: number
   maxContext: number
-  active: boolean
+  deprecated: boolean
   capabilities: string[]
   source: string
 }
@@ -46,7 +46,7 @@ export interface PlatformUpdateModelInput {
   name?: string
   type?: string
   provider?: string
-  active?: boolean
+  deprecated?: boolean
   capabilities?: string[]
   maxContext?: number
 }

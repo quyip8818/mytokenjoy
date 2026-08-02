@@ -34,8 +34,8 @@ func TestDedupeEffectiveTenantOverridesGlobal(t *testing.T) {
 func TestDedupeEffectiveDifferentProviderSameType(t *testing.T) {
 	t.Parallel()
 	items := []types.ModelInfo{
-		{ID: catModel1, Provider: "openai", Type: "gpt-4o", Active: true},
-		{ID: catModel2, Provider: types.ProviderCustom, Type: "gpt-4o", Active: true},
+		{ID: catModel1, Provider: "openai", Type: "gpt-4o", Deprecated: false},
+		{ID: catModel2, Provider: types.ProviderCustom, Type: "gpt-4o", Deprecated: false},
 	}
 	out := modelcatalog.DedupeEffective(items)
 	if len(out) != 2 {
@@ -46,9 +46,9 @@ func TestDedupeEffectiveDifferentProviderSameType(t *testing.T) {
 func TestFilterEnabledIDs(t *testing.T) {
 	t.Parallel()
 	catalog := []types.ModelInfo{
-		{ID: catModel1, Type: "a", Active: true},
-		{ID: catModel2, Type: "b", Active: false},
-		{ID: catModel3, Type: "c", Active: true},
+		{ID: catModel1, Type: "a", Deprecated: false},
+		{ID: catModel2, Type: "b", Deprecated: true},
+		{ID: catModel3, Type: "c", Deprecated: false},
 	}
 	out := modelcatalog.FilterEnabledIDs(catalog, []uuid.UUID{catModel1, catModel2, catModel3, catModel9})
 	if len(out) != 2 || out[0] != catModel1 || out[1] != catModel3 {
@@ -59,9 +59,9 @@ func TestFilterEnabledIDs(t *testing.T) {
 func TestIsCallTypeAllowed(t *testing.T) {
 	t.Parallel()
 	catalog := []types.ModelInfo{
-		{ID: catModel1, Provider: "openai", Type: "gpt-4o", Active: true},
-		{ID: catModel2, Provider: types.ProviderCustom, Type: "gpt-4o", Active: true},
-		{ID: catModel3, Provider: "openai", Type: "claude", Active: false},
+		{ID: catModel1, Provider: "openai", Type: "gpt-4o", Deprecated: false},
+		{ID: catModel2, Provider: types.ProviderCustom, Type: "gpt-4o", Deprecated: false},
+		{ID: catModel3, Provider: "openai", Type: "claude", Deprecated: true},
 	}
 	if !modelcatalog.IsCallTypeAllowed(catalog, []uuid.UUID{catModel2}, "gpt-4o") {
 		t.Fatal("expected allowed")
@@ -77,8 +77,8 @@ func TestIsCallTypeAllowed(t *testing.T) {
 func TestResolveIDForCallTypePrefersCustom(t *testing.T) {
 	t.Parallel()
 	catalog := []types.ModelInfo{
-		{ID: catModel1, Provider: "openai", Type: "gpt-4o", Active: true},
-		{ID: catModel2, Provider: types.ProviderCustom, Type: "gpt-4o", Active: true},
+		{ID: catModel1, Provider: "openai", Type: "gpt-4o", Deprecated: false},
+		{ID: catModel2, Provider: types.ProviderCustom, Type: "gpt-4o", Deprecated: false},
 	}
 	id, ok := modelcatalog.ResolveIDForCallType(catalog, []uuid.UUID{catModel1, catModel2}, "gpt-4o")
 	if !ok || id == nil || *id != catModel2 {
@@ -89,8 +89,8 @@ func TestResolveIDForCallTypePrefersCustom(t *testing.T) {
 func TestValidateWritableIDs(t *testing.T) {
 	t.Parallel()
 	catalog := []types.ModelInfo{
-		{ID: catModel1, Active: true},
-		{ID: catModel2, Active: false},
+		{ID: catModel1, Deprecated: false},
+		{ID: catModel2, Deprecated: true},
 	}
 	if err := modelcatalog.ValidateWritableIDs(catalog, []uuid.UUID{catModel1}); err != nil {
 		t.Fatal(err)
@@ -106,9 +106,9 @@ func TestValidateWritableIDs(t *testing.T) {
 func TestCallTypesForIDs(t *testing.T) {
 	t.Parallel()
 	catalog := []types.ModelInfo{
-		{ID: catModel1, Type: "gpt-4o", Active: true},
-		{ID: catModel2, Type: "gpt-4o", Active: true},
-		{ID: catModel3, Type: "claude", Active: false},
+		{ID: catModel1, Type: "gpt-4o", Deprecated: false},
+		{ID: catModel2, Type: "gpt-4o", Deprecated: false},
+		{ID: catModel3, Type: "claude", Deprecated: true},
 	}
 	out := modelcatalog.CallTypesForIDs(catalog, []uuid.UUID{catModel1, catModel2, catModel3})
 	if len(out) != 1 || out[0] != "gpt-4o" {

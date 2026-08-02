@@ -14,9 +14,9 @@ func TestMergePricingIntoModels(t *testing.T) {
 	t.Parallel()
 
 	models := []types.ModelInfo{
-		{Type: "gpt-4o", Name: "GPT-4o", Active: true},
-		{Type: "claude-3.5-sonnet", Name: "Claude 3.5", Active: true},
-		{Type: "no-price-model", Name: "No Price", Active: true},
+		{Type: "gpt-4o", Name: "GPT-4o", Deprecated: false},
+		{Type: "claude-3.5-sonnet", Name: "Claude 3.5", Deprecated: false},
+		{Type: "no-price-model", Name: "No Price", Deprecated: false},
 	}
 
 	ratios := []adminport.ModelPricing{
@@ -65,7 +65,7 @@ func TestMergePricingEmpty(t *testing.T) {
 	t.Parallel()
 
 	models := []types.ModelInfo{
-		{Type: "gpt-4o", Name: "GPT-4o", Active: true},
+		{Type: "gpt-4o", Name: "GPT-4o", Deprecated: false},
 	}
 
 	var ratios []adminport.ModelPricing // empty — NewAPI call failed or returned nothing
@@ -93,7 +93,7 @@ func TestMergePricingExtraRatios(t *testing.T) {
 	t.Parallel()
 
 	models := []types.ModelInfo{
-		{Type: "gpt-4o", Name: "GPT-4o", Active: true},
+		{Type: "gpt-4o", Name: "GPT-4o", Deprecated: false},
 	}
 
 	ratios := []adminport.ModelPricing{

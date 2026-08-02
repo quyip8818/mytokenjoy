@@ -6,14 +6,14 @@ export const mockModelRefs: ModelRef[] = [
     type: 'deepseek-v4-pro',
     name: 'DeepSeek V4 Pro',
     provider: 'deepseek',
-    active: true,
+    deprecated: false,
   },
   {
     modelId: '00000000-0000-7000-8000-0000000000bb',
     type: 'deepseek-v4-flash',
     name: 'DeepSeek V4 Flash',
     provider: 'deepseek',
-    active: true,
+    deprecated: false,
   },
 ]
 
@@ -28,7 +28,7 @@ export const mockModels: ModelInfo[] = [
     outputPrice: 2.5,
     maxContext: 128000,
     maxTokens: 4096,
-    active: true,
+    deprecated: false,
     capabilities: ['chat'],
   },
   {
@@ -41,7 +41,7 @@ export const mockModels: ModelInfo[] = [
     outputPrice: 0.6,
     maxContext: 128000,
     maxTokens: 4096,
-    active: true,
+    deprecated: false,
     capabilities: ['chat'],
   },
 ]

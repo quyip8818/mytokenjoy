@@ -223,8 +223,8 @@ func TestListModelsWithPricingMerges(t *testing.T) {
 		},
 	}
 	seed := []types.ModelInfo{
-		{ID: uuid.Must(uuid.NewV7()), Type: "gpt-4o", Name: "GPT-4o", Provider: "openai", Active: true, Capabilities: []string{"chat"}, Source: "platform"},
-		{ID: uuid.Must(uuid.NewV7()), Type: "claude-3.5", Name: "Claude", Provider: "anthropic", Active: true, Capabilities: []string{"chat"}, Source: "platform"},
+		{ID: uuid.Must(uuid.NewV7()), Type: "gpt-4o", Name: "GPT-4o", Provider: "openai", Deprecated: false, Capabilities: []string{"chat"}, Source: "platform"},
+		{ID: uuid.Must(uuid.NewV7()), Type: "claude-3.5", Name: "Claude", Provider: "anthropic", Deprecated: false, Capabilities: []string{"chat"}, Source: "platform"},
 	}
 	svc := newTestSvc(client, seed...)
 

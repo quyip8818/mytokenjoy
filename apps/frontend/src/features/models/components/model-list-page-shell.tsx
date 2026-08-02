@@ -64,6 +64,7 @@ export function ModelListPageShell({
       <ModelListTable
         models={models}
         canManage={canManage}
+        isSelfHosted={isSelfHosted}
         rowClass={rowClass}
         onToggle={handleToggle}
         onEdit={openEdit}

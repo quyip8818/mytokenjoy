@@ -23,7 +23,7 @@ type ModelInfo struct {
 	EndpointModelName *string   `json:"endpointModelName,omitempty"`
 	MaxContext        int       `json:"maxContext"`
 	MaxTokens         int       `json:"maxTokens"`
-	Active            bool      `json:"active"`
+	Deprecated        bool      `json:"deprecated"`
 	Capabilities      []string  `json:"capabilities"`
 	Source            string    `json:"source"` // "manual" | "platform" | "seed"
 	InputPrice        float64   `json:"inputPrice"`
@@ -35,11 +35,11 @@ func (m ModelInfo) IsCustom() bool {
 }
 
 type ModelRef struct {
-	ID       uuid.UUID `json:"modelId"`
-	Type     string    `json:"type"`
-	Name     string    `json:"name"`
-	Provider string    `json:"provider"`
-	Active   bool      `json:"active"`
+	ID         uuid.UUID `json:"modelId"`
+	Type       string    `json:"type"`
+	Name       string    `json:"name"`
+	Provider   string    `json:"provider"`
+	Deprecated bool      `json:"deprecated"`
 }
 
 type RoutingRule struct {
@@ -68,10 +68,6 @@ type CreateModelInput struct {
 	Capabilities      []string `json:"capabilities"`
 }
 
-type ToggleModelInput struct {
-	Enabled bool `json:"enabled"`
-}
-
 type UpdateModelInput struct {
 	Name              *string  `json:"name"`
 	Type              *string  `json:"type"`
@@ -84,6 +80,7 @@ type UpdateModelInput struct {
 	MaxContext        *int     `json:"maxContext"`
 	MaxTokens         *int     `json:"maxTokens"`
 	Capabilities      []string `json:"capabilities"`
+	Deprecated        *bool    `json:"deprecated"`
 }
 
 type UpdateRoutingRuleInput struct {

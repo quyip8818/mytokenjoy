@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
-import { ModelTable } from '@/components/ui/model-table'
+import { ModelTable } from '@/features/models'
 import type { PlatformModel } from '@/api/types'
 import type { usePlatformModelsPage } from '../hooks/use-platform-models-page'
 
@@ -107,8 +107,8 @@ export function PlatformModelsPageShell({
                 {
                   header: '状态',
                   render: (m) => (
-                    <Badge variant={m.active ? 'default' : 'outline'}>
-                      {m.active ? '启用' : '禁用'}
+                    <Badge variant={m.deprecated ? 'outline' : 'default'}>
+                      {m.deprecated ? '已下线' : '启用'}
                     </Badge>
                   ),
                 },
@@ -124,8 +124,8 @@ export function PlatformModelsPageShell({
                   </button>
                   <button
                     onClick={() => handleToggle(m)}
-                    className={`rounded p-1.5 hover:bg-muted ${m.active ? 'text-amber-500' : 'text-green-500'}`}
-                    title={m.active ? '禁用' : '启用'}
+                    className={`rounded p-1.5 hover:bg-muted ${m.deprecated ? 'text-green-500' : 'text-amber-500'}`}
+                    title={m.deprecated ? '恢复' : '下线'}
                   >
                     <Power className="h-3.5 w-3.5" />
                   </button>

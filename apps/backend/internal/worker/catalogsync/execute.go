@@ -136,7 +136,7 @@ func (e *Executor) syncModels(ctx context.Context, models []catalog.CatalogModel
 			Type:         m.ModelID,
 			Name:         m.DisplayName,
 			Source:       "platform",
-			Active:       true,
+			Deprecated:   false,
 			Capabilities: m.Capabilities,
 			MaxContext:   m.MaxContext,
 		})

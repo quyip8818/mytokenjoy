@@ -143,8 +143,8 @@ func TestModelsEndpoints(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		body := []byte(`{"enabled":false}`)
-		req := httptest.NewRequest(http.MethodPut, "/api/models/"+created.ID.String()+"/toggle", bytes.NewReader(body))
+		body := []byte(`{"deprecated":true}`)
+		req := httptest.NewRequest(http.MethodPut, "/api/models/"+created.ID.String(), bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Cookie", adminCookie)
 		rec := httptest.NewRecorder()
