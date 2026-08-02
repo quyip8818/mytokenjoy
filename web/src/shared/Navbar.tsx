@@ -89,7 +89,7 @@ export function Navbar({ content, scrollThreshold = 20 }: NavbarProps) {
               ))}
             </div>
 
-            <div className="hidden md:flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-8">
               <button
                 type="button"
                 onClick={() => openAuth('login')}
@@ -156,7 +156,7 @@ export function Navbar({ content, scrollThreshold = 20 }: NavbarProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={closeAuth} />
           <div
-            className="relative w-[480px] max-w-[95vw] max-h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-white transition-[height] duration-150"
+            className="relative w-[480px] max-w-[95vw] max-h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-white transition-[height] duration-[400ms] ease-out"
             style={{ height: `${iframeHeight}px` }}
           >
             <button

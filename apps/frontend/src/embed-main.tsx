@@ -23,18 +23,21 @@ function handleSuccess() {
   }
 }
 
-function reportHeight() {
-  postToParent({ type: 'auth:resize', height: document.documentElement.scrollHeight })
-}
+const root = document.getElementById('root')!
 
-createRoot(document.getElementById('root')!).render(
+createRoot(root).render(
   <StrictMode>
     <AuthCard defaultMode={mode} onSuccess={handleSuccess} />
   </StrictMode>,
 )
 
-requestAnimationFrame(() => {
-  reportHeight()
-  const observer = new ResizeObserver(reportHeight)
-  observer.observe(document.body)
-})
+// 持续上报 #root 的内容高度给父窗口，覆盖所有操作（步骤切换、错误提示等）
+if (window.parent !== window) {
+  const report = () => postToParent({ type: 'auth:resize', height: root.scrollHeight })
+  const observer = new MutationObserver(report)
+  observer.observe(root, { childList: true, subtree: true, attributes: true })
+  // ResizeObserver 兜底布局变化
+  new ResizeObserver(report).observe(root)
+  // 首次上报
+  requestAnimationFrame(report)
+}
