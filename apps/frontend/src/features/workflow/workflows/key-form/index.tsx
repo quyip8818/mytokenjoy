@@ -114,7 +114,9 @@ export function KeyFormWorkflow({
       .catch(() => {
         // Fallback: show all active models rather than stuck on "加载中"
         if (!cancelled) {
-          void apis.modelsApi.list().then((all) => setAvailableModels(all.filter((m) => !m.deprecated)))
+          void apis.modelsApi
+            .list()
+            .then((all) => setAvailableModels(all.filter((m) => !m.deprecated)))
         }
       })
     return () => {

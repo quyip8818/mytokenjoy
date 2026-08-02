@@ -23,7 +23,11 @@ export function WeightsPage() {
   const [saving, setSaving] = useState(false)
   const [edits, setEdits] = useState<EvaluationWeight[] | null>(null)
 
-  const { data: serverWeights, loading, refresh } = useInjectedQuery({
+  const {
+    data: serverWeights,
+    loading,
+    refresh,
+  } = useInjectedQuery({
     queryKey: queryKeys.evaluations.weights(),
     queryFn: (a) => a.evaluationsApi.getWeights(),
   })

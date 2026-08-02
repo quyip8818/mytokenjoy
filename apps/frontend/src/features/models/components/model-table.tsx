@@ -94,9 +94,7 @@ export function ModelTable<T extends ModelTableRow>({
             {extraColumns?.map((col) => (
               <TableCell key={col.header}>{col.render(model)}</TableCell>
             ))}
-            {renderActions && (
-              <TableCell className="text-right">{renderActions(model)}</TableCell>
-            )}
+            {renderActions && <TableCell className="text-right">{renderActions(model)}</TableCell>}
           </TableRow>
         ))}
       </TableBody>

@@ -1,7 +1,12 @@
 import { useState, useMemo } from 'react'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useFilteredQuery, useInjectedQuery, useInjectedMutation, queryKeys } from '@/features/query'
+import {
+  useFilteredQuery,
+  useInjectedQuery,
+  useInjectedMutation,
+  queryKeys,
+} from '@/features/query'
 import { useSession } from '@/features/session'
 import { useSupplierOptions } from '@/features/suppliers'
 import { useApis } from '@/api/use-apis'
