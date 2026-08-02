@@ -86,7 +86,6 @@ func (r *inMemModelsRepo) UpdateModel(_ context.Context, m types.ModelInfo) erro
 	}
 	return nil
 }
-func (r *inMemModelsRepo) DeleteModel(_ context.Context, id uuid.UUID) error { return nil }
 func (r *inMemModelsRepo) SyncFromPlatform(context.Context, uuid.UUID, []types.ModelInfo) error {
 	return nil
 }

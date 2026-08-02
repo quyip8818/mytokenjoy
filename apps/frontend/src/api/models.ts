@@ -13,7 +13,6 @@ export const modelsApi = {
     request<ModelInfo>('/models', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: string, data: UpdateModelInput) =>
     request<ModelInfo>(`/models/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  delete: (id: string) => request<void>(`/models/${id}`, { method: 'DELETE' }),
   toggle: (id: string, enabled: boolean) =>
     request<void>(`/models/${id}/toggle`, { method: 'PUT', body: JSON.stringify({ enabled }) }),
 

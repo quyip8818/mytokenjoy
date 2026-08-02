@@ -57,7 +57,6 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Get("/models", h.ListModels)
 		r.Post("/models", h.CreateModel)
 		r.Put("/models/{id}", h.UpdateModel)
-		r.Delete("/models/{id}", h.DeleteModel)
 		r.Put("/models/{id}/pricing", h.SetModelPricing)
 		r.Post("/catalog/publish", h.PublishCatalog)
 		// Pricing management

@@ -47,19 +47,6 @@ export function usePlatformModelsPage() {
     [apis, refresh],
   )
 
-  const handleDelete = useCallback(
-    async (model: PlatformModel) => {
-      try {
-        await apis.platformApi.deleteModel(model.modelId)
-        toast.success('模型已删除')
-        void refresh()
-      } catch (e: unknown) {
-        toast.error(e instanceof Error ? e.message : '删除失败')
-      }
-    },
-    [apis, refresh],
-  )
-
   const openPricing = useCallback((model: PlatformModel) => {
     setPricingModel(model)
     setPricingForm({
@@ -93,7 +80,6 @@ export function usePlatformModelsPage() {
     publishing,
     handlePublish,
     handleToggle,
-    handleDelete,
     pricingModel,
     pricingForm,
     setPricingForm,

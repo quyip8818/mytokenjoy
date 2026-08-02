@@ -18,8 +18,6 @@ export const platformApi = {
   updateModel: (id: string, data: PlatformUpdateModelInput) =>
     request<PlatformModel>(`/platform/models/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 
-  deleteModel: (id: string) => request<void>(`/platform/models/${id}`, { method: 'DELETE' }),
-
   setPricing: (id: string, data: PlatformSetPricingInput) =>
     request<void>(`/platform/models/${id}/pricing`, { method: 'PUT', body: JSON.stringify(data) }),
 

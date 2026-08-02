@@ -70,16 +70,6 @@ export function useModelListPage(injectedApis?: AppApis) {
     onError: (err) => toast.error(apiErrorMessage(err, '操作失败')),
   })
 
-  const deleteMutation = useMutation({
-    mutationFn: (model: ModelInfo) => apis.modelsApi.delete(model.modelId),
-    onSuccess: (_data, model) => {
-      toast.success('模型已删除')
-      flashRow(model.modelId)
-      void refresh()
-    },
-    onError: (err) => toast.error(apiErrorMessage(err, '删除失败')),
-  })
-
   const handleToggle = useCallback(
     (model: ModelInfo) =>
       toggleMutation
@@ -87,13 +77,6 @@ export function useModelListPage(injectedApis?: AppApis) {
         .then(() => {})
         .catch(() => {}),
     [toggleMutation],
-  )
-
-  const handleDelete = useCallback(
-    (model: ModelInfo) => {
-      deleteMutation.mutate(model)
-    },
-    [deleteMutation],
   )
 
   const openCreate = useCallback(() => openWithRefresh('model-create'), [openWithRefresh])
@@ -116,8 +99,7 @@ export function useModelListPage(injectedApis?: AppApis) {
     modelCta,
     rowClass,
     handleToggle,
-    handleDelete,
-    mutating: toggleMutation.isPending || deleteMutation.isPending,
+    mutating: toggleMutation.isPending,
     openCreate,
     openEdit,
   }

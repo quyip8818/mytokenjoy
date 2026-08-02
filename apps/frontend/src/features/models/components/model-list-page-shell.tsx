@@ -44,7 +44,6 @@ export function ModelListPageShell({
   modelCta,
   rowClass,
   handleToggle,
-  handleDelete,
   openCreate,
   openEdit,
 }: ModelListPageShellProps) {
@@ -53,7 +52,7 @@ export function ModelListPageShell({
       loading={loading}
       error={error}
       onRetry={refresh}
-      skeletonColumns={isSelfHosted ? 7 : 4}
+      skeletonColumns={6}
       empty={listEmpty(loading, models, {
         icon: Box,
         title: '暂无模型',
@@ -65,12 +64,9 @@ export function ModelListPageShell({
       <ModelListTable
         models={models}
         canManage={canManage}
-        showActions={isSelfHosted}
-        showProviderColumn={isSelfHosted}
         rowClass={rowClass}
         onToggle={handleToggle}
         onEdit={openEdit}
-        onDelete={handleDelete}
       />
     </DataSection>
   )

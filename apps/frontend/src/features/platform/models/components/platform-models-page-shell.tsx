@@ -1,10 +1,11 @@
-import { Pencil, Power, Trash2, Upload } from 'lucide-react'
+import { Power, Upload, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
+import { ModelTable } from '@/components/ui/model-table'
 import type { PlatformModel } from '@/api/types'
 import type { usePlatformModelsPage } from '../hooks/use-platform-models-page'
 
@@ -77,7 +78,6 @@ export function PlatformModelsPageShell({
   publishing,
   handlePublish,
   handleToggle,
-  handleDelete,
   pricingModel,
   pricingForm,
   setPricingForm,
@@ -101,68 +101,37 @@ export function PlatformModelsPageShell({
       <Card className="border-border shadow-xs">
         <CardContent className="px-5 pt-5 pb-4">
           <DataSection loading={loading} error={error} onRetry={refresh} skeletonColumns={6}>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/30 text-xs text-muted-foreground">
-                  <th className="px-4 py-3 text-left font-medium">模型</th>
-                  <th className="px-4 py-3 text-left font-medium">Provider</th>
-                  <th className="px-4 py-3 text-right font-medium">输入价格</th>
-                  <th className="px-4 py-3 text-right font-medium">输出价格</th>
-                  <th className="px-4 py-3 text-center font-medium">状态</th>
-                  <th className="px-4 py-3 text-center font-medium">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {models.map((m) => (
-                  <tr
-                    key={m.modelId}
-                    className={`border-b last:border-0 hover:bg-muted/20 ${!m.active ? 'opacity-50' : ''}`}
+            <ModelTable
+              models={models}
+              extraColumns={[
+                {
+                  header: '状态',
+                  render: (m) => (
+                    <Badge variant={m.active ? 'default' : 'outline'}>
+                      {m.active ? '启用' : '禁用'}
+                    </Badge>
+                  ),
+                },
+              ]}
+              renderActions={(m) => (
+                <div className="inline-flex items-center gap-1">
+                  <button
+                    onClick={() => openPricing(m)}
+                    className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    title="编辑定价"
                   >
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{m.name}</div>
-                      <div className="font-mono text-[11px] text-muted-foreground">{m.type}</div>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">{m.provider}</td>
-                    <td className="px-4 py-3 text-right font-mono text-xs">
-                      {m.inputPrice > 0 ? `¥${m.inputPrice}` : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-xs">
-                      {m.outputPrice > 0 ? `¥${m.outputPrice}` : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <Badge variant={m.active ? 'default' : 'outline'}>
-                        {m.active ? '启用' : '禁用'}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="inline-flex items-center gap-1">
-                        <button
-                          onClick={() => openPricing(m)}
-                          className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                          title="编辑定价"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleToggle(m)}
-                          className={`rounded p-1.5 hover:bg-muted ${m.active ? 'text-amber-500' : 'text-green-500'}`}
-                          title={m.active ? '禁用' : '启用'}
-                        >
-                          <Power className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(m)}
-                          className="rounded p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600"
-                          title="删除"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleToggle(m)}
+                    className={`rounded p-1.5 hover:bg-muted ${m.active ? 'text-amber-500' : 'text-green-500'}`}
+                    title={m.active ? '禁用' : '启用'}
+                  >
+                    <Power className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+            />
           </DataSection>
         </CardContent>
       </Card>

@@ -236,20 +236,6 @@ func (h *Handler) UpdateModel(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, model)
 }
 
-func (h *Handler) DeleteModel(w http.ResponseWriter, r *http.Request) {
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
-		return
-	}
-	if err := h.p.Models.DeleteModel(r.Context(), id); err != nil {
-		httputil.WriteError(w, fmt.Errorf("delete model: %w", err))
-		return
-	}
-	h.bumpModelsCatalogVersion(r.Context())
-	response.Void(w)
-}
-
 // --- Platform Admin: Pricing ---
 
 type setPricingBody struct {
@@ -287,7 +273,6 @@ func (h *Handler) SetModelPricing(w http.ResponseWriter, r *http.Request) {
 // --- Platform Admin: Publish ---
 
 // PublishCatalog forces a version bump (useful for manual re-sync trigger).
-// Under normal operation, version is auto-bumped by Create/Update/Delete.
 func (h *Handler) PublishCatalog(w http.ResponseWriter, r *http.Request) {
 	newVersion, err := h.p.SystemSettings.Increment(r.Context(), catalogModelsVersionKey)
 	if err != nil {

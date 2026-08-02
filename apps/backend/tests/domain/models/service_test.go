@@ -270,29 +270,6 @@ func TestCreateModelRejectsDuplicate(t *testing.T) {
 	}
 }
 
-func TestDeleteModel(t *testing.T) {
-	t.Parallel()
-	svc := newModelsService(t)
-	created, err := svc.CreateModel(testutil.Ctx(), types.CreateModelInput{
-		Type: "delete-me", InputPrice: 1.0, OutputPrice: 2.0,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := svc.DeleteModel(testutil.Ctx(), created.ID); err != nil {
-		t.Fatal(err)
-	}
-	models, err := svc.ListModels(testutil.Ctx())
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, m := range models {
-		if m.ID == created.ID {
-			t.Fatal("deleted model still in list")
-		}
-	}
-}
-
 func TestCreateModelWithNewFields(t *testing.T) {
 	t.Parallel()
 	svc := newModelsService(t)

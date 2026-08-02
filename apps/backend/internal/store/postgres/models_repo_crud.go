@@ -149,32 +149,6 @@ func (r *pgModelsRepo) UpdateModel(ctx context.Context, model types.ModelInfo) e
 	return nil
 }
 
-func (r *pgModelsRepo) DeleteModel(ctx context.Context, modelID uuid.UUID) error {
-	companyID := store.CompanyID(ctx)
-	if _, err := r.db.Exec(ctx, `
-		UPDATE org_nodes SET default_model_id = NULL, updated_at = NOW()
-		WHERE company_id = $1 AND default_model_id = $2
-	`, companyID, modelID); err != nil {
-		return err
-	}
-	if _, err := r.db.Exec(ctx, `
-		UPDATE org_nodes SET fallback_model_id = NULL, updated_at = NOW()
-		WHERE company_id = $1 AND fallback_model_id = $2
-	`, companyID, modelID); err != nil {
-		return err
-	}
-	tag, err := r.db.Exec(ctx, `
-		DELETE FROM models WHERE model_id = $1 AND company_id = $2
-	`, modelID, companyID)
-	if err != nil {
-		return fmt.Errorf("delete model %d: %w", modelID, err)
-	}
-	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("model %d not found in tenant scope", modelID)
-	}
-	return nil
-}
-
 var _ store.ModelsRepository = (*pgModelsRepo)(nil)
 
 func (r *pgModelsRepo) SyncFromPlatform(ctx context.Context, companyID uuid.UUID, models []types.ModelInfo) error {

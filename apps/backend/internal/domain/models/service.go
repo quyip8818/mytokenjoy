@@ -21,7 +21,6 @@ type Service interface {
 	ListModelsWithPricing(ctx context.Context) ([]types.ModelInfo, error)
 	CreateModel(ctx context.Context, input types.CreateModelInput) (types.ModelInfo, error)
 	UpdateModel(ctx context.Context, id uuid.UUID, input types.UpdateModelInput) (types.ModelInfo, error)
-	DeleteModel(ctx context.Context, id uuid.UUID) error
 	ToggleModel(ctx context.Context, id uuid.UUID, enabled bool) error
 	ListRoutingRules(ctx context.Context) ([]types.RoutingRule, error)
 	ResolveRouting(ctx context.Context, deptID uuid.UUID) (types.ResolvedWhitelist, error)
@@ -172,16 +171,6 @@ func (s *service) UpdateModel(ctx context.Context, id uuid.UUID, input types.Upd
 		return types.ModelInfo{}, mapModelPersistError(err)
 	}
 	return *existing, nil
-}
-
-func (s *service) DeleteModel(ctx context.Context, id uuid.UUID) error {
-	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
-		return err
-	}
-	if _, err := s.requireTenantModel(ctx, id); err != nil {
-		return err
-	}
-	return s.store.Models().DeleteModel(ctx, id)
 }
 
 func (s *service) ToggleModel(ctx context.Context, id uuid.UUID, enabled bool) error {
