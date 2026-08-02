@@ -26,9 +26,9 @@ echo ">>> 重置并重新初始化..."
 ${SSH} << 'EOF'
 set -euo pipefail
 cd /opt/mytokenjoy
-DC="docker compose -f deploy/docker-compose.yml --env-file deploy/env/infra.env"
+DC="docker compose -f deploy/docker-compose.yml --env-file deploy/env/secret.env"
 $DC down -v 2>/dev/null || true
-rm -f deploy/env/infra.env deploy/env/apps.env deploy/env/sms.env
+rm -f deploy/env/secret.env
 ./deploy/init.sh
 EOF
 

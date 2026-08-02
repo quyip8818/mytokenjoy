@@ -1,5 +1,5 @@
 # 生产环境 — 全容器化
-# 用法: docker compose --env-file env/infra.env up -d --build
+# 用法: docker compose --env-file env/secret.env --env-file env/apps.env up -d
 services:
   # ─── 基础设施 ───────────────────────────────────────────────
   postgres:
@@ -65,7 +65,10 @@ services:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
       newapi: { condition: service_started }
-    env_file: env/apps.env
+    env_file:
+      - env/secret.env
+      - env/.secret.env
+      - env/apps.env
     environment:
       DATABASE_URL: postgres://tokenjoy:${PG_PASSWORD}@postgres:5432/tokenjoy?sslmode=disable
       LOG_DATABASE_URL: postgres://tokenjoy:${PG_PASSWORD}@postgres:5432/logs?sslmode=disable
@@ -91,7 +94,9 @@ services:
     restart: unless-stopped
     depends_on:
       postgres: { condition: service_healthy }
-    env_file: env/sms.env
+    env_file:
+      - env/secret.env
+      - env/sms.env
     environment:
       DATABASE_URL: postgres://tokenjoy:${PG_PASSWORD}@postgres:5432/sms?sslmode=disable
       PORT: '8020'

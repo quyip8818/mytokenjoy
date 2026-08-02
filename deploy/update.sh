@@ -20,7 +20,7 @@ SSH="ssh -o StrictHostKeyChecking=accept-new -i ${SSH_KEY} ${SERVER_USER}@${SERV
 
 echo ""
 echo ">>> 重启服务..."
-${SSH} "cd /opt/mytokenjoy && docker compose -f deploy/docker-compose.yml --env-file deploy/env/infra.env up -d"
+${SSH} "cd /opt/mytokenjoy && docker compose -f deploy/docker-compose.yml --env-file deploy/env/secret.env up -d"
 
 echo ""
 echo "═══ 更新完成 ═══"

@@ -48,10 +48,10 @@ ${SSH} "mkdir -p ${REMOTE_DIR} /opt/mytokenjoy"
 echo "  上传 deploy/ 目录..."
 rsync -az \
   --exclude='ssl/*.pem' --exclude='ssl/*.key' \
-  --exclude='env/*.env' \
-  --exclude='push-images.sh' --exclude='deploy.sh' \
+  --exclude='push-images.sh' \
   --exclude='docker-compose.local.yml' --exclude='dockerfiles' \
   --exclude='README.md' \
+  --exclude='env/secret.env' \
   -e "ssh -o StrictHostKeyChecking=accept-new -i ${SSH_KEY}" \
   deploy/ "${SERVER_USER}@${SERVER_HOST}:/opt/mytokenjoy/deploy/"
 
