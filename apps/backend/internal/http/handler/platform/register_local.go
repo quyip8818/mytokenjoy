@@ -98,17 +98,13 @@ func (h *Handler) RegisterLocal(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create company (provisions NewAPI wallet user + org tree + member).
-	alias := body.AdminName
-	if alias == "" {
-		alias = body.AdminEmail
-	}
 	createResult, err := h.p.CompanySvc.CreateCompany(ctx, domaincompany.CreateCompanyRequest{
 		UserID:      userID,
 		Name:        body.Name,
 		Industry:    body.Industry,
 		Size:        body.Size,
 		Type:        store.CompanyTypeSelfhosted,
-		MemberAlias: alias,
+		MemberAlias: body.Name,
 	})
 	if err != nil {
 		httputil.WriteJSON(w, http.StatusInternalServerError, nil, fmt.Errorf("create company: %w", err))
@@ -175,7 +171,7 @@ func (h *Handler) ensureUser(ctx context.Context, body registerLocalBody) (uuid.
 	}
 	name := body.AdminName
 	if name == "" {
-		name = body.AdminEmail
+		name = body.Name // Default: admin user's name is the company name.
 	}
 	now := time.Now().UTC()
 	user := store.User{
