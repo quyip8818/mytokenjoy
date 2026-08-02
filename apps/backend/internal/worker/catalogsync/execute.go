@@ -5,6 +5,7 @@ package catalogsync
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -14,6 +15,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	catalog "github.com/tokenjoy/backend/internal/integration/catalogsync"
+	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -142,18 +144,32 @@ func (e *Executor) syncModels(ctx context.Context, models []catalog.CatalogModel
 	return e.store.Models().SyncFromPlatform(ctx, e.globalCompanyID, infos)
 }
 
-// syncPricing fetches global pricing and pushes to local NewAPI (SOT).
-// ponytail: no DB write — NewAPI is the single source of truth for prices.
+// syncPricing fetches global pricing and replaces local NewAPI ratio maps.
+// ponytail: SaaS returns the full pricing snapshot — no read-merge needed. 2 PUTs total.
 func (e *Executor) syncPricing(ctx context.Context, remoteVersion int) error {
 	resp, err := e.client.FetchPricing(ctx)
 	if err != nil {
 		return fmt.Errorf("catalogsync fetch pricing: %w", err)
 	}
+	if len(resp.Data) == 0 {
+		return fmt.Errorf("catalogsync pricing: empty response, skipping")
+	}
 
+	mrMap := make(map[string]float64, len(resp.Data))
+	crMap := make(map[string]float64, len(resp.Data))
 	for _, p := range resp.Data {
-		if err := e.port.UpsertModelRatio(ctx, p.ModelType, p.InputPrice, p.OutputPrice); err != nil {
-			slog.Warn("catalogsync: newapi pricing push failed", "model", p.ModelType, "error", err)
-		}
+		mr, cr := modelcatalog.RatioFromPrice(p.InputPrice, p.OutputPrice)
+		mrMap[p.ModelType] = mr
+		crMap[p.ModelType] = cr
+	}
+
+	mrJSON, _ := json.Marshal(mrMap)
+	if err := e.port.UpdateOption(ctx, "ModelRatio", string(mrJSON)); err != nil {
+		return fmt.Errorf("catalogsync write ModelRatio: %w", err)
+	}
+	crJSON, _ := json.Marshal(crMap)
+	if err := e.port.UpdateOption(ctx, "CompletionRatio", string(crJSON)); err != nil {
+		return fmt.Errorf("catalogsync write CompletionRatio: %w", err)
 	}
 
 	return e.store.SystemSettings().Set(ctx, keyPricingVersion, strconv.Itoa(remoteVersion))
