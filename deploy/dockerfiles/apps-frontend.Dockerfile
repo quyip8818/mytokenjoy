@@ -11,6 +11,7 @@ COPY packages/ packages/
 RUN pnpm install --frozen-lockfile --filter @tokenjoy/frontend...
 
 COPY apps/frontend/ apps/frontend/
+ENV VITE_SUPPORT_SAAS=true
 RUN pnpm -F @tokenjoy/frontend build
 
 FROM nginx:alpine
