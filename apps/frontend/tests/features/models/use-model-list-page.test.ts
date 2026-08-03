@@ -39,23 +39,6 @@ describe('useModelListPage', () => {
     expect(hasCustom).toBe(false)
   })
 
-  it('returns isSelfHosted true for selfhosted company', async () => {
-    const apis = createMockApis({
-      modelsApi: {
-        list: vi.fn().mockResolvedValue(mockModels),
-      },
-    })
-
-    const { result } = renderHookWithProviders(() => useModelListPage(apis), {
-      apis,
-      companyType: 'selfhosted',
-    })
-
-    await waitForLoaded(result, 'loading')
-
-    expect(result.current.isSelfHosted).toBe(true)
-  })
-
   it('shows all models including custom when selfhosted', async () => {
     const apis = createMockApis({
       modelsApi: {

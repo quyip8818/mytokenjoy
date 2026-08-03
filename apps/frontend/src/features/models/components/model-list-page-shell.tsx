@@ -6,7 +6,7 @@ import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { listEmpty } from '@/lib/list-empty'
-import { PermissionGate } from '@/features/session'
+import { PermissionGate, useSession } from '@/features/session'
 import { PERMISSION } from '@/lib/permissions'
 import type { useModelListPage } from '@/features/models'
 import { ModelListTable } from './model-list-table'
@@ -40,13 +40,14 @@ export function ModelListPageShell({
   error,
   refresh,
   canManage,
-  isSelfHosted,
   modelCta,
   rowClass,
   handleToggle,
   openCreate,
   openEdit,
 }: ModelListPageShellProps) {
+  const { companyType } = useSession()
+  const isSelfHosted = companyType === 'selfhosted'
   const tableContent = (
     <DataSection
       loading={loading}

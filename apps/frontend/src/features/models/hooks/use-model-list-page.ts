@@ -22,8 +22,8 @@ export function useModelListPage(injectedApis?: AppApis) {
   const modelCta = useCtaHighlight('MODEL')
   const { has } = usePermissions()
   const canManage = has(PERMISSION.MODEL_MANAGE)
-  const session = useSession()
-  const isSelfHosted = session.companyType === 'selfhosted'
+  const { companyType } = useSession()
+  const isSelfHosted = companyType === 'selfhosted'
   const [tab, setTab] = useState<ModelListTab>('all')
 
   const {
@@ -96,7 +96,6 @@ export function useModelListPage(injectedApis?: AppApis) {
     error,
     refresh,
     canManage,
-    isSelfHosted,
     modelCta,
     rowClass,
     handleToggle,
