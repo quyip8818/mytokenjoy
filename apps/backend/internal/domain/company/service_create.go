@@ -24,6 +24,9 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 	if companyType == "" {
 		companyType = store.CompanyTypeStandard
 	}
+	if companyType == store.CompanyTypePlatform {
+		return CreateCompanyResult{}, domain.BadRequest("cannot create platform company via API")
+	}
 
 	var result CreateCompanyResult
 	err := s.store.WithTx(ctx, func(tx store.Store) error {
