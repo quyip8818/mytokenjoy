@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS companies (
     industry                  TEXT NOT NULL DEFAULT '',
     size                      TEXT NOT NULL DEFAULT '',
     type                      TEXT NOT NULL DEFAULT 'standard'
-                              CHECK (type IN ('standard', 'trial', 'demo', 'selfhosted', 'testing')),
+                              CHECK (type IN ('standard', 'trial', 'demo', 'selfhosted', 'testing', 'platform')),
     status                    TEXT NOT NULL DEFAULT 'active',
     root_dept_id              UUID,
     newapi_wallet_company_id  BIGINT,

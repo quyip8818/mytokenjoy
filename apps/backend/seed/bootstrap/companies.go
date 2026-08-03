@@ -16,7 +16,7 @@ func insertCompanies(ctx context.Context, exec TableWriter, appCfg config.Config
 		INSERT INTO companies (id, name, type, status)
 		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (id) DO NOTHING
-	`, tokenJoyID, "TokenJoy", store.CompanyTypeTesting, store.CompanyStatusActive); err != nil {
+	`, tokenJoyID, "TokenJoy", store.CompanyTypePlatform, store.CompanyStatusActive); err != nil {
 		return fmt.Errorf("insert tokenjoy company: %w", err)
 	}
 

@@ -40,7 +40,7 @@ func insertSeedCompany(ctx context.Context, exec TableWriter, snap store.Snapsho
 	if _, err := exec.Exec(ctx, `
 		INSERT INTO companies (id, name, type, status) VALUES ($1, $2, $3, $4)
 		ON CONFLICT (id) DO NOTHING
-	`, contract.TokenJoyCompanyID, "TokenJoy", store.CompanyTypeStandard, store.CompanyStatusActive); err != nil {
+	`, contract.TokenJoyCompanyID, "TokenJoy", store.CompanyTypePlatform, store.CompanyStatusActive); err != nil {
 		return fmt.Errorf("seed tokenjoy company: %w", err)
 	}
 	t := snap.Company
