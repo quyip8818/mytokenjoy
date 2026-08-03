@@ -235,7 +235,7 @@ sequenceDiagram
 | `PlatformAuth`   | `/api/platform/*`       | 平台签名 JWT；`SUPPORT_SAAS=false` 时路由 404                          |
 | `Authz`          | 需权限的路由            | **PEP**：`RequireAnyPermission` 对照 PDP 展开的 capability             |
 
-鉴权与 RBAC：[权限管理.md](./权限管理.md)。
+鉴权与 RBAC：[permission-hierarchy.md](./permission-hierarchy.md)。
 
 **CompanyResolve 规则：**
 
@@ -261,7 +261,7 @@ sequenceDiagram
 
 鉴权不依赖 profile：无 demo GET 免 Session 分叉；统一 Session JWT + capability。
 
-`GET /api/session`：返回 `member`、`permissions[]`、`authzRevision`、`companyId`。详见 [权限管理.md](./权限管理.md) §4.5。
+`GET /api/session`：返回 `member`、`permissions[]`、`authzRevision`、`companyId`。详见 [permission-hierarchy.md](./permission-hierarchy.md) §6。
 
 Webhook：`POST /api/internal/webhooks/newapi-log`，Header `X-Webhook-Secret`。
 
@@ -509,7 +509,7 @@ HTTP JSON **camelCase**；DB **snake_case**。
 | `deptId`         | dashboard 钻取 query/path      |
 | `RoutingRule.id` | = `nodeId`                     |
 
-权限 key 以 [`manifest.json`](../packages/contracts/permission/manifest.json) 为唯一真相；生成物对齐 `keys.go` ↔ `permission-keys.ts`。详见 [权限管理.md](./权限管理.md) §6。
+权限 key 以 [`manifest.json`](../packages/contracts/permission/manifest.json) 为唯一真相；生成物对齐 `keys.go` ↔ `permission-keys.ts`。详见 [permission-hierarchy.md](./permission-hierarchy.md) §12。
 
 存储侧字段语义见 [Backend-存储架构.md](./Backend-存储架构.md) §6。
 
@@ -732,7 +732,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
     read.Get("/tree", h.Tree)
 
     write := httpmiddleware.ReadRoutes(r, h.Protected)
-    allocate := write.With(httpmiddleware.RequireAnyPermission(permission.BudgetAllocate))
+    allocate := write.With(httpmiddleware.RequireAnyPermission(permission.BudgetManage))
     allocate.Put("/departments/{departmentId}", h.UpdateNode)
 }
 

@@ -32,7 +32,7 @@ Monorepo：`apps/frontend`（React）+ `apps/backend`（Go）+ `apps/newapi`（N
 | ---------------------------------------------------------- | ------------------------------------------------------------ |
 | [auth-system.md](./auth-system.md)                         | 认证架构、成员状态机、邀请注册流程、Member/User 数据边界     |
 | [middleware.md](./middleware.md)                            | Middleware 链、Rate Limiting、Timeout                        |
-| [权限管理.md](./权限管理.md)                               | Identity JWT + PDP、RBAC、manifest 契约                      |
+| [permission-hierarchy.md](./permission-hierarchy.md)                               | Identity JWT + PDP、RBAC、manifest 契约                      |
 | [platform-permission-isolation.md](./platform-permission-isolation.md) | Platform 权限纵深防御：Session/Router/Middleware 三层隔离 |
 | [Notification.md](./Notification.md)                       | 多渠道通知系统、数据模型规范、已实现通知事件、UI 规范        |
 | [approval-system.md](./approval-system.md)                 | 统一审批引擎：Engine + Handler 模式、4 种审批类型            |

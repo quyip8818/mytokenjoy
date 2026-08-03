@@ -382,4 +382,4 @@ PRD 在 US-03、US-08、US-10 多处要求通知。整体现状：
 | [Roadmap.md](./Roadmap.md) | 差距状态简表 |
 | [Frontend.md](./Frontend.md) | 页面路由与 API 契约权威来源 |
 | [Backend-架构.md](./Backend-架构.md) | 分层、NewAPI、Gateway |
-| [权限管理.md](./权限管理.md) | 鉴权与 RBAC |
+| [permission-hierarchy.md](./permission-hierarchy.md) | 鉴权与 RBAC |

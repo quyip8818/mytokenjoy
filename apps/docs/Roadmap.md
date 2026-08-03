@@ -2,7 +2,7 @@
 
 PRD 与当前实现的差距。**工程待办**见 [plan/plan.md](./plan/plan.md)；**现状**见 [Backend-架构.md](./Backend-架构.md)（索引）、[Frontend.md](./Frontend.md)。
 
-**图例：** ✅ 已实现 · ⚠️ 部分实现 · ❌ 未实现 · 🔥 破坏性替换（见 [权限管理.md](./权限管理.md)）
+**图例：** ✅ 已实现 · ⚠️ 部分实现 · ❌ 未实现 · 🔥 破坏性替换（见 [permission-hierarchy.md](./permission-hierarchy.md)）
 
 ---
 
@@ -77,7 +77,7 @@ PRD 与当前实现的差距。**工程待办**见 [plan/plan.md](./plan/plan.md
 
 ## 7. 权限与鉴权
 
-**目标架构**见 [权限管理.md](./权限管理.md) §11–§12。后端 identity 收口与 HTTP/DI 简化已完成（`internal/identity/`、`deps.Public` / `Protected` / `Platform`；middleware 与 handler 统一 `deps.Protected`）。
+**目标架构**见 [permission-hierarchy.md](./permission-hierarchy.md) §11–§12。后端 identity 收口与 HTTP/DI 简化已完成（`internal/identity/`、`deps.Public` / `Protected` / `Platform`；middleware 与 handler 统一 `deps.Protected`）。
 
 | 项                                | 状态 | 说明                                                       |
 | --------------------------------- | ---- | ---------------------------------------------------------- |
@@ -120,5 +120,5 @@ PRD 与当前实现的差距。**工程待办**见 [plan/plan.md](./plan/plan.md
 1. 实现后更新本文状态或移除条目
 2. 工程待办同步 [plan/plan.md](./plan/plan.md)
 3. API 变更同步 [Frontend.md](./Frontend.md) §5 + `api/types/`
-4. 权限变更同步 [权限管理.md](./权限管理.md) + `manifest.json`
+4. 权限变更同步 [permission-hierarchy.md](./permission-hierarchy.md) + `manifest.json`
 5. 产品新需求先更新 [PRD.md](./PRD.md)

@@ -233,7 +233,7 @@ HTTP 非 2xx 时，body 应包含：
 
 ### 5.2 鉴权与权限（目标态）
 
-**方案 B**：签名 Session JWT（仅 identity）+ 服务端 PDP；UI **一次** `GET /session` → Context。破坏性实现规格见 [权限管理.md](./权限管理.md)。
+**方案 B**：签名 Session JWT（仅 identity）+ 服务端 PDP；UI **一次** `GET /session` → Context。破坏性实现规格见 [permission-hierarchy.md](./permission-hierarchy.md)。
 
 #### 5.2.1 Session 端点
 
@@ -269,7 +269,7 @@ HTTP 非 2xx 时，body 应包含：
 
 #### 5.2.4 权限 Key
 
-由 **`packages/contracts/permission/manifest.json`** 生成 [`permission-keys.ts`](../apps/frontend/src/lib/permission-keys.ts)。完整表见 [权限管理.md](./权限管理.md) §14.1。
+由 **`packages/contracts/permission/manifest.json`** 生成 [`permission-keys.ts`](../apps/frontend/src/lib/permission-keys.ts)。完整表见 [permission-hierarchy.md](./permission-hierarchy.md) §14.1。
 
 ---
 
@@ -732,7 +732,7 @@ HTTP 非 2xx 时，body 应包含：
 - **邀请激活**：`POST /auth/accept-invite` 签发企业 JWT（前端未接入独立页）
 - 401 → `AuthUnauthorizedBridge` 跳转 `/login`（或 `/platform/login`）
 
-**删除**：Dev 成员选择器直写裸 `member_id`；见 [权限管理.md](./权限管理.md) §2。
+**删除**：Dev 成员选择器直写裸 `member_id`；见 [permission-hierarchy.md](./permission-hierarchy.md) §2。
 
 #### 5.7.3 联调验收
 
@@ -894,7 +894,7 @@ pnpm install && pnpm start
 | 前端 | http://localhost:5173 |
 | 后端 | http://localhost:8010 |
 
-1. `/login` 用种子账号登录（见 `权限管理.md` WP-2.6）→ JWT Cookie
+1. `/login` 用种子账号登录（见 `permission-hierarchy.md` WP-2.6）→ JWT Cookie
 2. 空库需设 `BOOTSTRAP_MODE=demo` 才会写入种子与演示 runtime；看板时间锚定可选 `CLOCK_ANCHOR=2026-06-19`（见 [Backend-配置架构.md](./Backend-配置架构.md)、[Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)）
 3. 日常开发：`pnpm start`（含 NewAPI + dev-mock + backend + frontend）
 4. 重置：`pnpm reset && pnpm start`
