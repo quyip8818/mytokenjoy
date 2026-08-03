@@ -26,15 +26,16 @@ func TestMergePricingIntoModels(t *testing.T) {
 	}
 
 	// Build price map (same logic as ListModelsWithPricing)
-	priceMap := make(map[string][2]float64, len(ratios))
+	priceMap := make(map[string][3]float64, len(ratios))
 	for _, r := range ratios {
-		input, output := modelcatalog.PriceFromRatio(r.ModelRatio, r.CompletionRatio)
-		priceMap[r.ModelName] = [2]float64{input, output}
+		input, output, cache := modelcatalog.PriceFromRatio(r.ModelRatio, r.CompletionRatio, r.CacheRatio)
+		priceMap[r.ModelName] = [3]float64{input, output, cache}
 	}
 	for i := range models {
 		if p, ok := priceMap[models[i].Type]; ok {
 			models[i].InputPrice = p[0]
 			models[i].OutputPrice = p[1]
+			models[i].CacheInputPrice = p[2]
 		}
 	}
 
@@ -70,15 +71,16 @@ func TestMergePricingEmpty(t *testing.T) {
 
 	var ratios []adminport.ModelPricing // empty — NewAPI call failed or returned nothing
 
-	priceMap := make(map[string][2]float64, len(ratios))
+	priceMap := make(map[string][3]float64, len(ratios))
 	for _, r := range ratios {
-		input, output := modelcatalog.PriceFromRatio(r.ModelRatio, r.CompletionRatio)
-		priceMap[r.ModelName] = [2]float64{input, output}
+		input, output, cache := modelcatalog.PriceFromRatio(r.ModelRatio, r.CompletionRatio, r.CacheRatio)
+		priceMap[r.ModelName] = [3]float64{input, output, cache}
 	}
 	for i := range models {
 		if p, ok := priceMap[models[i].Type]; ok {
 			models[i].InputPrice = p[0]
 			models[i].OutputPrice = p[1]
+			models[i].CacheInputPrice = p[2]
 		}
 	}
 
@@ -101,10 +103,10 @@ func TestMergePricingExtraRatios(t *testing.T) {
 		{ModelName: "deleted-model", ModelRatio: 99.0, CompletionRatio: 1.0}, // not in DB
 	}
 
-	priceMap := make(map[string][2]float64, len(ratios))
+	priceMap := make(map[string][3]float64, len(ratios))
 	for _, r := range ratios {
-		input, output := modelcatalog.PriceFromRatio(r.ModelRatio, r.CompletionRatio)
-		priceMap[r.ModelName] = [2]float64{input, output}
+		input, output, cache := modelcatalog.PriceFromRatio(r.ModelRatio, r.CompletionRatio, r.CacheRatio)
+		priceMap[r.ModelName] = [3]float64{input, output, cache}
 	}
 	for i := range models {
 		if p, ok := priceMap[models[i].Type]; ok {

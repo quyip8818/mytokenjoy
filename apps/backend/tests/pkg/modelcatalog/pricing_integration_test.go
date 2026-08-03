@@ -109,25 +109,27 @@ type pricingTracker struct {
 }
 
 type ratioCall struct {
-	ModelType   string
-	InputPrice  float64
-	OutputPrice float64
+	ModelType       string
+	InputPrice      float64
+	OutputPrice     float64
+	CacheInputPrice float64
 }
 
-func (c *pricingTracker) UpsertModelRatio(_ context.Context, modelType string, inputPrice, outputPrice float64) error {
+func (c *pricingTracker) UpsertModelRatio(_ context.Context, modelType string, inputPrice, outputPrice, cacheInputPrice float64) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.upsertCalls = append(c.upsertCalls, ratioCall{modelType, inputPrice, outputPrice})
+	c.upsertCalls = append(c.upsertCalls, ratioCall{modelType, inputPrice, outputPrice, cacheInputPrice})
 	// Also persist so ListModelPricing reflects the write (simulates real NewAPI behavior).
-	mr, cr := modelcatalog.RatioFromPrice(inputPrice, outputPrice)
+	mr, cr, ca := modelcatalog.RatioFromPrice(inputPrice, outputPrice, cacheInputPrice)
 	for i := range c.pricingData {
 		if c.pricingData[i].ModelName == modelType {
 			c.pricingData[i].ModelRatio = mr
 			c.pricingData[i].CompletionRatio = cr
+			c.pricingData[i].CacheRatio = ca
 			return nil
 		}
 	}
-	c.pricingData = append(c.pricingData, adminport.ModelPricing{ModelName: modelType, ModelRatio: mr, CompletionRatio: cr})
+	c.pricingData = append(c.pricingData, adminport.ModelPricing{ModelName: modelType, ModelRatio: mr, CompletionRatio: cr, CacheRatio: ca})
 	return nil
 }
 

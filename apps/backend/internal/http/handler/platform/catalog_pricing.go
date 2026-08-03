@@ -13,9 +13,10 @@ import (
 
 // catalogPricingDTO is a model price entry in the sync response.
 type catalogPricingDTO struct {
-	ModelType   string  `json:"modelType"`
-	InputPrice  float64 `json:"inputPrice"`
-	OutputPrice float64 `json:"outputPrice"`
+	ModelType       string  `json:"modelType"`
+	InputPrice      float64 `json:"inputPrice"`
+	OutputPrice     float64 `json:"outputPrice"`
+	CacheInputPrice float64 `json:"cacheInputPrice"`
 }
 
 // CatalogPricing returns global pricing for the authenticated sync company.
@@ -37,11 +38,12 @@ func (h *Handler) CatalogPricing(w http.ResponseWriter, r *http.Request) {
 
 	out := make([]catalogPricingDTO, 0, len(ratios))
 	for _, r := range ratios {
-		inputPrice, outputPrice := modelcatalog.PriceFromRatio(r.ModelRatio, r.CompletionRatio)
+		inputPrice, outputPrice, cacheInputPrice := modelcatalog.PriceFromRatio(r.ModelRatio, r.CompletionRatio, r.CacheRatio)
 		out = append(out, catalogPricingDTO{
-			ModelType:   r.ModelName,
-			InputPrice:  inputPrice,
-			OutputPrice: outputPrice,
+			ModelType:       r.ModelName,
+			InputPrice:      inputPrice,
+			OutputPrice:     outputPrice,
+			CacheInputPrice: cacheInputPrice,
 		})
 	}
 

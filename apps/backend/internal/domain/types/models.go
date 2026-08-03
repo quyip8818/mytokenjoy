@@ -28,6 +28,7 @@ type ModelInfo struct {
 	Source            string    `json:"source"` // "manual" | "platform" | "seed"
 	InputPrice        float64   `json:"inputPrice"`
 	OutputPrice       float64   `json:"outputPrice"`
+	CacheInputPrice   float64   `json:"cacheInputPrice"`
 }
 
 func (m ModelInfo) IsCustom() bool {

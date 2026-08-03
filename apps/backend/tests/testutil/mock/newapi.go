@@ -23,7 +23,7 @@ type StubAdminClient struct {
 	RebuildAbilitiesFn func(ctx context.Context) error
 	EnsureGroupFn      func(ctx context.Context, group, displayName string) error
 	ListModelPricingFn func(ctx context.Context) ([]adminport.ModelPricing, error)
-	UpsertModelRatioFn func(ctx context.Context, modelType string, inputPrice, outputPrice float64) error
+	UpsertModelRatioFn func(ctx context.Context, modelType string, inputPrice, outputPrice, cacheInputPrice float64) error
 
 	CreateTokenCalls      int
 	UpdateTokenCalls      int
@@ -144,10 +144,10 @@ func (s *StubAdminClient) UpdateOption(ctx context.Context, key, value string) e
 	return nil
 }
 
-func (s *StubAdminClient) UpsertModelRatio(ctx context.Context, modelType string, inputPrice, outputPrice float64) error {
+func (s *StubAdminClient) UpsertModelRatio(ctx context.Context, modelType string, inputPrice, outputPrice, cacheInputPrice float64) error {
 	s.UpsertModelRatioCalls++
 	if s.UpsertModelRatioFn != nil {
-		return s.UpsertModelRatioFn(ctx, modelType, inputPrice, outputPrice)
+		return s.UpsertModelRatioFn(ctx, modelType, inputPrice, outputPrice, cacheInputPrice)
 	}
 	return nil
 }

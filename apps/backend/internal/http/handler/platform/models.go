@@ -94,13 +94,14 @@ func (h *Handler) CatalogModels(w http.ResponseWriter, r *http.Request) {
 // --- Platform Admin: Model CRUD ---
 
 type createModelBody struct {
-	Type         string   `json:"type"`
-	Name         string   `json:"name"`
-	Provider     string   `json:"provider"`
-	InputPrice   float64  `json:"inputPrice"`
-	OutputPrice  float64  `json:"outputPrice"`
-	Capabilities []string `json:"capabilities"`
-	MaxContext   int      `json:"maxContext"`
+	Type            string   `json:"type"`
+	Name            string   `json:"name"`
+	Provider        string   `json:"provider"`
+	InputPrice      float64  `json:"inputPrice"`
+	OutputPrice     float64  `json:"outputPrice"`
+	CacheInputPrice float64  `json:"cacheInputPrice"`
+	Capabilities    []string `json:"capabilities"`
+	MaxContext      int      `json:"maxContext"`
 }
 
 func (h *Handler) ListModels(w http.ResponseWriter, r *http.Request) {
@@ -169,7 +170,7 @@ func (h *Handler) CreateModel(w http.ResponseWriter, r *http.Request) {
 
 	// Push price to NewAPI (SOT).
 	if body.InputPrice > 0 || body.OutputPrice > 0 {
-		_ = h.p.AdminPort.UpsertModelRatio(r.Context(), body.Type, body.InputPrice, body.OutputPrice)
+		_ = h.p.AdminPort.UpsertModelRatio(r.Context(), body.Type, body.InputPrice, body.OutputPrice, body.CacheInputPrice)
 		h.bumpPricingVersion(r.Context())
 	}
 
@@ -239,8 +240,9 @@ func (h *Handler) UpdateModel(w http.ResponseWriter, r *http.Request) {
 // --- Platform Admin: Pricing ---
 
 type setPricingBody struct {
-	InputPrice  float64 `json:"inputPrice"`
-	OutputPrice float64 `json:"outputPrice"`
+	InputPrice      float64 `json:"inputPrice"`
+	OutputPrice     float64 `json:"outputPrice"`
+	CacheInputPrice float64 `json:"cacheInputPrice"`
 }
 
 func (h *Handler) SetModelPricing(w http.ResponseWriter, r *http.Request) {
@@ -262,7 +264,7 @@ func (h *Handler) SetModelPricing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.p.AdminPort.UpsertModelRatio(r.Context(), model.Type, body.InputPrice, body.OutputPrice); err != nil {
+	if err := h.p.AdminPort.UpsertModelRatio(r.Context(), model.Type, body.InputPrice, body.OutputPrice, body.CacheInputPrice); err != nil {
 		httputil.WriteError(w, fmt.Errorf("set pricing: %w", err))
 		return
 	}
@@ -301,7 +303,7 @@ func (h *Handler) mergePricing(ctx context.Context, models []types.ModelInfo) {
 	}
 	entries := make([]modelcatalog.RatioEntry, len(ratios))
 	for i, r := range ratios {
-		entries[i] = modelcatalog.RatioEntry{ModelName: r.ModelName, ModelRatio: r.ModelRatio, CompletionRatio: r.CompletionRatio}
+		entries[i] = modelcatalog.RatioEntry{ModelName: r.ModelName, ModelRatio: r.ModelRatio, CompletionRatio: r.CompletionRatio, CacheRatio: r.CacheRatio}
 	}
 	modelcatalog.MergePricing(models, entries)
 }

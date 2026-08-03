@@ -6,8 +6,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-heading: 'Inter Variable', sans-serif;
-  --font-sans: 'Inter Variable', sans-serif;
+  --font-heading: 'Inter Variable', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-sans: 'Inter Variable', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
 
   /* Sidebar tokens */
   --color-sidebar-ring: var(--sidebar-ring);

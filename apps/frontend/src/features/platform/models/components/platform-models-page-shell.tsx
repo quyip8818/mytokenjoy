@@ -1,4 +1,4 @@
-import { Power, Upload, Pencil } from 'lucide-react'
+import { Power, Upload, Pencil, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -6,69 +6,10 @@ import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
 import { ModelTable } from '@/features/models'
-import type { PlatformModel } from '@/api/types'
+import { ModelFormDialog } from './model-form-dialog'
 import type { usePlatformModelsPage } from '../hooks/use-platform-models-page'
 
 type Props = ReturnType<typeof usePlatformModelsPage>
-
-function PricingDialog({
-  model,
-  form,
-  setForm,
-  onSave,
-  onClose,
-}: {
-  model: PlatformModel
-  form: { inputPrice: string; outputPrice: string }
-  setForm: (f: { inputPrice: string; outputPrice: string }) => void
-  onSave: () => void
-  onClose: () => void
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="text-base font-semibold">编辑定价</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {model.name} ({model.type})
-        </p>
-        <div className="mt-4 space-y-3">
-          <label className="block text-sm">
-            <span className="text-muted-foreground">输入价格 (元/百万tokens)</span>
-            <input
-              type="number"
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-              value={form.inputPrice}
-              onChange={(e) => setForm({ ...form, inputPrice: e.target.value })}
-            />
-          </label>
-          <label className="block text-sm">
-            <span className="text-muted-foreground">输出价格 (元/百万tokens)</span>
-            <input
-              type="number"
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-              value={form.outputPrice}
-              onChange={(e) => setForm({ ...form, outputPrice: e.target.value })}
-            />
-          </label>
-        </div>
-        <div className="mt-5 flex justify-end gap-2">
-          <Button variant="outline" size="sm" onClick={onClose}>
-            取消
-          </Button>
-          <Button size="sm" onClick={onSave}>
-            保存
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 export function PlatformModelsPageShell({
   models,
@@ -78,12 +19,15 @@ export function PlatformModelsPageShell({
   publishing,
   handlePublish,
   handleToggle,
-  pricingModel,
-  pricingForm,
-  setPricingForm,
-  openPricing,
-  closePricing,
-  handleSavePricing,
+  formOpen,
+  setFormOpen,
+  formMode,
+  formModel,
+  formBusy,
+  formError,
+  openCreate,
+  openEdit,
+  handleFormSubmit,
 }: Props) {
   return (
     <PageShell>
@@ -91,10 +35,16 @@ export function PlatformModelsPageShell({
         title="模型目录"
         description={`共 ${models.length} 个全局模型`}
         actions={
-          <Button size="sm" variant="brand" disabled={publishing} onClick={handlePublish}>
-            <Upload className="mr-1.5 h-4 w-4" />
-            {publishing ? '发布中...' : '发布'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="mr-1.5 h-4 w-4" />
+              添加模型
+            </Button>
+            <Button size="sm" variant="brand" disabled={publishing} onClick={handlePublish}>
+              <Upload className="mr-1.5 h-4 w-4" />
+              {publishing ? '发布中...' : '发布'}
+            </Button>
+          </div>
         }
       />
 
@@ -116,9 +66,9 @@ export function PlatformModelsPageShell({
               renderActions={(m) => (
                 <div className="inline-flex items-center gap-1">
                   <button
-                    onClick={() => openPricing(m)}
+                    onClick={() => openEdit(m)}
                     className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                    title="编辑定价"
+                    title="编辑模型"
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
@@ -136,15 +86,15 @@ export function PlatformModelsPageShell({
         </CardContent>
       </Card>
 
-      {pricingModel && (
-        <PricingDialog
-          model={pricingModel}
-          form={pricingForm}
-          setForm={setPricingForm}
-          onSave={handleSavePricing}
-          onClose={closePricing}
-        />
-      )}
+      <ModelFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        mode={formMode}
+        initialData={formModel}
+        busy={formBusy}
+        error={formError}
+        onSubmit={handleFormSubmit}
+      />
     </PageShell>
   )
 }

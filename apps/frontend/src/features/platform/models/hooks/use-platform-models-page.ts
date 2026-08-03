@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { useInjectedApis } from '@/api/use-apis'
 import { useInjectedQuery } from '@/features/query/use-injected-query'
 import type { PlatformModel } from '@/api/types'
+import type { ModelFormData } from '../components/model-form-dialog'
 import { platformKeys } from '../query-keys'
 
 export function usePlatformModelsPage() {
@@ -19,8 +20,76 @@ export function usePlatformModelsPage() {
   })
 
   const [publishing, setPublishing] = useState(false)
-  const [pricingModel, setPricingModel] = useState<PlatformModel | null>(null)
-  const [pricingForm, setPricingForm] = useState({ inputPrice: '', outputPrice: '' })
+
+  // --- Form dialog state ---
+  const [formOpen, setFormOpen] = useState(false)
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
+  const [formModel, setFormModel] = useState<PlatformModel | null>(null)
+  const [formBusy, setFormBusy] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+
+  const openCreate = useCallback(() => {
+    setFormMode('create')
+    setFormModel(null)
+    setFormError(null)
+    setFormOpen(true)
+  }, [])
+
+  const openEdit = useCallback((model: PlatformModel) => {
+    setFormMode('edit')
+    setFormModel(model)
+    setFormError(null)
+    setFormOpen(true)
+  }, [])
+
+  const handleFormSubmit = useCallback(
+    async (data: ModelFormData) => {
+      setFormBusy(true)
+      setFormError(null)
+      try {
+        if (formMode === 'create') {
+          await apis.platformApi.createModel({
+            type: data.type,
+            name: data.name,
+            provider: data.provider,
+            inputPrice: data.inputPrice,
+            outputPrice: data.outputPrice,
+            cacheInputPrice: data.cacheInputPrice,
+            capabilities: data.capabilities,
+            maxContext: data.maxContext,
+          })
+          toast.success('模型已添加')
+        } else if (formModel) {
+          await apis.platformApi.updateModel(formModel.modelId, {
+            name: data.name,
+            provider: data.provider,
+            capabilities: data.capabilities,
+            maxContext: data.maxContext,
+          })
+          // Update pricing separately if changed
+          if (
+            data.inputPrice !== formModel.inputPrice ||
+            data.outputPrice !== formModel.outputPrice ||
+            data.cacheInputPrice !== formModel.cacheInputPrice
+          ) {
+            await apis.platformApi.setPricing(formModel.modelId, {
+              inputPrice: data.inputPrice,
+              outputPrice: data.outputPrice,
+              cacheInputPrice: data.cacheInputPrice,
+            })
+          }
+          toast.success('模型已更新')
+        }
+        setFormOpen(false)
+        void refresh()
+      } catch (e: unknown) {
+        setFormError(e instanceof Error ? e.message : '操作失败')
+      } finally {
+        setFormBusy(false)
+      }
+    },
+    [apis, formMode, formModel, refresh],
+  )
 
   const handlePublish = useCallback(async () => {
     setPublishing(true)
@@ -47,31 +116,6 @@ export function usePlatformModelsPage() {
     [apis, refresh],
   )
 
-  const openPricing = useCallback((model: PlatformModel) => {
-    setPricingModel(model)
-    setPricingForm({
-      inputPrice: model.inputPrice > 0 ? String(model.inputPrice) : '',
-      outputPrice: model.outputPrice > 0 ? String(model.outputPrice) : '',
-    })
-  }, [])
-
-  const handleSavePricing = useCallback(async () => {
-    if (!pricingModel) return
-    try {
-      await apis.platformApi.setPricing(pricingModel.modelId, {
-        inputPrice: Number(pricingForm.inputPrice) || 0,
-        outputPrice: Number(pricingForm.outputPrice) || 0,
-      })
-      toast.success('定价已更新')
-      setPricingModel(null)
-      void refresh()
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : '更新失败')
-    }
-  }, [apis, pricingModel, pricingForm, refresh])
-
-  const closePricing = useCallback(() => setPricingModel(null), [])
-
   return {
     models,
     loading,
@@ -80,11 +124,15 @@ export function usePlatformModelsPage() {
     publishing,
     handlePublish,
     handleToggle,
-    pricingModel,
-    pricingForm,
-    setPricingForm,
-    openPricing,
-    closePricing,
-    handleSavePricing,
+    // Form dialog
+    formOpen,
+    setFormOpen,
+    formMode,
+    formModel,
+    formBusy,
+    formError,
+    openCreate,
+    openEdit,
+    handleFormSubmit,
   }
 }

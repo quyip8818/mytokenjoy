@@ -157,10 +157,12 @@ func (e *Executor) syncPricing(ctx context.Context, remoteVersion int) error {
 
 	mrMap := make(map[string]float64, len(resp.Data))
 	crMap := make(map[string]float64, len(resp.Data))
+	caMap := make(map[string]float64, len(resp.Data))
 	for _, p := range resp.Data {
-		mr, cr := modelcatalog.RatioFromPrice(p.InputPrice, p.OutputPrice)
+		mr, cr, ca := modelcatalog.RatioFromPrice(p.InputPrice, p.OutputPrice, p.CacheInputPrice)
 		mrMap[p.ModelType] = mr
 		crMap[p.ModelType] = cr
+		caMap[p.ModelType] = ca
 	}
 
 	mrJSON, _ := json.Marshal(mrMap)
@@ -170,6 +172,10 @@ func (e *Executor) syncPricing(ctx context.Context, remoteVersion int) error {
 	crJSON, _ := json.Marshal(crMap)
 	if err := e.port.UpdateOption(ctx, "CompletionRatio", string(crJSON)); err != nil {
 		return fmt.Errorf("catalogsync write CompletionRatio: %w", err)
+	}
+	caJSON, _ := json.Marshal(caMap)
+	if err := e.port.UpdateOption(ctx, "CacheRatio", string(caJSON)); err != nil {
+		return fmt.Errorf("catalogsync write CacheRatio: %w", err)
 	}
 
 	return e.store.SystemSettings().Set(ctx, keyPricingVersion, strconv.Itoa(remoteVersion))

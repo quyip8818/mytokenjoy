@@ -177,10 +177,10 @@ func (p *SelfHealingPort) UpdateOption(ctx context.Context, key, value string) e
 	return err
 }
 
-func (p *SelfHealingPort) UpsertModelRatio(ctx context.Context, modelType string, inputPrice, outputPrice float64) error {
-	err := p.client.UpsertModelRatio(ctx, modelType, inputPrice, outputPrice)
+func (p *SelfHealingPort) UpsertModelRatio(ctx context.Context, modelType string, inputPrice, outputPrice, cacheInputPrice float64) error {
+	err := p.client.UpsertModelRatio(ctx, modelType, inputPrice, outputPrice, cacheInputPrice)
 	if p.selfHeal(ctx, err) {
-		return p.client.UpsertModelRatio(ctx, modelType, inputPrice, outputPrice)
+		return p.client.UpsertModelRatio(ctx, modelType, inputPrice, outputPrice, cacheInputPrice)
 	}
 	return err
 }

@@ -28,9 +28,10 @@ type CatalogResponse[T any] struct {
 
 // CatalogPricing represents a global pricing entry (no per-company contract).
 type CatalogPricing struct {
-	ModelType   string  `json:"modelType"`
-	InputPrice  float64 `json:"inputPrice"`
-	OutputPrice float64 `json:"outputPrice"`
+	ModelType       string  `json:"modelType"`
+	InputPrice      float64 `json:"inputPrice"`
+	OutputPrice     float64 `json:"outputPrice"`
+	CacheInputPrice float64 `json:"cacheInputPrice"`
 }
 
 // CatalogDiscount represents a per-company discount entry from the platform sync API.

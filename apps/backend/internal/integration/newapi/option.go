@@ -79,8 +79,8 @@ func (c *Client) UpdateOption(ctx context.Context, key, value string) error {
 }
 
 // UpsertModelRatio adds or updates a single model's ratio entries in the
-// global ModelRatio and CompletionRatio option maps (read-modify-write).
-func (c *Client) UpsertModelRatio(ctx context.Context, modelType string, inputPrice, outputPrice float64) error {
+// global ModelRatio, CompletionRatio, and CacheRatio option maps (read-modify-write).
+func (c *Client) UpsertModelRatio(ctx context.Context, modelType string, inputPrice, outputPrice, cacheInputPrice float64) error {
 	var entries []optionEntry
 	if err := c.do(ctx, "GET", "/api/option/", nil, &entries); err != nil {
 		return fmt.Errorf("list options for upsert ratio: %w", err)
@@ -90,7 +90,7 @@ func (c *Client) UpsertModelRatio(ctx context.Context, modelType string, inputPr
 		byKey[e.Key] = e.Value
 	}
 
-	modelRatio, completionRatio := RatioFromPrice(inputPrice, outputPrice)
+	modelRatio, completionRatio, cacheRatio := RatioFromPrice(inputPrice, outputPrice, cacheInputPrice)
 
 	// Update ModelRatio map
 	mrMap := map[string]float64{}
@@ -111,6 +111,17 @@ func (c *Client) UpsertModelRatio(ctx context.Context, modelType string, inputPr
 	crMap[modelType] = completionRatio
 	crJSON, _ := json.Marshal(crMap)
 	if err := c.UpdateOption(ctx, "CompletionRatio", string(crJSON)); err != nil {
+		return err
+	}
+
+	// Update CacheRatio map
+	caMap := map[string]float64{}
+	if raw := byKey["CacheRatio"]; raw != "" {
+		_ = json.Unmarshal([]byte(raw), &caMap)
+	}
+	caMap[modelType] = cacheRatio
+	caJSON, _ := json.Marshal(caMap)
+	if err := c.UpdateOption(ctx, "CacheRatio", string(caJSON)); err != nil {
 		return err
 	}
 

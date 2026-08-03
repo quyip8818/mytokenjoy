@@ -76,4 +76,5 @@ type ModelPricing struct {
 	ModelName       string
 	ModelRatio      float64
 	CompletionRatio float64
+	CacheRatio      float64 // cache_input/input multiplier (e.g. 0.5 = 50% of input price)
 }

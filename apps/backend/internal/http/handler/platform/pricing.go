@@ -15,9 +15,10 @@ import (
 // --- Platform Admin: Global Pricing ---
 
 type pricingDTO struct {
-	ModelType   string  `json:"modelType"`
-	InputPrice  float64 `json:"inputPrice"`
-	OutputPrice float64 `json:"outputPrice"`
+	ModelType       string  `json:"modelType"`
+	InputPrice      float64 `json:"inputPrice"`
+	OutputPrice     float64 `json:"outputPrice"`
+	CacheInputPrice float64 `json:"cacheInputPrice"`
 }
 
 // ListGlobalPricing returns all current global prices from NewAPI (SOT).
@@ -29,16 +30,17 @@ func (h *Handler) ListGlobalPricing(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]pricingDTO, 0, len(ratios))
 	for _, r := range ratios {
-		inputPrice, outputPrice := modelcatalog.PriceFromRatio(r.ModelRatio, r.CompletionRatio)
-		out = append(out, pricingDTO{ModelType: r.ModelName, InputPrice: inputPrice, OutputPrice: outputPrice})
+		inputPrice, outputPrice, cacheInputPrice := modelcatalog.PriceFromRatio(r.ModelRatio, r.CompletionRatio, r.CacheRatio)
+		out = append(out, pricingDTO{ModelType: r.ModelName, InputPrice: inputPrice, OutputPrice: outputPrice, CacheInputPrice: cacheInputPrice})
 	}
 	response.JSON(w, http.StatusOK, out)
 }
 
 type setPricingInput struct {
-	ModelType   string  `json:"modelType"`
-	InputPrice  float64 `json:"inputPrice"`
-	OutputPrice float64 `json:"outputPrice"`
+	ModelType       string  `json:"modelType"`
+	InputPrice      float64 `json:"inputPrice"`
+	OutputPrice     float64 `json:"outputPrice"`
+	CacheInputPrice float64 `json:"cacheInputPrice"`
 }
 
 // SetGlobalPricing updates global price for a model (writes to NewAPI SOT).
@@ -56,7 +58,7 @@ func (h *Handler) SetGlobalPricing(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "prices must be non-negative")
 		return
 	}
-	if err := h.p.AdminPort.UpsertModelRatio(r.Context(), body.ModelType, body.InputPrice, body.OutputPrice); err != nil {
+	if err := h.p.AdminPort.UpsertModelRatio(r.Context(), body.ModelType, body.InputPrice, body.OutputPrice, body.CacheInputPrice); err != nil {
 		httputil.WriteError(w, err)
 		return
 	}

@@ -108,7 +108,7 @@ func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput)
 	// Push price to NewAPI (SOT) — not stored in DB.
 	if input.InputPrice > 0 || input.OutputPrice > 0 {
 		if s.client != nil {
-			_ = s.client.UpsertModelRatio(ctx, input.Type, input.InputPrice, input.OutputPrice)
+			_ = s.client.UpsertModelRatio(ctx, input.Type, input.InputPrice, input.OutputPrice, 0)
 		}
 	}
 	return created, nil
@@ -154,7 +154,7 @@ func (s *service) UpdateModel(ctx context.Context, id uuid.UUID, input types.Upd
 			outputPrice = *input.OutputPrice
 		}
 		if s.client != nil {
-			_ = s.client.UpsertModelRatio(ctx, existing.Type, inputPrice, outputPrice)
+			_ = s.client.UpsertModelRatio(ctx, existing.Type, inputPrice, outputPrice, 0)
 		}
 	}
 	if input.MaxContext != nil {
@@ -332,7 +332,7 @@ func (s *service) ListModelsWithPricing(ctx context.Context) ([]types.ModelInfo,
 func toRatioEntries(ratios []adminport.ModelPricing) []modelcatalog.RatioEntry {
 	out := make([]modelcatalog.RatioEntry, len(ratios))
 	for i, r := range ratios {
-		out[i] = modelcatalog.RatioEntry{ModelName: r.ModelName, ModelRatio: r.ModelRatio, CompletionRatio: r.CompletionRatio}
+		out[i] = modelcatalog.RatioEntry{ModelName: r.ModelName, ModelRatio: r.ModelRatio, CompletionRatio: r.CompletionRatio, CacheRatio: r.CacheRatio}
 	}
 	return out
 }

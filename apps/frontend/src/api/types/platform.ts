@@ -26,6 +26,7 @@ export interface PlatformModel {
   description: string
   inputPrice: number
   outputPrice: number
+  cacheInputPrice: number
   maxContext: number
   deprecated: boolean
   capabilities: string[]
@@ -38,6 +39,7 @@ export interface PlatformCreateModelInput {
   provider: string
   inputPrice: number
   outputPrice: number
+  cacheInputPrice?: number
   capabilities?: string[]
   maxContext?: number
 }
@@ -54,6 +56,7 @@ export interface PlatformUpdateModelInput {
 export interface PlatformSetPricingInput {
   inputPrice: number
   outputPrice: number
+  cacheInputPrice: number
 }
 
 export interface PlatformCurrency {

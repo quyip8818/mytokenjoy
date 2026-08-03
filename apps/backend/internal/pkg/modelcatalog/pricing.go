@@ -8,23 +8,26 @@ import "github.com/tokenjoy/backend/internal/domain/types"
 // NewAPI pricing model:
 //   - model_ratio represents input cost per 1K tokens in currency units
 //   - completion_ratio is the output/input multiplier
+//   - cache_ratio is the cache_input/input multiplier (e.g. 0.5 = 50% of input price)
 //
 // Conversion: display_price (元/1M tokens) = ratio * 2
-func PriceFromRatio(modelRatio, completionRatio float64) (inputPrice, outputPrice float64) {
+func PriceFromRatio(modelRatio, completionRatio, cacheRatio float64) (inputPrice, outputPrice, cacheInputPrice float64) {
 	inputPrice = modelRatio * 2
 	outputPrice = modelRatio * completionRatio * 2
-	return inputPrice, outputPrice
+	cacheInputPrice = modelRatio * cacheRatio * 2
+	return inputPrice, outputPrice, cacheInputPrice
 }
 
 // RatioFromPrice converts display prices (元/1M tokens) back to NewAPI ratios.
 // Inverse of PriceFromRatio.
-func RatioFromPrice(inputPrice, outputPrice float64) (modelRatio, completionRatio float64) {
+func RatioFromPrice(inputPrice, outputPrice, cacheInputPrice float64) (modelRatio, completionRatio, cacheRatio float64) {
 	if inputPrice == 0 {
-		return 0, 0
+		return 0, 0, 0
 	}
 	modelRatio = inputPrice / 2
 	completionRatio = outputPrice / inputPrice
-	return modelRatio, completionRatio
+	cacheRatio = cacheInputPrice / inputPrice
+	return modelRatio, completionRatio, cacheRatio
 }
 
 // MergePricing enriches models with display prices converted from NewAPI ratios.
@@ -34,15 +37,16 @@ func MergePricing(models []types.ModelInfo, ratios []RatioEntry) {
 	if len(ratios) == 0 {
 		return
 	}
-	priceMap := make(map[string][2]float64, len(ratios))
+	priceMap := make(map[string][3]float64, len(ratios))
 	for _, r := range ratios {
-		input, output := PriceFromRatio(r.ModelRatio, r.CompletionRatio)
-		priceMap[r.ModelName] = [2]float64{input, output}
+		input, output, cacheInput := PriceFromRatio(r.ModelRatio, r.CompletionRatio, r.CacheRatio)
+		priceMap[r.ModelName] = [3]float64{input, output, cacheInput}
 	}
 	for i := range models {
 		if p, ok := priceMap[models[i].Type]; ok {
 			models[i].InputPrice = p[0]
 			models[i].OutputPrice = p[1]
+			models[i].CacheInputPrice = p[2]
 		}
 	}
 }
@@ -52,4 +56,5 @@ type RatioEntry struct {
 	ModelName       string
 	ModelRatio      float64
 	CompletionRatio float64
+	CacheRatio      float64
 }
