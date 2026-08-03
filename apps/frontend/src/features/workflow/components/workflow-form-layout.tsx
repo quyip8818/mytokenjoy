@@ -4,9 +4,9 @@ import { cn } from '@/lib/utils'
 type WorkflowFormLayoutVariant = 'narrow' | 'wide' | 'full'
 
 const VARIANT_CLASSES: Record<WorkflowFormLayoutVariant, string> = {
-  narrow: 'max-w-md space-y-4',
-  wide: 'max-w-lg space-y-5',
-  full: 'space-y-4',
+  narrow: 'max-w-md space-y-6',
+  wide: 'max-w-lg space-y-7',
+  full: 'space-y-6',
 }
 
 interface WorkflowFormLayoutBaseProps {

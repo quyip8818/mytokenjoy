@@ -1,4 +1,4 @@
-import type { ModelInfo } from '@/api/types'
+import type { ModelInfo, PlatformModel } from '@/api/types'
 import type { RoutingRule } from '@/api/types'
 
 export interface ModelsWorkflowPayloads {
@@ -17,5 +17,12 @@ export interface ModelsWorkflowPayloads {
     selectedModelIds?: string[]
     parentAllowedModelIds?: string[]
     onConfirm?: (modelIds: string[]) => void
+  }
+  'platform-model-create': {
+    onSuccess?: () => void
+  }
+  'platform-model-edit': {
+    model: PlatformModel
+    onSuccess?: () => void
   }
 }

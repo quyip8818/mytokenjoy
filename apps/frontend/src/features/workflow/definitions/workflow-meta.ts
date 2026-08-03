@@ -17,6 +17,8 @@ export const WORKFLOW_META: Record<WorkflowId, WorkflowMeta> = {
   'model-picker': { defaultLayer: 2, title: '选择模型' },
   'budget-check': { defaultLayer: 3, title: '额度不足' },
   'reject-reason': { defaultLayer: 2, title: '拒绝理由' },
+  'platform-model-create': { defaultLayer: 1, title: '添加平台模型' },
+  'platform-model-edit': { defaultLayer: 1, title: '编辑平台模型' },
 }
 
 const WORKFLOW_DOMAIN: Record<WorkflowId, 'org' | 'keys' | 'models' | 'shared' | 'approval'> = {
@@ -34,6 +36,8 @@ const WORKFLOW_DOMAIN: Record<WorkflowId, 'org' | 'keys' | 'models' | 'shared' |
   'model-picker': 'shared',
   'budget-check': 'shared',
   'reject-reason': 'shared',
+  'platform-model-create': 'models',
+  'platform-model-edit': 'models',
 }
 
 export function getWorkflowMeta(id: WorkflowId): WorkflowMeta {

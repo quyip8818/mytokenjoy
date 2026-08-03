@@ -6,7 +6,6 @@ import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
 import { ModelTable } from '@/features/models'
-import { ModelFormDialog } from './model-form-dialog'
 import type { usePlatformModelsPage } from '../hooks/use-platform-models-page'
 
 type Props = ReturnType<typeof usePlatformModelsPage>
@@ -19,15 +18,8 @@ export function PlatformModelsPageShell({
   publishing,
   handlePublish,
   handleToggle,
-  formOpen,
-  setFormOpen,
-  formMode,
-  formModel,
-  formBusy,
-  formError,
   openCreate,
   openEdit,
-  handleFormSubmit,
 }: Props) {
   return (
     <PageShell>
@@ -85,16 +77,6 @@ export function PlatformModelsPageShell({
           </DataSection>
         </CardContent>
       </Card>
-
-      <ModelFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        mode={formMode}
-        initialData={formModel}
-        busy={formBusy}
-        error={formError}
-        onSubmit={handleFormSubmit}
-      />
     </PageShell>
   )
 }

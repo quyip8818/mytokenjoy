@@ -33,7 +33,7 @@ export function WorkflowPanelChrome({
         ) : (
           <div className="w-8" />
         )}
-        <h2 className="flex-1 text-sm font-semibold text-foreground">{title}</h2>
+        <h2 className="flex-1 text-base font-semibold text-foreground">{title}</h2>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
@@ -45,7 +45,17 @@ export function WorkflowPanelChrome({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
+      <div
+        className={[
+          'flex-1 overflow-y-auto px-10 py-8 text-base',
+          // ponytail: 统一放大面板内 input/select/textarea 尺寸，避免逐组件改 size prop
+          '[&_input]:h-11 [&_input]:text-base',
+          '[&_button[role=combobox]]:h-11 [&_button[role=combobox]]:text-base',
+          '[&_textarea]:text-base',
+        ].join(' ')}
+      >
+        {children}
+      </div>
 
       {banner && (
         <div className="shrink-0 border-t border-amber-200/60 bg-amber-50/80 px-5 py-3 dark:border-amber-900/40 dark:bg-amber-950/30">
