@@ -9,9 +9,9 @@ import domainnotification "github.com/tokenjoy/backend/internal/domain/notificat
 // Key "" is the default/fallback (verification code).
 
 var smsTemplates = map[string]string{
-	"":                  "SMS_123456789", // default (verification code)
-	"verification_code": "SMS_123456789",
-	"member_invite":     "SMS_987654321",
+	"":                  "SMS_337285106", // default (verification code)
+	"verification_code": "SMS_337285106",
+	"member_invite":     "SMS_510740074",
 }
 
 // SMSTemplateCode resolves an eventType to its Aliyun template code.

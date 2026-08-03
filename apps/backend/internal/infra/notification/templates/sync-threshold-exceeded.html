@@ -1,45 +1,57 @@
 <!-- 备份：此文件不被代码引用，实际模板托管在 Resend Dashboard。变量: {{detail}} -->
 <!doctype html>
-<html>
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>价格偏差告警</title>
   </head>
-  <body
-    style="
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      padding: 20px;
-      color: #333;
-      background: #f5f5f5;
-    "
-  >
-    <div
-      style="
-        max-width: 600px;
-        margin: 0 auto;
-        background: #fff;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 32px;
-      "
-    >
-      <h2 style="margin: 0 0 8px 0; font-size: 20px; color: #f39c12">⚡ 同步价格偏差告警</h2>
-      <p style="margin: 0 0 16px 0; font-size: 14px; color: #666">模型定价同步检测到超阈值偏差：</p>
-      <div
-        style="
-          background: #fff8e1;
-          border: 1px solid #ffe082;
-          border-radius: 6px;
-          padding: 16px;
-          margin: 0 0 24px 0;
-        "
-      >
-        <p style="margin: 0; font-size: 14px; color: #333">{{detail}}</p>
-      </div>
-      <p style="margin: 0 0 16px 0; font-size: 13px; color: #999">
-        请检查同步配置或手动确认价格变更。
-      </p>
-      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0" />
-      <p style="font-size: 12px; color: #bbb; margin: 0">此邮件由 TokenJoy 通知系统自动发送。</p>
-    </div>
+  <body style="margin: 0; padding: 0; background-color: #f9fafb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; padding: 40px 20px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%;">
+            <!-- Header -->
+            <tr>
+              <td style="padding: 0 0 32px 0; text-align: center;">
+                <a href="https://www.tokenjoy.me/" style="text-decoration: none; display: inline-block;">
+                  <span style="font-size: 24px; font-weight: 700; color: #111; letter-spacing: -0.5px;">Token<span style="color: #6366f1;">Joy</span></span>
+                </a>
+                <p style="margin: 4px 0 0 0; font-size: 13px; color: #6b7280;">企业级 AI 模型用量管控平台</p>
+              </td>
+            </tr>
+            <!-- Body -->
+            <tr>
+              <td style="background: #ffffff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); padding: 40px 36px;">
+                <div style="display: inline-block; background: #fef9c3; border-radius: 6px; padding: 4px 10px; margin: 0 0 16px 0;">
+                  <span style="font-size: 13px; font-weight: 600; color: #a16207;">⚡ 价格偏差</span>
+                </div>
+                <h1 style="margin: 0 0 8px 0; font-size: 22px; font-weight: 600; color: #111;">模型定价同步偏差告警</h1>
+                <p style="margin: 0 0 24px 0; font-size: 15px; color: #4b5563; line-height: 1.6;">
+                  系统检测到模型定价同步过程中出现超阈值偏差，请关注：
+                </p>
+                <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 16px 20px; margin: 0 0 28px 0;">
+                  <p style="margin: 0; font-size: 14px; color: #333; line-height: 1.6;">{{detail}}</p>
+                </div>
+                <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 1.6;">
+                  请检查同步配置或手动确认价格变更是否符合预期。
+                </p>
+              </td>
+            </tr>
+            <!-- Footer -->
+            <tr>
+              <td style="padding: 32px 0 0 0; text-align: center;">
+                <p style="margin: 0 0 8px 0; font-size: 13px; color: #9ca3af;">
+                  <a href="https://www.tokenjoy.me/" style="color: #6366f1; text-decoration: none;">TokenJoy</a> — 一站式管理团队 AI 模型调用、用量与预算
+                </p>
+                <p style="margin: 0; font-size: 12px; color: #d1d5db;">
+                  此邮件由系统自动发送，请勿直接回复。
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>

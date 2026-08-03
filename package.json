@@ -23,7 +23,8 @@
     "build:sms": "pnpm -F @sms/frontend build",
     "test:sms": "pnpm -F @sms/frontend test && pnpm -F @sms/backend test",
     "test:sms:integration": "pnpm -F @sms/backend test:integration",
-    "test:sms:e2e": "pnpm -F @sms/frontend test:e2e"
+    "test:sms:e2e": "pnpm -F @sms/frontend test:e2e",
+    "deploy": "./deploy/reset.sh 47.99.63.146"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
