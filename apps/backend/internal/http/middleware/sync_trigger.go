@@ -16,7 +16,7 @@ const CompanyIDHeader = "X-Company-ID"
 
 func AllowSyncTrigger(p httpdeps.Protected, companySvc domaincompany.Service) func(http.Handler) http.Handler {
 	sessionChain := RequireSession(p)
-	authzChain := RequireAnyPermission(permission.OrgDatasource)
+	authzChain := RequireAnyPermission(permission.OrgAdmin)
 
 	return func(next http.Handler) http.Handler {
 		protected := sessionChain(authzChain(next))

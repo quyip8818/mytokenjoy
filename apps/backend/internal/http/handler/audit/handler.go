@@ -106,7 +106,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	read.Get("/calls/summary", h.CallsSummary)
 
 	httpmiddleware.ReadRoutes(r, h.Protected).
-		With(httpmiddleware.RequireAnyPermission(permission.OrgStructure)).
+		With(httpmiddleware.RequireAnyPermission(permission.OrgAdmin)).
 		Put("/settings", h.SettingsUpdate)
 }
 

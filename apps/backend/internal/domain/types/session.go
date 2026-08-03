@@ -20,6 +20,10 @@ type Member struct {
 	OverrideFields []string  `json:"overrideFields,omitempty"`
 	PersonalBudget float64   `json:"-"`
 
+	// DirectPermissions are permissions granted directly to the member, bypassing the role system.
+	// Used exclusively for platform:admin which is set during bootstrap and cannot be modified via API.
+	DirectPermissions []string `json:"directPermissions,omitempty"`
+
 	// RegistrationChannel records how the user completed registration: "sms" | "email" | "admin_link" | ""
 	RegistrationChannel string `json:"registrationChannel,omitempty"`
 

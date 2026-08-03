@@ -6,6 +6,47 @@ export { PERMISSION, type PermissionKey } from '@/lib/permission-keys'
 export const ALL_PERMISSIONS: PermissionKey[] = Object.values(PERMISSION)
 
 /**
+ * Permission hierarchy: higher-level permissions imply lower-level ones.
+ * ponytail: static map mirrors manifest.json hierarchy. Keep in sync when adding new domains.
+ * Upgrade path: generate from manifest.json at build time.
+ */
+const HIERARCHY: Record<string, string[]> = {
+  'org:admin': ['org:manage', 'org:read'],
+  'org:manage': ['org:read'],
+  'budget:admin': ['budget:manage', 'budget:read'],
+  'budget:manage': ['budget:read'],
+  'model:manage': ['model:read'],
+  'keys:admin': ['keys:manage', 'keys:read'],
+  'keys:manage': ['keys:read'],
+  'billing:manage': ['billing:read'],
+  'platform:admin': ['platform:manage', 'platform:read'],
+  'platform:manage': ['platform:read'],
+}
+
+/**
+ * Expands permissions by hierarchy. E.g. ['platform:admin'] → includes platform:manage, platform:read.
+ * Defense-in-depth: backend already expands, but frontend does it too for safety.
+ */
+export function expandHierarchy(perms: readonly string[]): string[] {
+  const result = new Set(perms)
+  let changed = true
+  while (changed) {
+    changed = false
+    for (const p of result) {
+      const implied = HIERARCHY[p]
+      if (!implied) continue
+      for (const ip of implied) {
+        if (!result.has(ip)) {
+          result.add(ip)
+          changed = true
+        }
+      }
+    }
+  }
+  return [...result]
+}
+
+/**
  * Returns true if the user holds ANY of the required permissions (OR semantics).
  * Pass a single key or array of keys.
  */

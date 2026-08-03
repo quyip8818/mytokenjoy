@@ -9,21 +9,21 @@ import (
 
 func TestHasAnyWildcard(t *testing.T) {
 	t.Parallel()
-	if !authz.HasAny([]string{"*"}, permission.OrgStructure) {
+	if !authz.HasAny([]string{"*"}, permission.OrgAdmin) {
 		t.Fatal("expected wildcard to satisfy any permission")
 	}
 }
 
 func TestHasAnySingleMatch(t *testing.T) {
 	t.Parallel()
-	if !authz.HasAny([]string{permission.OrgMembers}, permission.OrgMembers, permission.OrgRoles) {
-		t.Fatal("expected org:members to match")
+	if !authz.HasAny([]string{permission.OrgManage}, permission.OrgManage, permission.OrgAdmin) {
+		t.Fatal("expected org:manage to match")
 	}
 }
 
 func TestHasAnyNoMatch(t *testing.T) {
 	t.Parallel()
-	if authz.HasAny([]string{permission.SelfKeys}, permission.OrgStructure) {
+	if authz.HasAny([]string{permission.SelfKeys}, permission.OrgAdmin) {
 		t.Fatal("expected no match")
 	}
 }

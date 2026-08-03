@@ -14,43 +14,54 @@ func TestManifestLoads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if m.Version != 1 {
-		t.Fatalf("version: got %d want 1", m.Version)
+	if m.Version != 2 {
+		t.Fatalf("version: got %d want 2", m.Version)
 	}
-	if len(m.Capabilities) != 24 {
-		t.Fatalf("capabilities: got %d want 24", len(m.Capabilities))
+	if len(m.Capabilities) != 19 {
+		t.Fatalf("capabilities: got %d want 19", len(m.Capabilities))
 	}
-	if len(m.PermissionIDMap) != 24 {
-		t.Fatalf("permissionIdMap: got %d want 24", len(m.PermissionIDMap))
+	if len(m.PlatformCapabilities) != 3 {
+		t.Fatalf("platformCapabilities: got %d want 3", len(m.PlatformCapabilities))
 	}
-	if len(m.PresetRoles) != 6 {
-		t.Fatalf("presetRoles: got %d want 6", len(m.PresetRoles))
+	if len(m.PermissionIDMap) != 19 {
+		t.Fatalf("permissionIdMap: got %d want 19", len(m.PermissionIDMap))
+	}
+	if len(m.PresetRoles) != 7 {
+		t.Fatalf("presetRoles: got %d want 7", len(m.PresetRoles))
 	}
 	if len(m.WriteCapabilities) == 0 {
 		t.Fatal("writeCapabilities empty")
 	}
-	if len(m.BudgetWriteCapabilities) == 0 {
-		t.Fatal("budgetWriteCapabilities empty")
+	if len(m.Hierarchy) == 0 {
+		t.Fatal("hierarchy empty")
 	}
 }
 
 func TestGeneratedKeysMatchManifest(t *testing.T) {
 	m := permission.MustManifest()
-	if len(m.Capabilities) != len(permission.AllPermissions) {
-		t.Fatalf("AllPermissions length: got %d want %d", len(permission.AllPermissions), len(m.Capabilities))
+
+	// CompanyPermissions must match capabilities exactly.
+	if len(permission.CompanyPermissions) != len(m.Capabilities) {
+		t.Fatalf("CompanyPermissions length: got %d want %d", len(permission.CompanyPermissions), len(m.Capabilities))
 	}
 	for _, cap := range m.Capabilities {
-		found := false
-		for _, p := range permission.AllPermissions {
-			if p == cap {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Fatalf("missing capability in AllPermissions: %s", cap)
+		if !contains(permission.CompanyPermissions, cap) {
+			t.Fatalf("missing capability in CompanyPermissions: %s", cap)
 		}
 	}
+
+	// AllPermissions must equal capabilities + platformCapabilities.
+	expectedAll := len(m.Capabilities) + len(m.PlatformCapabilities)
+	if len(permission.AllPermissions) != expectedAll {
+		t.Fatalf("AllPermissions length: got %d want %d", len(permission.AllPermissions), expectedAll)
+	}
+	for _, cap := range m.PlatformCapabilities {
+		if !contains(permission.AllPermissions, cap) {
+			t.Fatalf("missing platform capability in AllPermissions: %s", cap)
+		}
+	}
+
+	// PermissionIDMap entries should all resolve to company permissions.
 	for id, cap := range m.PermissionIDMap {
 		if permission.PermissionIDMap[id] != cap {
 			t.Fatalf("permission id %s: got %q want %q", id, permission.PermissionIDMap[id], cap)
@@ -60,12 +71,8 @@ func TestGeneratedKeysMatchManifest(t *testing.T) {
 
 func TestFrontendPermissionKeysMatchManifest(t *testing.T) {
 	root := filepath.Join("..", "..", "..", "..", "..")
-	manifestPath := filepath.Join(root, "packages", "contracts", "permission", "manifest.json")
 	keysPath := filepath.Join(root, "apps", "frontend", "src", "lib", "permission-keys.ts")
 
-	if _, err := os.Stat(manifestPath); err != nil {
-		t.Fatal(err)
-	}
 	if _, err := os.Stat(keysPath); err != nil {
 		t.Fatal(err)
 	}
@@ -76,9 +83,25 @@ func TestFrontendPermissionKeysMatchManifest(t *testing.T) {
 		t.Fatal(err)
 	}
 	content := string(keysContent)
+
+	// All capabilities and platform capabilities should be in the frontend keys.
 	for _, cap := range m.Capabilities {
 		if !strings.Contains(content, "'"+cap+"'") {
 			t.Fatalf("permission-keys.ts missing %s", cap)
 		}
 	}
+	for _, cap := range m.PlatformCapabilities {
+		if !strings.Contains(content, "'"+cap+"'") {
+			t.Fatalf("permission-keys.ts missing platform capability %s", cap)
+		}
+	}
+}
+
+func contains(items []string, target string) bool {
+	for _, item := range items {
+		if item == target {
+			return true
+		}
+	}
+	return false
 }

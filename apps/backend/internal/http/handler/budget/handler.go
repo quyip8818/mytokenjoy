@@ -223,7 +223,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 
 	write := httpmiddleware.ReadRoutes(r, h.Protected)
 
-	allocateWrite := write.With(httpmiddleware.RequireAnyPermission(permission.BudgetAllocate))
+	allocateWrite := write.With(httpmiddleware.RequireAnyPermission(permission.BudgetManage))
 	allocateWrite.Put("/departments/{departmentId}", h.UpdateNode)
 	allocateWrite.Put("/members/{memberId}", h.UpdateMemberBudget)
 	allocateWrite.Post("/departments/{departmentId}/apply-average-budget", h.ApplyAverageBudget)
@@ -231,7 +231,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	allocateWrite.Put("/projects/{id}", h.ProjectUpdate)
 	allocateWrite.Delete("/projects/{id}", h.ProjectDelete)
 
-	policyWrite := write.With(httpmiddleware.RequireAnyPermission(permission.BudgetPolicy))
+	policyWrite := write.With(httpmiddleware.RequireAnyPermission(permission.BudgetAdmin))
 	policyWrite.Put("/overrun-policy", h.OverrunPolicyUpdate)
 	policyWrite.Post("/alerts", h.AlertCreate)
 	policyWrite.Put("/alerts/{id}", h.AlertUpdate)

@@ -33,7 +33,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.BillingRead)
 	read.Get("/billing/wallet", h.GetWallet)
 	read.Get("/billing/recharge-records", h.ListRechargeRecords)
-	write := httpmiddleware.ReadRoutes(r, h.Protected, permission.BillingRecharge)
+	write := httpmiddleware.ReadRoutes(r, h.Protected, permission.BillingManage)
 	write.Post("/billing/recharge", h.CreateRecharge)
 	write.Post("/billing/recharge/{id}/confirm", h.ConfirmRecharge)
 }

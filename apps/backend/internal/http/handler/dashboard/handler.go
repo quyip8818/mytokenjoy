@@ -97,16 +97,15 @@ func (h *Handler) DepartmentUsage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	costRead := httpmiddleware.ReadRoutes(r, h.Protected, permission.DashboardCost)
-	costRead.Get("/cost/summary", h.CostSummary)
-	costRead.Get("/cost/departments", h.DepartmentCosts)
-	costRead.Get("/cost/departments/{deptId}/members", h.DepartmentMemberCosts)
-	costRead.Get("/cost/daily", h.DailyCosts)
-	costRead.Get("/cost/top", h.TopConsumers)
+	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.DashboardRead)
+	read.Get("/cost/summary", h.CostSummary)
+	read.Get("/cost/departments", h.DepartmentCosts)
+	read.Get("/cost/departments/{deptId}/members", h.DepartmentMemberCosts)
+	read.Get("/cost/daily", h.DailyCosts)
+	read.Get("/cost/top", h.TopConsumers)
 
-	usageRead := httpmiddleware.ReadRoutes(r, h.Protected, permission.DashboardUsage)
-	usageRead.Get("/usage/models", h.ModelUsage)
-	usageRead.Get("/usage/teams", h.DepartmentUsage)
+	read.Get("/usage/models", h.ModelUsage)
+	read.Get("/usage/teams", h.DepartmentUsage)
 }
 
 func (h *Handler) withScope(w http.ResponseWriter, r *http.Request, fn func(context.Context, domainusage.SessionScope)) {

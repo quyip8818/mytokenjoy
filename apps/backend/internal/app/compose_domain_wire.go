@@ -29,7 +29,7 @@ import (
 
 func dashboardScopeConfig() domainusage.DashboardScopeConfig {
 	return domainusage.DashboardScopeConfig{
-		OrgWidePermissions: []string{permission.DashboardCost, permission.DashboardUsage},
+		OrgWidePermissions: []string{permission.DashboardRead},
 	}
 }
 

@@ -16,6 +16,7 @@ const (
 	CompanyTypeDemo       = "demo"
 	CompanyTypeSelfhosted = "selfhosted"
 	CompanyTypeTesting    = "testing"
+	CompanyTypePlatform   = "platform"
 )
 
 type Company struct {

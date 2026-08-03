@@ -130,11 +130,6 @@ func ScopePermissions(perms []string, companyType string, supportSaas bool) []st
 	return out
 }
 
-// IsPlatformPermission delegates to the permission package.
-func IsPlatformPermission(p string) bool {
-	return permission.IsPlatformPermission(p)
-}
-
 // companyInfoFromContext tries to get company type and name from the request context first
 // (already resolved by CompanyResolve middleware), falling back to a DB lookup only if needed.
 func companyInfoFromContext(ctx context.Context, companyID uuid.UUID, st Store) (companyType, companyName string) {

@@ -1,6 +1,6 @@
 import type { Member } from './org'
 
-export type CompanyType = 'standard' | 'trial' | 'demo' | 'selfhosted' | 'testing'
+export type CompanyType = 'standard' | 'trial' | 'demo' | 'selfhosted' | 'testing' | 'platform'
 
 export interface Paginated<T> {
   items: T[]

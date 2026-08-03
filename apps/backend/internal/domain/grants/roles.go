@@ -10,6 +10,7 @@ const (
 	RoleAPICaller      = "API 调用者"
 	RoleBudgetApprover = "预算审批员"
 	RolePlatformAdmin  = "平台管理员"
+	RolePlatformRead   = "平台只读"
 )
 
 // 全局预设角色固定 UUID。
@@ -21,6 +22,7 @@ var (
 	IDAuditor       = uuid.MustParse("00000000-0000-0000-0000-000000000004")
 	IDAPICaller     = uuid.MustParse("00000000-0000-0000-0000-000000000005")
 	IDPlatformAdmin = uuid.MustParse("00000000-0000-0000-0000-000000000006")
+	IDPlatformRead  = uuid.MustParse("00000000-0000-0000-0000-000000000007")
 )
 
 // PresetRoles 名称→ID（仅全局预设角色）。
@@ -31,6 +33,7 @@ var PresetRoles = map[string]uuid.UUID{
 	RoleAuditor:       IDAuditor,
 	RoleAPICaller:     IDAPICaller,
 	RolePlatformAdmin: IDPlatformAdmin,
+	RolePlatformRead:  IDPlatformRead,
 }
 
 // PresetRoleID 按名称查全局预设角色 ID。

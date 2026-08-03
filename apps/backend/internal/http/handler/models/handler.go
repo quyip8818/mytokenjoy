@@ -38,7 +38,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	manageWrite.Post("/", h.Create)
 	manageWrite.Put("/{id}", h.Update)
 
-	whitelistWrite := write.With(httpmiddleware.RequireAnyPermission(permission.ModelWhitelist))
+	whitelistWrite := write.With(httpmiddleware.RequireAnyPermission(permission.ModelManage))
 	whitelistWrite.Put("/routing/{id}", h.RoutingUpdate)
 }
 

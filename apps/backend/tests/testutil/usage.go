@@ -94,7 +94,7 @@ func AssertUsageBucketCount(t *testing.T, st store.Store, want int) {
 
 func AdminDashboardScope() domainusage.SessionScope {
 	return domainusage.SessionScope{
-		MemberID: contract.IDMemberAdmin, Permissions: []string{permission.DashboardCost, "*"},
+		MemberID: contract.IDMemberAdmin, Permissions: []string{permission.DashboardRead, "*"},
 	}
 }
 

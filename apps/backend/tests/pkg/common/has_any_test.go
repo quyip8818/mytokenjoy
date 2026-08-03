@@ -9,21 +9,21 @@ import (
 
 func TestHasAnyWildcard(t *testing.T) {
 	t.Parallel()
-	if !common.HasAny([]string{"*"}, permission.OrgStructure) {
+	if !common.HasAny([]string{"*"}, permission.OrgAdmin) {
 		t.Fatal("expected wildcard to match any permission")
 	}
 }
 
 func TestHasAnyMatch(t *testing.T) {
 	t.Parallel()
-	if !common.HasAny([]string{permission.OrgMembers}, permission.OrgMembers, permission.OrgRoles) {
-		t.Fatal("expected match on org.members")
+	if !common.HasAny([]string{permission.OrgManage}, permission.OrgManage, permission.OrgAdmin) {
+		t.Fatal("expected match on org:manage")
 	}
 }
 
 func TestHasAnyMiss(t *testing.T) {
 	t.Parallel()
-	if common.HasAny([]string{permission.SelfKeys}, permission.OrgStructure) {
+	if common.HasAny([]string{permission.SelfKeys}, permission.OrgAdmin) {
 		t.Fatal("expected no match")
 	}
 }

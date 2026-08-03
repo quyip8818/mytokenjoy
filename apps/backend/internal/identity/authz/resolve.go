@@ -14,31 +14,18 @@ func expandRoleDefinition(role types.Role) []string {
 		return nil
 	}
 
-	budgetWriteCapabilities := permission.BudgetWriteCapabilitiesFromManifest()
-
 	caps := make(map[string]struct{})
 	for _, permID := range role.Permissions {
 		if permID == "*" {
-			for _, p := range permission.AllPermissions {
+			for _, p := range permission.CompanyPermissions {
 				caps[p] = struct{}{}
 			}
 			continue
 		}
 		if mapped, ok := permission.PermissionIDMap[permID]; ok {
 			caps[mapped] = struct{}{}
-		} else if contains(permission.AllPermissions, permID) {
+		} else if contains(permission.CompanyPermissions, permID) {
 			caps[permID] = struct{}{}
-		}
-	}
-
-	expanded := make([]string, 0, len(caps))
-	for p := range caps {
-		expanded = append(expanded, p)
-	}
-	for _, p := range expanded {
-		if contains(budgetWriteCapabilities, p) {
-			caps[permission.BudgetRead] = struct{}{}
-			break
 		}
 	}
 
@@ -61,11 +48,16 @@ func ResolveMemberPermissions(member types.Member, roles []types.Role) []string 
 			}
 		}
 	}
-	result := make([]string, 0, len(caps))
-	for p := range caps {
-		result = append(result, p)
+	// Merge direct permissions (e.g. platform:admin set during bootstrap).
+	for _, p := range member.DirectPermissions {
+		caps[p] = struct{}{}
 	}
-	return result
+	raw := make([]string, 0, len(caps))
+	for p := range caps {
+		raw = append(raw, p)
+	}
+	// Apply hierarchy: admin implies manage+read, manage implies read, etc.
+	return permission.ExpandHierarchy(raw)
 }
 
 func IsReadOnlySession(permissions []string) bool {

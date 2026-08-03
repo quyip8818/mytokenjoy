@@ -71,7 +71,7 @@ func TestResolveScopeDepartmentsEmptyConfigScopesToSubtree(t *testing.T) {
 		}},
 	}
 	got, err := domainusage.ResolveScopeDepartments(departments, domainusage.SessionScope{
-		MemberID: uuid.MustParse("00000000-0000-7000-0000-00000000ee01"), DepartmentID: dept8, Permissions: []string{permission.DashboardCost},
+		MemberID: uuid.MustParse("00000000-0000-7000-0000-00000000ee01"), DepartmentID: dept8, Permissions: []string{permission.DashboardRead},
 	}, uuid.Nil, domainusage.DashboardScopeConfig{})
 	if err != nil {
 		t.Fatal(err)

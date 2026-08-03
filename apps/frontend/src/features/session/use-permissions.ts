@@ -1,8 +1,15 @@
+import { useMemo } from 'react'
 import { useSession } from './use-session'
-import { hasPermission, canWriteSession, type PermissionKey } from '@/lib/permissions'
+import {
+  hasPermission,
+  canWriteSession,
+  expandHierarchy,
+  type PermissionKey,
+} from '@/lib/permissions'
 
 export function usePermissions() {
-  const { permissions, readOnly, loading } = useSession()
+  const { permissions: raw, readOnly, loading } = useSession()
+  const permissions = useMemo(() => expandHierarchy(raw), [raw])
 
   return {
     permissions,

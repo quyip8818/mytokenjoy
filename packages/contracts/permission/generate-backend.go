@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"go/format"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -11,8 +12,9 @@ import (
 )
 
 type manifest struct {
-	Capabilities    []string          `json:"capabilities"`
-	PermissionIDMap map[string]string `json:"permissionIdMap"`
+	Capabilities         []string          `json:"capabilities"`
+	PlatformCapabilities []string          `json:"platformCapabilities"`
+	PermissionIDMap      map[string]string `json:"permissionIdMap"`
 }
 
 func main() {
@@ -46,9 +48,22 @@ func main() {
 	for _, cap := range m.Capabilities {
 		b.WriteString(fmt.Sprintf("\t%s = %q\n", goConstName(cap), cap))
 	}
+	for _, cap := range m.PlatformCapabilities {
+		b.WriteString(fmt.Sprintf("\t%s = %q\n", goConstName(cap), cap))
+	}
 	b.WriteString(")\n\n")
+	b.WriteString("// CompanyPermissions are tenant-assignable permissions. * expands to this set only.\n")
+	b.WriteString("var CompanyPermissions = []string{\n")
+	for _, cap := range m.Capabilities {
+		b.WriteString(fmt.Sprintf("\t%s,\n", goConstName(cap)))
+	}
+	b.WriteString("}\n\n")
+	b.WriteString("// AllPermissions includes both company and platform permissions.\n")
 	b.WriteString("var AllPermissions = []string{\n")
 	for _, cap := range m.Capabilities {
+		b.WriteString(fmt.Sprintf("\t%s,\n", goConstName(cap)))
+	}
+	for _, cap := range m.PlatformCapabilities {
 		b.WriteString(fmt.Sprintf("\t%s,\n", goConstName(cap)))
 	}
 	b.WriteString("}\n\n")
@@ -64,7 +79,12 @@ func main() {
 	}
 	b.WriteString("}\n")
 
-	if err := os.WriteFile(keysPath, []byte(b.String()), 0o644); err != nil {
+	formatted, err := format.Source([]byte(b.String()))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "gofmt keys: %v\n", err)
+		os.Exit(1)
+	}
+	if err := os.WriteFile(keysPath, formatted, 0o644); err != nil {
 		fmt.Fprintf(os.Stderr, "write keys: %v\n", err)
 		os.Exit(1)
 	}

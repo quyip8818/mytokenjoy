@@ -39,7 +39,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 
 	write := httpmiddleware.ReadRoutes(r, h.Protected)
 
-	providerWrite := write.With(httpmiddleware.RequireAnyPermission(permission.KeysProvider))
+	providerWrite := write.With(httpmiddleware.RequireAnyPermission(permission.KeysManage))
 	providerWrite.Post("/provider", h.ProviderCreate)
 	providerWrite.Put("/provider/{id}/toggle", h.ProviderToggle)
 	providerWrite.Post("/provider/{id}/rotate", h.ProviderRotate)

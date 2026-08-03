@@ -7,10 +7,10 @@ import { renderWithProviders } from '@tests/utils'
 describe('PermissionGate', () => {
   it('renders children when user has required permission', async () => {
     renderWithProviders(
-      <PermissionGate permission={PERMISSION.ORG_STRUCTURE}>
+      <PermissionGate permission={PERMISSION.ORG_ADMIN}>
         <span>allowed</span>
       </PermissionGate>,
-      { permissions: [PERMISSION.ORG_STRUCTURE, PERMISSION.ORG_MEMBERS] },
+      { permissions: [PERMISSION.ORG_ADMIN, PERMISSION.ORG_MANAGE] },
     )
 
     expect(await screen.findByText('allowed')).toBeInTheDocument()
@@ -18,7 +18,7 @@ describe('PermissionGate', () => {
 
   it('renders fallback when user lacks required permission', async () => {
     renderWithProviders(
-      <PermissionGate permission={PERMISSION.ORG_STRUCTURE} fallback={<span>denied</span>}>
+      <PermissionGate permission={PERMISSION.ORG_ADMIN} fallback={<span>denied</span>}>
         <span>allowed</span>
       </PermissionGate>,
       { permissions: [PERMISSION.SELF_KEYS] },
@@ -36,7 +36,7 @@ describe('PermissionGate', () => {
         <span>write-action</span>
       </PermissionGate>,
       {
-        permissions: [PERMISSION.AUDIT_READ, PERMISSION.DASHBOARD_COST],
+        permissions: [PERMISSION.AUDIT_READ, PERMISSION.DASHBOARD_READ],
         readOnly: true,
       },
     )

@@ -86,13 +86,14 @@ func TestDisabledMemberSessionRejected(t *testing.T) {
 	}
 }
 
-func TestDashboardCostWithoutUsagePermission(t *testing.T) {
+func TestDashboardReadAccessesBothCostAndUsage(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
 	admin := testhttp.AdminCookie(t)
+	// Create a role with dashboard:read (p-15)
 	createRec := testhttp.ServeAuthz(
 		t, router, http.MethodPost, "/api/org/roles", admin,
-		`{"name":"Cost Only","permissions":["p-8"]}`,
+		`{"name":"Dashboard Reader","permissions":["p-15"]}`,
 		nil,
 	)
 	if createRec.Code != http.StatusOK {
@@ -123,8 +124,8 @@ func TestDashboardCostWithoutUsagePermission(t *testing.T) {
 		"/api/dashboard/usage/models",
 		memberCookie, "", nil,
 	)
-	if usageRec.Code != http.StatusForbidden {
-		t.Fatalf("expected usage 403, got %d body=%s", usageRec.Code, usageRec.Body.String())
+	if usageRec.Code != http.StatusOK {
+		t.Fatalf("expected usage 200 (unified dashboard:read), got %d body=%s", usageRec.Code, usageRec.Body.String())
 	}
 }
 

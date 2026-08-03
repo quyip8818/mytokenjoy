@@ -12,9 +12,9 @@ func TestNormalizeGrantIDsWildcard(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// * expands to all entries in PermissionIDMap (company permissions only, 23 total).
-	if len(ids) != 23 {
-		t.Fatalf("expected 23 permission ids, got %d", len(ids))
+	// * expands to all entries in PermissionIDMap (company permissions only, 19 total).
+	if len(ids) != 19 {
+		t.Fatalf("expected 19 permission ids, got %d", len(ids))
 	}
 }
 
@@ -24,8 +24,8 @@ func TestNormalizeGrantIDsCapability(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(ids) != 1 || ids[0] != "p-10" {
-		t.Fatalf("got %v want [p-10]", ids)
+	if len(ids) != 1 || ids[0] != "p-16" {
+		t.Fatalf("got %v want [p-16]", ids)
 	}
 }
 

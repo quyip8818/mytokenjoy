@@ -21,7 +21,7 @@ func newDashboardSvc(t *testing.T) (dashboard.Service, store.Store) {
 	cfg, st := testutil.NewTestStore(t)
 	testutil.TruncateUsageBuckets(t, st)
 	return dashboard.NewService(cfg, st, domainusage.NewReader(st.Usage(), st.Ledger()), domainusage.DashboardScopeConfig{
-		OrgWidePermissions: []string{permission.DashboardCost, permission.DashboardUsage},
+		OrgWidePermissions: []string{permission.DashboardRead},
 	}), st
 }
 
@@ -102,7 +102,7 @@ func TestUsageTeamsConsumedFromBucketsNotSnapshot(t *testing.T) {
 	ctx := testutil.Ctx()
 	testutil.SeedUsageBucket(t, st, testutil.UsageBucketOpts{QuotaConsumed: 18, CallCount: 2})
 	departments, err := svc.DepartmentUsage(ctx, types.CostQueryParams{Period: string(types.CostPeriodCurrentMonth)}, uuid.Nil, domainusage.SessionScope{
-		MemberID: contract.IDMemberAdmin, Permissions: []string{permission.DashboardUsage, "*"},
+		MemberID: contract.IDMemberAdmin, Permissions: []string{permission.DashboardRead, "*"},
 	})
 	if err != nil {
 		t.Fatal(err)

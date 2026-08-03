@@ -18,25 +18,27 @@ const manifestPath = join(
 
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
   capabilities: string[]
+  platformCapabilities?: string[]
 }
 
 describe('manifest contract', () => {
   it('matches backend manifest capability count', () => {
+    const allCaps = [...manifest.capabilities, ...(manifest.platformCapabilities ?? [])]
     const keys = Object.values(PERMISSION)
-    expect(keys).toHaveLength(manifest.capabilities.length)
-    expect(new Set(keys)).toEqual(new Set(manifest.capabilities))
+    expect(keys).toHaveLength(allCaps.length)
+    expect(new Set(keys)).toEqual(new Set(allCaps))
   })
 })
 
 describe('hasPermission', () => {
   it.each([
-    { user: [PERMISSION.ORG_STRUCTURE], required: PERMISSION.ORG_STRUCTURE, expected: true },
+    { user: [PERMISSION.ORG_ADMIN], required: PERMISSION.ORG_ADMIN, expected: true },
     {
       user: [PERMISSION.SELF_KEYS],
-      required: [PERMISSION.ORG_STRUCTURE, PERMISSION.SELF_KEYS],
+      required: [PERMISSION.ORG_ADMIN, PERMISSION.SELF_KEYS],
       expected: true,
     },
-    { user: [PERMISSION.SELF_KEYS], required: PERMISSION.ORG_STRUCTURE, expected: false },
+    { user: [PERMISSION.SELF_KEYS], required: PERMISSION.ORG_ADMIN, expected: false },
   ])('matches required permissions ($expected)', ({ user, required, expected }) => {
     expect(hasPermission(user, required)).toBe(expected)
   })
@@ -44,7 +46,7 @@ describe('hasPermission', () => {
 
 describe('isReadOnlySession', () => {
   it('returns false when server marks session writable', () => {
-    expect(isReadOnlySession([PERMISSION.ORG_STRUCTURE], false)).toBe(false)
+    expect(isReadOnlySession([PERMISSION.ORG_ADMIN], false)).toBe(false)
   })
 
   it('returns true when server marks session read-only', () => {
@@ -58,14 +60,14 @@ describe('isReadOnlySession', () => {
 
 describe('canWriteSession', () => {
   it('mirrors server readOnly flag', () => {
-    expect(canWriteSession([PERMISSION.ORG_STRUCTURE], false)).toBe(true)
+    expect(canWriteSession([PERMISSION.ORG_ADMIN], false)).toBe(true)
     expect(canWriteSession([PERMISSION.ORG_READ], true)).toBe(false)
   })
 })
 
 describe('canAccessRoute', () => {
   it('allows access when user has required route permission', () => {
-    expect(canAccessRoute(ROUTES.orgStructure, [PERMISSION.ORG_STRUCTURE])).toBe(true)
+    expect(canAccessRoute(ROUTES.orgStructure, [PERMISSION.ORG_MANAGE])).toBe(true)
   })
 
   it('denies access when user lacks required route permission', () => {
