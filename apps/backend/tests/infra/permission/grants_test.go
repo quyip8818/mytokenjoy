@@ -12,8 +12,9 @@ func TestNormalizeGrantIDsWildcard(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(ids) != 24 {
-		t.Fatalf("expected 24 permission ids, got %d", len(ids))
+	// * expands to all entries in PermissionIDMap (company permissions only, 23 total).
+	if len(ids) != 23 {
+		t.Fatalf("expected 23 permission ids, got %d", len(ids))
 	}
 }
 
@@ -36,5 +37,32 @@ func TestPresetRolePermissionIDsMember(t *testing.T) {
 	}
 	if len(ids) != 2 {
 		t.Fatalf("expected 2 grants for member, got %v", ids)
+	}
+}
+
+func TestPresetRolePermissionIDsPlatformAdmin(t *testing.T) {
+	t.Parallel()
+	// Platform roles contain platform:* capabilities that have no ID mapping.
+	// PresetRolePermissionIDs should succeed, returning only the company-level IDs.
+	ids, err := permission.PresetRolePermissionIDs(permission.RolePlatformAdmin)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// 平台管理员 = ["platform:manage", "self:keys"]
+	// Only self:keys has an ID mapping.
+	if len(ids) != 1 {
+		t.Fatalf("expected 1 company-level grant ID, got %d: %v", len(ids), ids)
+	}
+}
+
+func TestPresetRolePermissionIDsPlatformRead(t *testing.T) {
+	t.Parallel()
+	ids, err := permission.PresetRolePermissionIDs(permission.RolePlatformRead)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// 平台只读 = ["platform:read", "self:keys"] → only self:keys has an ID.
+	if len(ids) != 1 {
+		t.Fatalf("expected 1 company-level grant ID, got %d: %v", len(ids), ids)
 	}
 }

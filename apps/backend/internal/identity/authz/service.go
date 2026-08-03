@@ -76,7 +76,7 @@ func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, me
 			AuthzRevision:   revision,
 			User:            types.SessionUser{Name: userName},
 			Member:          member,
-			Permissions:     s.scopePermissions(perms),
+			Permissions:     s.scopePermissions(perms, companyType),
 			ReadOnly:        readOnly,
 			BillingCurrency: currency,
 			QuotaPerUnit:    ppu,
@@ -100,27 +100,39 @@ func (s *service) GetSessionContext(ctx context.Context, companyID uuid.UUID, me
 		AuthzRevision:   revision,
 		User:            types.SessionUser{Name: authz.UserName},
 		Member:          authz.Member,
-		Permissions:     s.scopePermissions(permissions),
+		Permissions:     s.scopePermissions(permissions, companyType),
 		ReadOnly:        readOnly,
 		BillingCurrency: currency,
 		QuotaPerUnit:    ppu,
 	}, nil
 }
 
-// scopePermissions removes platform-only permissions in non-SaaS mode.
-// Defense-in-depth: even if code erroneously resolves platform:manage for a local user,
-// it will never be exposed in the session response.
-func (s *service) scopePermissions(perms []string) []string {
-	if s.cfg.SupportSaas {
+// scopePermissions removes platform-domain permissions unless the company is
+// the platform operator (platform_admin type) in SaaS mode.
+// Defense-in-depth: even if a role erroneously contains platform:manage,
+// it will never be exposed in the session for non-platform companies.
+func (s *service) scopePermissions(perms []string, companyType string) []string {
+	return ScopePermissions(perms, companyType, s.cfg.SupportSaas)
+}
+
+// ScopePermissions filters platform-domain permissions based on company type and SaaS mode.
+// Exported for testing.
+func ScopePermissions(perms []string, companyType string, supportSaas bool) []string {
+	if supportSaas && companyType == store.CompanyTypePlatform {
 		return perms
 	}
 	out := make([]string, 0, len(perms))
 	for _, p := range perms {
-		if p != permission.PlatformManage {
+		if !permission.IsPlatformPermission(p) {
 			out = append(out, p)
 		}
 	}
 	return out
+}
+
+// IsPlatformPermission delegates to the permission package.
+func IsPlatformPermission(p string) bool {
+	return permission.IsPlatformPermission(p)
 }
 
 // companyInfoFromContext tries to get company type and name from the request context first

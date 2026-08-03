@@ -8,8 +8,6 @@ import { Pencil, Power } from 'lucide-react'
 interface ModelListTableProps {
   models: ModelInfo[]
   canManage: boolean
-  /** SaaS mode: all models can toggle. Local mode: only custom models. */
-  isSelfHosted: boolean
   rowClass: (id: string) => string | undefined
   onToggle: (model: ModelInfo) => void | Promise<void>
   onEdit: (model: ModelInfo) => void
@@ -18,7 +16,6 @@ interface ModelListTableProps {
 export function ModelListTable({
   models,
   canManage,
-  isSelfHosted,
   rowClass,
   onToggle,
   onEdit,
@@ -41,8 +38,8 @@ export function ModelListTable({
     [onToggle],
   )
 
-  // SaaS: all models get power button. Local: only custom models.
-  const canToggle = (model: ModelInfo) => !isSelfHosted || isCustomModel(model)
+  // ponytail: only custom models can be toggled — global models are read-only on SaaS
+  const canToggle = (model: ModelInfo) => isCustomModel(model)
 
   return (
     <ModelTable
@@ -59,7 +56,7 @@ export function ModelListTable({
       ]}
       rowClass={(model) => rowClass(model.modelId)}
       renderActions={
-        canManage
+        canManage && models.some(isCustomModel)
           ? (model) => (
               <div className="inline-flex items-center gap-1">
                 {isCustomModel(model) && (

@@ -36,7 +36,16 @@ func PresetRolePermissionIDs(roleName string) ([]string, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown preset role %q", roleName)
 	}
-	return NormalizeGrantIDs(caps)
+	// Filter out platform-domain capabilities — they have no permission ID mapping
+	// and are not part of the company-level grant system.
+	filtered := make([]string, 0, len(caps))
+	for _, c := range caps {
+		if IsPlatformPermission(c) {
+			continue
+		}
+		filtered = append(filtered, c)
+	}
+	return NormalizeGrantIDs(filtered)
 }
 
 func NormalizeGrantIDs(refs []string) ([]string, error) {

@@ -26,9 +26,39 @@ const (
 	APICall         = "api:call"
 	BillingRead     = "billing:read"
 	BillingRecharge = "billing:recharge"
+	PlatformAdmin   = "platform:admin"
 	PlatformManage  = "platform:manage"
+	PlatformRead    = "platform:read"
 )
 
+// CompanyPermissions are tenant-assignable permissions. * expands to this set only.
+var CompanyPermissions = []string{
+	OrgRead,
+	OrgDatasource,
+	OrgStructure,
+	OrgRoles,
+	OrgMembers,
+	BudgetRead,
+	BudgetAllocate,
+	BudgetApprove,
+	BudgetPolicy,
+	ModelRead,
+	ModelManage,
+	ModelWhitelist,
+	KeysRead,
+	KeysAdmin,
+	KeysProvider,
+	SelfKeys,
+	SelfApproval,
+	DashboardCost,
+	DashboardUsage,
+	AuditRead,
+	APICall,
+	BillingRead,
+	BillingRecharge,
+}
+
+// AllPermissions includes both company and platform permissions.
 var AllPermissions = []string{
 	OrgRead,
 	OrgDatasource,
@@ -53,7 +83,9 @@ var AllPermissions = []string{
 	APICall,
 	BillingRead,
 	BillingRecharge,
+	PlatformAdmin,
 	PlatformManage,
+	PlatformRead,
 }
 
 var PermissionIDMap = map[string]string{
@@ -73,7 +105,6 @@ var PermissionIDMap = map[string]string{
 	"p-21": ModelRead,
 	"p-22": BillingRead,
 	"p-23": BillingRecharge,
-	"p-24": PlatformManage,
 	"p-3":  OrgRoles,
 	"p-4":  OrgDatasource,
 	"p-5":  BudgetAllocate,
@@ -81,4 +112,10 @@ var PermissionIDMap = map[string]string{
 	"p-7":  ModelWhitelist,
 	"p-8":  DashboardCost,
 	"p-9":  DashboardUsage,
+}
+
+// IsPlatformPermission returns true for any permission in the platform domain (platform:*).
+func IsPlatformPermission(p string) bool {
+	const prefix = "platform:"
+	return len(p) > len(prefix) && p[:len(prefix)] == prefix
 }
