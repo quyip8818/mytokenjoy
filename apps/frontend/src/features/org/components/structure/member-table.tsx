@@ -8,7 +8,8 @@ import {
 } from '@tanstack/react-table'
 import type { Member } from '@/api/types'
 import { orgApi } from '@/api/org'
-import { useSession } from '@/features/session'
+import { PermissionGate, useSession } from '@/features/session'
+import { PERMISSION } from '@/lib/permissions'
 import {
   Pagination,
   PaginationContent,
@@ -205,42 +206,44 @@ export function MemberTable({
             }
           }
           return (
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="xs" onClick={() => onEdit(member)}>
-                编辑
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon-xs" aria-label="更多操作">
-                    <MoreHorizontal className="size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {canInvite && member.status === 'pending' && (
-                    <DropdownMenuItem onClick={handleGetInviteLink}>获取邀请链接</DropdownMenuItem>
-                  )}
-                  {member.status === 'pending' && (
-                    <DropdownMenuItem onClick={handleResendInvite}>重新发送邀请</DropdownMenuItem>
-                  )}
-                  {member.status === 'active' && (
-                    <DropdownMenuItem onClick={() => onStatusChange([member.id], 'disabled')}>
-                      停用
+            <PermissionGate permission={PERMISSION.ORG_MANAGE}>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="xs" onClick={() => onEdit(member)}>
+                  编辑
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon-xs" aria-label="更多操作">
+                      <MoreHorizontal className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {canInvite && member.status === 'pending' && (
+                      <DropdownMenuItem onClick={handleGetInviteLink}>获取邀请链接</DropdownMenuItem>
+                    )}
+                    {member.status === 'pending' && (
+                      <DropdownMenuItem onClick={handleResendInvite}>重新发送邀请</DropdownMenuItem>
+                    )}
+                    {member.status === 'active' && (
+                      <DropdownMenuItem onClick={() => onStatusChange([member.id], 'disabled')}>
+                        停用
+                      </DropdownMenuItem>
+                    )}
+                    {member.status === 'disabled' && (
+                      <DropdownMenuItem onClick={() => onStatusChange([member.id], 'active')}>
+                        启用
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={() => onDelete([member.id])}
+                    >
+                      删除
                     </DropdownMenuItem>
-                  )}
-                  {member.status === 'disabled' && (
-                    <DropdownMenuItem onClick={() => onStatusChange([member.id], 'active')}>
-                      启用
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem
-                    className="text-destructive"
-                    onClick={() => onDelete([member.id])}
-                  >
-                    删除
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </PermissionGate>
           )
         },
       }),

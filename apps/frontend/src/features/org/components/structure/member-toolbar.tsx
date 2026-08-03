@@ -1,5 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PermissionGate } from '@/features/session'
+import { PERMISSION } from '@/lib/permissions'
 import { Search, Plus } from 'lucide-react'
 
 interface MemberToolbarProps {
@@ -32,10 +34,12 @@ export function MemberToolbar({ keyword, onKeywordChange, onSearch, onAdd }: Mem
         </button>
       </div>
       <div className="flex-1" />
-      <Button size="sm" onClick={onAdd}>
-        <Plus className="size-3.5" />
-        添加成员
-      </Button>
+      <PermissionGate permission={PERMISSION.ORG_MANAGE}>
+        <Button size="sm" onClick={onAdd}>
+          <Plus className="size-3.5" />
+          添加成员
+        </Button>
+      </PermissionGate>
     </div>
   )
 }

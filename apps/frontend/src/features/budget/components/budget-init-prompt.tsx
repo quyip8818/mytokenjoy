@@ -10,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { PermissionGate } from '@/features/session'
+import { PERMISSION } from '@/lib/permissions'
 import { formatMoney } from '@/lib/quota-display'
 import { Wallet } from 'lucide-react'
 
@@ -56,7 +58,9 @@ export function BudgetInitPrompt({
             请先设置总额度，然后再分配部门和成员额度
           </p>
         </div>
-        <Button onClick={() => setDialogOpen(true)}>设置总额度</Button>
+        <PermissionGate permission={PERMISSION.BUDGET_MANAGE}>
+          <Button onClick={() => setDialogOpen(true)}>设置总额度</Button>
+        </PermissionGate>
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

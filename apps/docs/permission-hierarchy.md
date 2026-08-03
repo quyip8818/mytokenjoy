@@ -1,40 +1,49 @@
-# 权限模型 v2
+# 权限管理
 
-## 概述
+> **Source of Truth**：`packages/contracts/permission/manifest.json`  
+> **读者**：后端 / 前端开发
 
-权限系统从 v1（26 碎片化 key + 散落 implies 逻辑）精简为 v2（19 企业 + 3 平台），统一使用 `admin` / `manage` / `read` 三层命名，引入声明式 `hierarchy` 自动展开机制。
+---
 
-核心设计：
-1. 单点真相：`packages/contracts/permission/manifest.json` → 代码生成前后端常量
-2. 层级继承：`admin → manage → read` 声明在 manifest，后端 `ExpandHierarchy()` + 前端 `expandHierarchy()` 双重展开
-3. 平台隔离：`ScopePermissions` 确保非平台企业永远看不到 `platform:*` 权限
-4. OR 语义：中间件 / 前端路由均为"持有任一即可访问"
+## 1. 架构总览
 
-## 权限清单
+```
+请求 → Cookie/Bearer JWT → RequireSession（parse + PDP 求值）→ RequireAnyPermission → Handler
+```
+
+- Token **仅含 identity**（`sub`=memberID, `company_id`, `sid`, `exp`），不含 permissions/roles
+- 授权在服务端 PDP **每请求求值**
+- Capability 以 `packages/contracts/permission/manifest.json` 为唯一真相，代码生成前后端常量
+- 命名规范：`{domain}:{admin|manage|read}`，层级继承自动展开
+- 中间件 / 前端路由均为 **OR 语义**（持有任一即可访问）
+
+---
+
+## 2. 权限清单
 
 ### 企业权限（19）
 
-| Domain | Key | 说明 | Group |
-|--------|-----|------|-------|
-| org | `org:admin` | 组织架构、数据源、角色管理 | 组织 |
-| org | `org:manage` | 成员管理 | 组织 |
-| org | `org:read` | 组织查看 | 组织 |
-| budget | `budget:admin` | 超限策略、预警规则 | 预算 |
-| budget | `budget:manage` | 预算分配、项目管理 | 预算 |
-| budget | `budget:approve` | 预算审批（独立职责） | 预算 |
-| budget | `budget:read` | 预算查看 | 预算 |
-| model | `model:manage` | 模型 CRUD + 路由配置 | 模型 |
-| model | `model:read` | 模型查看 | 模型 |
-| keys | `keys:admin` | 平台 Key 签发/管理 | 凭证 |
-| keys | `keys:manage` | 供应商 Key 管理 | 凭证 |
-| keys | `keys:read` | Key 查看 | 凭证 |
-| billing | `billing:manage` | 充值操作 | 财务 |
-| billing | `billing:read` | 钱包/账单查看 | 财务 |
-| dashboard | `dashboard:read` | 成本看板 + 用量分析 | 看板 |
-| audit | `audit:read` | 审计日志查看 | 审计 |
-| self | `self:keys` | 我的 Key | 成员 |
-| self | `self:approval` | 我的审批 | 成员 |
-| api | `api:call` | API 调用能力 | API |
+| Domain | Key | 说明 |
+|--------|-----|------|
+| org | `org:admin` | 组织架构、数据源、角色管理 |
+| org | `org:manage` | 成员管理 |
+| org | `org:read` | 组织查看 |
+| budget | `budget:admin` | 超限策略、预警规则 |
+| budget | `budget:manage` | 预算分配、项目管理 |
+| budget | `budget:approve` | 预算审批（独立职责） |
+| budget | `budget:read` | 预算查看 |
+| model | `model:manage` | 模型 CRUD + 路由配置 |
+| model | `model:read` | 模型查看 |
+| keys | `keys:admin` | 平台 Key 签发/管理 |
+| keys | `keys:manage` | 供应商 Key 管理 |
+| keys | `keys:read` | Key 查看 |
+| billing | `billing:manage` | 充值操作 |
+| billing | `billing:read` | 钱包/账单查看 |
+| dashboard | `dashboard:read` | 成本看板 + 用量分析 |
+| audit | `audit:read` | 审计日志查看 |
+| self | `self:keys` | 我的 Key |
+| self | `self:approval` | 我的审批 |
+| api | `api:call` | API 调用能力 |
 
 ### 平台权限（3）
 
@@ -44,7 +53,9 @@
 | `platform:manage` | 平台日常管理（企业/模型/定价/汇率 CRUD） |
 | `platform:read` | 平台只读 |
 
-## 层级继承
+---
+
+## 3. 层级继承
 
 ```
 org:admin      → org:manage → org:read
@@ -57,9 +68,12 @@ platform:admin → platform:manage → platform:read
 
 不参与继承（独立授予）：`budget:approve`、`dashboard:read`、`audit:read`、`self:*`、`api:call`
 
-展开时机：`ResolveMemberPermissions()` 末尾调用 `permission.ExpandHierarchy()`，fixpoint 迭代直到无新增。
+后端 `permission.ExpandHierarchy()` 在 `ResolveMemberPermissions()` 末尾做 fixpoint 展开。  
+前端 `expandHierarchy()` 在 `usePermissions` 中 defense-in-depth 二次展开。
 
-## 预设角色
+---
+
+## 4. 预设角色
 
 | 角色 | 权限（展开前） |
 |------|---------------|
@@ -71,18 +85,92 @@ platform:admin → platform:manage → platform:read
 | 平台管理员 | platform:manage, self:keys |
 | 平台只读 | platform:read, self:keys |
 
-说明：
 - `*` 展开为全部 19 个企业权限，不含 `platform:*`
-- 预设角色 ID 固定（`00000000-0000-0000-0000-00000000000x`），全局唯一
+- 预设角色 ID 固定（`00000000-0000-0000-0000-00000000000x`），定义在 `domain/grants/roles.go`
 
-## 后端 API 权限映射
+---
+
+## 5. 认证（AuthN）
+
+### JWT Session
+
+| Claim | 说明 |
+|-------|------|
+| `sub` | `members.id` |
+| `company_id` | 租户 ID |
+| `user_id` | 关联 users 表 |
+| `sid` | 会话 ID |
+| `iat`/`exp` | 签发/过期 |
+
+签名 HS256，密钥 `SESSION_SECRET`，TTL `SESSION_TTL_SEC`（默认 900s）。  
+Cookie：`tokenjoy_session_member`（HttpOnly, SameSite=Lax, Secure）。  
+Bearer：`Authorization: Bearer <jwt>`，同一 parse 逻辑。
+
+**禁止**在 token 内放 permissions/roles。
+
+---
+
+## 6. 授权（AuthZ）
+
+### 组件
+
+| 组件 | 包 | 职责 |
+|------|---|------|
+| PIP | `store/org` | `GetMemberAuthz(companyID, memberID)` → member + roles |
+| PDP | `identity/authz` | `ResolveMemberPermissions` → `[]capability` + `readOnly` |
+| PEP-Session | `middleware/session` | Parse JWT → 租户校验 → `GetSessionContext` |
+| PEP-Authz | `middleware/authz` | `HasAny(permissions, required...)` — OR 语义 |
+| PAP | `domain/org` | 角色 CRUD，变更时 bump `authz_revision` |
+
+### 请求流程
+
+```go
+claims := httpx.ParseMemberToken(r, issuer)
+sessionCtx := authzSvc.GetSessionContext(ctx, claims.CompanyID, memberID)
+// 内部: revision 缓存(5s TTL) → LRU 缓存(companyID+memberID+revision)
+// cache miss: store.Org().GetMemberAuthz → ResolveMemberPermissions → ExpandHierarchy
+
+authz.HasAny(sessionCtx.Permissions, required...)  // OR 判断
+```
+
+### 权限展开规则
+
+1. 遍历成员所属角色
+2. Preset 角色：从 manifest `presetRoles` 查表展开
+3. Custom 角色：DB `p-*` ID → manifest `permissionIdMap` → capability 字符串
+4. 合并 `member.DirectPermissions`（如 `platform:admin`）
+5. `ExpandHierarchy()`：按 manifest `hierarchy` fixpoint 展开
+6. `readOnly`：无 manifest `writeCapabilities` 中任一项时为 true
+
+### authz_revision 缓存失效
+
+LRU cache key = `(companyID, memberID, revision)`。  
+角色 CRUD / 成员-角色绑定变更 / 成员禁用 → 事务内 bump `companies.authz_revision` → 全租户缓存 miss。
+
+---
+
+## 7. 平台权限隔离（Defense in Depth）
+
+`platform:*` 权限在 local 模式下绝对不可用。三层独立防护：
+
+| Layer | 机制 | 效果 |
+|-------|------|------|
+| Session | `ScopePermissions()` 在 `!SupportSaas` 时剔除 `platform:*` | 前端拿不到权限 → 菜单不显示 |
+| Router | `if cfg.SupportSaas { platformhandler.Mount(...) }` | Local 模式 `/api/platform/*` 返回 404 |
+| Middleware | `RequirePlatformAdmin`: `!supportSaas → 403` + `companyID != TokenJoyCompanyID → 403` + `!HasAny("platform:manage") → 403` | 即使路由被误注册仍独立阻断 |
+
+任意单点失效，其余两层仍能独立阻断。
+
+---
+
+## 8. 后端 API 权限映射
 
 ### /api/org
 
 | 操作 | 权限 |
 |------|------|
 | GET 全部读接口 | `org:read` |
-| 数据源/字段映射/同步配置 写入 | `org:admin` |
+| 数据源/字段映射/同步配置写入 | `org:admin` |
 | 部门 CRUD | `org:admin` |
 | 角色 CRUD + 角色成员管理 | `org:admin` |
 | 成员 CRUD + 批量邀请/导入/转移 | `org:manage` |
@@ -142,8 +230,8 @@ platform:admin → platform:manage → platform:read
 
 | 操作 | 权限 |
 |------|------|
-| GET dashboard（我的用量）| `self:keys` |
-| profile/password/phone/email/sessions | session only（无额外权限） |
+| GET dashboard | `self:keys` |
+| profile/password/phone/email/sessions | session only |
 
 ### /api/notifications
 
@@ -156,24 +244,22 @@ platform:admin → platform:manage → platform:read
 
 | 操作 | 权限 |
 |------|------|
-| 全部（企业/模型/定价/汇率 CRUD）| `RequirePlatformAdmin`：SaaS 模式 + 超级公司 + `platform:manage` |
+| 全部 | `RequirePlatformAdmin`：SaaS + 超级公司 + `platform:manage` |
 
-### /api/dev（仅 DEPLOY_ENV=local）
+---
 
-| 操作 | 权限 |
-|------|------|
-| GET /readiness | 无认证（健康检查性质）|
-| GET /platform-keys/{id}/bearer | `keys:admin` |
+## 9. 前端权限
 
-## 前端路由权限
+### 路由守卫
 
-| 路由 | requiredPermissions（OR） |
-|------|--------------------------|
-| /dashboard/cost | `dashboard:read` |
-| /dashboard/usage | `dashboard:read` |
+`routes.ts` 中 `requiredPermissions`（OR 语义）控制页面可见性。
+
+| 路由 | requiredPermissions |
+|------|---------------------|
+| /dashboard/* | `dashboard:read` |
 | /keys/platform | `keys:admin`, `keys:read` |
-| /approvals | `budget:approve`, `self:approval` |
 | /keys/provider | `keys:manage`, `keys:read` |
+| /approvals | `budget:approve`, `self:approval` |
 | /models/list | `model:manage`, `model:read` |
 | /models/routing | `model:manage` |
 | /budget | `budget:read` |
@@ -181,80 +267,115 @@ platform:admin → platform:manage → platform:read
 | /billing | `billing:read` |
 | /org/data-source | `org:admin` |
 | /org/structure | `org:manage`, `org:read` |
-| /org/roles | `org:admin`, `org:read` |
-| /audit/operations | `audit:read` |
-| /audit/calls | `audit:read` |
-| /me/keys | （无限制）|
-| /me/usage | （无限制）|
-| /me/settings | （无限制）|
-| /platform/models | `platform:manage` |
-| /platform/companies | `platform:manage` |
-| /platform/currencies | `platform:manage` |
+| /org/roles | `org:admin` |
+| /audit/* | `audit:read` |
+| /me/* | （无限制） |
+| /platform/* | `platform:manage` |
 
-前端同时通过 `PermissionGate` 组件对写操作按钮做细粒度控制（keys、models 已覆盖）。
+### 组件级 PermissionGate
 
-## 技术实现
+```tsx
+import { PermissionGate } from '@/features/session'
+import { PERMISSION } from '@/lib/permissions'
 
-### Source of truth
+<PermissionGate permission={PERMISSION.BUDGET_MANAGE}>
+  <Button>创建项目</Button>
+</PermissionGate>
 
-`packages/contracts/permission/manifest.json`（version: 2）
-
-### Code generation
-
-- `packages/contracts/permission/generate-backend.go` → `apps/backend/internal/infra/permission/keys.go`（常量 + CompanyPermissions + AllPermissions + PermissionIDMap）
-- `packages/contracts/permission/generate-frontend.ts` → `apps/frontend/src/lib/permission-keys.ts`（PERMISSION 对象 + PermissionKey 类型）
-
-### 后端展开
-
-`permission.ExpandHierarchy(perms []string) []string` — fixpoint 迭代，读取 manifest `hierarchy` 字段，在 `ResolveMemberPermissions` 末尾调用。
-
-### 前端展开
-
-`expandHierarchy(perms)` in `apps/frontend/src/lib/permissions.ts` — 同样的 fixpoint 逻辑，defense-in-depth（后端已展开，前端二次确认）。
-
-### ScopePermissions
-
-`authz.ScopePermissions(perms, companyType, supportSaas)` — 返回 session 前过滤 `platform:*`。仅 SaaS 模式下的 `platform_admin` 类型企业保留平台权限。
-
-### ReadOnly 判定
-
-`IsReadOnlySession(permissions)` — 遍历 `writeCapabilities`，若无任何写权限则标记 `readOnly=true`。前端据此全局 disable 写操作。
-
-### 中间件栈
-
-```
-RequireSession → [CompanyResolve → authz.GetSessionContext] → RequireAnyPermission(perms...)
+<PermissionGate write permission={PERMISSION.KEYS_ADMIN}>
+  <Button>签发 Key</Button>
+</PermissionGate>
 ```
 
-平台 API 额外：`RequirePlatformAdmin(tokenJoyCompanyID, supportSaas)`
+### Session 刷新策略
 
-### 缓存
+| 触发 | 行为 |
+|------|------|
+| 响应头 `X-Authz-Revision` > 当前 revision | `refreshSession()` |
+| `window.focus` 且距上次 > 60s | `refreshSession()` |
+| `BroadcastChannel('tokenjoy-authz')` 消息 | `refreshSession()` |
+| 业务 API 返回 403 | `refreshSession()` 一次 |
+| PAP mutation 成功 | `broadcastAuthzChange()` |
 
-- authz revision per company（5s TTL）避免每请求查 DB
-- session context LRU cache（keyed by companyID+memberID+revision）
+---
 
-## 涉及文件
+## 10. 路由注册指南
 
-### 权限定义层
-- `packages/contracts/permission/manifest.json` — 唯一 source of truth
-- `apps/backend/internal/infra/permission/manifest.json` — go:embed 副本
-- `apps/backend/internal/infra/permission/keys.go` — 生成的常量
-- `apps/backend/internal/infra/permission/manifest.go` — ExpandHierarchy, PresetRoleCapabilities, WriteCapabilities
-- `apps/backend/internal/infra/permission/grants.go` — NormalizeGrantIDs, RoleGrantIDs
-- `apps/backend/internal/domain/grants/roles.go` — 预设角色名 + 固定 UUID
-- `apps/frontend/src/lib/permission-keys.ts` — 生成的前端常量
-- `apps/frontend/src/lib/permissions.ts` — expandHierarchy, hasPermission, isReadOnlySession
+```go
+// 仅 Session
+middleware.SessionRoutes(r, p)
 
-### 权限执行层
-- `apps/backend/internal/identity/authz/resolve.go` — ResolveMemberPermissions + ExpandHierarchy
-- `apps/backend/internal/identity/authz/service.go` — GetSessionContext + ScopePermissions + 缓存
-- `apps/backend/internal/http/middleware/authz.go` — RequireAnyPermission
-- `apps/backend/internal/http/middleware/require_platform.go` — RequirePlatformAdmin
-- `apps/backend/internal/http/middleware/session.go` — RequireSession
-- `apps/backend/internal/http/middleware/routes.go` — ReadRoutes / SessionRoutes helpers
+// Session + 读 capability
+middleware.ReadRoutes(r, p, "budget:read")
 
-### 权限消费层
-- `apps/backend/internal/http/handler/{org,budget,models,keys,billing,dashboard,audit,approval,me,notification}/handler.go`
-- `apps/frontend/src/config/routes.ts` — 前端路由权限守卫
-- `apps/frontend/src/features/session/use-permissions.ts` — usePermissions hook
-- `apps/frontend/src/features/session/components/permission-gate.tsx` — PermissionGate 组件
+// 追加写 capability
+write := middleware.ReadRoutes(r, p)
+write.With(middleware.RequireAnyPermission("budget:manage")).Put("/departments/{id}", handler)
+```
+
+新增端点：查 manifest.json → 用 `ReadRoutes` / `RequireAnyPermission` → 如需新 capability 先加 manifest 再 `pnpm generate:permissions`。
+
+---
+
+## 11. RBAC 数据模型
+
+```
+members.roles[]  →  roles.permissions[] (TEXT[])
+members.direct_permissions[] (TEXT[])
+```
+
+- Preset 角色：名称固定，展开由 manifest 决定
+- Custom 角色：DB 存 `p-*` ID 引用，PDP 按 `permissionIdMap` 展开
+- 角色变更 bump `companies.authz_revision`
+
+---
+
+## 12. manifest.json 结构
+
+```jsonc
+{
+  "version": 2,
+  "capabilities": [...],           // 企业权限
+  "platformCapabilities": [...],   // 平台权限
+  "permissionIdMap": {...},        // DB p-* → capability
+  "presetRoles": {...},            // 预设角色 → capabilities
+  "writeCapabilities": [...],      // 写能力集合（判断 readOnly）
+  "hierarchy": {...}               // admin → manage → read 展开规则
+}
+```
+
+变更流程：编辑 manifest.json → `pnpm generate:permissions` → 后端/前端使用生成的常量。
+
+---
+
+## 13. 源码索引
+
+| 模块 | 路径 |
+|------|------|
+| 契约 | `packages/contracts/permission/manifest.json` |
+| 后端生成常量 | `internal/infra/permission/keys.go` |
+| 层级展开 | `internal/infra/permission/manifest.go` → `ExpandHierarchy` |
+| PDP 服务 | `internal/identity/authz/service.go` |
+| 权限展开 | `internal/identity/authz/resolve.go` |
+| Session 中间件 | `internal/http/middleware/session.go` |
+| Authz 中间件 | `internal/http/middleware/authz.go` |
+| Platform 中间件 | `internal/http/middleware/require_platform.go` |
+| 路由注册辅助 | `internal/http/middleware/routes.go` |
+| 角色常量 | `internal/domain/grants/roles.go` |
+| 前端生成常量 | `lib/permission-keys.ts` |
+| 前端权限工具 | `lib/permissions.ts` |
+| 前端 Session hook | `features/session/use-permissions.ts` |
+| 前端 PermissionGate | `features/session/components/permission-gate.tsx` |
+| 前端路由定义 | `config/routes.ts` |
+
+---
+
+## 14. 配置
+
+| 变量 | 必填 | 说明 |
+|------|------|------|
+| `SESSION_SECRET` | ✅ | JWT 签名密钥 |
+| `SESSION_TTL_SEC` | — | Access token TTL，默认 900 |
+| `REFRESH_TOKEN_TTL_SEC` | — | Refresh token TTL |
+| `AUTHZ_CACHE_SIZE` | — | LRU 大小，默认 4096 |
+| `SUPPORT_SAAS` | — | 启用 SaaS 模式（平台面） |

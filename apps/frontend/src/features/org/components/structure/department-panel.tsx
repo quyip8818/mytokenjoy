@@ -19,6 +19,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { PermissionGate } from '@/features/session'
+import { PERMISSION } from '@/lib/permissions'
 import { DepartmentNode } from './department-node'
 import { cn } from '@/lib/utils'
 import { Plus, Search, Users } from 'lucide-react'
@@ -132,18 +134,20 @@ export function DepartmentPanel({
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Button
-          size="icon"
-          variant="outline"
-          aria-label="添加部门"
-          className="size-8"
-          onClick={() => {
-            setDialogState({ type: 'add', parentId: tree[0]?.id ?? '' })
-            setInputValue('')
-          }}
-        >
-          <Plus className="size-3.5" />
-        </Button>
+        <PermissionGate permission={PERMISSION.ORG_ADMIN}>
+          <Button
+            size="icon"
+            variant="outline"
+            aria-label="添加部门"
+            className="size-8"
+            onClick={() => {
+              setDialogState({ type: 'add', parentId: tree[0]?.id ?? '' })
+              setInputValue('')
+            }}
+          >
+            <Plus className="size-3.5" />
+          </Button>
+        </PermissionGate>
       </div>
 
       <div

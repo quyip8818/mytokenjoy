@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
+import { PermissionGate } from '@/features/session'
+import { PERMISSION } from '@/lib/permissions'
 import { Pencil, X } from 'lucide-react'
 
 interface BudgetOverrunPolicySectionProps {
@@ -82,10 +84,12 @@ export function BudgetOverrunPolicySection({ policy, onUpdate }: BudgetOverrunPo
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <CardTitle className="text-sm font-medium">超限策略</CardTitle>
         {!editing && (
-          <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={startEdit}>
-            <Pencil className="size-3" />
-            编辑
-          </Button>
+          <PermissionGate permission={PERMISSION.BUDGET_ADMIN}>
+            <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={startEdit}>
+              <Pencil className="size-3" />
+              编辑
+            </Button>
+          </PermissionGate>
         )}
       </CardHeader>
       <CardContent>

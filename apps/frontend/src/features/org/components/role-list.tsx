@@ -2,6 +2,8 @@ import { useState } from 'react'
 import type { Role } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PermissionGate } from '@/features/session'
+import { PERMISSION } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { PencilIcon, TrashIcon, Search, Plus, Shield, ShieldCheck } from 'lucide-react'
 
@@ -35,10 +37,12 @@ export function RoleList({
       <div className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground">角色</h3>
-          <Button size="sm" className="h-7 text-xs gap-1" onClick={onAdd}>
-            <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
-            新建
-          </Button>
+          <PermissionGate permission={PERMISSION.ORG_ADMIN}>
+            <Button size="sm" className="h-7 text-xs gap-1" onClick={onAdd}>
+              <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
+              新建
+            </Button>
+          </PermissionGate>
         </div>
         <div className="relative">
           <Search
@@ -151,26 +155,28 @@ function RoleItem({
       <div className="flex items-center gap-1">
         <span className="text-xs text-muted-foreground tabular-nums">{role.memberCount}</span>
         {role.type === 'custom' && (
-          <div className="hidden group-hover:flex gap-0.5 ml-1">
-            <button
-              className="p-0.5 rounded hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
-              onClick={(e) => {
-                e.stopPropagation()
-                onEdit()
-              }}
-            >
-              <PencilIcon className="h-3 w-3" strokeWidth={1.5} />
-            </button>
-            <button
-              className="p-0.5 rounded hover:bg-background text-muted-foreground hover:text-destructive transition-colors"
-              onClick={(e) => {
-                e.stopPropagation()
-                onDelete()
-              }}
-            >
-              <TrashIcon className="h-3 w-3" strokeWidth={1.5} />
-            </button>
-          </div>
+          <PermissionGate permission={PERMISSION.ORG_ADMIN}>
+            <div className="hidden group-hover:flex gap-0.5 ml-1">
+              <button
+                className="p-0.5 rounded hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEdit()
+                }}
+              >
+                <PencilIcon className="h-3 w-3" strokeWidth={1.5} />
+              </button>
+              <button
+                className="p-0.5 rounded hover:bg-background text-muted-foreground hover:text-destructive transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete()
+                }}
+              >
+                <TrashIcon className="h-3 w-3" strokeWidth={1.5} />
+              </button>
+            </div>
+          </PermissionGate>
         )}
       </div>
     </div>

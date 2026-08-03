@@ -3,6 +3,8 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Separator } from '@/components/ui/separator'
+import { PermissionGate } from '@/features/session'
+import { PERMISSION } from '@/lib/permissions'
 import {
   ChevronRight,
   MoreHorizontal,
@@ -148,31 +150,33 @@ export function DepartmentNode({
               <Info className="size-3.5 text-muted-foreground" />
               查看详情
             </button>
-            <button
-              type="button"
-              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-              onClick={() => onAdd(department.id)}
-            >
-              <FolderPlus className="size-3.5 text-muted-foreground" />
-              添加子部门
-            </button>
-            <button
-              type="button"
-              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-              onClick={() => onEdit(department)}
-            >
-              <Pencil className="size-3.5 text-muted-foreground" />
-              编辑部门
-            </button>
-            <Separator className="my-1" />
-            <button
-              type="button"
-              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-destructive hover:bg-red-50"
-              onClick={() => onDelete(department)}
-            >
-              <Trash2 className="size-3.5" />
-              删除部门
-            </button>
+            <PermissionGate permission={PERMISSION.ORG_ADMIN}>
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+                onClick={() => onAdd(department.id)}
+              >
+                <FolderPlus className="size-3.5 text-muted-foreground" />
+                添加子部门
+              </button>
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+                onClick={() => onEdit(department)}
+              >
+                <Pencil className="size-3.5 text-muted-foreground" />
+                编辑部门
+              </button>
+              <Separator className="my-1" />
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-destructive hover:bg-red-50"
+                onClick={() => onDelete(department)}
+              >
+                <Trash2 className="size-3.5" />
+                删除部门
+              </button>
+            </PermissionGate>
           </PopoverContent>
         </Popover>
       </div>

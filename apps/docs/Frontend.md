@@ -781,8 +781,8 @@ HTTP 非 2xx 时，body 应包含：
 | ---- | -------------------------------- | ---------------------------- | --------------- | ------------------ | ----------------------------------- |
 | GET  | `/billing/wallet`                | —                            | `WalletSummary` | `billing:read`     | 读 Postgres lot 钱包（展示币闭合）  |
 | GET  | `/billing/recharge-records`      | —                            | `TopUpRecord[]` | `billing:read`     | 充值记录（半真；见 plan.md §2）     |
-| POST | `/billing/recharge`              | `{ amount, idempotencyKey }` | `RechargeOrder` | `billing:recharge` | 创建 `pending` 订单；HTTP **202**   |
-| POST | `/billing/recharge/{id}/confirm` | —                            | `void`          | `billing:recharge` | 确认支付并写 lot（demo / 回调模拟） |
+| POST | `/billing/recharge`              | `{ amount, idempotencyKey }` | `RechargeOrder` | `billing:manage` | 创建 `pending` 订单；HTTP **202**   |
+| POST | `/billing/recharge/{id}/confirm` | —                            | `void`          | `billing:manage` | 确认支付并写 lot（demo / 回调模拟） |
 
 **`WalletSummary`**（详见 [Backend-计费模式.md](./Backend-计费模式.md)）
 

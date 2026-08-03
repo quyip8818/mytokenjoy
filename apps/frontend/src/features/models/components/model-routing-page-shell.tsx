@@ -44,7 +44,7 @@ export function ModelRoutingPageShell({
           detail={
             selectedRule && selectedDepartment ? (
               <PermissionGate
-                permission={PERMISSION.MODEL_WHITELIST}
+                permission={PERMISSION.MODEL_MANAGE}
                 fallback={<EmptyState variant="minimal" icon={GitBranch} title="无权限配置模型" />}
               >
                 <RoutingDetailPanel

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import type { BudgetNode, ProjectView } from '@/api/types'
 import { Button } from '@/components/ui/button'
+import { PermissionGate } from '@/features/session'
+import { PERMISSION } from '@/lib/permissions'
 import { Pencil } from 'lucide-react'
 import { BudgetAllocationTable } from './budget-allocation-table'
 import { BudgetAllocationDialog } from './budget-allocation-dialog'
@@ -32,15 +34,17 @@ export function BudgetEditAllocation({
     <div>
       <div className="mb-3 flex items-center justify-between">
         <h4 className="text-sm font-semibold text-foreground">子节点分配</h4>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 gap-1.5 text-xs text-muted-foreground"
-          onClick={() => setDialogOpen(true)}
-        >
-          <Pencil className="size-3.5" />
-          编辑
-        </Button>
+        <PermissionGate permission={PERMISSION.BUDGET_MANAGE}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1.5 text-xs text-muted-foreground"
+            onClick={() => setDialogOpen(true)}
+          >
+            <Pencil className="size-3.5" />
+            编辑
+          </Button>
+        </PermissionGate>
       </div>
 
       <BudgetAllocationTable

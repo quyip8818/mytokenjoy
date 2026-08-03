@@ -6,6 +6,8 @@ import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog'
+import { PermissionGate } from '@/features/session'
+import { PERMISSION } from '@/lib/permissions'
 import type { useBudgetAlertRulesPage } from '@/features/budget'
 import { AlertRuleDialog } from './alert-rule-dialog'
 import { BudgetAlertsTable } from './budget-alerts-table'
@@ -49,10 +51,12 @@ export function BudgetAlertsPageShell({
         title="预警规则"
         description="设置预警阈值，在预算即将超支时及时通知相关负责人"
         actions={
-          <Button size="sm" className="gap-1.5" onClick={openCreate}>
-            <Plus className="size-3.5" />
-            创建规则
-          </Button>
+          <PermissionGate permission={PERMISSION.BUDGET_ADMIN}>
+            <Button size="sm" className="gap-1.5" onClick={openCreate}>
+              <Plus className="size-3.5" />
+              创建规则
+            </Button>
+          </PermissionGate>
         }
       />
 

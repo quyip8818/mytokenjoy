@@ -3,6 +3,8 @@ import type { Member, Role } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { PermissionGate } from '@/features/session'
+import { PERMISSION } from '@/lib/permissions'
 import {
   Table,
   TableBody,
@@ -107,10 +109,12 @@ export function RoleMemberTable({
             {role.type === 'preset' ? '系统预设角色' : '自定义角色'} · {members.length} 名成员
           </p>
         </div>
-        <Button size="sm" className="gap-1.5" onClick={onAddMember}>
-          <UserPlus className="h-3.5 w-3.5" strokeWidth={1.5} />
-          添加成员
-        </Button>
+        <PermissionGate permission={PERMISSION.ORG_ADMIN}>
+          <Button size="sm" className="gap-1.5" onClick={onAddMember}>
+            <UserPlus className="h-3.5 w-3.5" strokeWidth={1.5} />
+            添加成员
+          </Button>
+        </PermissionGate>
       </div>
 
       {/* Search */}
@@ -170,14 +174,16 @@ export function RoleMemberTable({
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-3 text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs text-destructive hover:text-destructive hover:bg-red-50"
-                      onClick={() => onRemoveMember(member)}
-                    >
-                      移除
-                    </Button>
+                    <PermissionGate permission={PERMISSION.ORG_ADMIN}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-destructive hover:text-destructive hover:bg-red-50"
+                        onClick={() => onRemoveMember(member)}
+                      >
+                        移除
+                      </Button>
+                    </PermissionGate>
                   </TableCell>
                 </TableRow>
               ))

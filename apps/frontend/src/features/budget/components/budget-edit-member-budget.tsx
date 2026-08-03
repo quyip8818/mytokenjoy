@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { PermissionGate } from '@/features/session'
+import { PERMISSION } from '@/lib/permissions'
 import { formatMoney } from '@/lib/quota-display'
 import { cn } from '@/lib/utils'
 import { Users, Pencil, Check, X, Loader2, Search } from 'lucide-react'
@@ -41,15 +43,17 @@ export function BudgetEditMemberBudget({
           <Users className="size-4 text-muted-foreground" />
           <h4 className="text-sm font-semibold text-foreground">成员额度</h4>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 gap-1.5 text-xs text-muted-foreground"
-          onClick={() => setDialogOpen(true)}
-        >
-          <Pencil className="size-3.5" />
-          编辑
-        </Button>
+        <PermissionGate permission={PERMISSION.BUDGET_MANAGE}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1.5 text-xs text-muted-foreground"
+            onClick={() => setDialogOpen(true)}
+          >
+            <Pencil className="size-3.5" />
+            编辑
+          </Button>
+        </PermissionGate>
       </div>
 
       <div className="flex items-center gap-3 rounded-md bg-muted/50 px-3 py-2.5">

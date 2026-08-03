@@ -9,6 +9,8 @@ import type {
 } from '@/api/types'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
+import { PermissionGate } from '@/features/session'
+import { PERMISSION } from '@/lib/permissions'
 import { BudgetEditAllocation } from './budget-edit-allocation'
 import { BudgetEditMemberBudget } from './budget-edit-member-budget'
 import { ProjectDialog } from './project-dialog'
@@ -165,25 +167,29 @@ export function BudgetDetailTeam({
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h4 className="text-sm font-semibold text-foreground">项目预算</h4>
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label="创建项目"
-            onClick={() => setCreateDialogOpen(true)}
-          >
-            <Plus className="h-4 w-4" />
-            创建项目
-          </Button>
+          <PermissionGate permission={PERMISSION.BUDGET_MANAGE}>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="创建项目"
+              onClick={() => setCreateDialogOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              创建项目
+            </Button>
+          </PermissionGate>
         </div>
 
         <div className="divide-y divide-border rounded-lg border border-border">
           {nodeProjects.length === 0 ? (
             <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
               <p className="text-sm text-muted-foreground">暂无项目</p>
-              <Button variant="outline" size="sm" onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="h-4 w-4" />
-                创建第一个项目
-              </Button>
+              <PermissionGate permission={PERMISSION.BUDGET_MANAGE}>
+                <Button variant="outline" size="sm" onClick={() => setCreateDialogOpen(true)}>
+                  <Plus className="h-4 w-4" />
+                  创建第一个项目
+                </Button>
+              </PermissionGate>
             </div>
           ) : (
             nodeProjects.map((project) => {
