@@ -65,11 +65,11 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	manageWrite.Post("/members/batch-invite", h.MembersBatchInvite)
 	manageWrite.Post("/members/batch-import", h.MembersBatchImport)
 
-	adminWrite.Post("/roles", h.RoleCreate)
-	adminWrite.Put("/roles/{id}", h.RoleUpdate)
-	adminWrite.Delete("/roles/{id}", h.RoleDelete)
-	adminWrite.Post("/roles/{roleId}/members", h.RoleMemberAdd)
-	adminWrite.Delete("/roles/{roleId}/members/{memberId}", h.RoleMemberRemove)
+	manageWrite.Post("/roles", h.RoleCreate)
+	manageWrite.Put("/roles/{id}", h.RoleUpdate)
+	manageWrite.Delete("/roles/{id}", h.RoleDelete)
+	manageWrite.Post("/roles/{roleId}/members", h.RoleMemberAdd)
+	manageWrite.Delete("/roles/{roleId}/members/{memberId}", h.RoleMemberRemove)
 }
 
 // Mount registers the org handler on the given router under /org.

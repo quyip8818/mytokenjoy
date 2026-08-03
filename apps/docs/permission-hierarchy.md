@@ -172,7 +172,7 @@ LRU cache key = `(companyID, memberID, revision)`。
 | GET 全部读接口 | `org:read` |
 | 数据源/字段映射/同步配置写入 | `org:admin` |
 | 部门 CRUD | `org:admin` |
-| 角色 CRUD + 角色成员管理 | `org:admin` |
+| 角色 CRUD + 角色成员管理 | `org:manage` |
 | 成员 CRUD + 批量邀请/导入/转移 | `org:manage` |
 
 ### /api/budget
@@ -267,7 +267,7 @@ LRU cache key = `(companyID, memberID, revision)`。
 | /billing | `billing:read` |
 | /org/data-source | `org:admin` |
 | /org/structure | `org:manage`, `org:read` |
-| /org/roles | `org:admin` |
+| /org/roles | `org:manage` |
 | /audit/* | `audit:read` |
 | /me/* | （无限制） |
 | /platform/* | `platform:manage` |

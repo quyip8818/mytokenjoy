@@ -37,7 +37,7 @@ export function RoleList({
       <div className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground">角色</h3>
-          <PermissionGate permission={PERMISSION.ORG_ADMIN}>
+          <PermissionGate permission={PERMISSION.ORG_MANAGE}>
             <Button size="sm" className="h-7 text-xs gap-1" onClick={onAdd}>
               <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
               新建
@@ -155,7 +155,7 @@ function RoleItem({
       <div className="flex items-center gap-1">
         <span className="text-xs text-muted-foreground tabular-nums">{role.memberCount}</span>
         {role.type === 'custom' && (
-          <PermissionGate permission={PERMISSION.ORG_ADMIN}>
+          <PermissionGate permission={PERMISSION.ORG_MANAGE}>
             <div className="hidden group-hover:flex gap-0.5 ml-1">
               <button
                 className="p-0.5 rounded hover:bg-background text-muted-foreground hover:text-foreground transition-colors"

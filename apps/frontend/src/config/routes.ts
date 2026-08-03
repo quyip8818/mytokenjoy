@@ -161,7 +161,7 @@ const ROUTE_DEFINITIONS_INTERNAL = [
     path: '/org/roles',
     label: '角色管理',
     icon: Shield,
-    requiredPermissions: [PERMISSION.ORG_ADMIN],
+    requiredPermissions: [PERMISSION.ORG_MANAGE],
     lazy: () => import('@/routes/org/roles'),
     navGroup: '组织与权限',
   },
