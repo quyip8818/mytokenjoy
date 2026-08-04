@@ -3,7 +3,6 @@ package httpx
 import (
 	"errors"
 	"net/http"
-	"regexp"
 	"strings"
 
 	"github.com/google/uuid"
@@ -12,11 +11,37 @@ import (
 )
 
 const (
-	SessionCookie       = "tokenjoy_session_member"
-	RefreshCookie       = "tokenjoy_refresh"
 	HeaderAuthzRevision = "X-Authz-Revision"
 	refreshCookiePath   = "/api/auth/refresh"
 )
+
+// ponytail: cookie name 由 deployEnv + saas mode 自动派生，防止同域名不同实例互踢。
+// 升级路径：生产环境用独立域名后可硬编码回常量。
+var (
+	SessionCookie = "tj_session"
+	RefreshCookie = "tj_refresh"
+)
+
+// InitCookieNames derives cookie names from deploy env and saas mode.
+// Must be called once at startup before serving requests.
+func InitCookieNames(deployEnv string, saas bool) {
+	envMap := map[string]string{
+		"local":      "dev",
+		"staging":    "stag",
+		"production": "prod",
+	}
+	e := envMap[deployEnv]
+	if e == "" {
+		e = deployEnv
+	}
+	m := "l"
+	if saas {
+		m = "s"
+	}
+	id := e + "_" + m
+	SessionCookie = "tjs_" + id
+	RefreshCookie = "tjr_" + id
+}
 
 var (
 	ErrNoToken      = errors.New("no session token")
@@ -27,18 +52,9 @@ func ResolveSessionToken(r *http.Request) string {
 	if cookie, err := r.Cookie(SessionCookie); err == nil && cookie.Value != "" {
 		return cookie.Value
 	}
-	authorization := r.Header.Get("Authorization")
-	if strings.HasPrefix(authorization, "Bearer ") {
-		token := strings.TrimSpace(strings.TrimPrefix(authorization, "Bearer "))
-		if token != "" {
+	if authorization := r.Header.Get("Authorization"); strings.HasPrefix(authorization, "Bearer ") {
+		if token := strings.TrimSpace(authorization[7:]); token != "" {
 			return token
-		}
-	}
-	cookieHeader := r.Header.Get("Cookie")
-	if cookieHeader != "" {
-		re := regexp.MustCompile(SessionCookie + `=([^;]+)`)
-		if match := re.FindStringSubmatch(cookieHeader); len(match) > 1 {
-			return match[1]
 		}
 	}
 	return ""
@@ -67,11 +83,10 @@ func ClearSessionCookie(w http.ResponseWriter) {
 }
 
 func UsedBearerAuth(r *http.Request) bool {
-	authorization := r.Header.Get("Authorization")
-	if !strings.HasPrefix(authorization, "Bearer ") {
-		return false
+	if a := r.Header.Get("Authorization"); strings.HasPrefix(a, "Bearer ") {
+		return strings.TrimSpace(a[7:]) != ""
 	}
-	return strings.TrimSpace(strings.TrimPrefix(authorization, "Bearer ")) != ""
+	return false
 }
 
 func ResolveMemberClaims(r *http.Request, issuer sessiontoken.Issuer) (sessiontoken.Claims, bool) {

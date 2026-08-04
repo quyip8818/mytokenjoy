@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/identity/httpx"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 )
 
@@ -26,6 +27,8 @@ func main() {
 		logger.Error("load config", "error", err)
 		os.Exit(1)
 	}
+
+	httpx.InitCookieNames(cfg.DeployEnv, cfg.SupportSaas)
 
 	ctx := context.Background()
 

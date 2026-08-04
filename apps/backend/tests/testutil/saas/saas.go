@@ -16,6 +16,7 @@ import (
 	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/identity/httpx"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -260,8 +261,8 @@ func AcceptInviteHTTP(t *testing.T, router http.Handler, encryptedToken, name, p
 	member := types.Member{ID: resp.MemberID, CompanyID: resp.CompanyID}
 	var sessionCookie string
 	for _, c := range rec.Result().Cookies() {
-		if c.Name == "tokenjoy_session_member" && c.Value != "" {
-			sessionCookie = "tokenjoy_session_member=" + c.Value
+		if c.Name == httpx.SessionCookie && c.Value != "" {
+			sessionCookie = httpx.SessionCookie + "=" + c.Value
 			break
 		}
 	}
