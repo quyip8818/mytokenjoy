@@ -82,7 +82,7 @@ func (h *KeyApprovalHandler) PreApprove(ctx context.Context, req types.ApprovalR
 	}
 	reservedPool := budget.GetReservedPoolForMember(budgetCtx.Tree, budgetCtx.Members, req.ApplicantID)
 	if float64(meta.RequestedBudget) > reservedPool {
-		return domain.Validation("Reserved pool insufficient")
+		return domain.ValidationCode("KEY_BUDGET_INSUFFICIENT", "额度不足")
 	}
 	return nil
 }

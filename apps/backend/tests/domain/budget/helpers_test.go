@@ -93,9 +93,9 @@ func chooseValidDeptBudget(t *testing.T, st store.Store, deptID uuid.UUID, reser
 
 	candidates := []float64{floor + 1000, floor}
 	for _, budget := range candidates {
-		if msg := pkgbudget.ValidateBudgetNodeUpdate(
+		if vr := pkgbudget.ValidateBudgetNodeUpdate(
 			inputs.tree, deptID, budget, reserved, inputs.projects, inputs.members,
-		); msg == nil {
+		); vr == nil {
 			return budget
 		}
 	}

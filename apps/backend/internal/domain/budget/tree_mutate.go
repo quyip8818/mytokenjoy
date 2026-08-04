@@ -52,8 +52,11 @@ func (s *service) UpdateNode(ctx context.Context, id uuid.UUID, budget float64, 
 		if err != nil {
 			return err
 		}
-		if msg := pkgbudget.ValidateBudgetNodeUpdate(tree, id, budget, reservedValue, projects, members); msg != nil {
-			return domain.Validation(*msg)
+		if vr := pkgbudget.ValidateBudgetNodeUpdate(tree, id, budget, reservedValue, projects, members); vr != nil {
+			if vr.Code != "" {
+				return domain.ValidationCode(vr.Code, vr.Message, vr.Meta)
+			}
+			return domain.Validation(vr.Message)
 		}
 		update := types.BudgetNode{Budget: budget, ReservedPool: reserved}
 		if !pkgbudget.UpdateBudgetNodeInTree(tree, id, update) {
@@ -136,7 +139,8 @@ func (s *service) ApplyAverageBudget(ctx context.Context, deptID uuid.UUID, pers
 
 		// Validate root department has budget
 		if rootNode.Budget <= 0 {
-			return domain.Validation("请先给该部门分配额度")
+			return domain.ValidationCode("BUDGET_DEPT_NOT_SET", "请先给该部门分配额度",
+				map[string]any{"nodeId": deptID.String()})
 		}
 
 		// Collect departments to update (skip those with own avg budget set)

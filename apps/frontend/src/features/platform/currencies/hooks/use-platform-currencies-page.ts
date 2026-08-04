@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { useInjectedApis } from '@/api/use-apis'
 import { useInjectedQuery } from '@/features/query/use-injected-query'
 import type { PlatformCurrency } from '@/api/types'

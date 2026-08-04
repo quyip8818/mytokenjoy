@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useInjectedApis } from '@/api/use-apis'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { toTopUpRecordView } from '../lib/mappers'
 
 export type PaymentMethod = 'alipay' | 'wechat'

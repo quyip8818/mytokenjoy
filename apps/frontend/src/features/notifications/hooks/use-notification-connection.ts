@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { API_BASE_PATH } from '@/config/app'
 import { getActionUrl } from '../lib/get-action-url'
 import type { NotificationItem } from '@/api/types'

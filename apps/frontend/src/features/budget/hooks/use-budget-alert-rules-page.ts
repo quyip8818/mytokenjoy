@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import type { AppApis } from '@/api/app-apis'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useInjectedApis } from '@/api/use-apis'

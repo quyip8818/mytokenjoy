@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { ApiError } from '@/api/client'
 import type { OverrunPolicyConfig } from '@/api/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'

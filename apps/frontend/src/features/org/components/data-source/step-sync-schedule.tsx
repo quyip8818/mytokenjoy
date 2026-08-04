@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import type { SyncConfig } from '@/api/types'
 import type { AppApis } from '@/api/app-apis'
 import { Button } from '@/components/ui/button'

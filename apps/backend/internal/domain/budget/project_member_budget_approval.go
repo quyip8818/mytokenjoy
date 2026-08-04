@@ -61,7 +61,9 @@ func (h *ProjectMemberBudgetApprovalHandler) PreApprove(ctx context.Context, req
 		return err
 	}
 	if available < meta.Amount {
-		return domain.Validation(fmt.Sprintf("项目未分配余额不足，当前剩余 %.2f", available))
+		return domain.ValidationCode("BUDGET_PROJECT_UNALLOCATED_INSUFFICIENT",
+			fmt.Sprintf("项目未分配余额不足，当前剩余 %.2f", available),
+			map[string]any{"remaining": available, "requested": meta.Amount, "projectId": meta.ProjectID.String()})
 	}
 	return nil
 }
@@ -96,7 +98,9 @@ func (h *ProjectMemberBudgetApprovalHandler) OnApprovedTx(ctx context.Context, r
 	}
 	available := projects[idx].Budget - allocated
 	if available < meta.Amount {
-		return nil, domain.Validation(fmt.Sprintf("项目未分配余额不足，当前剩余 %g quota", available))
+		return nil, domain.ValidationCode("BUDGET_PROJECT_UNALLOCATED_INSUFFICIENT",
+			fmt.Sprintf("项目未分配余额不足，当前剩余 %g quota", available),
+			map[string]any{"remaining": available, "requested": meta.Amount, "projectId": meta.ProjectID.String()})
 	}
 
 	// Increase member budget

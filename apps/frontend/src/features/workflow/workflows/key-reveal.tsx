@@ -1,5 +1,5 @@
 import { Copy, KeyRound } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import type { WorkflowComponentProps } from '../types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow-panel-chrome'
 import { WorkflowInfoBox } from '../components/workflow-info-box'

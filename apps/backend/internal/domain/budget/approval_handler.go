@@ -60,7 +60,9 @@ func (h *MemberBudgetApprovalHandler) PreApprove(ctx context.Context, req types.
 		reserved = *row.ReservedPool
 	}
 	if reserved < meta.Amount {
-		return domain.Validation(fmt.Sprintf("预留池余额不足，当前剩余 %.2f", reserved))
+		return domain.ValidationCode("BUDGET_RESERVED_POOL_INSUFFICIENT",
+			fmt.Sprintf("预留池余额不足，当前剩余 %.2f", reserved),
+			map[string]any{"remaining": reserved, "requested": meta.Amount})
 	}
 	return nil
 }
@@ -98,7 +100,9 @@ func (h *MemberBudgetApprovalHandler) OnApprovedTx(ctx context.Context, req type
 		reserved = *row.ReservedPool
 	}
 	if reserved < meta.Amount {
-		return nil, domain.Validation(fmt.Sprintf("预留池余额不足，当前剩余 %g quota", reserved))
+		return nil, domain.ValidationCode("BUDGET_RESERVED_POOL_INSUFFICIENT",
+			fmt.Sprintf("预留池余额不足，当前剩余 %g quota", reserved),
+			map[string]any{"remaining": reserved, "requested": meta.Amount})
 	}
 
 	// Deduct reserved pool

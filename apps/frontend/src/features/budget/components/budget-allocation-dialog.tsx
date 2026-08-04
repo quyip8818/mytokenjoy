@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { BudgetNode, ProjectView } from '@/api/types'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { ApiError } from '@/api/client'
 import { FormDialog } from '@/components/ui/form-dialog'
 import { Input } from '@/components/ui/input'

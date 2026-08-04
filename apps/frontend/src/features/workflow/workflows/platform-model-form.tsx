@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { useInjectedApis } from '@/api/use-apis'
 import { useWorkflow } from '../hooks/use-workflow'
 import { workflowErrorMessage } from '../lib/error-message'

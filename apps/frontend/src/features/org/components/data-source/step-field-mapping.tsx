@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import type { FieldMapping, MappingTestResult, Platform } from '@/api/types'
 import type { AppApis } from '@/api/app-apis'
 import { ApiError } from '@/api/client'

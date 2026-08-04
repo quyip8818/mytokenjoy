@@ -55,7 +55,7 @@ type rechargeBody struct {
 
 func (h *Handler) CreateRecharge(w http.ResponseWriter, r *http.Request) {
 	if isTrialOrDemoCompany(r) {
-		httputil.WriteError(w, domain.Forbidden("试用环境不支持充值，升级后可使用"))
+		httputil.WriteError(w, domain.ForbiddenCode("TRIAL_NO_TOPUP", "试用环境不支持充值，升级后可使用"))
 		return
 	}
 	var body rechargeBody
@@ -73,7 +73,7 @@ func (h *Handler) CreateRecharge(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) ConfirmRecharge(w http.ResponseWriter, r *http.Request) {
 	if isTrialOrDemoCompany(r) {
-		httputil.WriteError(w, domain.Forbidden("试用环境不支持充值，升级后可使用"))
+		httputil.WriteError(w, domain.ForbiddenCode("TRIAL_NO_TOPUP", "试用环境不支持充值，升级后可使用"))
 		return
 	}
 	id, err := uuid.Parse(chi.URLParam(r, "id"))

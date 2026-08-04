@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { MemberBudget, UpdateMemberBudgetInput } from '@/api/types'
 import { ApiError } from '@/api/client'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

@@ -75,7 +75,9 @@ func (s *LocalService) checkTrialMemberLimitBatch(ctx context.Context, members [
 		return nil // not a trial company, no limit
 	}
 	if len(members)+count > limit {
-		return domain.Forbidden(fmt.Sprintf("试用环境成员上限为 %d 人，升级后可扩容", limit))
+		return domain.ForbiddenCode("TRIAL_MEMBER_LIMIT",
+			fmt.Sprintf("试用环境成员上限为 %d 人，升级后可扩容", limit),
+			map[string]any{"limit": limit})
 	}
 	return nil
 }

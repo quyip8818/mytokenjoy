@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { RowSelectionState } from '@tanstack/react-table'
 import { useQueryClient, keepPreviousData } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import type { AppApis } from '@/api/app-apis'
 import { ApiError } from '@/api/client'
 import type { Department, Member } from '@/api/types'

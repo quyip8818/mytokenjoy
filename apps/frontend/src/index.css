@@ -152,3 +152,18 @@
     box-shadow: var(--shadow-sm);
   }
 }
+
+/* Toast: action button 强制第二行 */
+[data-sonner-toast] {
+  flex-direction: column;
+  align-items: flex-start !important;
+}
+[data-sonner-toast] [data-content] {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+[data-sonner-toast] [data-button] {
+  margin-left: 1.75rem;
+  margin-top: 0.125rem;
+}

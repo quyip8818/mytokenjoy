@@ -15,7 +15,9 @@ const (
 
 type DomainError struct {
 	Status     int
+	Code       string         // 机器可读错误码，空串 = 不输出
 	Message    string
+	Meta       map[string]any // 可选结构化上下文，nil = 不输出
 	RetryAfter *int
 }
 

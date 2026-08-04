@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { useInjectedApis } from '@/api/use-apis'
 import { useInjectedQuery } from '@/features/query'
 import { useNotificationCapabilities } from './use-notification-capabilities'

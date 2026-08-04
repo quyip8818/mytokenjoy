@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import type { ApprovalRequest } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
 import type { WorkflowComponentProps } from '../types'

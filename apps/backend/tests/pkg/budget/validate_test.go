@@ -21,11 +21,11 @@ func TestValidateBudgetNodeUpdateIncludesProjectsAndMembers(t *testing.T) {
 	members := []types.Member{
 		{ID: uuid.MustParse("00000000-0000-7000-0000-00000000ee01"), DepartmentID: deptA, PersonalBudget: 20000},
 	}
-	if msg := budget.ValidateBudgetNodeUpdate(tree, deptA, 25000, 5000, groups, members); msg == nil {
+	if vr := budget.ValidateBudgetNodeUpdate(tree, deptA, 25000, 5000, groups, members); vr == nil {
 		t.Fatal("expected budget below project+member+reserved allocation to fail")
 	}
-	if msg := budget.ValidateBudgetNodeUpdate(tree, deptA, 35000, 5000, groups, members); msg != nil {
-		t.Fatalf("expected budget covering allocations to pass, got %s", *msg)
+	if vr := budget.ValidateBudgetNodeUpdate(tree, deptA, 35000, 5000, groups, members); vr != nil {
+		t.Fatalf("expected budget covering allocations to pass, got %s", vr.Message)
 	}
 }
 
@@ -41,10 +41,10 @@ func TestValidateBudgetNodeUpdate(t *testing.T) {
 		},
 	}
 
-	if msg := budget.ValidateBudgetNodeUpdate(tree, uuid.MustParse("00000000-0000-7000-0000-00000000da01"), 45000, 5000, nil, nil); msg != nil {
-		t.Fatalf("expected valid increase, got %s", *msg)
+	if vr := budget.ValidateBudgetNodeUpdate(tree, uuid.MustParse("00000000-0000-7000-0000-00000000da01"), 45000, 5000, nil, nil); vr != nil {
+		t.Fatalf("expected valid increase, got %s", vr.Message)
 	}
-	if msg := budget.ValidateBudgetNodeUpdate(tree, uuid.MustParse("00000000-0000-7000-0000-00000000da01"), 90000, 5000, nil, nil); msg == nil {
+	if vr := budget.ValidateBudgetNodeUpdate(tree, uuid.MustParse("00000000-0000-7000-0000-00000000da01"), 90000, 5000, nil, nil); vr == nil {
 		t.Fatal("expected oversell against parent")
 	}
 }
@@ -60,7 +60,7 @@ func TestValidateBudgetNodeUpdateSiblingOversell(t *testing.T) {
 			},
 		},
 	}
-	if msg := budget.ValidateBudgetNodeUpdate(tree, uuid.MustParse("00000000-0000-7000-0000-00000000da02"), 55000, 0, nil, nil); msg == nil {
+	if vr := budget.ValidateBudgetNodeUpdate(tree, uuid.MustParse("00000000-0000-7000-0000-00000000da02"), 55000, 0, nil, nil); vr == nil {
 		t.Fatal("expected sibling sum to exceed parent capacity")
 	}
 }

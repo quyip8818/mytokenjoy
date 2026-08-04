@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { useApis } from '@/api/use-apis'
 import type { NotificationListParams } from '@/api/types'
 

@@ -10,8 +10,26 @@ func Validation(msg string) error {
 	return NewDomainError(StatusUnprocessable, msg)
 }
 
+// ValidationCode creates a 422 error with a machine-readable code and optional meta.
+func ValidationCode(code, msg string, meta ...map[string]any) error {
+	e := &DomainError{Status: StatusUnprocessable, Code: code, Message: msg}
+	if len(meta) > 0 {
+		e.Meta = meta[0]
+	}
+	return e
+}
+
 func Forbidden(msg string) error {
 	return NewDomainError(StatusForbidden, msg)
+}
+
+// ForbiddenCode creates a 403 error with a machine-readable code and optional meta.
+func ForbiddenCode(code, msg string, meta ...map[string]any) error {
+	e := &DomainError{Status: StatusForbidden, Code: code, Message: msg}
+	if len(meta) > 0 {
+		e.Meta = meta[0]
+	}
+	return e
 }
 
 func Conflict(msg string) error {

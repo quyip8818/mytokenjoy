@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { useRouterState } from '@tanstack/react-router'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import type { AppApis } from '@/api/app-apis'
 import { defaultApis } from '@/api/app-apis'
 import { apiEvents } from '@/api/api-events'

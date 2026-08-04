@@ -1,23 +1,17 @@
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { ApiError } from '@/api/client'
 
 /**
- * Extracts a user-facing error message from an unknown error.
- * Returns the API error message if available, otherwise the fallback.
+ * Returns the ApiError directly (preserves code for deep link matching)
+ * or a fallback string for non-API errors.
  */
-export function apiErrorMessage(err: unknown, fallback: string): string {
-  return err instanceof ApiError ? err.message : fallback
+export function apiErrorMessage(err: unknown, fallback: string): ApiError | string {
+  return err instanceof ApiError ? err : fallback
 }
 
 /**
  * Executes an async action; on failure shows a toast and re-throws.
  * Use in event handlers and mutations to avoid repetitive try/catch boilerplate.
- *
- * @example
- * const save = () => withErrorToast(
- *   () => api.updateItem(id, data),
- *   '保存失败'
- * )
  */
 export async function withErrorToast<T>(fn: () => Promise<T>, fallbackMessage: string): Promise<T> {
   try {

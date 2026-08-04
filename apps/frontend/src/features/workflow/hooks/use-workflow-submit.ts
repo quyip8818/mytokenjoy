@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import type { QueryKey } from '@tanstack/react-query'
 import { useInjectedMutation } from '@/features/query'
 import { workflowErrorMessage } from '../lib/error-message'

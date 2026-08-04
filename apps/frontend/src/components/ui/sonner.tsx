@@ -39,6 +39,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
           info: 'border-blue-200 bg-blue-50 text-blue-900',
           warning: 'border-amber-200 bg-amber-50 text-amber-900',
         },
+        // ponytail: fallback duration — 实际由 @/lib/toast 按类型覆盖
+        duration: 3000,
       }}
       {...props}
     />

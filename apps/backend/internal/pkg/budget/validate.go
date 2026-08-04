@@ -28,6 +28,13 @@ func FindParentNode(nodes []types.BudgetNode, childID uuid.UUID) *types.BudgetNo
 	return parent
 }
 
+// ValidationResult holds a structured validation failure from budget checks.
+type ValidationResult struct {
+	Code    string
+	Message string
+	Meta    map[string]any
+}
+
 func ValidateBudgetNodeUpdate(
 	tree []types.BudgetNode,
 	nodeID uuid.UUID,
@@ -35,11 +42,10 @@ func ValidateBudgetNodeUpdate(
 	newReservedPool float64,
 	projects []types.Project,
 	members []types.Member,
-) *string {
+) *ValidationResult {
 	node := FindBudgetNode(tree, nodeID)
 	if node == nil {
-		msg := "Node not found"
-		return &msg
+		return &ValidationResult{Message: "Node not found"}
 	}
 	childrenSum := SumChildrenBudget(*node)
 	projectSum := ProjectsBudgetForDept(projects, nodeID)
@@ -48,7 +54,11 @@ func ValidateBudgetNodeUpdate(
 	if newBudget < totalAllocated {
 		msg := fmt.Sprintf("部门预算不能低于已分配总额（子部门%.2f + 项目%.2f + 成员%.2f + 预留池%.2f = %.2f）",
 			childrenSum, projectSum, memberSum, newReservedPool, totalAllocated)
-		return &msg
+		return &ValidationResult{
+			Code:    "BUDGET_BELOW_ALLOCATED",
+			Message: msg,
+			Meta:    map[string]any{"allocated": totalAllocated, "nodeId": nodeID.String()},
+		}
 	}
 	parent := FindParentNode(tree, nodeID)
 	if parent != nil {
@@ -68,7 +78,11 @@ func ValidateBudgetNodeUpdate(
 				remaining = 0
 			}
 			msg := fmt.Sprintf("超出上级可分配预算，当前剩余约 %g quota", remaining)
-			return &msg
+			return &ValidationResult{
+				Code:    "BUDGET_EXCEED_PARENT",
+				Message: msg,
+				Meta:    map[string]any{"remaining": remaining, "nodeId": nodeID.String()},
+			}
 		}
 	}
 	return nil

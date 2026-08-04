@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { Check, Copy } from 'lucide-react'
 import type { Member, ModelInfo, PlatformKeyScope } from '@/api/types'
 import type { AppApis } from '@/api/app-apis'

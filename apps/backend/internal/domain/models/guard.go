@@ -51,10 +51,10 @@ func (s *service) validateWritableModelIDs(ctx context.Context, ids []uuid.UUID)
 	// Filter out test models — they must not appear in routing rules or allowlists.
 	if err := modelcatalog.ValidateWritableIDs(modelcatalog.FilterVisible(catalog), ids); err != nil {
 		if errors.Is(err, modelcatalog.ErrUnknownModelID) {
-			return domain.Validation("unknown model id")
+			return domain.ValidationCode("KEY_MODEL_NOT_FOUND", "模型不存在")
 		}
 		if errors.Is(err, modelcatalog.ErrModelDisabled) {
-			return domain.Validation("model is disabled")
+			return domain.ValidationCode("KEY_MODEL_DISABLED", "模型已停用")
 		}
 		return err
 	}

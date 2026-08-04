@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { ProjectView, Member } from '@/api/types'
 import { ApiError } from '@/api/client'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { budgetApi } from '@/api/budget'
 import { formatMoney } from '@/lib/quota-display'
 import { BudgetMemberPicker } from './budget-member-picker'

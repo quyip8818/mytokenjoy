@@ -4,13 +4,21 @@ import { apiEvents } from './api-events'
 
 export class ApiError extends Error {
   status: number
+  code?: string
+  meta?: Record<string, unknown>
   retryAfter?: number
 
-  constructor(status: number, message: string, retryAfter?: number) {
+  constructor(
+    status: number,
+    message: string,
+    opts?: { code?: string; meta?: Record<string, unknown>; retryAfter?: number },
+  ) {
     super(message)
     this.name = 'ApiError'
     this.status = status
-    this.retryAfter = retryAfter
+    this.code = opts?.code
+    this.meta = opts?.meta
+    this.retryAfter = opts?.retryAfter
   }
 }
 
@@ -50,7 +58,9 @@ async function parseSuccessBody<T>(res: Response): Promise<T> {
 }
 
 /** Best-effort parse of an error response body (may be JSON or empty). */
-async function parseErrorBody(res: Response): Promise<{ message?: string; retryAfter?: number }> {
+async function parseErrorBody(
+  res: Response,
+): Promise<{ message?: string; code?: string; meta?: Record<string, unknown>; retryAfter?: number }> {
   if (isNoContent(res) || !hasJsonContentType(res)) return {}
 
   const text = await res.text()
@@ -124,11 +134,11 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     if (res.status === 403 && path !== '/session') {
       apiEvents.emit('forbidden', path)
     }
-    throw new ApiError(
-      res.status,
-      body.message || res.statusText,
-      typeof body.retryAfter === 'number' ? body.retryAfter : undefined,
-    )
+    throw new ApiError(res.status, body.message || res.statusText, {
+      code: body.code,
+      meta: body.meta,
+      retryAfter: typeof body.retryAfter === 'number' ? body.retryAfter : undefined,
+    })
   }
 
   return parseSuccessBody<T>(res)

@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
 import type { Member, Role } from '@/api/types'

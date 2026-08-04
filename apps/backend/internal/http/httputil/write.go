@@ -25,14 +25,17 @@ func WriteError(w http.ResponseWriter, err error) {
 	}
 	var domainErr *domain.DomainError
 	if errors.As(err, &domainErr) {
-		if domainErr.RetryAfter != nil {
-			response.JSON(w, domainErr.Status, map[string]any{
-				"message":    domainErr.Message,
-				"retryAfter": *domainErr.RetryAfter,
-			})
-			return
+		body := map[string]any{"message": domainErr.Message}
+		if domainErr.Code != "" {
+			body["code"] = domainErr.Code
 		}
-		response.Error(w, domainErr.Status, domainErr.Message)
+		if domainErr.Meta != nil {
+			body["meta"] = domainErr.Meta
+		}
+		if domainErr.RetryAfter != nil {
+			body["retryAfter"] = *domainErr.RetryAfter
+		}
+		response.JSON(w, domainErr.Status, body)
 		return
 	}
 	response.Error(w, http.StatusInternalServerError, MsgInternal)

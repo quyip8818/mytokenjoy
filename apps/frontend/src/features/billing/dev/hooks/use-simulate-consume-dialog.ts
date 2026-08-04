@@ -4,7 +4,7 @@ import type { AppApis } from '@/api/app-apis'
 import type { PlatformKey } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
 import { queryKeys, useInjectedQuery } from '@/features/query'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import {
   DEFAULT_INPUT_TOKENS,
   DEFAULT_OUTPUT_TOKENS,
