@@ -88,10 +88,12 @@ type WalletAggregate struct {
 }
 
 type Currency struct {
-	Code         string
-	QuotaPerUnit int64
-	Enabled      bool
-	UpdatedAt    time.Time
+	Code            string
+	QuotaPerUnit    int64
+	Enabled         bool
+	UpdatedAt       time.Time
+	UpdatedByUserID *uuid.UUID
+	UpdatedByName   string // populated via JOIN, not persisted on currencies table
 }
 
 type BillingRepository interface {
@@ -111,7 +113,7 @@ type BillingRepository interface {
 	ListEnabledCurrencies(ctx context.Context) ([]Currency, error)
 	ListAllCurrencies(ctx context.Context) ([]Currency, error)
 	UpsertCurrency(ctx context.Context, c Currency) error
-	SetCurrencyEnabled(ctx context.Context, code string, enabled bool) error
+	SetCurrencyEnabled(ctx context.Context, code string, enabled bool, actorUserID *uuid.UUID) error
 	ReplaceCurrencies(ctx context.Context, currencies []Currency) error
 	IsCurrencyReferenced(ctx context.Context, code string) (bool, error)
 	// Lot sync (for selfhosted catalog sync from SaaS)

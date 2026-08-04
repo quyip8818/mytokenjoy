@@ -5,11 +5,12 @@ RETURNS TEXT[] LANGUAGE sql IMMUTABLE AS $$
 $$;
 
 CREATE TABLE IF NOT EXISTS currencies (
-    currency         CHAR(3) PRIMARY KEY,
-    quota_per_unit   BIGINT NOT NULL CHECK (quota_per_unit > 0),
-    enabled          BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    currency              CHAR(3) PRIMARY KEY,
+    quota_per_unit        BIGINT NOT NULL CHECK (quota_per_unit > 0),
+    enabled               BOOLEAN NOT NULL DEFAULT TRUE,
+    updated_by_user_id    UUID,
+    created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Global: companies

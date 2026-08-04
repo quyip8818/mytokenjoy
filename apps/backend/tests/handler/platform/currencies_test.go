@@ -111,6 +111,46 @@ func TestDisableCurrencyBlockedByFK(t *testing.T) {
 	}
 }
 
+// TestCurrencyUpdatedByName — 写操作后 updatedByName 返回操作人名字
+func TestCurrencyUpdatedByName(t *testing.T) {
+	t.Parallel()
+	router := saas.NewRouter(t, nil)
+	platformCookie := saas.LoginPlatform(t, router)
+
+	// Seed CNY should have updatedByName = nil (no actor on bootstrap)
+	currencies := listCurrencies(t, router, platformCookie)
+	for _, c := range currencies {
+		if c.Code == "CNY" {
+			if c.UpdatedByName != nil {
+				t.Errorf("CNY from seed should have updatedByName=nil, got %q", *c.UpdatedByName)
+			}
+			break
+		}
+	}
+
+	// Create JPY — should have updatedByName set
+	body, _ := json.Marshal(map[string]any{"code": "JPY", "quotaPerUnit": 7000})
+	req := httptest.NewRequest(http.MethodPost, "/api/platform/currencies", bytes.NewReader(body))
+	req.Header.Set("Cookie", platformCookie)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create JPY: expected 201, got %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	// List — JPY should have updatedByName set
+	currencies = listCurrencies(t, router, platformCookie)
+	for _, c := range currencies {
+		if c.Code == "JPY" {
+			if c.UpdatedByName == nil || *c.UpdatedByName == "" {
+				t.Error("JPY.updatedByName should be set after creation by platform admin")
+			}
+			return
+		}
+	}
+	t.Fatal("JPY not found after creation")
+}
+
 // TestCatalogCurrenciesEndpoint — sync endpoint 返回正确格式
 func TestCatalogCurrenciesEndpoint(t *testing.T) {
 	t.Parallel()
@@ -158,10 +198,11 @@ func TestCatalogCurrenciesEndpoint(t *testing.T) {
 // --- Helpers ---
 
 type currencyDTO struct {
-	Code         string `json:"code"`
-	QuotaPerUnit int64  `json:"quotaPerUnit"`
-	Enabled      bool   `json:"enabled"`
-	UpdatedAt    string `json:"updatedAt"`
+	Code          string  `json:"code"`
+	QuotaPerUnit  int64   `json:"quotaPerUnit"`
+	Enabled       bool    `json:"enabled"`
+	UpdatedAt     string  `json:"updatedAt"`
+	UpdatedByName *string `json:"updatedByName"`
 }
 
 func listCurrencies(t *testing.T, router http.Handler, cookie string) []currencyDTO {

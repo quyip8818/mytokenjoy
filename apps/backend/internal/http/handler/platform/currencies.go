@@ -7,9 +7,11 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/http/response"
+	"github.com/tokenjoy/backend/internal/identity/httpx"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -48,19 +50,35 @@ func (h *Handler) CatalogCurrencies(w http.ResponseWriter, r *http.Request) {
 // --- Platform admin CRUD ---
 
 type currencyResponse struct {
-	Code         string `json:"code"`
-	QuotaPerUnit int64  `json:"quotaPerUnit"`
-	Enabled      bool   `json:"enabled"`
-	UpdatedAt    string `json:"updatedAt"`
+	Code          string  `json:"code"`
+	QuotaPerUnit  int64   `json:"quotaPerUnit"`
+	Enabled       bool    `json:"enabled"`
+	UpdatedAt     string  `json:"updatedAt"`
+	UpdatedByName *string `json:"updatedByName"`
 }
 
 func toCurrencyResponse(c store.Currency) currencyResponse {
-	return currencyResponse{
-		Code:         c.Code,
-		QuotaPerUnit: c.QuotaPerUnit,
-		Enabled:      c.Enabled,
-		UpdatedAt:    c.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+	var name *string
+	if c.UpdatedByName != "" {
+		name = &c.UpdatedByName
 	}
+	return currencyResponse{
+		Code:          c.Code,
+		QuotaPerUnit:  c.QuotaPerUnit,
+		Enabled:       c.Enabled,
+		UpdatedAt:     c.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedByName: name,
+	}
+}
+
+// actorUserID extracts the current user's ID from session context.
+func actorUserID(r *http.Request) *uuid.UUID {
+	session, ok := httpx.SessionFromContext(r.Context())
+	if !ok {
+		return nil
+	}
+	id := session.Member.UserID
+	return &id
 }
 
 // ListCurrencies returns all currencies (enabled + disabled).
@@ -113,7 +131,7 @@ func (h *Handler) CreateCurrency(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c := store.Currency{Code: body.Code, QuotaPerUnit: body.QuotaPerUnit, Enabled: true}
+	c := store.Currency{Code: body.Code, QuotaPerUnit: body.QuotaPerUnit, Enabled: true, UpdatedByUserID: actorUserID(r)}
 	if err := h.p.Billing.UpsertCurrency(ctx, c); err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
@@ -165,6 +183,7 @@ func (h *Handler) UpdateCurrency(w http.ResponseWriter, r *http.Request) {
 	}
 
 	existing.QuotaPerUnit = body.QuotaPerUnit
+	existing.UpdatedByUserID = actorUserID(r)
 	if err := h.p.Billing.UpsertCurrency(ctx, *existing); err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
@@ -223,7 +242,7 @@ func (h *Handler) ToggleCurrencyStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := h.p.Billing.SetCurrencyEnabled(ctx, code, body.Enabled); err != nil {
+	if err := h.p.Billing.SetCurrencyEnabled(ctx, code, body.Enabled, actorUserID(r)); err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
 	}

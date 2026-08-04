@@ -64,4 +64,5 @@ export interface PlatformCurrency {
   quotaPerUnit: number
   enabled: boolean
   updatedAt: string
+  updatedByName: string | null
 }

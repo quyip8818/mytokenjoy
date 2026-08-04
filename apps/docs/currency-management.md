@@ -10,11 +10,12 @@
 
 ```sql
 CREATE TABLE currencies (
-    currency         CHAR(3) PRIMARY KEY,      -- ISO 4217, e.g. CNY/USD
-    quota_per_unit   BIGINT NOT NULL,           -- 1 单位货币 = ? quota
-    enabled          BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    currency              CHAR(3) PRIMARY KEY,      -- ISO 4217, e.g. CNY/USD
+    quota_per_unit        BIGINT NOT NULL,           -- 1 单位货币 = ? quota
+    enabled               BOOLEAN NOT NULL DEFAULT TRUE,
+    updated_by_user_id    UUID,                      -- 最后修改人 user.id
+    created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 ```
 
@@ -137,7 +138,7 @@ t4: 消耗 lot1 时 display = quota / 500,000
 路由：`/platform/currencies`（平台管理分组，仅 `PLATFORM_MANAGE` 可见）
 
 功能：
-- 表格展示所有币种（代码 / QPU / 状态）
+- 表格展示所有币种（代码 / QPU / 状态 / 修改人 / 修改时间）
 - 新增币种 Dialog（3 位大写代码 + QPU）
 - 编辑 QPU Dialog（带影响提示）
 - 启停切换（禁用时二次确认）

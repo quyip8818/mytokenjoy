@@ -21,6 +21,14 @@ function fmtQpu(n: number) {
   return n.toLocaleString('zh-CN')
 }
 
+function fmtTime(iso: string) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) +
+    ' ' +
+    d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+}
+
 export function PlatformCurrenciesPageShell(props: Props) {
   const {
     currencies,
@@ -63,7 +71,7 @@ export function PlatformCurrenciesPageShell(props: Props) {
             loading={loading}
             error={error}
             onRetry={refresh}
-            skeletonColumns={4}
+            skeletonColumns={6}
             empty={
               currencies.length === 0
                 ? { title: '暂无币种', description: '还没有配置任何币种' }
@@ -76,6 +84,8 @@ export function PlatformCurrenciesPageShell(props: Props) {
                   <TableHead>币种代码</TableHead>
                   <TableHead className="text-right">Quota/单位</TableHead>
                   <TableHead>状态</TableHead>
+                  <TableHead>修改人</TableHead>
+                  <TableHead>修改时间</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -92,6 +102,12 @@ export function PlatformCurrenciesPageShell(props: Props) {
                       ) : (
                         <Badge variant="secondary">禁用</Badge>
                       )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {c.updatedByName ?? '—'}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground" title={c.updatedAt}>
+                      {fmtTime(c.updatedAt)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
