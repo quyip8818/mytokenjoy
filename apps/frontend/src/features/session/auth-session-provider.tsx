@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import { defaultApis } from '@/api/app-apis'
 import { apiEvents } from '@/api/api-events'
-import { LOGIN_PATH } from '@/config/auth'
+import { PUBLIC_PATHS } from '@/config/auth'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { createBillingExchange } from '@/lib/quota-display'
 import { AUTHZ_BROADCAST_CHANNEL, SESSION_FOCUS_REFRESH_MS } from './authz-sync'
@@ -19,12 +19,12 @@ interface AuthSessionProviderProps {
 
 export function AuthSessionProvider({ children, apis = defaultApis }: AuthSessionProviderProps) {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const isLoginPage = pathname === LOGIN_PATH
+  const isPublicPage = PUBLIC_PATHS.includes(pathname as (typeof PUBLIC_PATHS)[number])
 
   const query = useInjectedQuery({
     injectedApis: apis,
     queryKey: queryKeys.session.current(),
-    enabled: !isLoginPage,
+    enabled: !isPublicPage,
     retry: false,
     queryFn: (a) => a.sessionApi.getCurrent(),
   })

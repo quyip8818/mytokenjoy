@@ -243,6 +243,9 @@ func (h *Handler) InviteInfo(w http.ResponseWriter, r *http.Request) {
 	if invite.InvitedBy != uuid.Nil {
 		if inviter, err := h.orgRepo.MemberByID(tenantCtx, invite.InvitedBy); err == nil && inviter != nil {
 			inviterName = inviter.Alias
+			if inviterName == "" {
+				inviterName = inviter.Name
+			}
 		}
 	}
 

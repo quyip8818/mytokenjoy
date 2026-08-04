@@ -219,7 +219,9 @@ export function MemberTable({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     {canInvite && member.status === 'pending' && (
-                      <DropdownMenuItem onClick={handleGetInviteLink}>获取邀请链接</DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleGetInviteLink}>
+                        获取邀请链接
+                      </DropdownMenuItem>
                     )}
                     {member.status === 'pending' && (
                       <DropdownMenuItem onClick={handleResendInvite}>重新发送邀请</DropdownMenuItem>

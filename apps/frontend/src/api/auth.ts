@@ -104,7 +104,9 @@ export const authApi = {
 
   // --- Accept invite (unauthenticated, email link) ---
   getInviteInfo: (code: string) =>
-    request<{ alias: string; companyName: string; inviterName: string }>(`/auth/invite-info?code=${encodeURIComponent(code)}`),
+    request<{ alias: string; companyName: string; inviterName: string }>(
+      `/auth/invite-info?code=${encodeURIComponent(code)}`,
+    ),
 
   acceptInvite: (inviteCode: string, name: string, password: string) =>
     request<{ memberId: string; companyId: string }>('/auth/accept-invite', {

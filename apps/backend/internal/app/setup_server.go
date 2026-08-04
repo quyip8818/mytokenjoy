@@ -321,7 +321,9 @@ func registerCompany(ctx context.Context, cfg config.Config, req setupInitReques
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		// Parse SaaS error message for user-facing display.
-		var parsed struct{ Message string `json:"message"` }
+		var parsed struct {
+			Message string `json:"message"`
+		}
 		_ = json.Unmarshal(respBody, &parsed)
 		msg := parsed.Message
 		if msg == "" {

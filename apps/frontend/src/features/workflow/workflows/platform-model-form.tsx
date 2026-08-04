@@ -83,26 +83,41 @@ function PlatformModelFields({
   return (
     <div className="mx-auto w-full max-w-3xl space-y-8">
       <div className="space-y-2.5">
-        <Label className="text-sm font-medium">供应商 <span className="text-destructive">*</span></Label>
-        <Select value={provider} onValueChange={(v) => { setProvider(v); markDirty() }}>
+        <Label className="text-sm font-medium">
+          供应商 <span className="text-destructive">*</span>
+        </Label>
+        <Select
+          value={provider}
+          onValueChange={(v) => {
+            setProvider(v)
+            markDirty()
+          }}
+        >
           <SelectTrigger>
             <SelectValue placeholder="选择供应商" />
           </SelectTrigger>
           <SelectContent>
             {PROVIDERS.map((p) => (
-              <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+              <SelectItem key={p.value} value={p.value}>
+                {p.label}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-2.5">
-        <Label className="text-sm font-medium">模型标识 {!typeDisabled && <span className="text-destructive">*</span>}</Label>
+        <Label className="text-sm font-medium">
+          模型标识 {!typeDisabled && <span className="text-destructive">*</span>}
+        </Label>
         {setType && !typeDisabled ? (
           <Input
             placeholder="如 gpt-4o, claude-sonnet-4-20250514"
             value={type}
-            onChange={(e) => { setType(e.target.value); markDirty() }}
+            onChange={(e) => {
+              setType(e.target.value)
+              markDirty()
+            }}
           />
         ) : (
           <Input value={type} disabled />
@@ -115,7 +130,10 @@ function PlatformModelFields({
         <Input
           placeholder="留空则使用模型标识"
           value={name}
-          onChange={(e) => { setName(e.target.value); markDirty() }}
+          onChange={(e) => {
+            setName(e.target.value)
+            markDirty()
+          }}
         />
       </div>
 
@@ -141,7 +159,10 @@ function PlatformModelFields({
           type="number"
           placeholder="1000000"
           value={maxContext}
-          onChange={(e) => { setMaxContext(e.target.value); markDirty() }}
+          onChange={(e) => {
+            setMaxContext(e.target.value)
+            markDirty()
+          }}
         />
         <p className="text-xs text-muted-foreground">模型支持的最大上下文 token 数</p>
       </div>
@@ -160,7 +181,10 @@ function PlatformModelFields({
               type="number"
               placeholder="0"
               value={inputPrice}
-              onChange={(e) => { setInputPrice(e.target.value); markDirty() }}
+              onChange={(e) => {
+                setInputPrice(e.target.value)
+                markDirty()
+              }}
             />
           </div>
           <div className="space-y-2">
@@ -169,7 +193,10 @@ function PlatformModelFields({
               type="number"
               placeholder="0"
               value={outputPrice}
-              onChange={(e) => { setOutputPrice(e.target.value); markDirty() }}
+              onChange={(e) => {
+                setOutputPrice(e.target.value)
+                markDirty()
+              }}
             />
           </div>
           <div className="space-y-2">
@@ -178,7 +205,10 @@ function PlatformModelFields({
               type="number"
               placeholder="0"
               value={cacheInputPrice}
-              onChange={(e) => { setCacheInputPrice(e.target.value); markDirty() }}
+              onChange={(e) => {
+                setCacheInputPrice(e.target.value)
+                markDirty()
+              }}
             />
           </div>
         </div>
@@ -212,9 +242,7 @@ export function PlatformModelCreateWorkflow({
   const markDirty = () => onSetDirty(true)
 
   const toggleCap = (cap: string) => {
-    setCapabilities((prev) =>
-      prev.includes(cap) ? prev.filter((c) => c !== cap) : [...prev, cap],
-    )
+    setCapabilities((prev) => (prev.includes(cap) ? prev.filter((c) => c !== cap) : [...prev, cap]))
     markDirty()
   }
 
@@ -257,14 +285,22 @@ export function PlatformModelCreateWorkflow({
     >
       <WorkflowFormLayout variant="full">
         <PlatformModelFields
-          provider={provider} setProvider={setProvider}
-          type={type} setType={setType}
-          name={name} setName={setName}
-          capabilities={capabilities} toggleCap={toggleCap}
-          maxContext={maxContext} setMaxContext={setMaxContext}
-          inputPrice={inputPrice} setInputPrice={setInputPrice}
-          outputPrice={outputPrice} setOutputPrice={setOutputPrice}
-          cacheInputPrice={cacheInputPrice} setCacheInputPrice={setCacheInputPrice}
+          provider={provider}
+          setProvider={setProvider}
+          type={type}
+          setType={setType}
+          name={name}
+          setName={setName}
+          capabilities={capabilities}
+          toggleCap={toggleCap}
+          maxContext={maxContext}
+          setMaxContext={setMaxContext}
+          inputPrice={inputPrice}
+          setInputPrice={setInputPrice}
+          outputPrice={outputPrice}
+          setOutputPrice={setOutputPrice}
+          cacheInputPrice={cacheInputPrice}
+          setCacheInputPrice={setCacheInputPrice}
           markDirty={markDirty}
         />
       </WorkflowFormLayout>
@@ -290,9 +326,7 @@ export function PlatformModelEditWorkflow({
     model.capabilities?.length ? model.capabilities : ['chat'],
   )
   const [maxContext, setMaxContext] = useState(String(model.maxContext || 1000000))
-  const [inputPrice, setInputPrice] = useState(
-    model.inputPrice > 0 ? String(model.inputPrice) : '',
-  )
+  const [inputPrice, setInputPrice] = useState(model.inputPrice > 0 ? String(model.inputPrice) : '')
   const [outputPrice, setOutputPrice] = useState(
     model.outputPrice > 0 ? String(model.outputPrice) : '',
   )
@@ -305,9 +339,7 @@ export function PlatformModelEditWorkflow({
   const markDirty = () => onSetDirty(true)
 
   const toggleCap = (cap: string) => {
-    setCapabilities((prev) =>
-      prev.includes(cap) ? prev.filter((c) => c !== cap) : [...prev, cap],
-    )
+    setCapabilities((prev) => (prev.includes(cap) ? prev.filter((c) => c !== cap) : [...prev, cap]))
     markDirty()
   }
 
@@ -360,14 +392,22 @@ export function PlatformModelEditWorkflow({
     >
       <WorkflowFormLayout variant="full">
         <PlatformModelFields
-          provider={provider} setProvider={setProvider}
-          type={model.type} typeDisabled
-          name={name} setName={setName}
-          capabilities={capabilities} toggleCap={toggleCap}
-          maxContext={maxContext} setMaxContext={setMaxContext}
-          inputPrice={inputPrice} setInputPrice={setInputPrice}
-          outputPrice={outputPrice} setOutputPrice={setOutputPrice}
-          cacheInputPrice={cacheInputPrice} setCacheInputPrice={setCacheInputPrice}
+          provider={provider}
+          setProvider={setProvider}
+          type={model.type}
+          typeDisabled
+          name={name}
+          setName={setName}
+          capabilities={capabilities}
+          toggleCap={toggleCap}
+          maxContext={maxContext}
+          setMaxContext={setMaxContext}
+          inputPrice={inputPrice}
+          setInputPrice={setInputPrice}
+          outputPrice={outputPrice}
+          setOutputPrice={setOutputPrice}
+          cacheInputPrice={cacheInputPrice}
+          setCacheInputPrice={setCacheInputPrice}
           markDirty={markDirty}
         />
       </WorkflowFormLayout>

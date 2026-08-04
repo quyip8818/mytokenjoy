@@ -85,7 +85,12 @@ export function BudgetOverrunPolicySection({ policy, onUpdate }: BudgetOverrunPo
         <CardTitle className="text-sm font-medium">超限策略</CardTitle>
         {!editing && (
           <PermissionGate permission={PERMISSION.BUDGET_ADMIN}>
-            <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={startEdit}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1 px-2 text-xs"
+              onClick={startEdit}
+            >
               <Pencil className="size-3" />
               编辑
             </Button>

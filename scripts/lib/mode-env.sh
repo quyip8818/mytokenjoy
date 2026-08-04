@@ -90,6 +90,7 @@ fi
 export VITE_API_PROXY_TARGET="http://localhost:${BACKEND_PORT}"
 export VITE_DEV_PORT="${FRONTEND_PORT}"
 export VITE_SUPPORT_SAAS="${SUPPORT_SAAS}"
+export FRONTEND_URL="http://localhost:${FRONTEND_PORT}"
 
 # --- Shared URLs (for verify/newapi scripts) ---
 export NEWAPI_URL="http://localhost:${NEWAPI_PORT}"

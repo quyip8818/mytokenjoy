@@ -59,7 +59,7 @@ type DataSourceConfig struct {
 // NotificationConfig holds notification channel settings (webhook, email, SMS).
 type NotificationConfig struct {
 	NotifyWebhookURL string `env:"NOTIFY_WEBHOOK_URL"`
-	FrontendURL      string `env:"FRONTEND_URL" envDefault:"http://localhost:5173"`
+	FrontendURL      string `env:"FRONTEND_URL"` // defaults to http://localhost:{PORT} if empty
 
 	// Resend email channel
 	ResendAPIKey string `env:"RESEND_API_KEY"`
@@ -183,6 +183,9 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("parse config: %w", err)
 	}
 	cfg.DeployEnv = strings.ToLower(strings.TrimSpace(cfg.DeployEnv))
+	if cfg.FrontendURL == "" {
+		cfg.FrontendURL = "http://localhost:" + cfg.Port
+	}
 	if err := cfg.normalize(); err != nil {
 		return Config{}, err
 	}
