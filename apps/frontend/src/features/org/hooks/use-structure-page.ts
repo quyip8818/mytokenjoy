@@ -6,6 +6,7 @@ import type { AppApis } from '@/api/app-apis'
 import { ApiError } from '@/api/client'
 import type { Department, Member } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
+import { withErrorToast } from '@/lib/api-error-toast'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { flattenDepartments } from '../lib/departments'
 import { useStructureConfirmState } from './use-structure-confirm'
@@ -160,10 +161,13 @@ export function useStructurePage(injectedApis?: AppApis) {
           : `确定启用选中的 ${ids.length} 名成员？`,
       variant: status === 'disabled' ? 'danger' : 'primary',
       onConfirm: async () => {
-        await apis.orgApi.members.updateStatus(ids, status)
-        setRowSelection({})
-        setConfirmState((state) => ({ ...state, open: false }))
-        await invalidateOrg()
+        await withErrorToast(async () => {
+          await apis.orgApi.members.updateStatus(ids, status)
+          setRowSelection({})
+          setConfirmState((state) => ({ ...state, open: false }))
+          toast.success(status === 'disabled' ? '已停用' : '已启用')
+          await invalidateOrg()
+        }, '操作失败')
       },
     })
   }
@@ -197,11 +201,14 @@ export function useStructurePage(injectedApis?: AppApis) {
 
   const handleBatchTransfer = async () => {
     if (!transferDeptId || selectedIds.length === 0) return
-    await apis.orgApi.members.transferDepartment(selectedIds, transferDeptId)
-    setTransferOpen(false)
-    setTransferDeptId('')
-    setRowSelection({})
-    await invalidateOrg()
+    await withErrorToast(async () => {
+      await apis.orgApi.members.transferDepartment(selectedIds, transferDeptId)
+      setTransferOpen(false)
+      setTransferDeptId('')
+      setRowSelection({})
+      toast.success('已转移')
+      await invalidateOrg()
+    }, '转移失败')
   }
 
   const openCreateMember = () => {

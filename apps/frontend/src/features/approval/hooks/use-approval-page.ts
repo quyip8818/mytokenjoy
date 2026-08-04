@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
+import { withErrorToast } from '@/lib/api-error-toast'
 import { useFilteredQuery } from '@/features/query'
 import { usePermissions } from '@/features/session'
 import { PERMISSION } from '@/lib/permission-keys'
@@ -39,36 +40,44 @@ export function useApprovalPage(injectedApis?: AppApis) {
 
   const handleApprove = useCallback(
     async (id: string) => {
-      await apis.approvalApi.approve(id)
-      toast.success('已通过申请')
-      void refresh()
+      await withErrorToast(async () => {
+        await apis.approvalApi.approve(id)
+        toast.success('已通过申请')
+        void refresh()
+      }, '审批失败')
     },
     [apis, refresh],
   )
 
   const handleReject = useCallback(
     async (id: string, reason: string) => {
-      await apis.approvalApi.reject(id, reason)
-      toast.success('已拒绝申请')
-      void refresh()
+      await withErrorToast(async () => {
+        await apis.approvalApi.reject(id, reason)
+        toast.success('已拒绝申请')
+        void refresh()
+      }, '拒绝失败')
     },
     [apis, refresh],
   )
 
   const handleCancel = useCallback(
     async (id: string) => {
-      await apis.approvalApi.cancel(id)
-      toast.success('已撤回申请')
-      void refresh()
+      await withErrorToast(async () => {
+        await apis.approvalApi.cancel(id)
+        toast.success('已撤回申请')
+        void refresh()
+      }, '撤回失败')
     },
     [apis, refresh],
   )
 
   const handleRetry = useCallback(
     async (id: string) => {
-      await apis.approvalApi.retry(id)
-      toast.success('重试成功')
-      void refresh()
+      await withErrorToast(async () => {
+        await apis.approvalApi.retry(id)
+        toast.success('重试成功')
+        void refresh()
+      }, '重试失败')
     },
     [apis, refresh],
   )

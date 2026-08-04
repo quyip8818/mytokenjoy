@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import type { AppApis } from '@/api/app-apis'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useInjectedApis } from '@/api/use-apis'
+import { withErrorToast } from '@/lib/api-error-toast'
 import { mapProjectsToViews } from '../lib/mappers'
 import { alertRuleToView, alertRuleFromView, type AlertRuleView } from '../lib/alerts'
 import type { AlertTypeFilter, AlertStatusFilter } from '../components/budget-alerts-toolbar'
@@ -106,17 +108,23 @@ export function useBudgetAlertRulesPage(injectedApis?: AppApis) {
 
   const handleToggle = useCallback(
     async (rule: AlertRuleView) => {
-      await apis.budgetApi.updateAlert(rule.id, { enabled: !rule.enabled })
-      await refresh()
+      await withErrorToast(async () => {
+        await apis.budgetApi.updateAlert(rule.id, { enabled: !rule.enabled })
+        toast.success(rule.enabled ? '已禁用' : '已启用')
+        await refresh()
+      }, '操作失败')
     },
     [apis, refresh],
   )
 
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return
-    await apis.budgetApi.deleteAlert(deleteTarget.id)
-    setDeleteTarget(null)
-    await refresh()
+    await withErrorToast(async () => {
+      await apis.budgetApi.deleteAlert(deleteTarget.id)
+      setDeleteTarget(null)
+      toast.success('已删除')
+      await refresh()
+    }, '删除失败')
   }, [apis, deleteTarget, refresh])
 
   const openCreate = useCallback(() => {
@@ -131,13 +139,16 @@ export function useBudgetAlertRulesPage(injectedApis?: AppApis) {
 
   const saveRule = useCallback(
     async (view: AlertRuleView, existingId?: string) => {
-      const payload = alertRuleFromView(view)
-      if (existingId) {
-        await apis.budgetApi.updateAlert(existingId, payload)
-      } else {
-        await apis.budgetApi.createAlert(payload)
-      }
-      await refresh()
+      await withErrorToast(async () => {
+        const payload = alertRuleFromView(view)
+        if (existingId) {
+          await apis.budgetApi.updateAlert(existingId, payload)
+        } else {
+          await apis.budgetApi.createAlert(payload)
+        }
+        toast.success(existingId ? '规则已更新' : '规则已创建')
+        await refresh()
+      }, '保存失败')
     },
     [apis, refresh],
   )
