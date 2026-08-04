@@ -64,7 +64,7 @@ export function WorkflowPanelChrome({
       )}
 
       {footer && (
-        <footer className="flex shrink-0 items-center justify-end gap-3 border-t border-border px-5 py-4">
+        <footer className="flex shrink-0 items-center justify-end gap-3 border-t border-border px-5 py-5 [&_button]:h-11 [&_button]:px-6 [&_button]:text-base">
           {footer}
         </footer>
       )}
