@@ -47,7 +47,7 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
   const effectiveMode: AuthMode = IS_SAAS ? defaultMode : 'login'
   const [mode, setMode] = useState<AuthMode>(effectiveMode)
   const [step, setStep] = useState<AuthStep>(
-    effectiveMode === 'register' ? 'register-phone' : 'login-phone-pw',
+    effectiveMode === 'register' ? 'register-email' : 'login-email-pw',
   )
 
   // Form state
@@ -124,7 +124,7 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
   const switchTab = useCallback(
     (newMode: AuthMode) => {
       setMode(newMode)
-      changeStep(newMode === 'login' ? 'login-phone-pw' : 'register-phone')
+      changeStep(newMode === 'login' ? 'login-email-pw' : 'register-email')
     },
     [changeStep],
   )
@@ -880,7 +880,7 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
             >
               {submitting ? '创建中…' : '创建并开始体验'}
             </Button>
-            <BackLink label="返回" onClick={() => changeStep('register-phone')} />
+            <BackLink label="返回" onClick={() => changeStep('register-email')} />
           </form>
         )}
 

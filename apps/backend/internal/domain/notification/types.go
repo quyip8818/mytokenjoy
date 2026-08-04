@@ -37,7 +37,7 @@ const (
 func PriorityFallbackChain(priority string) []string {
 	switch priority {
 	case PriorityCritical:
-		return []string{ChannelSMS, ChannelEmail, ChannelInApp}
+		return []string{ChannelEmail, ChannelSMS, ChannelInApp}
 	case PriorityHigh:
 		return []string{ChannelEmail, ChannelInApp}
 	case PriorityNormal:

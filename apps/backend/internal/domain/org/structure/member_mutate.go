@@ -118,7 +118,7 @@ func (s *LocalService) CreateMember(ctx context.Context, input types.CreateMembe
 	return member, nil
 }
 
-// sendInviteNotifications encrypts the invite code with channel info and sends SMS/email.
+// sendInviteNotifications encrypts the invite code and sends via email (preferred) or SMS fallback.
 // Failures are logged but not propagated — the member is already created.
 func (s *LocalService) sendInviteNotifications(ctx context.Context, inviteCode string, phone, email string) {
 	if s.d.InviteIssuer == nil || s.d.Sender == nil {
@@ -133,25 +133,7 @@ func (s *LocalService) sendInviteNotifications(ctx context.Context, inviteCode s
 		companyName = "TokenJoy"
 	}
 
-	if phone != "" {
-		token, err := s.d.InviteIssuer.Encrypt(inviteCode, invitetoken.ChannelSMS)
-		if err == nil {
-			inviteURL := fmt.Sprintf("%s/invite/accept?code=%s", baseURL, token)
-			msg := domainnotification.RenderedMessage{
-				Title: "邀请您加入 " + companyName,
-				Body:  fmt.Sprintf("%s邀请您加入TokenJoy平台管理AI用量，点击加入：%s", companyName, inviteURL),
-				Payload: map[string]any{
-					"eventType": "member_invite",
-					"company":   companyName,
-					"code":      token,
-				},
-			}
-			if err := s.d.Sender.SendDirect(ctx, "sms", phone, msg); err != nil {
-				s.d.Logger.Error("invite sms send failed", "phone", phone, "error", err)
-			}
-		}
-	}
-
+	// ponytail: email优先；有email就只发email，没有才fallback到SMS
 	if email != "" {
 		token, err := s.d.InviteIssuer.Encrypt(inviteCode, invitetoken.ChannelEmail)
 		if err == nil {
@@ -167,6 +149,23 @@ func (s *LocalService) sendInviteNotifications(ctx context.Context, inviteCode s
 			}
 			if err := s.d.Sender.SendDirect(ctx, "email", email, msg); err != nil {
 				s.d.Logger.Error("invite email send failed", "email", email, "error", err)
+			}
+		}
+	} else if phone != "" {
+		token, err := s.d.InviteIssuer.Encrypt(inviteCode, invitetoken.ChannelSMS)
+		if err == nil {
+			inviteURL := fmt.Sprintf("%s/invite/accept?code=%s", baseURL, token)
+			msg := domainnotification.RenderedMessage{
+				Title: "邀请您加入 " + companyName,
+				Body:  fmt.Sprintf("%s邀请您加入TokenJoy平台管理AI用量，点击加入：%s", companyName, inviteURL),
+				Payload: map[string]any{
+					"eventType": "member_invite",
+					"company":   companyName,
+					"code":      token,
+				},
+			}
+			if err := s.d.Sender.SendDirect(ctx, "sms", phone, msg); err != nil {
+				s.d.Logger.Error("invite sms send failed", "phone", phone, "error", err)
 			}
 		}
 	}
