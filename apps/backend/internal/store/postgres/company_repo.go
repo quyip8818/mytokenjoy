@@ -201,6 +201,14 @@ func (r *companyRepo) UpdateSyncToken(ctx context.Context, id uuid.UUID, hash st
 	return err
 }
 
+func (r *companyRepo) ExistsByName(ctx context.Context, name string) (bool, error) {
+	var exists bool
+	err := r.db.QueryRow(ctx, `
+		SELECT EXISTS(SELECT 1 FROM companies WHERE name = $1 AND type NOT IN ('platform', 'testing'))
+	`, name).Scan(&exists)
+	return exists, err
+}
+
 func scanCompanyExtendedOptional(row scannable) (*store.Company, error) {
 	c, err := scanCompanyExtended(row)
 	if err == pgx.ErrNoRows {

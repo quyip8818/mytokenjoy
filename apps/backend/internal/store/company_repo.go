@@ -62,4 +62,5 @@ type CompanyRepository interface {
 	SetWalletRemainQuota(ctx context.Context, id uuid.UUID, remain int64, fifoHeadLotID *uuid.UUID) error
 	GetBySyncTokenHash(ctx context.Context, hash string) (*Company, error)
 	UpdateSyncToken(ctx context.Context, id uuid.UUID, hash string, issuedAt time.Time) error
+	ExistsByName(ctx context.Context, name string) (bool, error)
 }

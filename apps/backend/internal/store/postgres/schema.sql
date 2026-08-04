@@ -37,6 +37,9 @@ CREATE TABLE IF NOT EXISTS companies (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_companies_sync_token_hash
   ON companies (sync_token_hash) WHERE sync_token_hash IS NOT NULL;
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_companies_name
+  ON companies (name) WHERE type NOT IN ('platform', 'testing');
+
 CREATE TABLE IF NOT EXISTS company_invites (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     company_id      UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,

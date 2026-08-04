@@ -28,8 +28,17 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 		return CreateCompanyResult{}, domain.BadRequest("cannot create platform company via API")
 	}
 
+	// Check company name uniqueness.
+	exists, err := s.store.Company().ExistsByName(ctx, req.Name)
+	if err != nil {
+		return CreateCompanyResult{}, err
+	}
+	if exists {
+		return CreateCompanyResult{}, domain.Conflict("企业名称已存在")
+	}
+
 	var result CreateCompanyResult
-	err := s.store.WithTx(ctx, func(tx store.Store) error {
+	err = s.store.WithTx(ctx, func(tx store.Store) error {
 		company, err := s.provisionCompany(ctx, tx, req.Name, req.Industry, req.Size, companyType)
 		if err != nil {
 			return err

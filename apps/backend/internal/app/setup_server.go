@@ -162,8 +162,12 @@ func handleSetupInit(
 		// 2. Register company: call SaaS (creates company + user/member + wallet + token)
 		reg, err := registerCompany(ctx, cfg, req, idempotencyKey, logger)
 		if err != nil {
-			logger.Error("register company", "error", err)
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to register company: " + err.Error()})
+			if re, ok := err.(*registerError); ok && re.status >= 400 && re.status < 500 {
+				writeJSON(w, re.status, map[string]string{"error": re.message})
+			} else {
+				logger.Error("register company", "error", err)
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
+			}
 			return
 		}
 		companyID := reg.CompanyID
@@ -272,6 +276,14 @@ type registerResult struct {
 	SyncToken    string
 }
 
+// registerError is returned when SaaS register-local responds with a non-2xx status.
+type registerError struct {
+	status  int
+	message string
+}
+
+func (e *registerError) Error() string { return e.message }
+
 // registerCompany calls SaaS platform to register a selfhosted company.
 // SaaS creates company + admin user/member + NewAPI wallet user + unlimited token.
 func registerCompany(ctx context.Context, cfg config.Config, req setupInitRequest, idempotencyKey string, logger *slog.Logger) (registerResult, error) {
@@ -308,7 +320,14 @@ func registerCompany(ctx context.Context, cfg config.Config, req setupInitReques
 
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return registerResult{}, fmt.Errorf("SaaS register-local returned %d: %s", resp.StatusCode, string(respBody))
+		// Parse SaaS error message for user-facing display.
+		var parsed struct{ Message string `json:"message"` }
+		_ = json.Unmarshal(respBody, &parsed)
+		msg := parsed.Message
+		if msg == "" {
+			msg = string(respBody)
+		}
+		return registerResult{}, &registerError{status: resp.StatusCode, message: msg}
 	}
 
 	var parsed struct {
