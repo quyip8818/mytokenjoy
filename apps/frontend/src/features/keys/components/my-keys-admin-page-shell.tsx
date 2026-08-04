@@ -57,7 +57,12 @@ export function MyKeysAdminPageShell({
                 variant="brand"
                 className={createKeyCta.className}
                 disabled={budgetSummary !== null && budgetSummary.remaining <= 0}
-                disabledReason="额度不足，请先申请追加"
+                disabledReason="额度不足，双击可发起额度申请"
+                onDoubleClick={() => {
+                  if (budgetSummary !== null && budgetSummary.remaining <= 0) {
+                    openWithRefresh('approval-submit', { defaultType: 'member_budget' })
+                  }
+                }}
                 onClick={() => openCreateKey()}
               >
                 创建 Key
