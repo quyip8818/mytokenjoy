@@ -72,7 +72,7 @@ function FormDialog({
             size="sm"
             onClick={() => void onSubmit()}
             disabled={busy || submitDisabled}
-            disabledReason={submitDisabledReason}
+            disabledReason={submitDisabledReason ?? (submitDisabled ? '请完善必填信息' : busy ? '处理中…' : undefined)}
           >
             {busy ? (
               <>

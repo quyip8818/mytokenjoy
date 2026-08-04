@@ -31,6 +31,7 @@ export function SimulateConsumeDialog({ open, onOpenChange }: SimulateConsumeDia
       busy={dialog.busy}
       submitLabel="提交"
       submitDisabled={!dialog.selectedKeyId}
+      submitDisabledReason={!dialog.selectedKeyId ? '请选择一个 Platform Key' : undefined}
       onSubmit={dialog.handleSubmit}
     >
       <div className="space-y-2">

@@ -101,6 +101,11 @@ export function WorkflowPanelFooter({
   destructiveDisabled,
   destructiveDisabledReason,
 }: WorkflowPanelFooterProps) {
+  // ponytail: 统一兜底——disabled 但无 reason 时给一个通用提示，避免用户困惑。
+  // 升级路径：各 workflow 逐步传入具体 reason 覆盖此默认值。
+  const effectivePrimaryReason = primaryDisabledReason ?? (primaryDisabled ? '请完善必填信息' : undefined)
+  const effectiveDestructiveReason = destructiveDisabledReason ?? (destructiveDisabled ? '当前无法执行此操作' : undefined)
+
   return (
     <>
       {onCancel && (
@@ -117,7 +122,7 @@ export function WorkflowPanelFooter({
         <Button
           variant="destructive"
           disabled={destructiveDisabled}
-          disabledReason={destructiveDisabledReason}
+          disabledReason={effectiveDestructiveReason}
           onClick={onDestructive}
         >
           {destructiveLabel}
@@ -125,7 +130,7 @@ export function WorkflowPanelFooter({
       )}
       <Button
         disabled={primaryDisabled}
-        disabledReason={primaryDisabledReason}
+        disabledReason={effectivePrimaryReason}
         variant="brand"
         onClick={onPrimary}
       >

@@ -69,6 +69,7 @@ export function MemberSearchWorkflow({
       onClose={onClose}
       onConfirm={handleConfirm}
       primaryDisabled={selected.size === 0}
+      primaryDisabledReason={selected.size === 0 ? '请选择至少一个成员' : undefined}
     >
       <WorkflowFormLayout variant="full">
         <div className="flex gap-2">

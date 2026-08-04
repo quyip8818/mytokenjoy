@@ -280,6 +280,9 @@ export function PlatformModelCreateWorkflow({
           primaryLabel={submitting ? '添加中...' : '添加'}
           onPrimary={handleSubmit}
           primaryDisabled={!canSubmit || submitting}
+          primaryDisabledReason={
+            submitting ? '添加中…' : !provider ? '请选择供应商' : !type.trim() ? '请输入模型标识' : undefined
+          }
         />
       }
     >
@@ -387,6 +390,9 @@ export function PlatformModelEditWorkflow({
           primaryLabel={submitting ? '保存中...' : '保存'}
           onPrimary={handleSubmit}
           primaryDisabled={!canSubmit || submitting}
+          primaryDisabledReason={
+            submitting ? '保存中…' : !provider ? '请选择供应商' : !name.trim() ? '请输入模型名称' : undefined
+          }
         />
       }
     >

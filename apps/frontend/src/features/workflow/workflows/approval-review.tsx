@@ -107,6 +107,7 @@ export function ApprovalReviewWorkflow({
             primaryLabel={submitting ? '处理中...' : '通过'}
             onPrimary={handleApprove}
             primaryDisabled={submitting}
+            primaryDisabledReason={submitting ? '处理中…' : undefined}
           />
         ) : (
           <WorkflowPanelFooter

@@ -117,6 +117,15 @@ export function ApprovalSubmitWorkflow({
           primaryLabel={submitting ? '提交中...' : '提交申请'}
           onPrimary={handleSubmit}
           primaryDisabled={!reason.trim() || submitting || (type === 'key' && models.length === 0)}
+          primaryDisabledReason={
+            submitting
+              ? '提交中…'
+              : !reason.trim()
+                ? '请填写申请理由'
+                : type === 'key' && models.length === 0
+                  ? '请选择至少一个模型'
+                  : undefined
+          }
         />
       }
     >

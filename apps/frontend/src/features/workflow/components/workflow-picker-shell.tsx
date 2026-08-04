@@ -7,6 +7,7 @@ interface WorkflowPickerShellProps {
   onClose: () => void
   primaryLabel?: string
   primaryDisabled?: boolean
+  primaryDisabledReason?: string
   onConfirm: () => void
   children: ReactNode
 }
@@ -17,6 +18,7 @@ export function WorkflowPickerShell({
   onClose,
   primaryLabel = '确认',
   primaryDisabled = false,
+  primaryDisabledReason,
   onConfirm,
   children,
 }: WorkflowPickerShellProps) {
@@ -32,6 +34,7 @@ export function WorkflowPickerShell({
           primaryLabel={primaryLabel}
           onPrimary={onConfirm}
           primaryDisabled={primaryDisabled}
+          primaryDisabledReason={primaryDisabledReason}
         />
       }
     >
