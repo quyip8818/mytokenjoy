@@ -56,6 +56,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		// Model management
 		r.Get("/models", h.ListModels)
 		r.Post("/models", h.CreateModel)
+		r.Post("/models/sync", h.SyncModelsFromNewAPI)
 		r.Put("/models/{id}", h.UpdateModel)
 		r.Put("/models/{id}/pricing", h.SetModelPricing)
 		r.Post("/catalog/publish", h.PublishCatalog)

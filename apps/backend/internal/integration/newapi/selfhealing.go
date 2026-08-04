@@ -169,6 +169,15 @@ func (p *SelfHealingPort) ListModelPricing(ctx context.Context) ([]adminport.Mod
 	return r, err
 }
 
+func (p *SelfHealingPort) ListPricingModels(ctx context.Context) ([]adminport.PricingModel, error) {
+	// /api/pricing is a public endpoint — no auth needed, but retry on transient errors.
+	r, err := p.client.ListPricingModels(ctx)
+	if p.selfHeal(ctx, err) {
+		return p.client.ListPricingModels(ctx)
+	}
+	return r, err
+}
+
 func (p *SelfHealingPort) UpdateOption(ctx context.Context, key, value string) error {
 	err := p.client.UpdateOption(ctx, key, value)
 	if p.selfHeal(ctx, err) {

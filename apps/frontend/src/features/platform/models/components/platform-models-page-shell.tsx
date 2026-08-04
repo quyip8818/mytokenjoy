@@ -1,4 +1,4 @@
-import { Power, Upload, Pencil, Plus } from 'lucide-react'
+import { Power, Upload, Pencil, Plus, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -16,7 +16,9 @@ export function PlatformModelsPageShell({
   error,
   refresh,
   publishing,
+  syncing,
   handlePublish,
+  handleSync,
   handleToggle,
   openCreate,
   openEdit,
@@ -28,6 +30,10 @@ export function PlatformModelsPageShell({
         description={`共 ${models.length} 个全局模型`}
         actions={
           <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" disabled={syncing} onClick={handleSync}>
+              <RefreshCw className={`mr-1.5 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? '同步中...' : '同步模型'}
+            </Button>
             <Button size="sm" onClick={openCreate}>
               <Plus className="mr-1.5 h-4 w-4" />
               添加模型

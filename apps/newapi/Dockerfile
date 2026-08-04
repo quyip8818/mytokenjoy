@@ -17,10 +17,11 @@ RUN bun install --frozen-lockfile \
     && DISABLE_ESLINT_PLUGIN='true' VITE_REACT_APP_VERSION=$(cat /upstream/VERSION) bun run build
 
 # ponytail: skip web-classic build — upstream date-fns-tz breaks with newer date-fns.
-# TokenJoy only uses the default UI. Upgrade path: re-enable when upstream fixes the dep.
+# TokenJoy only uses the default UI. The go-builder stage copies default/dist into both
+# web/default/dist and web/classic/dist so the root path serves the working admin panel.
+# Upgrade path: re-enable when upstream fixes the dep.
 FROM upstream-src AS web-classic
-WORKDIR /upstream/web/classic
-RUN mkdir -p dist && echo '<!doctype html><title>classic disabled</title>' > dist/index.html
+RUN true
 
 FROM golang:1.26.1-alpine@sha256:2389ebfa5b7f43eeafbd6be0c3700cc46690ef842ad962f6c5bd6be49ed82039 AS go-builder
 ARG UPSTREAM_REF
@@ -56,7 +57,7 @@ COPY patches/new-api/0004-sk-prefix-key-format.patch /tmp/0004-sk-prefix-key-for
 RUN git apply /tmp/0004-sk-prefix-key-format.patch
 
 COPY --from=web-default /upstream/web/default/dist ./web/default/dist
-COPY --from=web-classic /upstream/web/classic/dist ./web/classic/dist
+COPY --from=web-default /upstream/web/default/dist ./web/classic/dist
 
 RUN go build -ldflags "-s -w -X 'github.com/QuantumNous/new-api/common.Version=$(cat VERSION)'" -o new-api
 

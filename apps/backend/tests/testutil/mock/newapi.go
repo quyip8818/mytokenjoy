@@ -140,6 +140,10 @@ func (s *StubAdminClient) ListModelPricing(ctx context.Context) ([]adminport.Mod
 	return nil, nil
 }
 
+func (s *StubAdminClient) ListPricingModels(_ context.Context) ([]adminport.PricingModel, error) {
+	return nil, nil
+}
+
 func (s *StubAdminClient) UpdateOption(ctx context.Context, key, value string) error {
 	return nil
 }

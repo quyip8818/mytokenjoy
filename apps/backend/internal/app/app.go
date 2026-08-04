@@ -87,6 +87,11 @@ func newApp(cfg config.Config, logger *slog.Logger, st store.Store, opts ...Opti
 		ensurePlatformChannel(ctx, cfg, st, registry.Deps.AdminPort, logger)
 	}
 
+	// SaaS mode: sync models from NewAPI to TokenJoy DB on boot.
+	if cfg.SupportSaas && cfg.NewAPIEnabled {
+		go syncModelsFromNewAPIOnBoot(ctx, cfg, st, registry.Deps.AdminPort)
+	}
+
 	bgWorkers, err := buildBackgroundWorkers(cfg, logger, st, registry, holder, orgAdmin)
 	if err != nil {
 		return nil, err

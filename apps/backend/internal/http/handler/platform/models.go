@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/http/response"
@@ -319,4 +321,127 @@ func primaryCapability(caps []string) string {
 		return caps[0]
 	}
 	return "chat"
+}
+
+// SyncModelsFromNewAPI pulls the model list from NewAPI /api/pricing and upserts into TokenJoy DB.
+func (h *Handler) SyncModelsFromNewAPI(w http.ResponseWriter, r *http.Request) {
+	ctx := h.globalCtx(r.Context())
+	pricingModels, err := h.p.AdminPort.ListPricingModels(ctx)
+	if err != nil {
+		httputil.WriteError(w, fmt.Errorf("sync models from newapi: %w", err))
+		return
+	}
+
+	infos := make([]types.ModelInfo, 0, len(pricingModels))
+	for _, pm := range pricingModels {
+		infos = append(infos, pricingModelToModelInfo(pm))
+	}
+
+	if err := h.p.Models.SyncFromPlatform(ctx, h.p.Cfg.TokenJoyCompanyID, infos); err != nil {
+		httputil.WriteError(w, fmt.Errorf("sync models from newapi: %w", err))
+		return
+	}
+	h.bumpModelsCatalogVersion(ctx)
+	response.JSON(w, http.StatusOK, map[string]int{"synced": len(infos)})
+}
+
+// pricingModelToModelInfo converts a NewAPI PricingModel to a TokenJoy ModelInfo.
+func pricingModelToModelInfo(pm adminport.PricingModel) types.ModelInfo {
+	modelType := pm.ModelName
+	displayName := inferDisplayName(pm.ModelName)
+	provider := inferProvider(pm.ModelName)
+	capabilities := parseTags(pm.Tags)
+	maxContext := extractMaxContext(pm.Tags)
+
+	return types.ModelInfo{
+		Provider:     provider,
+		Type:         modelType,
+		Name:         displayName,
+		Description:  pm.Description,
+		Source:       "platform",
+		Deprecated:   false,
+		Capabilities: capabilities,
+		MaxContext:   maxContext,
+	}
+}
+
+// inferDisplayName produces a human-readable name from a model_name like "deepseek-ai/DeepSeek-OCR".
+func inferDisplayName(modelName string) string {
+	if idx := strings.Index(modelName, "/"); idx >= 0 {
+		return modelName[idx+1:]
+	}
+	return modelName
+}
+
+// inferProvider extracts a provider slug from the model name.
+func inferProvider(modelName string) string {
+	if idx := strings.Index(modelName, "/"); idx >= 0 {
+		org := strings.ToLower(modelName[:idx])
+		// Normalize common org names.
+		switch {
+		case strings.Contains(org, "deepseek"):
+			return "deepseek"
+		case strings.Contains(org, "moonshot"):
+			return "moonshot"
+		case strings.Contains(org, "zai") || strings.Contains(org, "glm"):
+			return "zhipu"
+		default:
+			return org
+		}
+	}
+	lower := strings.ToLower(modelName)
+	switch {
+	case strings.HasPrefix(lower, "deepseek"):
+		return "deepseek"
+	case strings.HasPrefix(lower, "gpt") || strings.HasPrefix(lower, "o1") || strings.HasPrefix(lower, "o3"):
+		return "openai"
+	case strings.HasPrefix(lower, "claude"):
+		return "anthropic"
+	default:
+		return ""
+	}
+}
+
+// parseTags splits comma-separated tags into capabilities slice.
+func parseTags(tags string) []string {
+	if tags == "" {
+		return []string{"chat"}
+	}
+	parts := strings.Split(tags, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		t := strings.TrimSpace(p)
+		if t != "" {
+			out = append(out, t)
+		}
+	}
+	if len(out) == 0 {
+		return []string{"chat"}
+	}
+	return out
+}
+
+// extractMaxContext parses max context from tags like "1M", "262.1K", "8.2K".
+func extractMaxContext(tags string) int {
+	for _, tag := range strings.Split(tags, ",") {
+		tag = strings.TrimSpace(tag)
+		if tag == "" {
+			continue
+		}
+		multiplier := 0
+		numStr := ""
+		if strings.HasSuffix(tag, "M") {
+			multiplier = 1_000_000
+			numStr = strings.TrimSuffix(tag, "M")
+		} else if strings.HasSuffix(tag, "K") {
+			multiplier = 1_000
+			numStr = strings.TrimSuffix(tag, "K")
+		}
+		if multiplier > 0 {
+			if v, err := strconv.ParseFloat(numStr, 64); err == nil {
+				return int(v * float64(multiplier))
+			}
+		}
+	}
+	return 128000 // default
 }

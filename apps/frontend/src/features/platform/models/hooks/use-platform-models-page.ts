@@ -21,6 +21,7 @@ export function usePlatformModelsPage() {
   })
 
   const [publishing, setPublishing] = useState(false)
+  const [syncing, setSyncing] = useState(false)
 
   const openCreate = useCallback(() => {
     openWorkflow('platform-model-create', { onSuccess: () => void refresh() })
@@ -45,6 +46,19 @@ export function usePlatformModelsPage() {
     }
   }, [apis])
 
+  const handleSync = useCallback(async () => {
+    setSyncing(true)
+    try {
+      const result = await apis.platformApi.syncModels()
+      toast.success(`同步完成，共 ${result.synced} 个模型`)
+      void refresh()
+    } catch (e: unknown) {
+      toast.error(`同步失败：${e instanceof Error ? e.message : '未知错误'}`)
+    } finally {
+      setSyncing(false)
+    }
+  }, [apis, refresh])
+
   const handleToggle = useCallback(
     async (model: PlatformModel) => {
       try {
@@ -64,7 +78,9 @@ export function usePlatformModelsPage() {
     error,
     refresh,
     publishing,
+    syncing,
     handlePublish,
+    handleSync,
     handleToggle,
     openCreate,
     openEdit,

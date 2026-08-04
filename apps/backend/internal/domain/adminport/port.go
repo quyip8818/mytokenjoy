@@ -25,6 +25,8 @@ type Port interface {
 	// --- Pricing (NewAPI cache sync) ---
 	// ListModelPricing reads from NewAPI option store (debug/audit tooling).
 	ListModelPricing(ctx context.Context) ([]ModelPricing, error)
+	// ListPricingModels reads the full model list from NewAPI /api/pricing (public endpoint).
+	ListPricingModels(ctx context.Context) ([]PricingModel, error)
 	UpdateOption(ctx context.Context, key, value string) error
 	// UpsertModelRatio pushes price→ratio to NewAPI (gateway pre-deduction cache).
 	UpsertModelRatio(ctx context.Context, modelType string, inputPrice, outputPrice, cacheInputPrice float64) error

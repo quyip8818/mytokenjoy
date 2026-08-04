@@ -78,3 +78,14 @@ type ModelPricing struct {
 	CompletionRatio float64
 	CacheRatio      float64 // cache_input/input multiplier (e.g. 0.5 = 50% of input price)
 }
+
+// PricingModel is the full model entry from NewAPI /api/pricing (public endpoint).
+type PricingModel struct {
+	ModelName       string   `json:"model_name"`
+	Description     string   `json:"description"`
+	Tags            string   `json:"tags"`
+	ModelRatio      float64  `json:"model_ratio"`
+	CompletionRatio float64  `json:"completion_ratio"`
+	CacheRatio      float64  `json:"cache_ratio"`
+	EnableGroups    []string `json:"enable_groups"`
+}
