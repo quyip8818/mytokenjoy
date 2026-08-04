@@ -202,7 +202,7 @@ export function AvatarPicker({ value, onChange, trigger, size = 48 }: AvatarPick
               <Button
                 type="button"
                 variant="outline"
-               
+
                 onClick={() => {
                   onChange('')
                   setOpen(false)

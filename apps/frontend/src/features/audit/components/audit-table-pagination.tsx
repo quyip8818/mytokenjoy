@@ -23,7 +23,7 @@ export function AuditTablePagination({
       <div className="flex items-center gap-1">
         <Button
           variant="outline"
-         
+
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
         >
@@ -34,7 +34,7 @@ export function AuditTablePagination({
         </span>
         <Button
           variant="outline"
-         
+
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
         >

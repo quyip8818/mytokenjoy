@@ -64,7 +64,7 @@ func (c *Client) ListPricingModels(ctx context.Context) ([]adminport.PricingMode
 		return nil, fmt.Errorf("list pricing models read body: %w", err)
 	}
 	var resp struct {
-		Success bool                    `json:"success"`
+		Success bool                     `json:"success"`
 		Data    []adminport.PricingModel `json:"data"`
 	}
 	if err := json.Unmarshal(body, &resp); err != nil {

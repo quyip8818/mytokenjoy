@@ -71,6 +71,10 @@ func (s *service) CreateProject(ctx context.Context, project types.Project) (typ
 		result = created
 		return nil
 	})
+	if err == nil {
+		s.appendBudgetLog(ctx, "budget.project.create", result.ID.String(),
+			fmt.Sprintf(`{"name":%q,"budget":%.2f}`, result.Name, result.Budget))
+	}
 	return result, err
 }
 
@@ -156,6 +160,10 @@ func (s *service) UpdateProject(ctx context.Context, id uuid.UUID, patch types.U
 		}
 		return domain.NotFound("Not found")
 	})
+	if err == nil {
+		s.appendBudgetLog(ctx, "budget.project.update", id.String(),
+			fmt.Sprintf(`{"name":%q,"budget":%.2f}`, result.Name, result.Budget))
+	}
 	return result, err
 }
 
@@ -182,6 +190,7 @@ func (s *service) DeleteProject(ctx context.Context, id uuid.UUID) error {
 		return domain.NotFound("Not found")
 	})
 	if err == nil {
+		s.appendBudgetLog(ctx, "budget.project.delete", id.String(), "")
 		for _, memberID := range deletedMemberIDs {
 			if rebalErr := s.enqueuer.InsertRebalance(ctx, store.CompanyID(ctx), store.RebalanceAxisMember, memberID); rebalErr != nil {
 				return rebalErr

@@ -44,7 +44,7 @@ export function BatchActionBar({
           </Button>
           <Button
             variant="ghost"
-           
+
             className="text-destructive hover:bg-red-50"
             onClick={onDelete}
           >

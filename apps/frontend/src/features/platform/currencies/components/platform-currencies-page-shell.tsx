@@ -24,9 +24,11 @@ function fmtQpu(n: number) {
 function fmtTime(iso: string) {
   if (!iso) return '—'
   const d = new Date(iso)
-  return d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) +
+  return (
+    d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) +
     ' ' +
     d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  )
 }
 
 export function PlatformCurrenciesPageShell(props: Props) {
@@ -59,11 +61,7 @@ export function PlatformCurrenciesPageShell(props: Props) {
       <PageHeader
         title="汇率管理"
         icon={Coins}
-        actions={
-          <Button onClick={openCreate}>
-            + 新增币种
-          </Button>
-        }
+        actions={<Button onClick={openCreate}>+ 新增币种</Button>}
       />
       <Card>
         <CardContent className="p-0">

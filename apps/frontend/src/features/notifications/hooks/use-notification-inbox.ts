@@ -59,7 +59,7 @@ export function useNotificationInbox() {
     mutationFn: (id: string) => notificationApi.softDelete(id),
     onSuccess: (_, id) => {
       invalidate()
-      toast('已删除 1 条通知', {
+      toast.info('已删除 1 条通知', {
         action: {
           label: '撤销',
           onClick: () => {

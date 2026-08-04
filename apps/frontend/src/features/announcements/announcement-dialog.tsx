@@ -61,8 +61,13 @@ function AnnouncementBody({
         {config.features.map((f) => {
           const FIcon = f.icon
           return (
-            <div key={f.title} className={`flex items-start gap-3 rounded-lg border p-3 ${f.cardClass}`}>
-              <div className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${f.iconClass}`}>
+            <div
+              key={f.title}
+              className={`flex items-start gap-3 rounded-lg border p-3 ${f.cardClass}`}
+            >
+              <div
+                className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${f.iconClass}`}
+              >
                 <FIcon className="size-4" />
               </div>
               <div>

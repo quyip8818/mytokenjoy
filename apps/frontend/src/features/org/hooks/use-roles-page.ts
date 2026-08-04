@@ -107,7 +107,7 @@ export function useRolesPage(injectedApis?: AppApis) {
   const handleRemoveMember = (member: Member) => {
     if (!selectedRole) return
     if (selectedRole.name === '普通成员') {
-      toast('普通成员为保底角色，不可移除')
+      toast.info('普通成员为保底角色，不可移除')
       return
     }
     setRemoveConfirm({ member, role: selectedRole })

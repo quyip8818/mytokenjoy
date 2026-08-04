@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useSession } from '@/features/session'
 import { announcements } from './announcements'
 import type { AnnouncementConfig } from './types'
@@ -24,24 +24,25 @@ export function useAnnouncement(): {
   close: () => void
 } {
   const session = useSession()
-  const [open, setOpen] = useState(false)
-  const [current, setCurrent] = useState<AnnouncementConfig | null>(null)
+  const [dismissed, setDismissed] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (session.loading || !session.companyId) return
-    const match = announcements.find(
-      (a) => a.shouldShow(session) && !isDismissed(a.id, session.companyId),
-    )
-    if (match) {
-      setCurrent(match)
-      setOpen(true)
-    }
-  }, [session.loading, session.companyId, session.companyType, session.permissions])
+  // ponytail: derive current announcement from session state — no effect needed
+  const current =
+    !session.loading && session.companyId
+      ? announcements.find(
+          (a) =>
+            a.id !== dismissed &&
+            a.shouldShow(session) &&
+            !isDismissed(a.id, session.companyId),
+        ) ?? null
+      : null
+
+  const open = current !== null
 
   const close = useCallback(() => {
-    setOpen(false)
     if (current) {
       dismiss(current.id, session.companyId)
+      setDismissed(current.id)
     }
   }, [current, session.companyId])
 

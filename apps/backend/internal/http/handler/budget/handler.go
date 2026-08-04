@@ -27,6 +27,12 @@ func NewHandler(p httpdeps.Protected, service domainbudget.Service) *Handler {
 }
 
 func (h *Handler) Tree(w http.ResponseWriter, r *http.Request) {
+	period := r.URL.Query().Get("period")
+	if period != "" {
+		tree, err := h.service.GetTreeForPeriod(r.Context(), period)
+		httputil.WriteJSON(w, http.StatusOK, tree, err)
+		return
+	}
 	tree, err := h.service.GetTree(r.Context())
 	httputil.WriteJSON(w, http.StatusOK, tree, err)
 }
@@ -211,6 +217,93 @@ func (h *Handler) ProjectMemberConsumed(w http.ResponseWriter, r *http.Request) 
 	httputil.WriteJSON(w, http.StatusOK, result, err)
 }
 
+func (h *Handler) CopyPeriod(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		To string `json:"to"`
+	}
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	if body.To == "" {
+		httputil.WriteStatus(w, http.StatusBadRequest, "to is required")
+		return
+	}
+	err := h.service.CopyPeriod(r.Context(), body.To)
+	if err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	httputil.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"}, nil)
+}
+
+func (h *Handler) UpdateSnapshotNode(w http.ResponseWriter, r *http.Request) {
+	period := chi.URLParam(r, "period")
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var body struct {
+		Budget       float64  `json:"budget"`
+		ReservedPool *float64 `json:"reservedPool"`
+	}
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	err = h.service.UpdateSnapshotNode(r.Context(), period, id, body.Budget, body.ReservedPool)
+	if err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	httputil.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"}, nil)
+}
+
+func (h *Handler) UpdateSnapshotMember(w http.ResponseWriter, r *http.Request) {
+	period := chi.URLParam(r, "period")
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var body struct {
+		PersonalBudget float64 `json:"personalBudget"`
+	}
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	err = h.service.UpdateSnapshotMember(r.Context(), period, id, body.PersonalBudget)
+	if err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	httputil.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"}, nil)
+}
+
+func (h *Handler) UpdateSnapshotProject(w http.ResponseWriter, r *http.Request) {
+	period := chi.URLParam(r, "period")
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var body struct {
+		Budget float64 `json:"budget"`
+	}
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	err = h.service.UpdateSnapshotProject(r.Context(), period, id, body.Budget)
+	if err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	httputil.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"}, nil)
+}
+
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.BudgetRead)
 	read.Get("/tree", h.Tree)
@@ -230,6 +323,10 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	allocateWrite.Post("/projects", h.ProjectCreate)
 	allocateWrite.Put("/projects/{id}", h.ProjectUpdate)
 	allocateWrite.Delete("/projects/{id}", h.ProjectDelete)
+	allocateWrite.Post("/periods/copy", h.CopyPeriod)
+	allocateWrite.Put("/snapshot/{period}/departments/{id}", h.UpdateSnapshotNode)
+	allocateWrite.Put("/snapshot/{period}/members/{id}", h.UpdateSnapshotMember)
+	allocateWrite.Put("/snapshot/{period}/projects/{id}", h.UpdateSnapshotProject)
 
 	policyWrite := write.With(httpmiddleware.RequireAnyPermission(permission.BudgetAdmin))
 	policyWrite.Put("/overrun-policy", h.OverrunPolicyUpdate)

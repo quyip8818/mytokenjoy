@@ -29,7 +29,6 @@ export function RechargeRecordsTable({ records }: RechargeRecordsTableProps) {
         <div className="flex items-center justify-between rounded-md border border-amber-200 bg-amber-50 px-4 py-2.5">
           <span className="text-xs text-amber-800">请先完成实名认证后再申请开具发票</span>
           <Button
-           
             variant="outline"
             className="h-7 border-amber-300 text-xs text-amber-800 hover:bg-amber-100"
           >
@@ -76,7 +75,7 @@ export function RechargeRecordsTable({ records }: RechargeRecordsTableProps) {
           </Button>
           <Button
             variant="ghost"
-           
+
             className="h-8 text-xs"
             onClick={() => setSearchOrderId('')}
           >
@@ -85,7 +84,7 @@ export function RechargeRecordsTable({ records }: RechargeRecordsTableProps) {
           <div className="ml-auto flex gap-2">
             <Button
               variant="ghost"
-             
+
               className="h-8 text-xs"
               disabled
               disabledReason="批量开票即将上线"
@@ -94,7 +93,7 @@ export function RechargeRecordsTable({ records }: RechargeRecordsTableProps) {
             </Button>
             <Button
               variant="outline"
-             
+
               className="h-8 text-xs"
               disabled
               disabledReason="全部开票即将上线"

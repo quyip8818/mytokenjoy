@@ -58,8 +58,7 @@ export const toast = {
     return sonnerToast.error(message, { duration: 5000, ...link, ...opts })
   },
 
-  info: (msg: ToastMsg, opts?: ExternalToast) =>
-    sonnerToast.info(msg, { duration: 3000, ...opts }),
+  info: (msg: ToastMsg, opts?: ExternalToast) => sonnerToast.info(msg, { duration: 3000, ...opts }),
 
   warning: (msg: ToastMsg, opts?: ExternalToast) =>
     sonnerToast.warning(msg, { duration: 3000, ...opts }),

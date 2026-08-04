@@ -37,6 +37,9 @@ func (s *txStore) Audit() store.AuditRepository   { return s.domain.audit }
 func (s *txStore) Approval() store.ApprovalRepository {
 	return &pgApprovalRepo{db: s.tx}
 }
+func (s *txStore) BudgetSnapshot() store.BudgetSnapshotRepository {
+	return newBudgetSnapshotRepo(s.tx)
+}
 func (s *txStore) Ledger() store.LedgerRepository { return s.ledger }
 
 func (s *txStore) BudgetConsumed() store.BudgetConsumedRepository {

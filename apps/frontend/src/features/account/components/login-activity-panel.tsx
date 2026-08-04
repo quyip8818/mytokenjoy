@@ -65,7 +65,7 @@ export function LoginActivityPanel({
           <div className="flex gap-2">
             <Button
               variant="outline"
-             
+
               disabled={!hasPrev}
               onClick={() => onOffsetChange(Math.max(0, offset - PAGE_SIZE))}
             >
@@ -73,7 +73,7 @@ export function LoginActivityPanel({
             </Button>
             <Button
               variant="outline"
-             
+
               disabled={!hasNext}
               onClick={() => onOffsetChange(offset + PAGE_SIZE)}
             >

@@ -23,6 +23,7 @@ func (s *service) UpdateNode(ctx context.Context, id uuid.UUID, budget float64, 
 		return types.BudgetNode{}, err
 	}
 	var result types.BudgetNode
+	var oldBudget float64
 	err := s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
@@ -35,6 +36,11 @@ func (s *service) UpdateNode(ctx context.Context, id uuid.UUID, budget float64, 
 		existing := pkgbudget.FindBudgetNode(tree, id)
 		if existing == nil {
 			return domain.NotFound("Node not found")
+		}
+		oldBudget = existing.Budget
+		// ponytail: 当月预算仅支持上调，下调须通过下月预配
+		if budget < existing.Budget {
+			return domain.ValidationCode("BUDGET_NO_DECREASE", "当月预算仅支持上调，如需缩减请配置下月预算", nil)
 		}
 		reserved := existing.ReservedPool
 		if reservedPool != nil {
@@ -73,6 +79,8 @@ func (s *service) UpdateNode(ctx context.Context, id uuid.UUID, budget float64, 
 		return nil
 	})
 	if err == nil {
+		s.appendBudgetLog(ctx, "budget.dept.update", id.String(),
+			budgetChangeDetail("budget", oldBudget, budget))
 		s.enqueueCompanyRebalance(ctx, "budget.node")
 	}
 	return result, err
@@ -86,6 +94,7 @@ func (s *service) UpdateMemberBudget(ctx context.Context, memberID uuid.UUID, pe
 		return types.MemberBudget{}, err
 	}
 	var result types.MemberBudget
+	var oldPersonalBudget float64
 	err := s.store.WithTx(ctx, func(tx store.Store) error {
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
@@ -93,6 +102,17 @@ func (s *service) UpdateMemberBudget(ctx context.Context, memberID uuid.UUID, pe
 		budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, tx.BudgetConsumed(), tx.Org(), tx.Budget(), tx.Keys(), s.cfg.Clock())
 		if err != nil {
 			return err
+		}
+		// Capture old value for audit
+		for _, m := range budgetCtx.Members {
+			if m.ID == memberID {
+				oldPersonalBudget = m.PersonalBudget
+				break
+			}
+		}
+		// ponytail: 当月额度仅支持上调
+		if personalBudget < oldPersonalBudget {
+			return domain.ValidationCode("BUDGET_NO_DECREASE", "当月额度仅支持上调，如需缩减请配置下月预算", nil)
 		}
 		if msg := pkgbudget.ValidateMemberBudgetUpdate(budgetCtx.Tree, budgetCtx.Members, budgetCtx.PlatformKeys, memberID, personalBudget); msg != nil {
 			return domain.Validation(*msg)
@@ -105,6 +125,8 @@ func (s *service) UpdateMemberBudget(ctx context.Context, memberID uuid.UUID, pe
 		return nil
 	})
 	if err == nil {
+		s.appendBudgetLog(ctx, "budget.member.update", memberID.String(),
+			budgetChangeDetail("personalBudget", oldPersonalBudget, personalBudget))
 		s.enqueueMemberRebalance(ctx, memberID, "budget.member")
 	}
 	return result, err

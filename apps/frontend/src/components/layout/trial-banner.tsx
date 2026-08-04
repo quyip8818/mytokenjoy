@@ -10,7 +10,7 @@ export function TrialBanner() {
       </div>
       <Button
         variant="outline"
-       
+
         className="h-7 border-indigo-200 text-xs text-indigo-700 hover:bg-indigo-100"
       >
         联系升级

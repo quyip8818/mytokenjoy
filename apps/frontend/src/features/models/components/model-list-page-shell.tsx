@@ -93,7 +93,7 @@ export function ModelListPageShell({
           <PermissionGate write permission={PERMISSION.MODEL_MANAGE}>
             <Button
               id={modelCta.id}
-             
+
               variant="brand"
               className={modelCta.className}
               onClick={openCreate}

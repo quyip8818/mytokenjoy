@@ -55,7 +55,7 @@ export function RechargePanel({ currency, rechargePending, onRecharge }: Recharg
             <div className="flex gap-2">
               <Button
                 variant={paymentMethod === 'alipay' ? 'default' : 'outline'}
-               
+
                 onClick={() => setPaymentMethod('alipay')}
                 className="gap-1.5"
               >
@@ -63,7 +63,7 @@ export function RechargePanel({ currency, rechargePending, onRecharge }: Recharg
               </Button>
               <Button
                 variant={paymentMethod === 'wechat' ? 'default' : 'outline'}
-               
+
                 onClick={() => setPaymentMethod('wechat')}
                 className="gap-1.5"
               >
@@ -98,7 +98,6 @@ export function RechargePanel({ currency, rechargePending, onRecharge }: Recharg
           </div>
           <div className="mt-4 flex justify-end">
             <Button
-             
               disabled={rechargePending || selectedAmount <= 0}
               disabledReason={
                 rechargePending

@@ -206,7 +206,7 @@ export function BudgetOrgMemberPicker({
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-         
+
           className={cn(
             'h-8 w-full justify-start gap-2 font-normal',
             !selectedIds.length && 'text-muted-foreground',

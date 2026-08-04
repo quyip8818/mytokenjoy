@@ -171,6 +171,9 @@ func (s *Store) Audit() store.AuditRepository   { return s.domain.audit }
 func (s *Store) Approval() store.ApprovalRepository {
 	return &pgApprovalRepo{db: s.pool}
 }
+func (s *Store) BudgetSnapshot() store.BudgetSnapshotRepository {
+	return newBudgetSnapshotRepo(s.pool)
+}
 func (s *Store) Ledger() store.LedgerRepository { return &pgLedgerRepo{db: s.pool} }
 func (s *Store) BudgetConsumed() store.BudgetConsumedRepository {
 	return newBudgetConsumedRepo(s.pool)

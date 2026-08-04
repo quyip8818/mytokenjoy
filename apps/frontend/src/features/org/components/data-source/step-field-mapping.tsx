@@ -124,9 +124,7 @@ export function StepFieldMapping({
           <Button variant="outline" onClick={onBack}>
             上一步
           </Button>
-          <Button onClick={handleReload}>
-            重新加载
-          </Button>
+          <Button onClick={handleReload}>重新加载</Button>
         </div>
       </div>
     )
@@ -143,9 +141,7 @@ export function StepFieldMapping({
           <Button variant="outline" onClick={onBack}>
             上一步
           </Button>
-          <Button onClick={handleReload}>
-            使用默认映射
-          </Button>
+          <Button onClick={handleReload}>使用默认映射</Button>
         </div>
       </div>
     )
@@ -191,11 +187,7 @@ export function StepFieldMapping({
                 value={mapping.targetField}
                 onValueChange={(val) => updateMapping(index, val)}
               >
-                <SelectTrigger
-                 
-                  aria-label={`${mapping.sourceLabel} 的目标字段`}
-                  className="w-full"
-                >
+                <SelectTrigger aria-label={`${mapping.sourceLabel} 的目标字段`} className="w-full">
                   <SelectValue placeholder="选择目标字段" />
                 </SelectTrigger>
                 <SelectContent>

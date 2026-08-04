@@ -285,7 +285,7 @@ export function CsvImport({ onImport, onBack }: CsvImportProps) {
           <div className="flex justify-end gap-3">
             <Button
               variant="outline"
-             
+
               onClick={() => {
                 setRows([])
                 setFileName(null)
@@ -294,11 +294,7 @@ export function CsvImport({ onImport, onBack }: CsvImportProps) {
             >
               重新选择
             </Button>
-            <Button
-             
-              disabled={validationErrors.length > 0 || importing}
-              onClick={handleImport}
-            >
+            <Button disabled={validationErrors.length > 0 || importing} onClick={handleImport}>
               {importing ? '导入中...' : `确认导入 ${rows.length} 名成员`}
             </Button>
           </div>

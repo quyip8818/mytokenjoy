@@ -37,7 +37,7 @@ export function BudgetEditAllocation({
         <PermissionGate permission={PERMISSION.BUDGET_MANAGE}>
           <Button
             variant="ghost"
-           
+
             className="h-7 gap-1.5 text-xs text-muted-foreground"
             onClick={() => setDialogOpen(true)}
           >

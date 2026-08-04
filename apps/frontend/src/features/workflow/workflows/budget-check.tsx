@@ -7,7 +7,11 @@ import { WorkflowPanelChrome, WorkflowPanelFooter } from '../components/workflow
 import { WorkflowFormLayout } from '../components/workflow-form-layout'
 import { useWorkflow } from '../hooks/use-workflow'
 
-export function BudgetCheckWorkflow({ entry, onPop, onClose }: WorkflowComponentProps<'budget-check'>) {
+export function BudgetCheckWorkflow({
+  entry,
+  onPop,
+  onClose,
+}: WorkflowComponentProps<'budget-check'>) {
   const navigate = useNavigate()
   const { closeAll } = useWorkflow()
   const reservedPool = entry.payload.reservedPool ?? 0
@@ -31,7 +35,8 @@ export function BudgetCheckWorkflow({ entry, onPop, onClose }: WorkflowComponent
         <div className="max-w-sm space-y-2">
           <p className="font-semibold">预留池额度不足，无法通过审批</p>
           <p className="text-sm text-muted-foreground">
-            申请额度 {formatMoney(requested)}，当前预留池剩余 {formatMoney(reservedPool)}。请先调整预算分配或拒绝此申请。
+            申请额度 {formatMoney(requested)}，当前预留池剩余 {formatMoney(reservedPool)}
+            。请先调整预算分配或拒绝此申请。
           </p>
           <Button
             variant="link"

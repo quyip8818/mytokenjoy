@@ -3,8 +3,8 @@ package app
 import (
 	"context"
 	"log/slog"
-	"strings"
 	"strconv"
+	"strings"
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/adminport"

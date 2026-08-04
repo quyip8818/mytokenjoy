@@ -100,7 +100,7 @@ export function PlatformKeyTable({
                 {key.status !== 'deleted' && (
                   <Button
                     variant="ghost"
-                   
+
                     className="h-8 text-red-600 hover:text-red-700"
                     onClick={() => onDelete(key.id)}
                   >

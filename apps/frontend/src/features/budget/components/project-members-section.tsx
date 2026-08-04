@@ -99,7 +99,7 @@ export function ProjectMembersSection({
         <h4 className="text-sm font-semibold text-foreground">关联成员</h4>
         <Button
           variant="ghost"
-         
+
           className="h-7 gap-1.5 text-xs text-muted-foreground"
           onClick={openDialog}
           aria-label="编辑成员"
@@ -150,7 +150,7 @@ export function ProjectMembersSection({
                       {isCurrentUser && (
                         <Button
                           variant="link"
-                         
+
                           className="ml-1 h-auto p-0 text-xs"
                           onClick={() =>
                             open('approval-submit', {
@@ -206,7 +206,7 @@ export function ProjectMembersSection({
           <DialogFooter>
             <Button
               variant="outline"
-             
+
               onClick={() => setDialogOpen(false)}
               disabled={savingMembers}
             >

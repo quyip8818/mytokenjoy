@@ -60,4 +60,25 @@ export const budgetApi = {
     request<Record<string, number>>(`/budget/projects/${projectId}/member-consumed`),
   getMemberSummary: (memberId: string) =>
     request<MemberBudgetSummary>(`/budget/members/${memberId}/summary`),
+  copyPeriod: (to: string) =>
+    request<void>('/budget/periods/copy', { method: 'POST', body: JSON.stringify({ to }) }),
+  updateSnapshotDepartment: (
+    period: string,
+    departmentId: string,
+    data: { budget: number; reservedPool?: number },
+  ) =>
+    request<void>(`/budget/snapshot/${period}/departments/${departmentId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  updateSnapshotMember: (period: string, memberId: string, data: { personalBudget: number }) =>
+    request<void>(`/budget/snapshot/${period}/members/${memberId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  updateSnapshotProject: (period: string, projectId: string, data: { budget: number }) =>
+    request<void>(`/budget/snapshot/${period}/projects/${projectId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 }

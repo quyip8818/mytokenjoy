@@ -43,7 +43,7 @@ export function MyKeysAdminPageShell({
               <Button
                 id={applyBudgetCta.id}
                 variant="outline"
-               
+
                 className={applyBudgetCta.className}
                 onClick={() => openWithRefresh('approval-submit', { defaultType: 'member_budget' })}
               >
@@ -53,7 +53,7 @@ export function MyKeysAdminPageShell({
             <PermissionGate write permission={PERMISSION.SELF_KEYS}>
               <Button
                 id={createKeyCta.id}
-               
+
                 variant="brand"
                 className={createKeyCta.className}
                 disabled={budgetSummary !== null && budgetSummary.remaining <= 0}

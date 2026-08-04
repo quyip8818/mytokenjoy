@@ -60,7 +60,12 @@ async function parseSuccessBody<T>(res: Response): Promise<T> {
 /** Best-effort parse of an error response body (may be JSON or empty). */
 async function parseErrorBody(
   res: Response,
-): Promise<{ message?: string; code?: string; meta?: Record<string, unknown>; retryAfter?: number }> {
+): Promise<{
+  message?: string
+  code?: string
+  meta?: Record<string, unknown>
+  retryAfter?: number
+}> {
   if (isNoContent(res) || !hasJsonContentType(res)) return {}
 
   const text = await res.text()

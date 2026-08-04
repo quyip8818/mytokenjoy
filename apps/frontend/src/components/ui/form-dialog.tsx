@@ -69,10 +69,12 @@ function FormDialog({
             {cancelLabel}
           </Button>
           <Button
-           
             onClick={() => void onSubmit()}
             disabled={busy || submitDisabled}
-            disabledReason={submitDisabledReason ?? (submitDisabled ? '请完善必填信息' : busy ? '处理中…' : undefined)}
+            disabledReason={
+              submitDisabledReason ??
+              (submitDisabled ? '请完善必填信息' : busy ? '处理中…' : undefined)
+            }
           >
             {busy ? (
               <>

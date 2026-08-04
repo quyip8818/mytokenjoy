@@ -170,7 +170,7 @@ export function BudgetDetailTeam({
           <PermissionGate permission={PERMISSION.BUDGET_MANAGE}>
             <Button
               variant="ghost"
-             
+
               aria-label="创建项目"
               onClick={() => setCreateDialogOpen(true)}
             >

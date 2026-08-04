@@ -63,7 +63,9 @@ export function ProviderKeyTable({ keys, rowClass, onToggle, onDelete }: Provide
             <TableCell>
               <KeyStatusBadge status={key.status} />
             </TableCell>
-            <TableCell className="text-sm text-muted-foreground">{formatDateTime(key.createdAt)}</TableCell>
+            <TableCell className="text-sm text-muted-foreground">
+              {formatDateTime(key.createdAt)}
+            </TableCell>
             <TableCell>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

@@ -15,7 +15,7 @@ export function useBudgetQueries(injectedApis?: AppApis) {
   const periodSyncedFromTree = useRef(false)
 
   const {
-    data: tree = [],
+    data: rawTree,
     loading: treeLoading,
     error: treeError,
     refresh: refreshTree,
@@ -24,6 +24,7 @@ export function useBudgetQueries(injectedApis?: AppApis) {
     queryKey: queryKeys.budget.tree(period),
     queryFn: (api) => api.budgetApi.getTree(period),
   })
+  const tree = useMemo(() => rawTree ?? [], [rawTree])
 
   const {
     data: projectsData = [],

@@ -687,3 +687,13 @@ CREATE TABLE IF NOT EXISTS model_discount (
 
 CREATE INDEX IF NOT EXISTS idx_model_discount_current
     ON model_discount (company_id, model_type, effective_from DESC);
+
+-- Budget period snapshots: stores full budget configuration per month (history + future pre-config).
+CREATE TABLE IF NOT EXISTS budget_snapshot (
+    company_id  UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    period_key  TEXT NOT NULL,
+    snapshot    JSONB NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (company_id, period_key)
+);

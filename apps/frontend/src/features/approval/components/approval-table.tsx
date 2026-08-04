@@ -115,7 +115,9 @@ export function ApprovalTable({ approvals, onApprove, onReject, onRetry }: Appro
                 {STATUS_LABELS[approval.status] ?? approval.status}
               </Badge>
             </TableCell>
-            <TableCell className="text-sm text-muted-foreground">{formatDateTime(approval.createdAt)}</TableCell>
+            <TableCell className="text-sm text-muted-foreground">
+              {formatDateTime(approval.createdAt)}
+            </TableCell>
             <TableCell>
               <ApprovalActions
                 approval={approval}
@@ -147,7 +149,7 @@ function ApprovalActions({
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
-         
+
           className="h-8 text-emerald-700 hover:text-emerald-800"
           onClick={() => onApprove(approval.id)}
         >
@@ -155,7 +157,7 @@ function ApprovalActions({
         </Button>
         <Button
           variant="ghost"
-         
+
           className="h-8 text-red-600 hover:text-red-700"
           onClick={() => onReject(approval.id, '已拒绝')}
         >
@@ -168,7 +170,7 @@ function ApprovalActions({
     return (
       <Button
         variant="ghost"
-       
+
         className="h-8 text-orange-700 hover:text-orange-800"
         onClick={() => onRetry(approval.id)}
       >

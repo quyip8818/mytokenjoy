@@ -13,6 +13,11 @@ import (
 
 type Service interface {
 	GetTree(ctx context.Context) ([]types.BudgetNode, error)
+	GetTreeForPeriod(ctx context.Context, period string) ([]types.BudgetNode, error)
+	CopyPeriod(ctx context.Context, toPeriod string) error
+	UpdateSnapshotNode(ctx context.Context, period string, nodeID uuid.UUID, budget float64, reservedPool *float64) error
+	UpdateSnapshotMember(ctx context.Context, period string, memberID uuid.UUID, personalBudget float64) error
+	UpdateSnapshotProject(ctx context.Context, period string, projectID uuid.UUID, budget float64) error
 	UpdateNode(ctx context.Context, id uuid.UUID, budget float64, reservedPool *float64) (types.BudgetNode, error)
 	ListMemberBudgets(ctx context.Context, deptID uuid.UUID) ([]types.MemberBudget, error)
 	UpdateMemberBudget(ctx context.Context, memberID uuid.UUID, personalBudget float64) (types.MemberBudget, error)
@@ -35,9 +40,12 @@ type Service interface {
 type Store interface {
 	Budget() store.BudgetRepository
 	BudgetConsumed() store.BudgetConsumedRepository
+	BudgetSnapshot() store.BudgetSnapshotRepository
 	Org() store.OrgRepository
 	Keys() store.KeysRepository
 	PlatformKeyMappings() store.PlatformKeyMappingRepository
+	Audit() store.AuditRepository
+	TenantBackgroundState() store.TenantBackgroundStateRepository
 	WithTx(ctx context.Context, fn func(store.Store) error) error
 }
 

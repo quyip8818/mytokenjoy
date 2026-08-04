@@ -8,12 +8,15 @@ import type { useBudgetPage } from '@/features/budget'
 import { BudgetTreePanel } from './budget-tree-panel'
 import { BudgetDetailTeam } from './budget-detail-team'
 import { ProjectDetail } from './project-detail'
+import { BudgetPeriodBar } from './budget-period-bar'
 
 type BudgetPageShellProps = ReturnType<typeof useBudgetPage>
 
 export function BudgetPageShell({
   tree,
   projects,
+  period,
+  shiftPeriod,
   selectedTeamId,
   selectedNode,
   activeProject,
@@ -60,6 +63,11 @@ export function BudgetPageShell({
           }
           detail={
             <>
+              <BudgetPeriodBar
+                period={period}
+                onShiftPeriod={shiftPeriod}
+                onPreConfigNext={() => shiftPeriod(1)}
+              />
               {breadcrumb && (
                 <ContextHeader
                   breadcrumb={breadcrumb}

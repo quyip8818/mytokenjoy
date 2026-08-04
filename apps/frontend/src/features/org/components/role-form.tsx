@@ -124,9 +124,7 @@ export function RoleForm({ open, role, permissions, onSubmit, onCancel }: RoleFo
             <Button type="button" variant="outline" onClick={onCancel}>
               取消
             </Button>
-            <Button type="submit">
-              {role ? '保存' : '创建'}
-            </Button>
+            <Button type="submit">{role ? '保存' : '创建'}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

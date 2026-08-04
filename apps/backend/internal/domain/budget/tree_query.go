@@ -11,6 +11,7 @@ import (
 )
 
 func (s *service) GetTree(ctx context.Context) ([]types.BudgetNode, error) {
+	s.MaybeRotatePeriod(ctx) // lazy rotation: ensure current period is active
 	return common.LoadBudgetTree(ctx, s.store.Org().Nodes())
 }
 

@@ -177,7 +177,7 @@ export function RoleMemberTable({
                     <PermissionGate permission={PERMISSION.ORG_MANAGE}>
                       <Button
                         variant="ghost"
-                       
+
                         className="h-7 text-xs text-destructive hover:text-destructive hover:bg-red-50"
                         onClick={() => onRemoveMember(member)}
                       >
@@ -380,7 +380,7 @@ export function AddMemberDialog({
                   </div>
                   <Button
                     variant="ghost"
-                   
+
                     className="h-7 text-xs"
                     onClick={() => onAdd(m.id)}
                   >
