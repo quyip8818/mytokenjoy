@@ -28,11 +28,12 @@ func newInviteRepo(db dbQuerier) *inviteRepo {
 
 func (r *inviteRepo) CreateInvite(ctx context.Context, invite store.CompanyInvite) error {
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO company_invites (id, company_id, member_id, email, phone, user_id, role, invite_code, expires_at, accepted_at, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		INSERT INTO company_invites (id, company_id, member_id, email, phone, user_id, role, invite_code, invited_by, expires_at, accepted_at, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 	`, invite.ID, invite.CompanyID, nilIfNilUUID(invite.MemberID),
 		nilIfEmpty(invite.Email), nilIfEmpty(invite.Phone),
 		nilIfNilUUID(invite.UserID), invite.Role, invite.InviteCode,
+		nilIfNilUUID(invite.InvitedBy),
 		invite.ExpiresAt, invite.AcceptedAt, invite.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("create invite: %w", err)
@@ -45,13 +46,14 @@ func (r *inviteRepo) GetInviteByCode(ctx context.Context, inviteCode string) (*s
 		SELECT id, company_id, COALESCE(member_id, '00000000-0000-0000-0000-000000000000'),
 		       COALESCE(email,''), COALESCE(phone,''),
 		       COALESCE(user_id, '00000000-0000-0000-0000-000000000000'),
-		       role, invite_code, expires_at, accepted_at, accepted_meta, created_at
+		       role, invite_code, COALESCE(invited_by, '00000000-0000-0000-0000-000000000000'),
+		       expires_at, accepted_at, accepted_meta, created_at
 		FROM company_invites WHERE invite_code = $1
 	`, inviteCode)
 	var inv store.CompanyInvite
 	var metaBytes []byte
 	if err := row.Scan(&inv.ID, &inv.CompanyID, &inv.MemberID, &inv.Email, &inv.Phone, &inv.UserID,
-		&inv.Role, &inv.InviteCode, &inv.ExpiresAt, &inv.AcceptedAt, &metaBytes, &inv.CreatedAt); err != nil {
+		&inv.Role, &inv.InviteCode, &inv.InvitedBy, &inv.ExpiresAt, &inv.AcceptedAt, &metaBytes, &inv.CreatedAt); err != nil {
 		return nil, err
 	}
 	if len(metaBytes) > 0 {
@@ -65,14 +67,15 @@ func (r *inviteRepo) GetInviteByMemberID(ctx context.Context, memberID uuid.UUID
 		SELECT id, company_id, COALESCE(member_id, '00000000-0000-0000-0000-000000000000'),
 		       COALESCE(email,''), COALESCE(phone,''),
 		       COALESCE(user_id, '00000000-0000-0000-0000-000000000000'),
-		       role, invite_code, expires_at, accepted_at, accepted_meta, created_at
+		       role, invite_code, COALESCE(invited_by, '00000000-0000-0000-0000-000000000000'),
+		       expires_at, accepted_at, accepted_meta, created_at
 		FROM company_invites WHERE member_id = $1
 		ORDER BY created_at DESC LIMIT 1
 	`, memberID)
 	var inv store.CompanyInvite
 	var metaBytes []byte
 	if err := row.Scan(&inv.ID, &inv.CompanyID, &inv.MemberID, &inv.Email, &inv.Phone, &inv.UserID,
-		&inv.Role, &inv.InviteCode, &inv.ExpiresAt, &inv.AcceptedAt, &metaBytes, &inv.CreatedAt); err != nil {
+		&inv.Role, &inv.InviteCode, &inv.InvitedBy, &inv.ExpiresAt, &inv.AcceptedAt, &metaBytes, &inv.CreatedAt); err != nil {
 		return nil, err
 	}
 	if len(metaBytes) > 0 {
@@ -128,7 +131,8 @@ func (r *inviteRepo) FindPendingInvitesForUser(ctx context.Context, email string
 	query := `SELECT id, company_id, COALESCE(member_id, '00000000-0000-0000-0000-000000000000'),
 		       COALESCE(email,''), COALESCE(phone,''),
 		       COALESCE(user_id, '00000000-0000-0000-0000-000000000000'),
-		       role, invite_code, expires_at, accepted_at, created_at
+		       role, invite_code, COALESCE(invited_by, '00000000-0000-0000-0000-000000000000'),
+		       expires_at, accepted_at, created_at
 		FROM company_invites
 		WHERE accepted_at IS NULL AND expires_at > NOW() AND (`
 	for i, cond := range conditions {
@@ -149,7 +153,7 @@ func (r *inviteRepo) FindPendingInvitesForUser(ctx context.Context, email string
 	for rows.Next() {
 		var inv store.CompanyInvite
 		if err := rows.Scan(&inv.ID, &inv.CompanyID, &inv.MemberID, &inv.Email, &inv.Phone, &inv.UserID,
-			&inv.Role, &inv.InviteCode, &inv.ExpiresAt, &inv.AcceptedAt, &inv.CreatedAt); err != nil {
+			&inv.Role, &inv.InviteCode, &inv.InvitedBy, &inv.ExpiresAt, &inv.AcceptedAt, &inv.CreatedAt); err != nil {
 			return nil, err
 		}
 		invites = append(invites, inv)

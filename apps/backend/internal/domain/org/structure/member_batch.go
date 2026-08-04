@@ -14,7 +14,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (s *LocalService) BatchInvite(ctx context.Context, ids []uuid.UUID) (types.BatchInviteResult, error) {
+func (s *LocalService) BatchInvite(ctx context.Context, ids []uuid.UUID, callerMemberID uuid.UUID) (types.BatchInviteResult, error) {
 	members, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
 		return types.BatchInviteResult{}, err
@@ -58,6 +58,7 @@ func (s *LocalService) BatchInvite(ctx context.Context, ids []uuid.UUID) (types.
 				UserID:     target.UserID,
 				Role:       "member",
 				InviteCode: code,
+				InvitedBy:  callerMemberID,
 				ExpiresAt:  now.Add(s.d.Cfg.InviteExpireDuration()),
 				CreatedAt:  now,
 			}
@@ -89,7 +90,7 @@ func (s *LocalService) BatchInvite(ctx context.Context, ids []uuid.UUID) (types.
 	return types.BatchInviteResult{Sent: sent}, nil
 }
 
-func (s *LocalService) BatchImport(ctx context.Context, rows []types.BatchImportRow) (types.MemberBatchImportResult, error) {
+func (s *LocalService) BatchImport(ctx context.Context, rows []types.BatchImportRow, callerMemberID uuid.UUID) (types.MemberBatchImportResult, error) {
 	members, err := s.d.Store.Org().Members(ctx)
 	if err != nil {
 		return types.MemberBatchImportResult{}, err
@@ -192,6 +193,7 @@ func (s *LocalService) BatchImport(ctx context.Context, rows []types.BatchImport
 			UserID:     userID,
 			Role:       "member",
 			InviteCode: code,
+			InvitedBy:  callerMemberID,
 			ExpiresAt:  expiresAt,
 			CreatedAt:  now,
 		}

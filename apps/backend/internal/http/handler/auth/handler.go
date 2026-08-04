@@ -30,6 +30,7 @@ type Handler struct {
 	sessions      store.SessionRepository
 	invites       store.InviteRepository
 	orgRepo       store.OrgRepository
+	companies     store.CompanyRepository
 	verifyCode    *verifycode.Service
 	registerToken *registertoken.Issuer
 	inviteToken   *invitetoken.Issuer
@@ -38,6 +39,7 @@ type Handler struct {
 func NewHandler(pub httpdeps.Public, companySvc domaincompany.Service,
 	users store.UserRepository, sessions store.SessionRepository,
 	invites store.InviteRepository, orgRepo store.OrgRepository,
+	companies store.CompanyRepository,
 	vc *verifycode.Service, regToken *registertoken.Issuer,
 	invToken *invitetoken.Issuer) *Handler {
 	return &Handler{
@@ -47,6 +49,7 @@ func NewHandler(pub httpdeps.Public, companySvc domaincompany.Service,
 		sessions:      sessions,
 		invites:       invites,
 		orgRepo:       orgRepo,
+		companies:     companies,
 		verifyCode:    vc,
 		registerToken: regToken,
 		inviteToken:   invToken,
@@ -222,14 +225,32 @@ func (h *Handler) InviteInfo(w http.ResponseWriter, r *http.Request) {
 
 	// Lookup member alias using invite's company context.
 	var alias string
+	tenantCtx := ctxcompany.With(ctx, ctxcompany.Info{CompanyID: invite.CompanyID})
 	if invite.MemberID != uuid.Nil {
-		tenantCtx := ctxcompany.With(ctx, ctxcompany.Info{CompanyID: invite.CompanyID})
 		if member, err := h.orgRepo.MemberByID(tenantCtx, invite.MemberID); err == nil && member != nil {
 			alias = member.Alias
 		}
 	}
 
-	httputil.WriteJSON(w, http.StatusOK, map[string]string{"alias": alias}, nil)
+	// Lookup company name.
+	var companyName string
+	if co, err := h.companies.GetByID(ctx, invite.CompanyID); err == nil && co != nil {
+		companyName = co.Name
+	}
+
+	// Lookup inviter name.
+	var inviterName string
+	if invite.InvitedBy != uuid.Nil {
+		if inviter, err := h.orgRepo.MemberByID(tenantCtx, invite.InvitedBy); err == nil && inviter != nil {
+			inviterName = inviter.Alias
+		}
+	}
+
+	httputil.WriteJSON(w, http.StatusOK, map[string]string{
+		"alias":       alias,
+		"companyName": companyName,
+		"inviterName": inviterName,
+	}, nil)
 }
 
 type acceptInviteBody struct {

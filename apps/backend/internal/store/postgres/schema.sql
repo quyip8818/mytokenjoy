@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS company_invites (
     user_id         UUID,
     role            TEXT NOT NULL DEFAULT 'super_admin',
     invite_code     TEXT NOT NULL UNIQUE,
+    invited_by      UUID,
     expires_at      TIMESTAMPTZ NOT NULL,
     accepted_at     TIMESTAMPTZ,
     accepted_meta   JSONB,

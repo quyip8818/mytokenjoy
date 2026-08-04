@@ -29,7 +29,12 @@ func (h *Handler) MemberCreate(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	member, err := h.service.CreateMember(r.Context(), body)
+	sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context())
+	if !ok {
+		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
+		return
+	}
+	member, err := h.service.CreateMember(r.Context(), body, sessionCtx.Member.ID)
 	httputil.WriteJSON(w, http.StatusOK, member, err)
 }
 
@@ -112,7 +117,12 @@ func (h *Handler) MemberInviteLink(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "invalid id")
 		return
 	}
-	code, err := h.service.GetMemberInviteLink(r.Context(), id)
+	sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context())
+	if !ok {
+		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
+		return
+	}
+	code, err := h.service.GetMemberInviteLink(r.Context(), id, sessionCtx.Member.ID)
 	httputil.WriteJSON(w, http.StatusOK, map[string]string{"inviteLink": code}, err)
 }
 
@@ -124,7 +134,12 @@ func (h *Handler) MembersBatchInvite(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	result, err := h.service.BatchInvite(r.Context(), body.IDs)
+	sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context())
+	if !ok {
+		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
+		return
+	}
+	result, err := h.service.BatchInvite(r.Context(), body.IDs, sessionCtx.Member.ID)
 	httputil.WriteJSON(w, http.StatusOK, result, err)
 }
 
@@ -136,6 +151,11 @@ func (h *Handler) MembersBatchImport(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
-	result, err := h.service.BatchImport(r.Context(), body.Rows)
+	sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context())
+	if !ok {
+		httputil.WriteStatus(w, http.StatusUnauthorized, httputil.MsgUnauthorized)
+		return
+	}
+	result, err := h.service.BatchImport(r.Context(), body.Rows, sessionCtx.Member.ID)
 	httputil.WriteJSON(w, http.StatusOK, result, err)
 }

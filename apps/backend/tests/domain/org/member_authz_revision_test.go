@@ -3,6 +3,7 @@ package org_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -23,7 +24,7 @@ func TestCreateMemberBumpsAuthzRevision(t *testing.T) {
 	if _, err := svc.CreateMember(ctx, types.CreateMemberInput{
 		User:   types.CreateMemberUserInput{Name: "Revision User", Phone: "13900003333", Email: "revision@example.com"},
 		Member: types.CreateMemberData{DepartmentID: contract.IDDept5},
-	}); err != nil {
+	}, uuid.Nil); err != nil {
 		t.Fatal(err)
 	}
 	after, err := st.Company().GetAuthzRevision(ctx, contract.DefaultCompanyID)
@@ -71,7 +72,7 @@ func TestBatchImportBumpsAuthzRevision(t *testing.T) {
 	}
 	result, err := svc.BatchImport(ctx, []types.BatchImportRow{
 		{Name: "CSV User", Phone: "13900004444", Email: "csv@example.com", DepartmentName: "测试组"},
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -20,6 +20,7 @@ type CompanyInvite struct {
 	UserID       uuid.UUID
 	Role         string
 	InviteCode   string
+	InvitedBy    uuid.UUID // member_id of the person who sent the invite
 	ExpiresAt    time.Time
 	AcceptedAt   *time.Time
 	AcceptedMeta map[string]any // {"ip": "...", "ua": "..."}

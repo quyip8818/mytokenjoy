@@ -47,7 +47,7 @@ func TestBatchImportUnknownDepartmentAutoCreates(t *testing.T) {
 	svc := newTestOrgService(t)
 	result, err := svc.BatchImport(testutil.Ctx(), []types.BatchImportRow{
 		{Name: "Test", Phone: "13800000000", Email: "t@example.com", DepartmentName: "不存在部门"},
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatal(err)
 	}

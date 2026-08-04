@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -14,7 +15,7 @@ func TestBatchImportNestedDepartmentPath(t *testing.T) {
 	svc := newTestOrgService(t)
 	result, err := svc.BatchImport(testutil.Ctx(), []types.BatchImportRow{
 		{Name: "路径导入", Phone: "13900000001", DepartmentName: "技术部/前端组", EmployeeId: "P001"},
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +30,7 @@ func TestBatchImportNestedDepartmentPathDeep(t *testing.T) {
 	svc := newTestOrgService(t)
 	result, err := svc.BatchImport(testutil.Ctx(), []types.BatchImportRow{
 		{Name: "深路径导入", Phone: "13900000002", DepartmentName: "总公司/技术部/后端组", EmployeeId: "P002"},
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +45,7 @@ func TestBatchImportAutoCreateDepartment(t *testing.T) {
 	svc := newTestOrgService(t)
 	result, err := svc.BatchImport(testutil.Ctx(), []types.BatchImportRow{
 		{Name: "新部门成员", Phone: "13900000003", DepartmentName: "财务部", EmployeeId: "P003"},
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +75,7 @@ func TestBatchImportAutoCreateNestedDepartment(t *testing.T) {
 	svc := newTestOrgService(t)
 	result, err := svc.BatchImport(testutil.Ctx(), []types.BatchImportRow{
 		{Name: "嵌套新建", Phone: "13900000004", DepartmentName: "研发中心/AI组", EmployeeId: "P004"},
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +115,7 @@ func TestBatchImportExistingParentNewChild(t *testing.T) {
 	svc := newTestOrgService(t)
 	result, err := svc.BatchImport(testutil.Ctx(), []types.BatchImportRow{
 		{Name: "新子部门成员", Phone: "13900000005", DepartmentName: "技术部/DevOps组", EmployeeId: "P005"},
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +132,7 @@ func TestBatchImportMultiRowMixed(t *testing.T) {
 		{Name: "张三", Phone: "13800138000", Email: "a@example.com", DepartmentName: "技术部", EmployeeId: "EMP001"},
 		{Name: "李散", Phone: "13800138001", Email: "b@example.com", DepartmentName: "市场部", EmployeeId: "EMP002"},
 		{Name: "陈单", Phone: "13800138002", Email: "c@example.com", DepartmentName: "客服部", EmployeeId: "EMP003"},
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -152,7 +153,7 @@ func TestBatchImportDuplicateEmailReportsPerRow(t *testing.T) {
 		{Name: "张三", Phone: "13800138000", Email: "same@example.com", DepartmentName: "技术部", EmployeeId: "EMP001"},
 		{Name: "李散", Phone: "13800138001", Email: "same@example.com", DepartmentName: "市场部", EmployeeId: "EMP002"},
 		{Name: "陈单", Phone: "13800138002", Email: "same@example.com", DepartmentName: "客服部", EmployeeId: "EMP003"},
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

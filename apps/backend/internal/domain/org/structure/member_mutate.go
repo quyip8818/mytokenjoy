@@ -21,7 +21,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func (s *LocalService) CreateMember(ctx context.Context, input types.CreateMemberInput) (types.Member, error) {
+func (s *LocalService) CreateMember(ctx context.Context, input types.CreateMemberInput, callerMemberID uuid.UUID) (types.Member, error) {
 	if input.User.Phone == "" && input.User.Email == "" {
 		return types.Member{}, domain.NewDomainError(domain.StatusBadRequest, "phone or email is required")
 	}
@@ -83,6 +83,7 @@ func (s *LocalService) CreateMember(ctx context.Context, input types.CreateMembe
 		UserID:     userID,
 		Role:       "member",
 		InviteCode: inviteCode,
+		InvitedBy:  callerMemberID,
 		ExpiresAt:  expiresAt,
 		CreatedAt:  now,
 	}

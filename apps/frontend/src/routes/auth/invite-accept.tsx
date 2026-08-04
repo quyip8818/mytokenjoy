@@ -15,6 +15,8 @@ export default function InviteAcceptPage() {
   const { refreshSession } = useSession()
 
   const [alias, setAlias] = useState('')
+  const [companyName, setCompanyName] = useState('')
+  const [inviterName, setInviterName] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -31,8 +33,10 @@ export default function InviteAcceptPage() {
       .then(() =>
         authApi
           .getInviteInfo(inviteCode)
-          .then(({ alias: prefill }) => {
+          .then(({ alias: prefill, companyName: company, inviterName: inviter }) => {
             if (prefill) setAlias(prefill)
+            if (company) setCompanyName(company)
+            if (inviter) setInviterName(inviter)
           })
           .catch(() => {
             // Non-fatal: user can still fill manually.
@@ -86,8 +90,26 @@ export default function InviteAcceptPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
       <form onSubmit={handleSubmit} className="flex w-full max-w-md flex-col gap-4">
+        <img src="/logo.png" alt="Tokenjoy" className="mx-auto h-7 w-auto" />
+
         <h1 className="text-center text-lg font-semibold">接受邀请</h1>
-        <p className="text-center text-sm text-muted-foreground">设置您的昵称和密码以加入团队</p>
+
+        {companyName ? (
+          <p className="text-center text-sm text-muted-foreground">
+            {inviterName ? (
+              <>
+                <span className="font-medium text-foreground">{inviterName}</span> 邀请您加入{' '}
+                <span className="font-medium text-foreground">{companyName}</span>
+              </>
+            ) : (
+              <>
+                您被邀请加入 <span className="font-medium text-foreground">{companyName}</span>
+              </>
+            )}
+          </p>
+        ) : (
+          <p className="text-center text-sm text-muted-foreground">设置您的昵称和密码以加入团队</p>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="invite-alias">昵称</Label>

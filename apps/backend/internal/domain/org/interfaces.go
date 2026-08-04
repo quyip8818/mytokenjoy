@@ -36,15 +36,15 @@ type DepartmentService interface {
 
 type MemberService interface {
 	ListMembers(ctx context.Context, departmentID uuid.UUID, keyword string, directOnly bool, status string, page, pageSize int) (types.MemberPageResult, error)
-	CreateMember(ctx context.Context, input types.CreateMemberInput) (types.Member, error)
+	CreateMember(ctx context.Context, input types.CreateMemberInput, callerMemberID uuid.UUID) (types.Member, error)
 	UpdateMember(ctx context.Context, id uuid.UUID, input types.UpdateMemberInput) (types.Member, error)
 	UpdateMemberUser(ctx context.Context, memberID uuid.UUID, input types.UpdateMemberUserInput) error
 	DeleteMembers(ctx context.Context, ids []uuid.UUID, currentMemberID uuid.UUID) error
 	UpdateMemberStatus(ctx context.Context, ids []uuid.UUID, status string) error
 	TransferMembers(ctx context.Context, ids []uuid.UUID, departmentID uuid.UUID) error
-	GetMemberInviteLink(ctx context.Context, memberID uuid.UUID) (string, error)
-	BatchInvite(ctx context.Context, ids []uuid.UUID) (types.BatchInviteResult, error)
-	BatchImport(ctx context.Context, rows []types.BatchImportRow) (types.MemberBatchImportResult, error)
+	GetMemberInviteLink(ctx context.Context, memberID uuid.UUID, callerMemberID uuid.UUID) (string, error)
+	BatchInvite(ctx context.Context, ids []uuid.UUID, callerMemberID uuid.UUID) (types.BatchInviteResult, error)
+	BatchImport(ctx context.Context, rows []types.BatchImportRow, callerMemberID uuid.UUID) (types.MemberBatchImportResult, error)
 }
 
 type RoleService interface {

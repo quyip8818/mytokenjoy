@@ -43,7 +43,7 @@ func TestTrialMemberLimitBlocks(t *testing.T) {
 		_, err := svc.CreateMember(ctx, types.CreateMemberInput{
 			User:   types.CreateMemberUserInput{Name: "Over Limit", Phone: "13900009999", Email: "over@example.com"},
 			Member: types.CreateMemberData{DepartmentID: contract.IDDept5},
-		})
+		}, uuid.Nil)
 		if err == nil {
 			t.Fatal("expected trial member limit error, got nil")
 		}
@@ -55,7 +55,7 @@ func TestTrialMemberLimitBlocks(t *testing.T) {
 		_, err := svc.CreateMember(ctx, types.CreateMemberInput{
 			User:   types.CreateMemberUserInput{Name: "Fill"},
 			Member: types.CreateMemberData{DepartmentID: contract.IDDept5},
-		})
+		}, uuid.Nil)
 		if err != nil {
 			t.Fatalf("expected create to succeed (filling up), got %v", err)
 		}
@@ -65,7 +65,7 @@ func TestTrialMemberLimitBlocks(t *testing.T) {
 	_, err = svc.CreateMember(ctx, types.CreateMemberInput{
 		User:   types.CreateMemberUserInput{Name: "Over Limit", Phone: "13900008888", Email: "overlimit@example.com"},
 		Member: types.CreateMemberData{DepartmentID: contract.IDDept5},
-	})
+	}, uuid.Nil)
 	if err == nil {
 		t.Fatal("expected trial member limit error, got nil")
 	}
@@ -88,7 +88,7 @@ func TestTrialMemberLimitAllowsNonTrial(t *testing.T) {
 	_, err := svc.CreateMember(ctx, types.CreateMemberInput{
 		User:   types.CreateMemberUserInput{Name: "No Limit", Phone: "13900007777", Email: "nolimit@example.com"},
 		Member: types.CreateMemberData{DepartmentID: contract.IDDept5},
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatalf("non-trial should not be limited, got %v", err)
 	}
@@ -107,7 +107,7 @@ func TestTrialBatchImportLimitBlocks(t *testing.T) {
 	for i := range rows {
 		rows[i] = types.BatchImportRow{Name: "Batch", DepartmentName: "技术部"}
 	}
-	_, err := svc.BatchImport(ctx, rows)
+	_, err := svc.BatchImport(ctx, rows, uuid.Nil)
 	if err == nil {
 		t.Fatal("expected trial batch import limit error, got nil")
 	}

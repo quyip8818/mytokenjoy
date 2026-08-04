@@ -14,7 +14,7 @@ import (
 
 // GetMemberInviteLink returns an encrypted invite URL for the given member.
 // Reuses existing invite record (or creates one if missing). Only works for pending members.
-func (s *LocalService) GetMemberInviteLink(ctx context.Context, memberID uuid.UUID) (string, error) {
+func (s *LocalService) GetMemberInviteLink(ctx context.Context, memberID uuid.UUID, callerMemberID uuid.UUID) (string, error) {
 	target, err := s.d.Store.Org().MemberByID(ctx, memberID)
 	if err != nil || target == nil {
 		return "", domain.NotFound("member not found")
@@ -43,6 +43,7 @@ func (s *LocalService) GetMemberInviteLink(ctx context.Context, memberID uuid.UU
 			UserID:     target.UserID,
 			Role:       "member",
 			InviteCode: code,
+			InvitedBy:  callerMemberID,
 			ExpiresAt:  now.Add(s.d.Cfg.InviteExpireDuration()),
 			CreatedAt:  now,
 		}

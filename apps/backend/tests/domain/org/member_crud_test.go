@@ -20,7 +20,7 @@ func TestCreateMemberPersists(t *testing.T) {
 	member, err := svc.CreateMember(ctx, types.CreateMemberInput{
 		User:   types.CreateMemberUserInput{Name: "Phase0 User", Phone: "13900001111", Email: "phase0@example.com"},
 		Member: types.CreateMemberData{DepartmentID: contract.IDDept5},
-	})
+	}, uuid.Nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestCreateMemberUnknownDepartment404(t *testing.T) {
 	_, err := svc.CreateMember(testutil.Ctx(), types.CreateMemberInput{
 		User:   types.CreateMemberUserInput{Name: "Ghost", Phone: "13900002222", Email: "ghost@example.com"},
 		Member: types.CreateMemberData{DepartmentID: uuid.MustParse("00000000-0000-7000-0000-ffffffffffff")},
-	})
+	}, uuid.Nil)
 	asDomainError(t, err)
 }
 

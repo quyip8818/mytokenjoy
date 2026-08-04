@@ -31,7 +31,7 @@ func TestBatchInviteByIDs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result, err := svc.BatchInvite(ctx, []uuid.UUID{pendingID})
+	result, err := svc.BatchInvite(ctx, []uuid.UUID{pendingID}, uuid.Nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func TestBatchInviteAllPending(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result, err := svc.BatchInvite(ctx, nil)
+	result, err := svc.BatchInvite(ctx, nil, uuid.Nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestBatchInviteReusesExistingInvite(t *testing.T) {
 	}
 
 	// First call — creates invite.
-	result1, err := svc.BatchInvite(ctx, []uuid.UUID{pendingID})
+	result1, err := svc.BatchInvite(ctx, []uuid.UUID{pendingID}, uuid.Nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +103,7 @@ func TestBatchInviteReusesExistingInvite(t *testing.T) {
 	}
 
 	// Second call — should reuse same invite (not create a new one).
-	result2, err := svc.BatchInvite(ctx, []uuid.UUID{pendingID})
+	result2, err := svc.BatchInvite(ctx, []uuid.UUID{pendingID}, uuid.Nil)
 	if err != nil {
 		t.Fatal(err)
 	}
