@@ -48,6 +48,8 @@ export function WorkflowPanelChrome({
       <div
         className={[
           'flex-1 overflow-y-auto px-10 py-8 text-base',
+          // ponytail: 内容区限宽居中，宽面板不会太空；窄面板无影响
+          '[&>*]:mx-auto [&>*]:w-full [&>*]:max-w-2xl',
           // ponytail: 统一放大面板内 input/select/textarea 尺寸，避免逐组件改 size prop
           '[&_input]:h-11 [&_input]:text-base',
           '[&_button[role=combobox]]:h-11 [&_button[role=combobox]]:text-base',

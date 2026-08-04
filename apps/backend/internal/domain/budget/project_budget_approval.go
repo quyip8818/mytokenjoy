@@ -33,10 +33,6 @@ func (h *ProjectBudgetApprovalHandler) Validate(ctx context.Context, input appro
 	if meta.Amount <= 0 {
 		return domain.Validation("amount must be positive")
 	}
-	if meta.Reason == "" {
-		return domain.Validation("reason required")
-	}
-
 	// Applicant must be project owner
 	projects, err := h.svc.store.Budget().Projects(ctx)
 	if err != nil {

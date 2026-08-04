@@ -35,9 +35,6 @@ func (h *MemberBudgetApprovalHandler) Validate(ctx context.Context, input approv
 	if meta.Amount <= 0 {
 		return domain.Validation("amount must be positive")
 	}
-	if meta.Reason == "" {
-		return domain.Validation("reason required")
-	}
 	return nil
 }
 

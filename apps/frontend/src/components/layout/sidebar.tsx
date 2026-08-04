@@ -127,7 +127,7 @@ function SidebarNavItem({ item, sidebarCollapsed, badge, pathname }: SidebarNavI
       />
       <span className="flex-1 truncate">{item.label}</span>
       {badge > 0 && (
-        <span className="inline-flex min-w-[18px] items-center justify-center rounded-full bg-primary px-1 py-px text-[10px] font-semibold leading-none text-primary-foreground">
+        <span className="inline-flex min-w-[22px] items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-xs font-semibold leading-none text-primary-foreground">
           {badge}
         </span>
       )}

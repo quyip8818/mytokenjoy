@@ -34,10 +34,6 @@ func (h *ProjectMemberBudgetApprovalHandler) Validate(ctx context.Context, input
 	if meta.Amount <= 0 {
 		return domain.Validation("amount must be positive")
 	}
-	if meta.Reason == "" {
-		return domain.Validation("reason required")
-	}
-
 	// Applicant must be a project member
 	projects, err := h.svc.store.Budget().Projects(ctx)
 	if err != nil {
