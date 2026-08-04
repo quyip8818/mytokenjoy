@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
+	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
@@ -142,6 +143,26 @@ func (s *service) provisionCompany(ctx context.Context, tx store.Store, name, in
 	// Trial/demo accounts: give NewAPI user a large quota for mock model requests.
 	if company.Type == store.CompanyTypeTrial || company.Type == store.CompanyTypeDemo {
 		_ = s.client.ManageUser(ctx, user.ID, "add_quota", 500000*500000)
+		// Seed 1000 mock money so the trial wallet has usable balance.
+		trialQuota := int64(1000) * common.DefaultQuotaPerUnit
+		orderID := uuid.Must(uuid.NewV7())
+		order := store.RechargeOrder{
+			ID: orderID, CompanyID: company.ID, Amount: 0,
+			Currency: common.DefaultBillingCurrency, QuotaPerUnit: common.DefaultQuotaPerUnit,
+			QuotaGranted: trialQuota, Source: store.RechargeSourceSystem,
+			LotKind: store.LotKindMock, Status: store.RechargeStatusConfirmed,
+			CreatedBy: uuid.Nil, CreatedAt: now, UpdatedAt: now,
+		}
+		lot := store.RechargeLot{
+			ID: orderID, CompanyID: company.ID, RechargeOrderID: orderID,
+			BillingCurrency: common.DefaultBillingCurrency, LotKind: store.LotKindMock,
+			PaidAmount: 0, QuotaPerUnit: common.DefaultQuotaPerUnit,
+			QuotaGranted: trialQuota, QuotaRemaining: trialQuota,
+			Status: store.LotStatusActive, CreatedAt: now, UpdatedAt: now,
+		}
+		if _, err := billinglot.CreditFromLot(ctx, tx, order, lot, trialQuota); err != nil {
+			return store.Company{}, fmt.Errorf("seed trial credit: %w", err)
+		}
 	}
 	walletID := user.ID
 	company.NewAPIWalletCompanyID = &walletID

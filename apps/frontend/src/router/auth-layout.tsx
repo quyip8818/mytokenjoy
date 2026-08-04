@@ -5,6 +5,7 @@ import { WorkflowProvider, WorkflowPanelStack } from '@/features/workflow'
 import { Toaster } from '@/components/ui/sonner'
 import { useSession } from '@/features/session'
 import { TrialBanner } from '@/components/layout/trial-banner'
+import { AnnouncementDialog } from '@/features/announcements'
 import { Sidebar } from '@/components/layout/sidebar'
 import { SidebarLayoutProvider } from '@/components/layout/sidebar-layout-provider'
 import { Header } from '@/components/layout/header'
@@ -70,6 +71,7 @@ function AuthenticatedLayout() {
         </div>
         <WorkflowPanelStack />
         <Toaster theme="light" />
+        <AnnouncementDialog />
       </WorkflowProvider>
     </SidebarLayoutProvider>
   )
