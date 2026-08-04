@@ -92,7 +92,7 @@ export function ChangeContactDialog({
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
+               
                 disabled={!value.trim() || sending || countdown > 0}
                 onClick={handleSendCode}
               >

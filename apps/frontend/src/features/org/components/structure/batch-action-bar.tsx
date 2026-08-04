@@ -30,21 +30,21 @@ export function BatchActionBar({
             已选 <span className="font-semibold tabular-nums">{count}</span> 人
           </span>
           <div className="mx-2 h-4 w-px bg-border" />
-          <Button variant="ghost" size="sm" onClick={onTransfer}>
+          <Button variant="ghost" onClick={onTransfer}>
             <ArrowRightLeft className="size-3.5" />
             转移部门
           </Button>
-          <Button variant="ghost" size="sm" onClick={onEnable}>
+          <Button variant="ghost" onClick={onEnable}>
             <CheckCircle2 className="size-3.5" />
             启用
           </Button>
-          <Button variant="ghost" size="sm" onClick={onDisable}>
+          <Button variant="ghost" onClick={onDisable}>
             <XCircle className="size-3.5" />
             停用
           </Button>
           <Button
             variant="ghost"
-            size="sm"
+           
             className="text-destructive hover:bg-red-50"
             onClick={onDelete}
           >

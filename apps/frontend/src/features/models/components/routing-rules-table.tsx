@@ -95,7 +95,7 @@ export function RoutingRulesTable({ rules, getParentCount, onConfigure }: Routin
               </TableCell>
               <TableCell>
                 <PermissionGate write permission={PERMISSION.MODEL_MANAGE}>
-                  <Button variant="ghost" size="sm" onClick={() => onConfigure(rule)}>
+                  <Button variant="ghost" onClick={() => onConfigure(rule)}>
                     配置
                   </Button>
                 </PermissionGate>

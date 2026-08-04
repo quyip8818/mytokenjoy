@@ -195,14 +195,14 @@ export function AvatarPicker({ value, onChange, trigger, size = 48 }: AvatarPick
 
           {/* Actions */}
           <div className="flex items-center justify-between mt-4">
-            <Button type="button" variant="ghost" size="sm" onClick={handleShuffle}>
+            <Button type="button" variant="ghost" onClick={handleShuffle}>
               换一批
             </Button>
             <div className="flex gap-2">
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
+               
                 onClick={() => {
                   onChange('')
                   setOpen(false)
@@ -210,7 +210,7 @@ export function AvatarPicker({ value, onChange, trigger, size = 48 }: AvatarPick
               >
                 清除
               </Button>
-              <Button type="button" size="sm" onClick={handleConfirm}>
+              <Button type="button" onClick={handleConfirm}>
                 确认
               </Button>
             </div>

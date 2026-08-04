@@ -61,7 +61,7 @@ export function EmptyState({
       {actionLabel && onAction && (
         <Button
           id={actionId}
-          size="sm"
+         
           variant="brand"
           className={cn('mt-4', actionClassName)}
           onClick={onAction}

@@ -87,7 +87,7 @@ export function BudgetOverrunPolicySection({ policy, onUpdate }: BudgetOverrunPo
           <PermissionGate permission={PERMISSION.BUDGET_ADMIN}>
             <Button
               variant="ghost"
-              size="sm"
+             
               className="h-7 gap-1 px-2 text-xs"
               onClick={startEdit}
             >
@@ -171,7 +171,7 @@ export function BudgetOverrunPolicySection({ policy, onUpdate }: BudgetOverrunPo
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
+                 
                   className="h-8 text-xs"
                   onClick={addThreshold}
                 >
@@ -215,7 +215,7 @@ export function BudgetOverrunPolicySection({ policy, onUpdate }: BudgetOverrunPo
 
             <div className="flex items-center gap-2 pt-1">
               <Button
-                size="sm"
+               
                 className="h-7 text-xs"
                 onClick={handleSave}
                 disabled={saving}
@@ -224,7 +224,7 @@ export function BudgetOverrunPolicySection({ policy, onUpdate }: BudgetOverrunPo
                 {saving ? '保存中…' : '保存'}
               </Button>
               <Button
-                size="sm"
+               
                 variant="ghost"
                 className="h-7 text-xs text-muted-foreground"
                 onClick={cancel}

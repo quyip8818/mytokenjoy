@@ -26,7 +26,7 @@ export function RechargePanel({ currency, rechargePending, onRecharge }: Recharg
           <ShoppingCart className="size-4 text-muted-foreground" strokeWidth={1.5} />
           <h2 className="text-sm font-semibold">账户充值</h2>
         </div>
-        <Button variant="ghost" size="sm" className="gap-1.5 text-xs">
+        <Button variant="ghost" className="gap-1.5 text-xs">
           <Receipt className="size-3.5" />
           账单
         </Button>
@@ -55,7 +55,7 @@ export function RechargePanel({ currency, rechargePending, onRecharge }: Recharg
             <div className="flex gap-2">
               <Button
                 variant={paymentMethod === 'alipay' ? 'default' : 'outline'}
-                size="sm"
+               
                 onClick={() => setPaymentMethod('alipay')}
                 className="gap-1.5"
               >
@@ -63,7 +63,7 @@ export function RechargePanel({ currency, rechargePending, onRecharge }: Recharg
               </Button>
               <Button
                 variant={paymentMethod === 'wechat' ? 'default' : 'outline'}
-                size="sm"
+               
                 onClick={() => setPaymentMethod('wechat')}
                 className="gap-1.5"
               >
@@ -98,7 +98,7 @@ export function RechargePanel({ currency, rechargePending, onRecharge }: Recharg
           </div>
           <div className="mt-4 flex justify-end">
             <Button
-              size="sm"
+             
               disabled={rechargePending || selectedAmount <= 0}
               disabledReason={
                 rechargePending
@@ -126,7 +126,7 @@ export function RechargePanel({ currency, rechargePending, onRecharge }: Recharg
               onChange={(event) => setRedemptionCode(event.target.value)}
               className="h-9 max-w-sm"
             />
-            <Button size="sm" disabled disabledReason="兑换码能力即将上线">
+            <Button disabled disabledReason="兑换码能力即将上线">
               兑换额度
             </Button>
           </div>

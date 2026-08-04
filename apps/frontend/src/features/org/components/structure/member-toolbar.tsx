@@ -35,7 +35,7 @@ export function MemberToolbar({ keyword, onKeywordChange, onSearch, onAdd }: Mem
       </div>
       <div className="flex-1" />
       <PermissionGate permission={PERMISSION.ORG_MANAGE}>
-        <Button size="sm" onClick={onAdd}>
+        <Button onClick={onAdd}>
           <Plus className="size-3.5" />
           添加成员
         </Button>

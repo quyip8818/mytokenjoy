@@ -74,7 +74,7 @@ export function InlineModelPicker({
           )}
         </Label>
         {allIds.length > 0 && (
-          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={toggleAll}>
+          <Button variant="ghost" className="h-6 px-2 text-xs" onClick={toggleAll}>
             {value.length === allIds.length ? '取消全选' : '全选'}
           </Button>
         )}

@@ -130,7 +130,7 @@ export function PlatformSelect({ onSelect, onCsvImport }: PlatformSelectProps) {
           <p className="text-xs text-muted-foreground">
             没有第三方平台？也可以通过 CSV 文件批量导入成员
           </p>
-          <Button variant="outline" size="sm" onClick={onCsvImport}>
+          <Button variant="outline" onClick={onCsvImport}>
             <FileSpreadsheet className="size-3.5" />
             CSV 批量导入
           </Button>

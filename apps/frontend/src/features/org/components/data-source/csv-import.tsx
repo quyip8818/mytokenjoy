@@ -167,7 +167,7 @@ export function CsvImport({ onImport, onBack }: CsvImportProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={onBack}>
+        <Button variant="ghost" onClick={onBack}>
           <ArrowLeft className="size-3.5" />
           返回
         </Button>
@@ -180,7 +180,7 @@ export function CsvImport({ onImport, onBack }: CsvImportProps) {
             <FileSpreadsheet className="size-4" />
             <span>请先下载模板，填写成员信息后上传</span>
           </div>
-          <Button variant="outline" size="sm" onClick={downloadExample}>
+          <Button variant="outline" onClick={downloadExample}>
             <Download className="size-3.5" />
             下载 CSV 模板
           </Button>
@@ -285,7 +285,7 @@ export function CsvImport({ onImport, onBack }: CsvImportProps) {
           <div className="flex justify-end gap-3">
             <Button
               variant="outline"
-              size="sm"
+             
               onClick={() => {
                 setRows([])
                 setFileName(null)
@@ -295,7 +295,7 @@ export function CsvImport({ onImport, onBack }: CsvImportProps) {
               重新选择
             </Button>
             <Button
-              size="sm"
+             
               disabled={validationErrors.length > 0 || importing}
               onClick={handleImport}
             >

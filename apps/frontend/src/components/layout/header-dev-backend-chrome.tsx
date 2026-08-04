@@ -10,7 +10,7 @@ function HeaderDevBackendToolbarContent() {
 
   return (
     <>
-      <Button variant="outline" size="sm" type="button" onClick={() => setSimulateOpen(true)}>
+      <Button variant="outline" type="button" onClick={() => setSimulateOpen(true)}>
         模拟消耗
       </Button>
       <SimulateConsumeDialog open={simulateOpen} onOpenChange={setSimulateOpen} />

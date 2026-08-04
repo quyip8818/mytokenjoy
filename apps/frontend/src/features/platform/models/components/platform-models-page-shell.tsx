@@ -30,15 +30,15 @@ export function PlatformModelsPageShell({
         description={`共 ${models.length} 个全局模型`}
         actions={
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" disabled={syncing} onClick={handleSync}>
+            <Button variant="outline" disabled={syncing} onClick={handleSync}>
               <RefreshCw className={`mr-1.5 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
               {syncing ? '同步中...' : '同步模型'}
             </Button>
-            <Button size="sm" onClick={openCreate}>
+            <Button onClick={openCreate}>
               <Plus className="mr-1.5 h-4 w-4" />
               添加模型
             </Button>
-            <Button size="sm" variant="brand" disabled={publishing} onClick={handlePublish}>
+            <Button variant="brand" disabled={publishing} onClick={handlePublish}>
               <Upload className="mr-1.5 h-4 w-4" />
               {publishing ? '发布中...' : '发布'}
             </Button>

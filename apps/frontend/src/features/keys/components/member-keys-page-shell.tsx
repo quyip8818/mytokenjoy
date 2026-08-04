@@ -30,7 +30,7 @@ export function MemberKeysPageShell({
             <Button
               id={applyBudgetCta.id}
               variant="outline"
-              size="sm"
+             
               className={cn(applyBudgetCta.className)}
               onClick={() => openWithRefresh('approval-submit', { defaultType: 'member_budget' })}
             >
@@ -39,7 +39,7 @@ export function MemberKeysPageShell({
             <Button
               id={createKeyCta.id}
               variant="default"
-              size="sm"
+             
               className={cn('gap-1.5', createKeyCta.className)}
               disabled={budgetSummary !== null && budgetSummary.remaining <= 0}
               disabledReason="额度不足，双击可发起额度申请"

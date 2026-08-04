@@ -74,10 +74,10 @@ function RechargeDialog({
           />
         </label>
         <div className="mt-5 flex justify-end gap-2">
-          <Button variant="outline" size="sm" onClick={onClose}>
+          <Button variant="outline" onClick={onClose}>
             取消
           </Button>
-          <Button size="sm" disabled={loading} onClick={onConfirm}>
+          <Button disabled={loading} onClick={onConfirm}>
             {loading ? '处理中…' : '确认充值'}
           </Button>
         </div>
@@ -124,10 +124,10 @@ function GiftDialog({
           />
         </label>
         <div className="mt-5 flex justify-end gap-2">
-          <Button variant="outline" size="sm" onClick={onClose}>
+          <Button variant="outline" onClick={onClose}>
             取消
           </Button>
-          <Button size="sm" disabled={loading} onClick={onConfirm}>
+          <Button disabled={loading} onClick={onConfirm}>
             {loading ? '处理中…' : '确认赠送'}
           </Button>
         </div>
@@ -217,7 +217,7 @@ export function PlatformCompaniesPageShell(props: Props) {
                     <TableCell className="text-right">{co.memberCount}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Button size="sm" variant="outline" onClick={() => openRecharge(co)}>
+                        <Button variant="outline" onClick={() => openRecharge(co)}>
                           充值
                         </Button>
                         <DropdownMenu>

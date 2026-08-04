@@ -28,7 +28,7 @@ export function ProviderKeysPageShell({
         title="供应商 Key"
         actions={
           <PermissionGate write permission={PERMISSION.KEYS_MANAGE}>
-            <Button size="sm" variant="brand" onClick={() => openForm()}>
+            <Button variant="brand" onClick={() => openForm()}>
               添加 Provider Key
             </Button>
           </PermissionGate>

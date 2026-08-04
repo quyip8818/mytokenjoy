@@ -84,7 +84,7 @@ export function PlatformKeysToolbar({
         </div>
         <PermissionGate write permission={PERMISSION.KEYS_ADMIN}>
           {activeTab === 'project' ? (
-            <Button size="sm" variant="brand" className="h-8 gap-1.5" onClick={onCreateKey}>
+            <Button variant="brand" className="h-8 gap-1.5" onClick={onCreateKey}>
               <Plus className="size-3.5" />
               签发 Key
             </Button>
@@ -92,7 +92,7 @@ export function PlatformKeysToolbar({
             <Tooltip>
               <TooltipTrigger asChild>
                 <span tabIndex={0}>
-                  <Button size="sm" variant="brand" className="h-8 gap-1.5" disabled>
+                  <Button variant="brand" className="h-8 gap-1.5" disabled>
                     <Plus className="size-3.5" />
                     签发 Key
                   </Button>

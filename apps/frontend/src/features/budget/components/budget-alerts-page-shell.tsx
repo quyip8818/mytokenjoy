@@ -52,7 +52,7 @@ export function BudgetAlertsPageShell({
         description="设置预警阈值，在预算即将超支时及时通知相关负责人"
         actions={
           <PermissionGate permission={PERMISSION.BUDGET_ADMIN}>
-            <Button size="sm" className="gap-1.5" onClick={openCreate}>
+            <Button className="gap-1.5" onClick={openCreate}>
               <Plus className="size-3.5" />
               创建规则
             </Button>

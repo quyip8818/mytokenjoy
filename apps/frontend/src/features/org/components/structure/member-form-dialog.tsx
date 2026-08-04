@@ -192,10 +192,10 @@ export function MemberFormDialog({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" size="sm" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose}>
               取消
             </Button>
-            <Button type="submit" size="sm">
+            <Button type="submit">
               {member ? '保存' : '添加'}
             </Button>
           </DialogFooter>

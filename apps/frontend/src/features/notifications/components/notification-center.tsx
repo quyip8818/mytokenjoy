@@ -76,7 +76,7 @@ export function NotificationCenter() {
         actions={
           <Button
             variant="ghost"
-            size="sm"
+           
             className="text-xs text-muted-foreground"
             onClick={() => navigate({ to: '/me/settings', search: { tab: 'notifications' } })}
           >

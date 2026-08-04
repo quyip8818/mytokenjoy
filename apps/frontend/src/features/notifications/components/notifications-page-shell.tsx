@@ -27,7 +27,7 @@ export function NotificationsPageShell({
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">通知偏好</h2>
-        <Button variant="outline" size="sm" onClick={resetPreferences} disabled={saving}>
+        <Button variant="outline" onClick={resetPreferences} disabled={saving}>
           恢复默认
         </Button>
       </div>

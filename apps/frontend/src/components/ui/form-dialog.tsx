@@ -65,11 +65,11 @@ function FormDialog({
         )}
 
         <DialogFooter>
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={busy}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             {cancelLabel}
           </Button>
           <Button
-            size="sm"
+           
             onClick={() => void onSubmit()}
             disabled={busy || submitDisabled}
             disabledReason={submitDisabledReason ?? (submitDisabled ? '请完善必填信息' : busy ? '处理中…' : undefined)}

@@ -144,11 +144,11 @@ function ConnectedCard({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={onReconfigure}>
+          <Button variant="outline" onClick={onReconfigure}>
             <Settings2 className="size-3.5" />
             重新配置
           </Button>
-          <Button size="sm" asChild>
+          <Button asChild>
             <Link to="/org/structure">
               前往组织架构
               <ArrowRight className="size-3.5" />

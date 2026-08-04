@@ -170,7 +170,7 @@ export function BudgetDetailTeam({
           <PermissionGate permission={PERMISSION.BUDGET_MANAGE}>
             <Button
               variant="ghost"
-              size="sm"
+             
               aria-label="创建项目"
               onClick={() => setCreateDialogOpen(true)}
             >
@@ -185,7 +185,7 @@ export function BudgetDetailTeam({
             <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
               <p className="text-sm text-muted-foreground">暂无项目</p>
               <PermissionGate permission={PERMISSION.BUDGET_MANAGE}>
-                <Button variant="outline" size="sm" onClick={() => setCreateDialogOpen(true)}>
+                <Button variant="outline" onClick={() => setCreateDialogOpen(true)}>
                   <Plus className="h-4 w-4" />
                   创建第一个项目
                 </Button>

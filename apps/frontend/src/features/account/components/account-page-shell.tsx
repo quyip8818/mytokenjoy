@@ -57,7 +57,7 @@ export function AccountPageShell(props: AccountPageState) {
               action={
                 <Button
                   variant="ghost"
-                  size="sm"
+                 
                   className="h-7 text-xs text-primary hover:text-primary"
                   onClick={() => props.setPhoneDialogOpen(true)}
                 >
@@ -71,7 +71,7 @@ export function AccountPageShell(props: AccountPageState) {
               action={
                 <Button
                   variant="ghost"
-                  size="sm"
+                 
                   className="h-7 text-xs text-primary hover:text-primary"
                   onClick={() => props.setEmailDialogOpen(true)}
                 >
@@ -128,7 +128,7 @@ export function AccountPageShell(props: AccountPageState) {
               </div>
               <Button
                 variant="outline"
-                size="sm"
+               
                 className="h-7"
                 onClick={() => props.setPasswordDialogOpen(true)}
               >
@@ -142,7 +142,7 @@ export function AccountPageShell(props: AccountPageState) {
               </div>
               <Button
                 variant="outline"
-                size="sm"
+               
                 className="h-7"
                 onClick={() => props.setRevokeDialogOpen(true)}
               >
@@ -156,7 +156,7 @@ export function AccountPageShell(props: AccountPageState) {
               </div>
               <Button
                 variant="outline"
-                size="sm"
+               
                 className="h-7 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
                 onClick={props.logout}
               >
@@ -286,7 +286,7 @@ function ProfileEditSection({
                 }}
               />
               <Button
-                size="sm"
+               
                 variant="ghost"
                 className="h-7 text-xs"
                 onClick={handleSaveName}
@@ -295,7 +295,7 @@ function ProfileEditSection({
                 {saving ? '…' : '保存'}
               </Button>
               <Button
-                size="sm"
+               
                 variant="ghost"
                 className="h-7 text-xs"
                 onClick={() => {
@@ -313,7 +313,7 @@ function ProfileEditSection({
         {!editingName && (
           <Button
             variant="ghost"
-            size="sm"
+           
             className="h-7 text-xs text-primary hover:text-primary"
             onClick={() => {
               setNameValue(profile.name)
@@ -342,7 +342,7 @@ function ProfileEditSection({
                 }}
               />
               <Button
-                size="sm"
+               
                 variant="ghost"
                 className="h-7 text-xs"
                 onClick={handleSaveAlias}
@@ -351,7 +351,7 @@ function ProfileEditSection({
                 {saving ? '…' : '保存'}
               </Button>
               <Button
-                size="sm"
+               
                 variant="ghost"
                 className="h-7 text-xs"
                 onClick={() => {
@@ -369,7 +369,7 @@ function ProfileEditSection({
         {!editingAlias && (
           <Button
             variant="ghost"
-            size="sm"
+           
             className="h-7 text-xs text-primary hover:text-primary"
             onClick={() => {
               setAliasValue(member?.alias || '')

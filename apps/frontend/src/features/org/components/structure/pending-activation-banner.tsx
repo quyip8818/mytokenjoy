@@ -48,7 +48,7 @@ export function PendingActivationBanner({ pendingCount }: PendingActivationBanne
       </span>
       <Button
         variant="ghost"
-        size="sm"
+       
         className="h-7 text-xs text-amber-700 hover:bg-amber-100 disabled:opacity-50"
         disabled={disabled}
         onClick={handleSend}

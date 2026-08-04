@@ -38,7 +38,7 @@ export function RoleList({
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground">角色</h3>
           <PermissionGate permission={PERMISSION.ORG_MANAGE}>
-            <Button size="sm" className="h-7 text-xs gap-1" onClick={onAdd}>
+            <Button className="h-7 text-xs gap-1" onClick={onAdd}>
               <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
               新建
             </Button>

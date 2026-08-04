@@ -147,7 +147,7 @@ function ApprovalActions({
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
-          size="sm"
+         
           className="h-8 text-emerald-700 hover:text-emerald-800"
           onClick={() => onApprove(approval.id)}
         >
@@ -155,7 +155,7 @@ function ApprovalActions({
         </Button>
         <Button
           variant="ghost"
-          size="sm"
+         
           className="h-8 text-red-600 hover:text-red-700"
           onClick={() => onReject(approval.id, '已拒绝')}
         >
@@ -168,7 +168,7 @@ function ApprovalActions({
     return (
       <Button
         variant="ghost"
-        size="sm"
+       
         className="h-8 text-orange-700 hover:text-orange-800"
         onClick={() => onRetry(approval.id)}
       >

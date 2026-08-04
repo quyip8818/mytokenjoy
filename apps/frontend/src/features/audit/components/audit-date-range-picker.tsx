@@ -16,7 +16,7 @@ export function AuditDateRangePicker({ value, onChange }: AuditDateRangePickerPr
         <Button
           key={preset}
           variant={value === preset ? 'secondary' : 'ghost'}
-          size="sm"
+         
           className={cn('text-xs', value === preset && 'font-semibold')}
           onClick={() => onChange(preset)}
           aria-pressed={value === preset}

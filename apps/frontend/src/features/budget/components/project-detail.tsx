@@ -67,7 +67,7 @@ export function ProjectDetail({
         <div className="flex items-center gap-2">
           {isOwner && (
             <Button
-              size="sm"
+             
               variant="outline"
               className="h-8 gap-1.5"
               onClick={() =>
@@ -83,7 +83,7 @@ export function ProjectDetail({
             </Button>
           )}
           <Button
-            size="sm"
+           
             variant="outline"
             className="h-8 gap-1.5"
             onClick={() => onCreateProjectKey(project, 'project')}

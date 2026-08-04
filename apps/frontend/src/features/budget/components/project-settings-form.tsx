@@ -82,7 +82,7 @@ export function ProjectSettingsForm({
         <h4 className="text-sm font-semibold text-foreground">项目设置</h4>
         <Button
           variant="ghost"
-          size="sm"
+         
           className="h-7 gap-1.5 text-xs text-muted-foreground"
           onClick={openDialog}
           aria-label="编辑项目设置"
@@ -160,13 +160,13 @@ export function ProjectSettingsForm({
           <DialogFooter>
             <Button
               variant="outline"
-              size="sm"
+             
               onClick={() => setDialogOpen(false)}
               disabled={saving}
             >
               取消
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={saving}>
+            <Button onClick={handleSave} disabled={saving}>
               {saving ? '保存中…' : '保存'}
             </Button>
           </DialogFooter>

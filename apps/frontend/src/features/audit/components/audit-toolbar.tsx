@@ -25,7 +25,7 @@ export function AuditToolbar({ onExport, exportLabel = '导出 CSV' }: AuditTool
           内容留存
         </Label>
       </div>
-      <Button variant="outline" size="sm" onClick={onExport}>
+      <Button variant="outline" onClick={onExport}>
         <Download className="mr-2 h-4 w-4" />
         {exportLabel}
       </Button>

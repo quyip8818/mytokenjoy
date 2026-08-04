@@ -110,7 +110,7 @@ export function RoleMemberTable({
           </p>
         </div>
         <PermissionGate permission={PERMISSION.ORG_MANAGE}>
-          <Button size="sm" className="gap-1.5" onClick={onAddMember}>
+          <Button className="gap-1.5" onClick={onAddMember}>
             <UserPlus className="h-3.5 w-3.5" strokeWidth={1.5} />
             添加成员
           </Button>
@@ -177,7 +177,7 @@ export function RoleMemberTable({
                     <PermissionGate permission={PERMISSION.ORG_MANAGE}>
                       <Button
                         variant="ghost"
-                        size="sm"
+                       
                         className="h-7 text-xs text-destructive hover:text-destructive hover:bg-red-50"
                         onClick={() => onRemoveMember(member)}
                       >
@@ -380,7 +380,7 @@ export function AddMemberDialog({
                   </div>
                   <Button
                     variant="ghost"
-                    size="sm"
+                   
                     className="h-7 text-xs"
                     onClick={() => onAdd(m.id)}
                   >

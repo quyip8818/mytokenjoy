@@ -121,10 +121,10 @@ export function StepFieldMapping({
       <div className="flex flex-col items-center gap-3 py-16">
         <p className="text-sm text-muted-foreground">字段信息加载失败，请重试</p>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={onBack}>
+          <Button variant="outline" onClick={onBack}>
             上一步
           </Button>
-          <Button size="sm" onClick={handleReload}>
+          <Button onClick={handleReload}>
             重新加载
           </Button>
         </div>
@@ -140,10 +140,10 @@ export function StepFieldMapping({
           当前数据源未返回可映射的字段，请尝试使用默认映射或返回上一步检查数据源配置
         </p>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={onBack}>
+          <Button variant="outline" onClick={onBack}>
             上一步
           </Button>
-          <Button size="sm" onClick={handleReload}>
+          <Button onClick={handleReload}>
             使用默认映射
           </Button>
         </div>
@@ -192,7 +192,7 @@ export function StepFieldMapping({
                 onValueChange={(val) => updateMapping(index, val)}
               >
                 <SelectTrigger
-                  size="sm"
+                 
                   aria-label={`${mapping.sourceLabel} 的目标字段`}
                   className="w-full"
                 >

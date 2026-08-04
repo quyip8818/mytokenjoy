@@ -84,7 +84,7 @@ export function RoutingDetailPanel({
       <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border/60 bg-card px-5 py-3">
         <h3 className="text-sm font-semibold text-foreground">{department.name}</h3>
         <Button
-          size="sm"
+         
           className="gap-1.5"
           onClick={handleSave}
           disabled={saving}

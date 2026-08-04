@@ -46,7 +46,7 @@ export function BudgetEditMemberBudget({
         <PermissionGate permission={PERMISSION.BUDGET_MANAGE}>
           <Button
             variant="ghost"
-            size="sm"
+           
             className="h-7 gap-1.5 text-xs text-muted-foreground"
             onClick={() => setDialogOpen(true)}
           >
@@ -237,7 +237,7 @@ function MemberBudgetEditDialog({
               placeholder="输入统一额度"
             />
             <Button
-              size="sm"
+             
               className="h-8"
               onClick={handleSaveAverage}
               disabled={savingAverage || !averageDraft.trim()}

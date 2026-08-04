@@ -60,7 +60,7 @@ export function PlatformCurrenciesPageShell(props: Props) {
         title="汇率管理"
         icon={Coins}
         actions={
-          <Button size="sm" onClick={openCreate}>
+          <Button onClick={openCreate}>
             + 新增币种
           </Button>
         }
@@ -176,10 +176,10 @@ export function PlatformCurrenciesPageShell(props: Props) {
               />
             </label>
             <div className="mt-5 flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={closeCreate}>
+              <Button variant="outline" onClick={closeCreate}>
                 取消
               </Button>
-              <Button size="sm" disabled={creating} onClick={handleCreate}>
+              <Button disabled={creating} onClick={handleCreate}>
                 {creating ? '创建中…' : '确认创建'}
               </Button>
             </div>
@@ -212,10 +212,10 @@ export function PlatformCurrenciesPageShell(props: Props) {
               />
             </label>
             <div className="mt-5 flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={closeEdit}>
+              <Button variant="outline" onClick={closeEdit}>
                 取消
               </Button>
-              <Button size="sm" disabled={editing} onClick={handleEdit}>
+              <Button disabled={editing} onClick={handleEdit}>
                 {editing ? '更新中…' : '确认修改'}
               </Button>
             </div>

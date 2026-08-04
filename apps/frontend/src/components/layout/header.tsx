@@ -5,6 +5,30 @@ import { UserAvatar } from '@/components/ui/user-avatar'
 import { HeaderDevBackendToolbar } from './header-dev-backend-chrome'
 import { NotificationInbox } from './notification-inbox'
 
+/** Reusable chip — avatar/icon + label, optionally clickable. */
+function HeaderChip({
+  avatar,
+  label,
+  onClick,
+}: {
+  avatar: React.ReactNode
+  label: string
+  onClick?: () => void
+}) {
+  const Comp = onClick ? 'button' : 'div'
+  return (
+    <Comp
+      type={onClick ? 'button' : undefined}
+      className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 shadow transition-colors hover:bg-muted"
+      aria-label={onClick ? label : undefined}
+      onClick={onClick}
+    >
+      {avatar}
+      <span className="text-sm text-foreground">{label}</span>
+    </Comp>
+  )
+}
+
 /** Company badge — read-only display of current company context. */
 function HeaderCompanyChip() {
   const { companyName } = useSession()
@@ -12,12 +36,14 @@ function HeaderCompanyChip() {
   const initial = displayName.charAt(0) || '管'
 
   return (
-    <div className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5">
-      <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-[10px] font-medium text-primary-foreground">
-        {initial}
-      </div>
-      <span className="text-sm text-foreground">{displayName}</span>
-    </div>
+    <HeaderChip
+      label={displayName}
+      avatar={
+        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-[10px] font-medium text-primary-foreground">
+          {initial}
+        </div>
+      }
+    />
   )
 }
 
@@ -28,15 +54,11 @@ function HeaderUserChip() {
   const displayName = member?.alias || userName || '用户'
 
   return (
-    <button
-      type="button"
-      className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 transition-colors hover:bg-muted"
-      aria-label="账户设置"
+    <HeaderChip
+      label={displayName}
+      avatar={<UserAvatar avatar={member?.avatar} fallback={displayName} size={24} />}
       onClick={() => navigate({ to: '/me/settings', search: { tab: 'account' } })}
-    >
-      <UserAvatar avatar={member?.avatar} fallback={displayName} size={24} />
-      <span className="text-sm text-foreground">{displayName}</span>
-    </button>
+    />
   )
 }
 
