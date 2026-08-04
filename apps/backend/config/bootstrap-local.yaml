@@ -1,13 +1,5 @@
 version: 1
 
-company:
-  name: 'Demo Company'
-
-admin:
-  name: '管理员'
-  email: 'demo@tokenjoy.me'
-  password: 'demo1234'
-
 billing:
   currency: 'CNY'
   quota_per_unit: 500000

@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -18,6 +19,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/grants"
+	"github.com/tokenjoy/backend/seed/bootstrap"
+	"github.com/tokenjoy/backend/seed/contract"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -164,6 +168,29 @@ func handleSetupInit(
 		}
 		companyID := reg.CompanyID
 
+		// 2b. Sync currencies from SaaS (companies.billing_currency FK requires it).
+		if err := syncCurrenciesFromSaaS(ctx, pool, cfg); err != nil {
+			logger.Error("sync currencies from SaaS", "error", err)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
+			return
+		}
+
+		// 2c. Apply bootstrap data (permissions, roles, company, org root, etc.).
+		bootstrapCfg := cfg
+		bootstrapCfg.CompanyID = companyID
+		bootstrapCfg.CompanyName = strings.TrimSpace(req.CompanyName)
+		bsCfg, err := bootstrap.LoadConfig(os.Getenv("BOOTSTRAP_CONFIG_PATH"))
+		if err != nil {
+			logger.Error("load bootstrap config", "error", err)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
+			return
+		}
+		if err := bootstrap.ApplyBootstrap(ctx, pool, bootstrapCfg, bsCfg); err != nil {
+			logger.Error("apply bootstrap", "error", err)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
+			return
+		}
+
 		// 3. Persist setup state in a single transaction.
 		// Admin user/member already created on SaaS; Local only stores settings + local admin user for login.
 		tx, err := pool.Begin(ctx)
@@ -212,7 +239,7 @@ func handleSetupInit(
 		}
 
 		// Create local admin user (for Local login — SaaS has its own copy).
-		if err := createAdminUserTx(ctx, tx, req); err != nil {
+		if err := createAdminUserTx(ctx, tx, req, companyID); err != nil {
 			logger.Error("create admin user", "error", err)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 			return
@@ -305,10 +332,11 @@ func registerCompany(ctx context.Context, cfg config.Config, req setupInitReques
 	}, nil
 }
 
-// createAdminUserTx inserts a user row with bcrypt-hashed password within a transaction.
-// Only writes the users table — member/role creation happens during bootstrap.
-// ponytail: setup 只在空库首次运行，不会有 email 冲突。直接 INSERT。
-func createAdminUserTx(ctx context.Context, tx pgx.Tx, req setupInitRequest) error {
+// createAdminUserTx creates the full admin identity in local DB:
+// user row + member row + super_admin role assignment.
+// ponytail: setup 只在空库首次运行，不会有冲突。直接 INSERT。
+// Prerequisites: bootstrap must have run first (currencies, companies, roles, org_nodes exist).
+func createAdminUserTx(ctx context.Context, tx pgx.Tx, req setupInitRequest, companyID uuid.UUID) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.AdminPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("hash password: %w", err)
@@ -320,15 +348,34 @@ func createAdminUserTx(ctx context.Context, tx pgx.Tx, req setupInitRequest) err
 		name = email
 	}
 	userID := uuid.Must(uuid.NewV7())
+	memberID := uuid.Must(uuid.NewV7())
+	rootDeptID := contract.IDDept1
 	now := time.Now().UTC()
 
-	_, err = tx.Exec(ctx, `
+	// 1. User (auth identity).
+	if _, err := tx.Exec(ctx, `
 		INSERT INTO users (id, email, password_hash, name, status, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, 'active', $5, $5)
-	`, userID, email, string(hash), name, now)
-	if err != nil {
+	`, userID, email, string(hash), name, now); err != nil {
 		return fmt.Errorf("insert admin user: %w", err)
 	}
+
+	// 2. Member (company-scoped identity).
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO members (id, company_id, user_id, alias, department_id, status, source, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, 'active', 'setup', $6, $6)
+	`, memberID, companyID, userID, name, rootDeptID, now); err != nil {
+		return fmt.Errorf("insert admin member: %w", err)
+	}
+
+	// 3. Super admin role.
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO member_roles (company_id, member_id, role_id)
+		VALUES ($1, $2, $3)
+	`, companyID, memberID, grants.IDSuperAdmin); err != nil {
+		return fmt.Errorf("insert admin member_role: %w", err)
+	}
+
 	return nil
 }
 
@@ -354,4 +401,44 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
+}
+
+// syncCurrenciesFromSaaS fetches currencies from SaaS platform and writes them to local DB.
+// ponytail: currencies endpoint is public (no auth). Simple GET + INSERT.
+func syncCurrenciesFromSaaS(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) error {
+	url := strings.TrimRight(cfg.SaasPlatformURL, "/") + "/api/platform/sync/catalog/currencies"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return fmt.Errorf("build request: %w", err)
+	}
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("fetch currencies: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("currencies endpoint returned %d", resp.StatusCode)
+	}
+
+	var parsed struct {
+		Data []struct {
+			Code         string `json:"code"`
+			QuotaPerUnit int64  `json:"quotaPerUnit"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
+		return fmt.Errorf("decode currencies: %w", err)
+	}
+
+	for _, c := range parsed.Data {
+		if _, err := pool.Exec(ctx, `
+			INSERT INTO currencies (currency, quota_per_unit, enabled)
+			VALUES ($1, $2, TRUE)
+			ON CONFLICT (currency) DO UPDATE SET quota_per_unit = EXCLUDED.quota_per_unit, enabled = TRUE
+		`, c.Code, c.QuotaPerUnit); err != nil {
+			return fmt.Errorf("insert currency %s: %w", c.Code, err)
+		}
+	}
+	return nil
 }

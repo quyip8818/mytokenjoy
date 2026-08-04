@@ -27,6 +27,15 @@ func Init(ctx context.Context, pool *pgxpool.Pool, st store.Store, cfg config.Co
 		return fmt.Errorf("seed init: %w", err)
 	}
 
+	// Local mode: company name comes from setup flow, not env var.
+	if !cfg.SupportSaas {
+		var name string
+		_ = pool.QueryRow(ctx, `SELECT value FROM system_settings WHERE key = 'setup_company_name'`).Scan(&name)
+		if name != "" {
+			cfg.CompanyName = name
+		}
+	}
+
 	// 1. Always apply bootstrap (idempotent): currencies, permissions, roles, org, models.
 	if err := bootstrap.ApplyBootstrap(ctx, pool, cfg, bsCfg); err != nil {
 		return fmt.Errorf("seed init: %w", err)

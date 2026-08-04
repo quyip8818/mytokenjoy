@@ -1,7 +1,6 @@
 .PHONY: install-air start build run test test-unit test-unit-nocache test-fast test-integration lint lint-clock format scaffold-domain clean dev-bootstrap
 
 export DATABASE_URL ?= postgres://tokenjoy:tokenjoy@127.0.0.1:5530/tokenjoy?sslmode=disable
-export COMPANY_NAME ?= Demo Company
 export SESSION_SECRET ?= tokenjoy-dev-session-secret-local
 TEST_PARALLEL ?= 8
 TEST_PKG_PARALLEL ?= 2

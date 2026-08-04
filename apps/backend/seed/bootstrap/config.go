@@ -12,19 +12,12 @@ import (
 type Config struct {
 	Version int           `yaml:"version"`
 	Company CompanyConfig `yaml:"company"`
-	Admin   AdminConfig   `yaml:"admin"`
 	Billing BillingConfig `yaml:"billing"`
 	Models  []ModelConfig `yaml:"models"`
 }
 
 type CompanyConfig struct {
 	Name string `yaml:"name"`
-}
-
-type AdminConfig struct {
-	Name     string `yaml:"name"`
-	Email    string `yaml:"email"`
-	Password string `yaml:"password"`
 }
 
 type BillingConfig struct {
