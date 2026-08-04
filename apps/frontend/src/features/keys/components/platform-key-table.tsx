@@ -1,5 +1,6 @@
 import type { PlatformKey } from '@/api/types'
 import type { PlatformKeyTab } from '@/features/keys'
+import { formatDateTime } from '@/lib/date'
 import {
   Table,
   TableBody,
@@ -93,7 +94,7 @@ export function PlatformKeyTable({
                 </div>
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
-                {key.expiresAt ?? '永不'}
+                {key.expiresAt ? formatDateTime(key.expiresAt) : '永不'}
               </TableCell>
               <TableCell>
                 {key.status !== 'deleted' && (

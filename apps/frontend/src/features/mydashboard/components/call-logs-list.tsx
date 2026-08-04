@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatMoney } from '@/lib/quota-display'
+import { formatDateTime } from '@/lib/date'
 
 interface CallLogsListProps {
   logs: CallLog[]
@@ -20,7 +21,7 @@ export function CallLogsList({ logs, total, page, totalPages, onPageChange }: Ca
         {logs.map((log) => (
           <div key={log.id} className="flex items-center gap-4 px-5 py-3">
             <span className="w-28 shrink-0 text-xs tabular-nums text-muted-foreground">
-              {log.createdAt.slice(5, 16)}
+              {formatDateTime(log.createdAt)}
             </span>
             <span className="w-40 truncate text-sm font-medium">{log.model}</span>
             <span className="text-xs tabular-nums text-muted-foreground">

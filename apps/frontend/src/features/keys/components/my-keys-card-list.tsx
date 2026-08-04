@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 import { formatMoney } from '@/lib/quota-display'
+import { formatDateTime } from '@/lib/date'
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -69,8 +70,8 @@ export function MyKeysCardList({ keys, onEdit, onDelete }: MyKeysCardListProps) 
                 <CopyButton text={key.keyPrefix} />
               </div>
               <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                <span>创建于 {key.createdAt}</span>
-                {key.expiresAt && <span>· 到期 {key.expiresAt}</span>}
+                <span>创建于 {formatDateTime(key.createdAt)}</span>
+                {key.expiresAt && <span>· 到期 {formatDateTime(key.expiresAt)}</span>}
               </div>
             </div>
             <div className="w-40 shrink-0">

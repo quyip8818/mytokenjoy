@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { formatTimeAgo } from '@/lib/date'
 import type { LoginActivityResponse } from '@/api/types'
 
 const PAGE_SIZE = 20
@@ -52,7 +53,7 @@ export function LoginActivityPanel({
               <p className="text-xs text-muted-foreground">IP: {item.ip}</p>
             </div>
             <span className="text-xs text-muted-foreground whitespace-nowrap">
-              {formatTime(item.time)}
+              {formatTimeAgo(item.time)}
             </span>
           </div>
         ))}
@@ -110,23 +111,4 @@ function extractOS(ua: string): string | null {
   if (ua.includes('Android')) return 'Android'
   if (ua.includes('iPhone') || ua.includes('iPad')) return 'iOS'
   return null
-}
-
-function formatTime(iso: string): string {
-  const d = new Date(iso)
-  const now = new Date()
-  const diffMs = now.getTime() - d.getTime()
-  const diffMin = Math.floor(diffMs / 60000)
-  if (diffMin < 1) return '刚刚'
-  if (diffMin < 60) return `${diffMin} 分钟前`
-  const diffHours = Math.floor(diffMin / 60)
-  if (diffHours < 24) return `${diffHours} 小时前`
-  const diffDays = Math.floor(diffHours / 24)
-  if (diffDays < 7) return `${diffDays} 天前`
-  return d.toLocaleDateString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }

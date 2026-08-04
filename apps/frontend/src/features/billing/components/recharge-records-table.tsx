@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { InvoiceStatusBadge, type TopUpRecordView } from '@/features/billing'
 import { filterTopUpRecords } from '../lib/mappers'
+import { formatDateTime } from '@/lib/date'
 
 interface RechargeRecordsTableProps {
   records: TopUpRecordView[]
@@ -136,7 +137,7 @@ export function RechargeRecordsTable({ records }: RechargeRecordsTableProps) {
                       <InvoiceStatusBadge status={record.invoiceStatus} />
                     </td>
                     <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                      {record.createdAt}
+                      {formatDateTime(record.createdAt)}
                     </td>
                   </tr>
                 ))}

@@ -1,4 +1,5 @@
 import type { OperationLog } from '@/api/types'
+import { formatDateTime } from '@/lib/date'
 import {
   Table,
   TableBody,
@@ -31,7 +32,7 @@ export function OperationsLogTable({ logs }: OperationsLogTableProps) {
         {logs.map((log) => (
           <TableRow key={log.id} className="even:bg-muted/40">
             <TableCell className="text-[12px] tabular-nums whitespace-nowrap text-muted-foreground">
-              {log.createdAt}
+              {formatDateTime(log.createdAt)}
             </TableCell>
             <TableCell>
               <StatusBadge variant={getOperationActionBadgeVariant(log.action)}>

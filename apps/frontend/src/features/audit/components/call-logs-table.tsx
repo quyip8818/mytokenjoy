@@ -1,6 +1,7 @@
 import { Fragment } from 'react'
 import { ChevronRight } from 'lucide-react'
 import type { CallLog } from '@/api/types'
+import { formatDateTime } from '@/lib/date'
 import {
   Table,
   TableBody,
@@ -63,7 +64,7 @@ export function CallLogsTable({
                   )}
                 </TableCell>
                 <TableCell className="text-[12px] tabular-nums whitespace-nowrap text-muted-foreground">
-                  {log.createdAt}
+                  {formatDateTime(log.createdAt)}
                 </TableCell>
                 <TableCell className="font-medium">{log.caller}</TableCell>
                 <TableCell>

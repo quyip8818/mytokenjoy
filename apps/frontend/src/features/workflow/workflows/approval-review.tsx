@@ -10,6 +10,7 @@ import { useWorkflow } from '../hooks/use-workflow'
 import { workflowErrorMessage } from '../lib/error-message'
 import { useModelLabels } from '@/features/models'
 import { formatMoney } from '@/lib/quota-display'
+import { formatDateTime } from '@/lib/date'
 
 const TYPE_LABELS: Record<string, string> = {
   key: 'Key 申请',
@@ -165,7 +166,7 @@ export function ApprovalReviewWorkflow({
           {getMetaProjectName(approval) && (
             <p className="text-muted-foreground">项目：{getMetaProjectName(approval)}</p>
           )}
-          <p className="text-muted-foreground">申请时间：{approval.createdAt}</p>
+          <p className="text-muted-foreground">申请时间：{formatDateTime(approval.createdAt)}</p>
           {approval.approverName && (
             <p className="text-muted-foreground">审批人：{approval.approverName}</p>
           )}

@@ -1,4 +1,5 @@
 import type { ApprovalRequest } from '@/api/types'
+import { formatDateTime } from '@/lib/date'
 import {
   Table,
   TableBody,
@@ -114,7 +115,7 @@ export function ApprovalTable({ approvals, onApprove, onReject, onRetry }: Appro
                 {STATUS_LABELS[approval.status] ?? approval.status}
               </Badge>
             </TableCell>
-            <TableCell className="text-sm text-muted-foreground">{approval.createdAt}</TableCell>
+            <TableCell className="text-sm text-muted-foreground">{formatDateTime(approval.createdAt)}</TableCell>
             <TableCell>
               <ApprovalActions
                 approval={approval}

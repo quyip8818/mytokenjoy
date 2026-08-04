@@ -1,4 +1,5 @@
 import { MoreHorizontal } from 'lucide-react'
+import { formatDateTime } from '@/lib/date'
 import {
   Table,
   TableBody,
@@ -62,7 +63,7 @@ export function ProviderKeyTable({ keys, rowClass, onToggle, onDelete }: Provide
             <TableCell>
               <KeyStatusBadge status={key.status} />
             </TableCell>
-            <TableCell className="text-sm text-muted-foreground">{key.createdAt}</TableCell>
+            <TableCell className="text-sm text-muted-foreground">{formatDateTime(key.createdAt)}</TableCell>
             <TableCell>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

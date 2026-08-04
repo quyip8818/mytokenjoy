@@ -1,4 +1,5 @@
 import type { CallLog, OperationLog } from '@/api/types'
+import { formatDateTime } from '@/lib/date'
 import { OPERATION_ACTION_LABELS } from './labels'
 
 export const CALL_AUDIT_CSV_HEADERS = [
@@ -23,7 +24,7 @@ export const OPERATION_AUDIT_CSV_HEADERS = [
 
 export function buildCallAuditCsvRows(logs: CallLog[]): string[][] {
   return logs.map((log) => [
-    log.createdAt,
+    formatDateTime(log.createdAt),
     log.caller,
     log.model,
     String(log.inputTokens),
@@ -36,7 +37,7 @@ export function buildCallAuditCsvRows(logs: CallLog[]): string[][] {
 
 export function buildOperationAuditCsvRows(logs: OperationLog[]): string[][] {
   return logs.map((log) => [
-    log.createdAt,
+    formatDateTime(log.createdAt),
     OPERATION_ACTION_LABELS[log.action] ?? log.action,
     log.operator,
     log.target,
