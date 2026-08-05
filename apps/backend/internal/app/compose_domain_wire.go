@@ -23,6 +23,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/pkg/invitetoken"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -33,34 +34,34 @@ func dashboardScopeConfig() domainusage.DashboardScopeConfig {
 	}
 }
 
-func wireOrg(cfg config.Config, i infra, logger *slog.Logger, grants domaingrants.Normalizer, enqueuer jobs.Enqueuer, orgAdmin *enqueue.OrgRiverAdminHolder) domainorg.Service {
+func wireOrg(cfg config.Config, i infra, logger *slog.Logger, grants domaingrants.Normalizer, enqueuer jobs.Enqueuer, orgAdmin *enqueue.OrgRiverAdminHolder, clk clock.Clock) domainorg.Service {
 	factory := datasource.NewFactory(cfg)
-	return domainorg.NewService(cfg, i.store, factory, i.notifier, i.notificationSvc, i.delayer, logger, grants, enqueue.NewOrgEnqueuer(enqueuer, orgAdmin))
+	return domainorg.NewService(cfg, i.store, factory, i.notifier, i.notificationSvc, i.delayer, logger, grants, enqueue.NewOrgEnqueuer(enqueuer, orgAdmin), clk)
 }
 
-func wireBudget(cfg config.Config, i infra, enqueuer jobs.Enqueuer) domainbudget.Service {
-	return domainbudget.NewService(cfg, i.store, i.delayer, enqueue.NewBudgetEnqueuer(enqueuer))
+func wireBudget(cfg config.Config, i infra, enqueuer jobs.Enqueuer, clk clock.Clock) domainbudget.Service {
+	return domainbudget.NewService(cfg, i.store, i.delayer, enqueue.NewBudgetEnqueuer(enqueuer), clk)
 }
 
-func wireOverrunService(cfg config.Config, i infra, logger *slog.Logger) domainbudget.OverrunProcessor {
-	return domainbudget.NewOverrunService(cfg, i.store, i.newAPISync, i.notifier, logger)
+func wireOverrunService(cfg config.Config, i infra, logger *slog.Logger, clk clock.Clock) domainbudget.OverrunProcessor {
+	return domainbudget.NewOverrunService(cfg, i.store, i.newAPISync, i.notifier, logger, clk)
 }
 
-func wireRebalance(cfg config.Config, i infra) domainbudget.Rebalancer {
+func wireRebalance(cfg config.Config, i infra, clk clock.Clock) domainbudget.Rebalancer {
 	cache := budgetcheck.WrapStore(i.budgetCheck)
-	return domainbudget.NewRebalanceService(cfg, i.store, domainbudget.WithRebalanceCache(cache))
+	return domainbudget.NewRebalanceService(cfg, i.store, clk, domainbudget.WithRebalanceCache(cache))
 }
 
-func wireKeys(cfg config.Config, i infra) domainkeys.Service {
-	return domainkeys.NewService(cfg, i.store, i.newAPISync, i.delayer, domainkeys.WithCacheInvalidator(i.precheckCache))
+func wireKeys(cfg config.Config, i infra, clk clock.Clock) domainkeys.Service {
+	return domainkeys.NewService(cfg, i.store, i.newAPISync, i.delayer, clk, domainkeys.WithCacheInvalidator(i.precheckCache))
 }
 
 func wireModels(cfg config.Config, i infra) domainmodels.Service {
 	return domainmodels.NewService(cfg, i.store, i.adminPort, i.precheckCache, i.delayer)
 }
 
-func wireDashboard(cfg config.Config, i infra, reader domainusage.Reader) domaindashboard.Service {
-	return domaindashboard.NewService(cfg, i.store, reader, dashboardScopeConfig())
+func wireDashboard(cfg config.Config, i infra, reader domainusage.Reader, clk clock.Clock) domaindashboard.Service {
+	return domaindashboard.NewService(cfg, i.store, reader, dashboardScopeConfig(), clk)
 }
 
 func wireAudit(cfg config.Config, i infra, reader domainusage.Reader) domainaudit.Service {
@@ -84,16 +85,16 @@ func wireBilling(i infra, reader domainusage.Reader) domainbilling.Service {
 	return domainbilling.NewService(i.store, reader, i.adminPort)
 }
 
-func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, budget domainbudget.Service) domainmemberanalytics.Service {
-	return domainmemberanalytics.NewService(cfg, budget, reader)
+func wireMemberAnalytics(cfg config.Config, reader domainusage.Reader, budget domainbudget.Service, clk clock.Clock) domainmemberanalytics.Service {
+	return domainmemberanalytics.NewService(cfg, budget, reader, clk)
 }
 
-func wireIngestService(cfg config.Config, i infra, logger *slog.Logger, enqueuer jobs.Enqueuer) *domainusage.IngestService {
+func wireIngestService(cfg config.Config, i infra, logger *slog.Logger, enqueuer jobs.Enqueuer, clk clock.Clock) *domainusage.IngestService {
 	alertPub := bridge.NewBudgetAlertPublisher(i.notificationSvc)
 	cache := budgetcheck.WrapStore(i.budgetCheck)
 	budgetOps := bridge.NewUsageBudgetOps(cache, alertPub, logger)
 	lotConsumer := bridge.NewUsageLotConsumer()
-	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), logger, enqueue.NewUsageIngestEnqueuer(enqueuer), i.notifier, budgetOps, lotConsumer, i.adminPort)
+	return domainusage.NewIngestService(cfg, i.store, i.store.Logs(), logger, enqueue.NewUsageIngestEnqueuer(enqueuer), i.notifier, budgetOps, lotConsumer, i.adminPort, clk)
 }
 
 func wireReader(i infra) domainusage.Reader {

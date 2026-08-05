@@ -21,6 +21,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/river/workers"
 	"github.com/tokenjoy/backend/internal/infra/scheduler"
 	"github.com/tokenjoy/backend/internal/integration/newapisync"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/worker/catalogsync"
 )
@@ -79,14 +80,14 @@ func registerWorkers(deps Deps) *river.Workers {
 	river.AddWorker(workersBundle, workers.NewIngestWorker(deps.Ingest, deps.Logger))
 	river.AddWorker(workersBundle, workers.NewIngestReconcileWorker(deps.LogStore, deps.Ingest, deps.Enqueuer, deps.Cfg.ReconcileBatchSize(), deps.Cfg.ReconcileMaxRounds(), deps.Logger))
 
-	river.AddWorker(workersBundle, workers.NewRebalanceWorker(deps.Rebalance, deps.Store, deps.Cfg))
+	river.AddWorker(workersBundle, workers.NewRebalanceWorker(deps.Rebalance, deps.Store, deps.Cfg, clock.System()))
 	river.AddWorker(workersBundle, workers.NewOverrunWorker(deps.Overrun))
 	river.AddWorker(workersBundle, workers.NewNewAPISyncWorker(deps.NewAPISync))
 	river.AddWorker(workersBundle, workers.NewOrgSyncWorker(deps.OrgSync))
 	river.AddWorker(workersBundle, workers.NewBudgetReconcileWorker(deps.BudgetReconcile, deps.Store))
 	river.AddWorker(workersBundle, workers.NewDashboardProjectWorker(deps.DashboardProjector))
 	river.AddWorker(workersBundle, workers.NewDashboardReconcileWorker(deps.DashboardReconcile, deps.Store))
-	river.AddWorker(workersBundle, workers.NewWatchdogWorker(deps.Scheduler, deps.BulkEnqueuer, deps.Store, deps.Cfg))
+	river.AddWorker(workersBundle, workers.NewWatchdogWorker(deps.Scheduler, deps.BulkEnqueuer, deps.Store, deps.Cfg, clock.System()))
 	if deps.NotificationRegistry != nil {
 		river.AddWorker(workersBundle, workers.NewNotificationDeliveryWorker(deps.NotificationRegistry))
 	}

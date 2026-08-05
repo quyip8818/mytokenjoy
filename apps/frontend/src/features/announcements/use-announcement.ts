@@ -29,12 +29,10 @@ export function useAnnouncement(): {
   // ponytail: derive current announcement from session state — no effect needed
   const current =
     !session.loading && session.companyId
-      ? announcements.find(
+      ? (announcements.find(
           (a) =>
-            a.id !== dismissed &&
-            a.shouldShow(session) &&
-            !isDismissed(a.id, session.companyId),
-        ) ?? null
+            a.id !== dismissed && a.shouldShow(session) && !isDismissed(a.id, session.companyId),
+        ) ?? null)
       : null
 
   const open = current !== null

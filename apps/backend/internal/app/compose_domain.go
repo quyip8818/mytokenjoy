@@ -13,6 +13,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/integration/newapisync"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/devapi"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 )
 
 func ingestMetricsRecorder(cfg config.Config) ingestmetrics.Recorder {
@@ -26,12 +27,14 @@ func ingestMetricsRecorder(cfg config.Config) ingestmetrics.Recorder {
 // ServiceRegistry (which embeds httpdeps.Deps for the HTTP layer and holds
 // worker-only fields separately).
 func buildServiceRegistry(cfg config.Config, i infra, logger *slog.Logger, holder *jobs.Holder, orgAdmin *enqueue.OrgRiverAdminHolder) ServiceRegistry {
+	clk := clock.System()
+
 	// --- Domain services ---
 	reader := wireReader(i)
-	keysSvc := wireKeys(cfg, i)
-	budgetSvc := wireBudget(cfg, i, holder)
+	keysSvc := wireKeys(cfg, i, clk)
+	budgetSvc := wireBudget(cfg, i, holder, clk)
 	grants := permission.NewGrantNormalizer()
-	orgSvc := wireOrg(cfg, i, logger, grants, holder, orgAdmin)
+	orgSvc := wireOrg(cfg, i, logger, grants, holder, orgAdmin, clk)
 
 	// --- Identity ---
 	authzSvc, credSvc, memberToken, err := wireIdentity(cfg, i.store)
@@ -42,7 +45,7 @@ func buildServiceRegistry(cfg config.Config, i infra, logger *slog.Logger, holde
 	// --- Gateway ---
 	var gateway domaingateway.GatewayService
 	if cfg.GatewayEnabled && cfg.NewAPIEnabled {
-		gw, err := wireGatewayService(cfg, i, logger)
+		gw, err := wireGatewayService(cfg, i, logger, clk)
 		if err != nil {
 			panic(fmt.Errorf("wire gateway service: %w", err))
 		}
@@ -70,15 +73,15 @@ func buildServiceRegistry(cfg config.Config, i infra, logger *slog.Logger, holde
 			BudgetSvc:           budgetSvc,
 			KeysSvc:             keysSvc,
 			ModelsSvc:           wireModels(cfg, i),
-			DashboardSvc:        wireDashboard(cfg, i, reader),
+			DashboardSvc:        wireDashboard(cfg, i, reader, clk),
 			AuditSvc:            wireAudit(cfg, i, reader),
 			ReadModel:           reader,
-			IngestSvc:           wireIngestService(cfg, i, logger, holder),
+			IngestSvc:           wireIngestService(cfg, i, logger, holder, clk),
 			IngestEnqueuer:      holder,
 			IngestMetrics:       ingestMetricsRecorder(cfg),
 			CompanySvc:          wireCompany(cfg, i, grants),
 			BillingSvc:          wireBilling(i, reader),
-			MemberAnalyticsSvc:  wireMemberAnalytics(cfg, reader, budgetSvc),
+			MemberAnalyticsSvc:  wireMemberAnalytics(cfg, reader, budgetSvc, clk),
 			CompanyGate:         i.companyGate,
 			ApprovalEngine:      wireApprovalEngine(i, logger, keysSvc, budgetSvc),
 			Gateway:             gateway,
@@ -90,7 +93,7 @@ func buildServiceRegistry(cfg config.Config, i infra, logger *slog.Logger, holde
 		},
 		Infra:     i,
 		OrgSync:   orgSvc,
-		Overrun:   wireOverrunService(cfg, i, logger),
-		Rebalance: wireRebalance(cfg, i),
+		Overrun:   wireOverrunService(cfg, i, logger, clk),
+		Rebalance: wireRebalance(cfg, i, clk),
 	}
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/tokenjoy/backend/internal/integration/newapisync/platformkey"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/syncdeps"
 	"github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -38,7 +39,7 @@ func Bootstrap(ctx context.Context, d syncdeps.Deps, companyID uuid.UUID) error 
 		return err
 	}
 	budgetCtx, err := budget.LoadBudgetContext(
-		ctx, d.Store.BudgetConsumed(), d.Store.Org(), d.Store.Budget(), d.Store.Keys(), d.Cfg.Clock(),
+		ctx, d.Store.BudgetConsumed(), d.Store.Org(), d.Store.Budget(), d.Store.Keys(), clock.System(),
 	)
 	if err != nil {
 		return fmt.Errorf("load budget context: %w", err)

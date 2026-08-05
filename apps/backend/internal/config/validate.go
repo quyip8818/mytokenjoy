@@ -45,9 +45,6 @@ func (c Config) validateDeploy() error {
 	if err := validateDeployEnv(c.DeployEnv); err != nil {
 		return err
 	}
-	if err := validateClockAnchor(c.ClockAnchor); err != nil {
-		return err
-	}
 	if c.IsProductionDeploy() {
 		return c.validateProductionContract()
 	}

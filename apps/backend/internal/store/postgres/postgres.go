@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed"
@@ -33,7 +34,7 @@ type domainRepos struct {
 	audit  store.AuditRepository
 }
 
-func New(ctx context.Context, cfg config.Config) (store.Store, error) {
+func New(ctx context.Context, cfg config.Config, clk ...clock.Clock) (store.Store, error) {
 	poolCfg, err := pgxpool.ParseConfig(cfg.DatabaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("parse database url: %w", err)
@@ -95,7 +96,11 @@ func New(ctx context.Context, cfg config.Config) (store.Store, error) {
 		s.logs = newLogRepo(logPool, tables)
 	}
 	if !cfg.StoreBootstrap.SkipSeed {
-		if err := seed.Init(ctx, pool, s, cfg); err != nil {
+		var seedClk clock.Clock
+		if len(clk) > 0 {
+			seedClk = clk[0]
+		}
+		if err := seed.Init(ctx, pool, s, cfg, seedClk); err != nil {
 			pool.Close()
 			if s.logPool != nil {
 				s.logPool.Close()

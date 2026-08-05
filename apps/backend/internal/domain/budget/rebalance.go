@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -25,11 +26,12 @@ type RebalanceStore interface {
 type RebalanceService struct {
 	cfg   config.Config
 	store RebalanceStore
+	clk   clock.Clock
 	cache CombinedKeyCache
 }
 
-func NewRebalanceService(cfg config.Config, st RebalanceStore, opts ...RebalanceOption) *RebalanceService {
-	s := &RebalanceService{cfg: cfg, store: st}
+func NewRebalanceService(cfg config.Config, st RebalanceStore, clk clock.Clock, opts ...RebalanceOption) *RebalanceService {
+	s := &RebalanceService{cfg: cfg, store: st, clk: clock.OrDefault(clk)}
 	for _, opt := range opts {
 		opt(s)
 	}
@@ -83,7 +85,7 @@ func (s *RebalanceService) ProcessAxis(ctx context.Context, axisKind string, axi
 
 	// Token is unlimited on NewAPI — no remote quota to sync.
 	// Only refresh the local combined_key_remain for gateway precheck.
-	updates, err := ComputeGatewaySummaryUpdates(ctx, s.store, keyIDs, s.cfg.Clock())
+	updates, err := ComputeGatewaySummaryUpdates(ctx, s.store, keyIDs, s.clk)
 	if err != nil {
 		return err
 	}

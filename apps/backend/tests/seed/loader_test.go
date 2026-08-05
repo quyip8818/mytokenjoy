@@ -10,6 +10,7 @@ import (
 	"github.com/tokenjoy/backend/seed"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/seed/filler"
+	"github.com/tokenjoy/backend/tests/testutil"
 )
 
 func TestBuildMembersAnchorIDs(t *testing.T) {
@@ -37,7 +38,7 @@ func TestLoadSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	snapshot := seed.Load(cfg)
+	snapshot := seed.Load(cfg, testutil.TestClock())
 	if snapshot.Company.ID != contract.DefaultCompanyID {
 		t.Fatalf("expected default company, got %+v", snapshot.Company)
 	}

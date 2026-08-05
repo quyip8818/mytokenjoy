@@ -26,15 +26,16 @@ type ReconcileStore interface {
 type ReconcileService struct {
 	cfg      config.Config
 	store    ReconcileStore
+	clk      clock.Clock
 	enqueuer JobEnqueuer
 	logger   *slog.Logger
 }
 
-func NewReconcileService(cfg config.Config, st ReconcileStore, enqueuer JobEnqueuer, logger *slog.Logger) *ReconcileService {
+func NewReconcileService(cfg config.Config, st ReconcileStore, enqueuer JobEnqueuer, logger *slog.Logger, clk clock.Clock) *ReconcileService {
 	if enqueuer == nil {
 		enqueuer = NoopJobEnqueuer
 	}
-	return &ReconcileService{cfg: cfg, store: st, enqueuer: enqueuer, logger: logger}
+	return &ReconcileService{cfg: cfg, store: st, clk: clock.OrDefault(clk), enqueuer: enqueuer, logger: logger}
 }
 
 type bucketKey struct {
@@ -54,7 +55,7 @@ func (s *ReconcileService) RunCompany(ctx context.Context, companyID uuid.UUID) 
 	}
 	ctx = company.WithContext(ctx, company.ContextFromStore(*co))
 
-	since := reconcileWindowStart(clock.NowUTC(s.cfg.Clock()))
+	since := reconcileWindowStart(clock.NowUTC(s.clk))
 	entries, err := s.store.Ledger().ListCallSettledSince(ctx, since)
 	if err != nil {
 		return err

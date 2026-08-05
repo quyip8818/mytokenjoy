@@ -5,11 +5,12 @@ import (
 	"fmt"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-func ApplyDemo(ctx context.Context, st store.Store, cfg config.Config) error {
-	if err := ApplyUsageBuckets(ctx, st, cfg); err != nil {
+func ApplyDemo(ctx context.Context, st store.Store, cfg config.Config, clk clock.Clock) error {
+	if err := ApplyUsageBuckets(ctx, st, cfg, clk); err != nil {
 		return fmt.Errorf("apply usage buckets: %w", err)
 	}
 	if err := ApplyRechargeOrders(ctx, st); err != nil {

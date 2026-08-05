@@ -12,7 +12,7 @@ import (
 func TestRebalanceRefreshesCombinedKeyRemain(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
-	rebalance := budget.NewRebalanceService(cfg, st)
+	rebalance := budget.NewRebalanceService(cfg, st, testutil.TestClock())
 	ctx := testutil.Ctx()
 
 	tokenID := int64(42)

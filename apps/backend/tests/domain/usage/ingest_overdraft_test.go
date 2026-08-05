@@ -39,7 +39,7 @@ func TestIngestNotifiesOnOverdraftExpansion(t *testing.T) {
 		cfg, st, st.Logs(), logger,
 		enqueue.NewUsageIngestEnqueuer(jobs.NoopEnqueuer{}),
 		notifier,
-		budgetOps, lotConsumer, nil,
+		budgetOps, lotConsumer, nil, testutil.TestClock(),
 	)
 
 	const logID int64 = 7101

@@ -63,7 +63,7 @@ func TestDashboardReconcileRepairsBucketDrift(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	reconcile := domaindashboard.NewReconcileService(runner.Cfg, st, dashboardEnqueuer, logger)
+	reconcile := domaindashboard.NewReconcileService(runner.Cfg, st, dashboardEnqueuer, logger, testutil.TestClock())
 	if err := reconcile.RunCompany(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}

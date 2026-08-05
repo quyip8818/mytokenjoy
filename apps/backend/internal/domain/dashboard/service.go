@@ -38,12 +38,12 @@ type service struct {
 	scopeConfig domainusage.DashboardScopeConfig
 }
 
-func NewService(cfg config.Config, st Store, reader domainusage.Reader, scopeConfig domainusage.DashboardScopeConfig) Service {
+func NewService(cfg config.Config, st Store, reader domainusage.Reader, scopeConfig domainusage.DashboardScopeConfig, clk clock.Clock) Service {
 	return &service{
 		cfg:         cfg,
 		store:       st,
 		reader:      reader,
-		clock:       cfg.Clock(),
+		clock:       clock.OrDefault(clk),
 		scopeConfig: scopeConfig,
 	}
 }

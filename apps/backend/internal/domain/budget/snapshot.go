@@ -37,7 +37,7 @@ func (s *service) CopyPeriod(ctx context.Context, toPeriod string) error {
 	if !periodKeyPattern.MatchString(toPeriod) {
 		return domain.BadRequest("period must be YYYY-MM format")
 	}
-	currentPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, clock.NowUTC(s.cfg.Clock()))
+	currentPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, clock.NowUTC(s.clk))
 	if toPeriod <= currentPeriod {
 		return domain.BadRequest("can only pre-configure a future period")
 	}
@@ -65,7 +65,7 @@ func (s *service) GetTreeForPeriod(ctx context.Context, period string) ([]types.
 	if !periodKeyPattern.MatchString(period) {
 		return nil, domain.BadRequest("period must be YYYY-MM format")
 	}
-	currentPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, clock.NowUTC(s.cfg.Clock()))
+	currentPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, clock.NowUTC(s.clk))
 	// Current or future period without snapshot → live data
 	if period >= currentPeriod {
 		snap, err := s.store.BudgetSnapshot().Get(ctx, period)

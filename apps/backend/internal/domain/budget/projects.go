@@ -14,7 +14,7 @@ import (
 )
 
 func (s *service) ListProjects(ctx context.Context) ([]types.Project, error) {
-	return pkgbudget.LoadProjectsWithConsumed(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.cfg.Clock())
+	return pkgbudget.LoadProjectsWithConsumed(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.clk)
 }
 
 func (s *service) CreateProject(ctx context.Context, project types.Project) (types.Project, error) {
@@ -144,7 +144,7 @@ func (s *service) UpdateProject(ctx context.Context, id uuid.UUID, patch types.U
 				if err := tx.Budget().SetProjects(ctx, projects); err != nil {
 					return fmt.Errorf("persist projects: %w", err)
 				}
-				budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, tx.BudgetConsumed(), tx.Org(), tx.Budget(), tx.Keys(), s.cfg.Clock())
+				budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, tx.BudgetConsumed(), tx.Org(), tx.Budget(), tx.Keys(), s.clk)
 				if err != nil {
 					return fmt.Errorf("load budget context: %w", err)
 				}

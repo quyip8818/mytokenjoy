@@ -10,6 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/port"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -33,6 +34,7 @@ type OverrunStore interface {
 type OverrunService struct {
 	cfg        config.Config
 	store      OverrunStore
+	clk        clock.Clock
 	keyControl port.OverrunKeyControl
 	notifier   types.Notifier
 	logger     *slog.Logger
@@ -44,9 +46,10 @@ func NewOverrunService(
 	keyControl port.OverrunKeyControl,
 	notifier types.Notifier,
 	logger *slog.Logger,
+	clk clock.Clock,
 ) *OverrunService {
 	return &OverrunService{
-		cfg: cfg, store: st, keyControl: keyControl, notifier: notifier, logger: logger,
+		cfg: cfg, store: st, clk: clock.OrDefault(clk), keyControl: keyControl, notifier: notifier, logger: logger,
 	}
 }
 
@@ -97,7 +100,7 @@ func (s *OverrunService) evaluateOverrun(ctx context.Context, payload overrunPay
 			return err
 		}
 
-		open, err := pkgbudget.OpenDepartmentPeriod(ctx, tx.Org().Nodes(), payload.DepartmentID, s.cfg.Clock())
+		open, err := pkgbudget.OpenDepartmentPeriod(ctx, tx.Org().Nodes(), payload.DepartmentID, s.clk)
 		if err != nil {
 			return err
 		}

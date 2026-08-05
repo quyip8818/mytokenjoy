@@ -36,19 +36,20 @@ type ReconcileStore interface {
 type ReconcileService struct {
 	cfg              config.Config
 	store            ReconcileStore
+	clk              clock.Clock
 	enqueuer         JobEnqueuer
 	logger           *slog.Logger
 	combinedKeyCache CombinedKeyCache
 }
 
-func NewReconcileService(cfg config.Config, st ReconcileStore, enqueuer JobEnqueuer, cache CombinedKeyCache, logger *slog.Logger) *ReconcileService {
+func NewReconcileService(cfg config.Config, st ReconcileStore, enqueuer JobEnqueuer, cache CombinedKeyCache, logger *slog.Logger, clk clock.Clock) *ReconcileService {
 	if enqueuer == nil {
 		enqueuer = NoopJobEnqueuer
 	}
 	if cache == nil {
 		cache = NoopCombinedKeyCache
 	}
-	return &ReconcileService{cfg: cfg, store: st, enqueuer: enqueuer, logger: logger, combinedKeyCache: cache}
+	return &ReconcileService{cfg: cfg, store: st, clk: clock.OrDefault(clk), enqueuer: enqueuer, logger: logger, combinedKeyCache: cache}
 }
 
 func (s *ReconcileService) RunCompany(ctx context.Context, companyID uuid.UUID) error {
@@ -76,7 +77,7 @@ func (s *ReconcileService) RunCompany(ctx context.Context, companyID uuid.UUID) 
 		}
 
 		// 3. Read window ledger INSIDE the lock.
-		since := ReconcileWindowStart(clock.NowUTC(s.cfg.Clock()))
+		since := ReconcileWindowStart(clock.NowUTC(s.clk))
 		entries, err := tx.Ledger().ListCallSettledSince(ctx, since)
 		if err != nil {
 			return err
@@ -178,7 +179,7 @@ func (s *ReconcileService) RunCompany(ctx context.Context, companyID uuid.UUID) 
 			if err := tx.CombinedKeySummaries().LockPlatformKeysForUpdate(ctx, sortedKeyIDs); err != nil {
 				return err
 			}
-			updates, err := ComputeGatewaySummaryUpdates(ctx, tx, affectedKeys, s.cfg.Clock())
+			updates, err := ComputeGatewaySummaryUpdates(ctx, tx, affectedKeys, s.clk)
 			if err != nil {
 				return err
 			}

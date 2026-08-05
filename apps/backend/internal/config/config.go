@@ -22,7 +22,6 @@ type HTTPConfig struct {
 // DeployConfig holds deployment and environment settings.
 type DeployConfig struct {
 	SecureCookie   bool   `env:"SECURE_COOKIE" envDefault:"false"`
-	ClockAnchor    string `env:"CLOCK_ANCHOR"`
 	DeployEnv      string `env:"DEPLOY_ENV" envDefault:"local"`
 	SimulateDelay  bool   `env:"SIMULATE_DELAY" envDefault:"false"`
 	SkipVerifyCode bool   `env:"SKIP_VERIFY_CODE" envDefault:"false"`

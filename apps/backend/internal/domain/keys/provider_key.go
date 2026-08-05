@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 )
 
 func (s *service) CreateProviderKey(ctx context.Context, input types.CreateProviderKeyInput) (types.ProviderKey, error) {
@@ -34,7 +35,7 @@ func (s *service) createProviderKey(ctx context.Context, input types.CreateProvi
 		Name:          input.Name,
 		KeyPrefix:     prefix,
 		Status:        "active",
-		CreatedAt:     s.cfg.SeedReferenceDate(),
+		CreatedAt:     clock.NowUTC(s.clk).Format("2006-01-02"),
 		RotateEnabled: true,
 		SecretKey:     input.Key,
 	}

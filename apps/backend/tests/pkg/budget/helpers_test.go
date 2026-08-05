@@ -15,7 +15,7 @@ var (
 
 func cachedSnapshot() store.Snapshot {
 	snapshotOnce.Do(func() {
-		testSnapshot = seed.Load(testutil.TestConfig())
+		testSnapshot = seed.Load(testutil.TestConfig(), testutil.TestClock())
 	})
 	return testSnapshot
 }

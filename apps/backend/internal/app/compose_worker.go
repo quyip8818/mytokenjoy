@@ -18,6 +18,7 @@ import (
 	riverinfra "github.com/tokenjoy/backend/internal/infra/river"
 	"github.com/tokenjoy/backend/internal/infra/scheduler"
 	catalogintegration "github.com/tokenjoy/backend/internal/integration/catalogsync"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/worker/catalogsync"
 )
@@ -46,10 +47,10 @@ func buildBackgroundWorkers(cfg config.Config, logger *slog.Logger, st store.Sto
 
 	budgetEnqueuer := enqueue.NewBudgetEnqueuer(holder)
 	budgetCache := budgetcheck.WrapStore(reg.Infra.budgetCheck)
-	budgetReconcile := domainbudget.NewReconcileService(cfg, st, budgetEnqueuer, budgetCache, logger)
+	budgetReconcile := domainbudget.NewReconcileService(cfg, st, budgetEnqueuer, budgetCache, logger, clock.System())
 	dashboardProjector := domaindashboard.NewProjector(cfg, st, enqueue.NewDashboardEnqueuer(holder), logger)
-	dashboardReconcile := domaindashboard.NewReconcileService(cfg, st, enqueue.NewDashboardEnqueuer(holder), logger)
-	sched := scheduler.NewService(cfg, st)
+	dashboardReconcile := domaindashboard.NewReconcileService(cfg, st, enqueue.NewDashboardEnqueuer(holder), logger, clock.System())
+	sched := scheduler.NewService(cfg, st, clock.System())
 	bulk := scheduler.NewBulkEnqueuer(cfg, holder)
 
 	catalogExecutor := buildCatalogSyncExecutor(cfg, st, reg)

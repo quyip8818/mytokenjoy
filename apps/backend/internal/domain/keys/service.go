@@ -7,6 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/port"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -43,15 +44,17 @@ type Store interface {
 type service struct {
 	cfg              config.Config
 	store            Store
+	clk              clock.Clock
 	delayer          common.Delayer
 	newAPISync       port.KeySyncPort
 	cacheInvalidator types.PrecheckCacheInvalidator
 }
 
-func NewService(cfg config.Config, st Store, newAPISync port.KeySyncPort, delayer common.Delayer, opts ...ServiceOption) Service {
+func NewService(cfg config.Config, st Store, newAPISync port.KeySyncPort, delayer common.Delayer, clk clock.Clock, opts ...ServiceOption) Service {
 	s := &service{
 		cfg:              cfg,
 		store:            st,
+		clk:              clock.OrDefault(clk),
 		delayer:          delayer,
 		newAPISync:       newAPISync,
 		cacheInvalidator: types.NoopPrecheckCacheInvalidator{},

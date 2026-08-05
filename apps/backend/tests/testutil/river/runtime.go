@@ -52,7 +52,7 @@ func NewRuntimeWithOrgSync(t *testing.T, stub *mock.StubAdminClient, orgSync dom
 func NewIngestRuntime(t *testing.T, stub *mock.StubAdminClient) (*TestRuntime, store.Store, *domainusage.IngestService) {
 	t.Helper()
 	rt, st := NewRuntime(t, stub)
-	budgetfix.EnsureMonthRebalanceCurrent(t, testutil.Ctx(), rt.Cfg, st, contract.DefaultCompanyID)
+	budgetfix.EnsureMonthRebalanceCurrent(t, testutil.Ctx(), rt.Cfg, st, contract.DefaultCompanyID, testutil.TestClock())
 	t.Cleanup(func() { rt.Stop(t, context.Background()) })
 	return rt, st, rt.Registry.MustIngestService()
 }
@@ -76,9 +76,9 @@ func newRuntime(t *testing.T, stub *mock.StubAdminClient, orgSync domainorg.Sync
 	}
 	pool := postgres.MainPool(st)
 	budgetEnqueuer := budgetEnqueuerFromHolder(holder)
-	budgetReconcile := budget.NewReconcileService(cfg, st, budgetEnqueuer, budgetcheck.WrapStore(budgetcheck.Noop{}), logger)
+	budgetReconcile := budget.NewReconcileService(cfg, st, budgetEnqueuer, budgetcheck.WrapStore(budgetcheck.Noop{}), logger, testutil.TestClock())
 	dashboardEnqueuer := enqueue.NewDashboardEnqueuer(holder)
-	sched := scheduler.NewService(cfg, st)
+	sched := scheduler.NewService(cfg, st, testutil.TestClock())
 	bulk := scheduler.NewBulkEnqueuer(cfg, holder)
 	client, err := riverinfra.NewClient(cfg, pool, riverinfra.Deps{
 		Cfg:                cfg,
@@ -89,7 +89,7 @@ func newRuntime(t *testing.T, stub *mock.StubAdminClient, orgSync domainorg.Sync
 		OrgSync:            reg.OrgSync,
 		BudgetReconcile:    budgetReconcile,
 		DashboardProjector: domaindashboard.NewProjector(cfg, st, dashboardEnqueuer, logger),
-		DashboardReconcile: domaindashboard.NewReconcileService(cfg, st, dashboardEnqueuer, logger),
+		DashboardReconcile: domaindashboard.NewReconcileService(cfg, st, dashboardEnqueuer, logger, testutil.TestClock()),
 		Scheduler:          sched,
 		BulkEnqueuer:       bulk,
 		DisablePeriodic:    true,

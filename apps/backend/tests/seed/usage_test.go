@@ -17,14 +17,14 @@ func TestApplyUsageBucketsSeedsPostgres(t *testing.T) {
 	_, st := testutil.NewTestStore(t, testutil.WithConfig(cfg))
 	ctx := testutil.Ctx()
 
-	if err := runtime.ApplyUsageBuckets(ctx, st, cfg); err != nil {
+	if err := runtime.ApplyUsageBuckets(ctx, st, cfg, testutil.TestClock()); err != nil {
 		t.Fatal(err)
 	}
 	count := testutil.UsageBucketCount(st)
 	if count == 0 {
 		t.Fatal("expected seeded usage buckets")
 	}
-	if err := runtime.ApplyUsageBuckets(ctx, st, cfg); err != nil {
+	if err := runtime.ApplyUsageBuckets(ctx, st, cfg, testutil.TestClock()); err != nil {
 		t.Fatal(err)
 	}
 	if got := testutil.UsageBucketCount(st); got != count {
@@ -37,7 +37,7 @@ func TestApplyUsageBucketsProducesNonZeroDashboardSummary(t *testing.T) {
 	cfg := testutil.TestConfig()
 	_, st := testutil.NewTestStore(t, testutil.WithConfig(cfg))
 	ctx := testutil.Ctx()
-	if err := runtime.ApplyUsageBuckets(ctx, st, cfg); err != nil {
+	if err := runtime.ApplyUsageBuckets(ctx, st, cfg, testutil.TestClock()); err != nil {
 		t.Fatal(err)
 	}
 	totals, err := st.Usage().QuerySummary(ctx, types.UsageAggregateQuery{

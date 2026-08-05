@@ -12,7 +12,7 @@ import (
 func TestLoadMinimalSnapshot(t *testing.T) {
 	t.Parallel()
 	cfg := testutil.TestConfig()
-	snapshot := seed.LoadMinimal(cfg)
+	snapshot := seed.LoadMinimal(cfg, testutil.TestClock())
 	if len(snapshot.Members) != len(filler.BuildAnchorMembers()) {
 		t.Fatalf("expected %d anchor members, got %d", len(filler.BuildAnchorMembers()), len(snapshot.Members))
 	}
@@ -41,7 +41,7 @@ func TestMinimalSeedStore(t *testing.T) {
 
 func TestLoadMinimalFromConfig(t *testing.T) {
 	cfg := testutil.TestConfig()
-	snapshot := seed.LoadMinimal(cfg)
+	snapshot := seed.LoadMinimal(cfg, testutil.TestClock())
 	if snapshot.Company.ID != contract.DefaultCompanyID {
 		t.Fatalf("expected default company, got %+v", snapshot.Company)
 	}

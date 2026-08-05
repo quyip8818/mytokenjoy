@@ -28,5 +28,4 @@ func ApplyProductionEnv(t *testing.T) {
 	t.Setenv("LOG_DATABASE_URL", "postgres://tokenjoy:tokenjoy@127.0.0.1:5530/logs?sslmode=disable")
 	t.Setenv("NEW_API_WEBHOOK_SECRET", "webhook-secret")
 	t.Setenv("SIMULATE_DELAY", "false")
-	t.Setenv("CLOCK_ANCHOR", "")
 }

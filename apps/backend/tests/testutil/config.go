@@ -4,14 +4,17 @@ package testutil
 
 import (
 	"os"
+	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/seed/contract"
 )
 
-const (
-	defaultClockAnchor = "2026-06-19"
-)
+// TestClock returns the fixed clock used by default in tests (2026-06-19 UTC).
+func TestClock() clock.Clock {
+	return clock.Fixed(time.Date(2026, 6, 19, 0, 0, 0, 0, time.UTC))
+}
 
 type ConfigOption func(*config.Config)
 
@@ -36,12 +39,6 @@ func WithNewAPIWebhookSecret(secret string) ConfigOption {
 func WithNewAPIBaseURL(baseURL string) ConfigOption {
 	return func(cfg *config.Config) {
 		cfg.NewAPIBaseURL = baseURL
-	}
-}
-
-func WithClockAnchor(date string) ConfigOption {
-	return func(cfg *config.Config) {
-		cfg.ClockAnchor = date
 	}
 }
 
@@ -70,7 +67,6 @@ func WithProductionContract() ConfigOption {
 		cfg.LogDatabaseURL = cfg.DatabaseURL
 		WithNewAPIWebhookSecret(DefaultTestWebhookSecret)(cfg)
 		cfg.SimulateDelay = false
-		cfg.ClockAnchor = ""
 		if cfg.DataSourceCredentialKey == "" {
 			cfg.DataSourceCredentialKey = DefaultTestCredentialKey
 		}
@@ -117,7 +113,6 @@ func TestConfig(opts ...ConfigOption) config.Config {
 	cfg := config.Config{
 		DeployConfig: config.DeployConfig{
 			DeployEnv:     config.DeployEnvLocal,
-			ClockAnchor:   defaultClockAnchor,
 			SimulateDelay: false,
 		},
 		DatabaseConfig: config.DatabaseConfig{

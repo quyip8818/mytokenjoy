@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -27,7 +28,7 @@ func ApplyUsageLedger(ctx context.Context, st store.Store, cfg config.Config) er
 	if err := ensureSeedLot(ctx, st); err != nil {
 		return fmt.Errorf("ensure seed lot: %w", err)
 	}
-	snap := snapshot.Build(cfg)
+	snap := snapshot.Build(cfg, clock.System())
 	for _, entry := range snap.UsageLedger {
 		if _, err := st.Ledger().InsertOnConflict(ctx, entry); err != nil {
 			return fmt.Errorf("seed usage ledger %s: %w", entry.ID, err)

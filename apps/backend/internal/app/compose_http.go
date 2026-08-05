@@ -14,6 +14,7 @@ import (
 	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
 	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/infra/gatewaymetrics"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -28,10 +29,10 @@ func wireIdentity(cfg config.Config, st store.Store) (authz.Service, credentials
 	return authz.NewService(cfg, st, chargeRate), credentials.NewService(cfg, st), memberToken, nil
 }
 
-func wirePrecheckService(cfg config.Config, i infra) domaingateway.Prechecker {
-	return domaingateway.NewPrecheckService(i.precheckCache, cfg.Clock(), budgetcheck.WrapStore(i.budgetCheck))
+func wirePrecheckService(cfg config.Config, i infra, clk clock.Clock) domaingateway.Prechecker {
+	return domaingateway.NewPrecheckService(i.precheckCache, clk, budgetcheck.WrapStore(i.budgetCheck))
 }
 
-func wireGatewayService(cfg config.Config, i infra, logger *slog.Logger) (domaingateway.GatewayService, error) {
-	return domaingateway.NewGatewayService(cfg, wirePrecheckService(cfg, i), i.rateLimiter, logger, gatewaymetrics.NewRecorder())
+func wireGatewayService(cfg config.Config, i infra, logger *slog.Logger, clk clock.Clock) (domaingateway.GatewayService, error) {
+	return domaingateway.NewGatewayService(cfg, wirePrecheckService(cfg, i, clk), i.rateLimiter, logger, gatewaymetrics.NewRecorder())
 }

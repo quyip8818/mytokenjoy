@@ -17,7 +17,7 @@ import (
 func newBudgetService(t *testing.T) (budget.Service, store.Store) {
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t)
-	return budget.NewService(cfg, st, common.NewDelayer(false), nil), st
+	return budget.NewService(cfg, st, common.NewDelayer(false), nil, testutil.TestClock()), st
 }
 
 type deptBudgetInputs struct {

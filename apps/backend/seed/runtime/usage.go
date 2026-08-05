@@ -9,12 +9,13 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 )
 
-func ApplyUsageBuckets(ctx context.Context, st store.Store, cfg config.Config) error {
+func ApplyUsageBuckets(ctx context.Context, st store.Store, cfg config.Config, clk clock.Clock) error {
 	if _, ok := company.FromContext(ctx); !ok {
 		ctx = company.DefaultContext(contract.DefaultCompanyID)
 	}
@@ -25,7 +26,8 @@ func ApplyUsageBuckets(ctx context.Context, st store.Store, cfg config.Config) e
 	if !empty {
 		return nil
 	}
-	for _, row := range buildUsageBuckets(cfg.SeedReferenceDate()) {
+	ref := clock.NowUTC(clock.OrDefault(clk)).Format("2006-01-02")
+	for _, row := range buildUsageBuckets(ref) {
 		if err := st.Usage().UpsertBucket(ctx, row); err != nil {
 			return fmt.Errorf("seed usage bucket: %w", err)
 		}

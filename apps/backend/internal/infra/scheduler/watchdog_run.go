@@ -14,10 +14,10 @@ import (
 var ErrDrainTimeout = errors.New("scheduler: drain river jobs timeout")
 
 // RunOnce collects L2 due work and enqueues per-tenant jobs (same logic as tenant_watchdog Worker).
-func RunOnce(ctx context.Context, cfg config.Config, st store.Store, enqueuer jobs.Enqueuer) error {
-	svc := NewService(cfg, st)
+func RunOnce(ctx context.Context, cfg config.Config, st store.Store, enqueuer jobs.Enqueuer, clk clock.Clock) error {
+	svc := NewService(cfg, st, clk)
 	bulk := NewBulkEnqueuer(cfg, enqueuer)
-	now := clock.NowUTC(cfg.Clock())
+	now := clock.NowUTC(clk)
 	due, err := svc.CollectDue(ctx, now)
 	if err != nil {
 		return err

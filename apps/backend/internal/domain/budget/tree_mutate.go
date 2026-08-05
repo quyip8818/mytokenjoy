@@ -99,7 +99,7 @@ func (s *service) UpdateMemberBudget(ctx context.Context, memberID uuid.UUID, pe
 		if err := tx.Budget().AcquireBudgetLock(ctx); err != nil {
 			return err
 		}
-		budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, tx.BudgetConsumed(), tx.Org(), tx.Budget(), tx.Keys(), s.cfg.Clock())
+		budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, tx.BudgetConsumed(), tx.Org(), tx.Budget(), tx.Keys(), s.clk)
 		if err != nil {
 			return err
 		}

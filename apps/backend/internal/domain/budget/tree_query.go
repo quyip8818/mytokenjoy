@@ -19,7 +19,7 @@ func (s *service) MemberSummary(ctx context.Context, memberID uuid.UUID) (types.
 	if memberID == uuid.Nil {
 		return types.MemberBudgetSummary{}, domain.BadRequest("memberId is required")
 	}
-	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
+	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.clk)
 	if err != nil {
 		return types.MemberBudgetSummary{}, err
 	}
@@ -28,7 +28,7 @@ func (s *service) MemberSummary(ctx context.Context, memberID uuid.UUID) (types.
 }
 
 func (s *service) ListMemberBudgets(ctx context.Context, deptID uuid.UUID) ([]types.MemberBudget, error) {
-	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.cfg.Clock())
+	budgetCtx, err := pkgbudget.LoadBudgetContext(ctx, s.store.BudgetConsumed(), s.store.Org(), s.store.Budget(), s.store.Keys(), s.clk)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (s *service) GetProjectMemberConsumed(ctx context.Context, projectID uuid.U
 	}
 
 	deptID := target.OwnerDepartmentID
-	open, err := pkgbudget.OpenDepartmentPeriod(ctx, s.store.Org().Nodes(), deptID, s.cfg.Clock())
+	open, err := pkgbudget.OpenDepartmentPeriod(ctx, s.store.Org().Nodes(), deptID, s.clk)
 	if err != nil {
 		return nil, err
 	}

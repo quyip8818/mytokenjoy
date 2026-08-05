@@ -21,7 +21,6 @@
 | `DEPLOY_ENV`                 | `local`  | `local` / `staging` / `production`；仅 `production` 触发生产契约 fail-fast |
 | `SUPPORT_SAAS`               | `false`  | `true`=SaaS 多租户（空库自动写 demo 快照）；`false`=单租户私有化（setup 流程一次性初始化） |
 | `SECURE_COOKIE`              | `false`  | Set-Cookie Secure；`production` 下必须为 `true`                            |
-| `CLOCK_ANCHOR`               | 空       | 可选 `YYYY-MM-DD`；空=系统时钟；固定看板「今天」；`production` 下禁止设置    |
 | `SIMULATE_DELAY`             | `false`  | 模拟延迟；`production` 下必须为 `false`                                    |
 | `SKIP_VERIFY_CODE`           | `false`  | 跳过验证码校验（本地/测试用）；`production` 下必须为 `false`               |
 | `TOKENJOY_COMPANY_ID`        | 内置 UUID | 平台模型源公司 UUID；必须设置                                             |
@@ -32,7 +31,7 @@
 | `local` / `staging` | 启动日志标识；不强制生产契约（`staging` 可故意缺 NewAPI 做预发） |
 | `production`        | `validate()` 强制 §7 生产契约；缺任一项即启动失败                |
 
-典型本地：`DEPLOY_ENV=local` + `SUPPORT_SAAS=false` + 可选 `CLOCK_ANCHOR`。  
+典型本地：`DEPLOY_ENV=local` + `SUPPORT_SAAS=false`。  
 典型生产：`DEPLOY_ENV=production` + §7 全表。
 
 ---
@@ -46,7 +45,6 @@
 ```go
 type DeployConfig struct {
     SecureCookie   bool   `env:"SECURE_COOKIE" envDefault:"false"`
-    ClockAnchor    string `env:"CLOCK_ANCHOR"`
     DeployEnv      string `env:"DEPLOY_ENV" envDefault:"local"`
     SimulateDelay  bool   `env:"SIMULATE_DELAY" envDefault:"false"`
     SkipVerifyCode bool   `env:"SKIP_VERIFY_CODE" envDefault:"false"`
@@ -72,7 +70,7 @@ env.Parse
 
 ### 3.3 `validate()` 要点
 
-**始终必填 / 格式**：`DATABASE_URL`、`TOKENJOY_COMPANY_ID`、`SESSION_SECRET`、`DATA_SOURCE_CREDENTIAL_KEY`（格式校验）、`DEPLOY_ENV` 枚举、`CLOCK_ANCHOR` 格式。
+**始终必填 / 格式**：`DATABASE_URL`、`TOKENJOY_COMPANY_ID`、`SESSION_SECRET`、`DATA_SOURCE_CREDENTIAL_KEY`（格式校验）、`DEPLOY_ENV` 枚举。
 
 **能力组合**（任意 deploy env）：
 
@@ -109,14 +107,14 @@ func OrDefault(clk Clock) Clock
 func NowUTC(clk Clock) time.Time
 ```
 
-`Config.Clock()`：`CLOCK_ANCHOR` 空 → `System()`；否则 `Fixed(锚定日 UTC 零点)`。  
+`Config.Clock()`：默认 `System()`；测试可通过 `SetClock()` 注入 `Fixed()`。  
 包级 `clock.NowUTC(clk)`：业务「现在」的 UTC 瞬时。
 
 ### 4.1 调用约定
 
 | 组件                                  | 用法                                                                                               |
 | ------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `config.Config`                       | `Clock()` 解析 `CLOCK_ANCHOR`                                                                      |
+| `config.Config`                       | `Clock()` 返回 `System()`；测试通过 `SetClock()` 覆盖                                              |
 | `domain/dashboard`、`memberanalytics` | 构造器内 `clock: cfg.Clock()`                                                                      |
 | `domain/budget`、`keys`               | `Load*(..., cfg.Clock())`                                                                          |
 | `integration/newapisync`              | `Load*(..., cfg.Clock())`                                                                          |
@@ -126,7 +124,7 @@ func NowUTC(clk Clock) time.Time
 | `org/core` `BudgetPeriod()`           | 返回 `pkgbudget.PeriodMonthly`；实时 period_key 由 Clock 解析                                      |
 
 账期语义、双轨与护栏全文见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。  
-域代码不得直接读 `CLOCK_ANCHOR` env。
+域代码通过 `cfg.Clock()` 获取业务时钟，不直接读 env。
 
 ---
 
@@ -168,7 +166,6 @@ func NowUTC(clk Clock) time.Time
 | `NEW_API_WEBHOOK_SECRET`     | 已设置       |
 | `SIMULATE_DELAY`             | `false`      |
 | `SKIP_VERIFY_CODE`           | `false`      |
-| `CLOCK_ANCHOR`               | 未设置       |
 
 （`DATA_SOURCE_CREDENTIAL_KEY`、`TOKENJOY_COMPANY_ID` 属「始终必填」，见 §3.3，不重复在此列。）
 
@@ -188,7 +185,7 @@ func NowUTC(clk Clock) time.Time
 
 `tests/testutil/config.go` 默认：`DeployEnv=local`、`SkipSchema=true`（clone 时）、`SkipSeed=true`（clone 时）、合法 `DataSourceCredentialKey`。`CompanyID=contract.DefaultCompanyID`。
 
-常用 option：`WithClockAnchor`、`WithDeployEnv`、`WithSecureCookie`、`WithSupportSaas`、`WithProductionContract`、`WithIngestEnabled`、`WithNewAPIEnabled`。
+常用 option：`WithDeployEnv`、`WithSecureCookie`、`WithSupportSaas`、`WithProductionContract`、`WithIngestEnabled`、`WithNewAPIEnabled`。时钟通过 `testutil.TestClock()` 单独传给 service 构造函数。
 
 | Helper                                             | 用途                        |
 | -------------------------------------------------- | --------------------------- |

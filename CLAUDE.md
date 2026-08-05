@@ -198,7 +198,6 @@ E2E 测试文件命名：`{domain}-{feature}.spec.ts`（如 `models-list.spec.ts
 - `SESSION_SECRET` — JWT session signing key
 - `DATA_SOURCE_CREDENTIAL_KEY` — Credential encryption key (32-byte hex or base64)
 - `SECURE_COOKIE` — Set-Cookie Secure flag (required `true` when `DEPLOY_ENV=production`)
-- `CLOCK_ANCHOR` — Optional `YYYY-MM-DD` for fixed dashboard clock and seed reference date
 
 ### NewAPI
 - `NEW_API_ENABLED=true` — Enable NewAPI integration

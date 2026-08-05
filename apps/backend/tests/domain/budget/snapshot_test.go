@@ -266,7 +266,7 @@ func TestUpdateMemberBudgetNoDecreaseCurrentMonth(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
-	svc := budget.NewService(cfg, st, common.NewDelayer(false), nil)
+	svc := budget.NewService(cfg, st, common.NewDelayer(false), nil, testutil.TestClock())
 
 	// Get current budget for member1
 	budgets, err := svc.ListMemberBudgets(ctx, contract.IDDept3)

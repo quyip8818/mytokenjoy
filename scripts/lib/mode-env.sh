@@ -55,7 +55,6 @@ export PORT="${BACKEND_PORT}"
 export CORS_ORIGINS="http://localhost:${FRONTEND_PORT},http://localhost:${WEB_PORT}"
 export DEPLOY_ENV=local
 export SUPPORT_SAAS
-export CLOCK_ANCHOR=2026-06-19
 export SECURE_COOKIE=false
 export SIMULATE_DELAY=true
 export COMPANY_NAME="Demo Company"

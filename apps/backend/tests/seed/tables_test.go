@@ -79,7 +79,7 @@ func TestApplyTablesMatchesSnapshot(t *testing.T) {
 		t.Fatalf("truncate domain tables: %v", err)
 	}
 
-	snap := seed.Load(cfg)
+	snap := seed.Load(cfg, testutil.TestClock())
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		t.Fatal(err)

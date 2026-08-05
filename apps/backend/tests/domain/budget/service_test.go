@@ -78,7 +78,7 @@ func TestUpdateMemberBudgetSuccess(t *testing.T) {
 	if err := st.Org().SetMembers(testutil.Ctx(), filtered); err != nil {
 		t.Fatal(err)
 	}
-	svc := budget.NewService(cfg, st, common.NewDelayer(false), nil)
+	svc := budget.NewService(cfg, st, common.NewDelayer(false), nil, testutil.TestClock())
 
 	wantBudget := float64(15_000) // currency; must exceed allocated key budgets for member1
 	result, err := svc.UpdateMemberBudget(testutil.Ctx(), contract.IDMember1, wantBudget)

@@ -22,7 +22,7 @@ func newDashboardSvc(t *testing.T) (dashboard.Service, store.Store) {
 	testutil.TruncateUsageBuckets(t, st)
 	return dashboard.NewService(cfg, st, domainusage.NewReader(st.Usage(), st.Ledger()), domainusage.DashboardScopeConfig{
 		OrgWidePermissions: []string{permission.DashboardRead},
-	}), st
+	}, testutil.TestClock()), st
 }
 
 func TestCostSummaryFromBuckets(t *testing.T) {

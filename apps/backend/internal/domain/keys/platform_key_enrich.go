@@ -73,7 +73,7 @@ func enrichPlatformKey(key types.PlatformKey, lookups platformKeyLookups) types.
 }
 
 func (s *service) enrichPlatformKeyUsed(ctx context.Context, key types.PlatformKey, lookups platformKeyLookups) (types.PlatformKey, error) {
-	used, found, err := pkgbudget.PlatformKeyConsumed(ctx, s.store.BudgetConsumed(), s.store.Org().Nodes(), key, lookups.members(), lookups.projects(), s.cfg.Clock())
+	used, found, err := pkgbudget.PlatformKeyConsumed(ctx, s.store.BudgetConsumed(), s.store.Org().Nodes(), key, lookups.members(), lookups.projects(), s.clk)
 	if err != nil {
 		return types.PlatformKey{}, err
 	}

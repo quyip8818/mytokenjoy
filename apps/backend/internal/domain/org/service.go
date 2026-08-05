@@ -10,6 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/org/structure"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -29,8 +30,9 @@ func NewService(
 	logger *slog.Logger,
 	grants grants.Normalizer,
 	enqueuer remote.JobEnqueuer,
+	clk clock.Clock,
 ) Service {
-	deps := core.NewDeps(cfg, st, factory, notifier, sender, delayer, logger, grants)
+	deps := core.NewDeps(cfg, st, factory, notifier, sender, delayer, logger, grants, clk)
 	return &service{
 		LocalService: structure.New(deps),
 		Service:      remote.New(deps, enqueuer),

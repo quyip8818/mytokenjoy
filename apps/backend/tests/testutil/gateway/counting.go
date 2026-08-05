@@ -9,6 +9,7 @@ import (
 
 	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/tests/testutil"
 )
 
 // CountingGatewayPrecheck wraps a GatewayPrecheckRepository and records LoadPrecheckContext calls.
@@ -32,7 +33,7 @@ func (c *CountingGatewayPrecheck) Calls() int32 {
 
 func BuildGatewayWithPrecheckLoader(t *testing.T, scenario GatewayScenario, loader store.GatewayPrecheckRepository) domaingateway.GatewayService {
 	t.Helper()
-	precheck := domaingateway.NewPrecheckServiceLegacy(loader, scenario.Cfg.Clock(), nil)
+	precheck := domaingateway.NewPrecheckServiceLegacy(loader, testutil.TestClock(), nil)
 	gw, err := domaingateway.NewGatewayService(scenario.Cfg, precheck, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)

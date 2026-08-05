@@ -17,19 +17,21 @@ type WatchdogWorker struct {
 	bulkEnqueuer *scheduler.BulkEnqueuer
 	store        store.Store
 	cfg          config.Config
+	clk          clock.Clock
 }
 
-func NewWatchdogWorker(svc *scheduler.Service, bulk *scheduler.BulkEnqueuer, st store.Store, cfg config.Config) *WatchdogWorker {
+func NewWatchdogWorker(svc *scheduler.Service, bulk *scheduler.BulkEnqueuer, st store.Store, cfg config.Config, clk clock.Clock) *WatchdogWorker {
 	return &WatchdogWorker{
 		scheduler:    svc,
 		bulkEnqueuer: bulk,
 		store:        st,
 		cfg:          cfg,
+		clk:          clock.OrDefault(clk),
 	}
 }
 
 func (w *WatchdogWorker) Work(ctx context.Context, _ *river.Job[jobs.TenantWatchdogArgs]) error {
-	now := clock.NowUTC(w.cfg.Clock())
+	now := clock.NowUTC(w.clk)
 	due, err := w.scheduler.CollectDue(ctx, now)
 	if err != nil {
 		return err

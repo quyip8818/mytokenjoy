@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/scheduler"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -31,7 +32,7 @@ func startDeferredWatchdog(
 			return
 		case <-timer.C:
 		}
-		if err := scheduler.RunOnce(ctx, cfg, st, holder); err != nil {
+		if err := scheduler.RunOnce(ctx, cfg, st, holder, clock.System()); err != nil {
 			if ctx.Err() == nil {
 				logger.Warn("deferred watchdog run failed", "error", err)
 			}

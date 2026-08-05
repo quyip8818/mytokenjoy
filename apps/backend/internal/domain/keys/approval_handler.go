@@ -76,7 +76,7 @@ func (h *KeyApprovalHandler) PreApprove(ctx context.Context, req types.ApprovalR
 	}
 	var meta types.KeyApprovalMeta
 	json.Unmarshal(req.Metadata, &meta)
-	budgetCtx, err := budget.LoadBudgetContext(ctx, h.svc.store.BudgetConsumed(), h.svc.store.Org(), h.svc.store.Budget(), h.svc.store.Keys(), h.svc.cfg.Clock())
+	budgetCtx, err := budget.LoadBudgetContext(ctx, h.svc.store.BudgetConsumed(), h.svc.store.Org(), h.svc.store.Budget(), h.svc.store.Keys(), h.svc.clk)
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func (h *KeyApprovalHandler) OnApprovedTx(ctx context.Context, req types.Approva
 	if err != nil {
 		return nil, err
 	}
-	platformKeys, err := budget.LoadPlatformKeysWithUsed(ctx, tx.BudgetConsumed(), tx.Org(), tx.Budget(), tx.Keys(), h.svc.cfg.Clock())
+	platformKeys, err := budget.LoadPlatformKeysWithUsed(ctx, tx.BudgetConsumed(), tx.Org(), tx.Budget(), tx.Keys(), h.svc.clk)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +248,7 @@ func (h *KeyApprovalHandler) OnRejected(ctx context.Context, req types.ApprovalR
 func (h *KeyApprovalHandler) PreCheck(ctx context.Context, req types.ApprovalRequest) (json.RawMessage, error) {
 	var meta types.KeyApprovalMeta
 	json.Unmarshal(req.Metadata, &meta)
-	budgetCtx, err := budget.LoadBudgetContext(ctx, h.svc.store.BudgetConsumed(), h.svc.store.Org(), h.svc.store.Budget(), h.svc.store.Keys(), h.svc.cfg.Clock())
+	budgetCtx, err := budget.LoadBudgetContext(ctx, h.svc.store.BudgetConsumed(), h.svc.store.Org(), h.svc.store.Budget(), h.svc.store.Keys(), h.svc.clk)
 	if err != nil {
 		return nil, err
 	}

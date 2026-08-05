@@ -12,6 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -20,6 +21,7 @@ type IngestService struct {
 	store             store.Store
 	logStore          store.LogStore
 	logger            *slog.Logger
+	clk               clock.Clock
 	enqueuer          IngestJobEnqueuer
 	notifier          types.Notifier
 	budgetOps         BudgetOps
@@ -38,6 +40,7 @@ func NewIngestService(
 	budgetOps BudgetOps,
 	lotConsumer LotConsumer,
 	quotaSyncer QuotaSyncer,
+	clk clock.Clock,
 ) *IngestService {
 	if logStore == nil {
 		logStore = store.NoopLogStore()
@@ -50,6 +53,7 @@ func NewIngestService(
 	}
 	return &IngestService{
 		cfg: cfg, store: st, logStore: logStore, logger: logger,
+		clk:      clock.OrDefault(clk),
 		enqueuer: enqueuer, notifier: notifier,
 		budgetOps: budgetOps, lotConsumer: lotConsumer,
 		quotaSyncer: quotaSyncer,
@@ -213,7 +217,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 			// Non-platform channel: compute cost from entry quota using company QPU.
 			spend = float64(entry.QuotaAmount) / float64(snap.QuotaPerUnit)
 		}
-		open, err := pkgbudget.OpenDepartmentPeriod(ctx, st.Org().Nodes(), entry.DepartmentID, s.cfg.Clock())
+		open, err := pkgbudget.OpenDepartmentPeriod(ctx, st.Org().Nodes(), entry.DepartmentID, s.clk)
 		if err != nil {
 			return err
 		}
@@ -318,7 +322,7 @@ func (s *IngestService) absoluteRecompute(ctx context.Context, st store.Store, p
 	}
 	keySet := make(map[uuid.UUID]struct{}, 1)
 	keySet[platformKeyID] = struct{}{}
-	updates, err := s.budgetOps.ComputeGatewaySummaryUpdates(ctx, st, keySet, s.cfg.Clock())
+	updates, err := s.budgetOps.ComputeGatewaySummaryUpdates(ctx, st, keySet, s.clk)
 	if err != nil {
 		return nil, err
 	}

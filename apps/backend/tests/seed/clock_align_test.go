@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/seed"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -18,7 +19,7 @@ func TestSeedBudgetConsumedAlignWithClockAnchor(t *testing.T) {
 	ctx := context.Background()
 	schemaURL := testutil.TestSchemaURL(t)
 	cfg := testutil.PreparedConfig(schemaURL)
-	cfg.ClockAnchor = "2026-06-19"
+	clk := clock.Fixed(time.Date(2026, 6, 19, 0, 0, 0, 0, time.UTC))
 
 	st, err := postgres.New(ctx, cfg)
 	if err != nil {
@@ -37,16 +38,16 @@ func TestSeedBudgetConsumedAlignWithClockAnchor(t *testing.T) {
 		t.Fatalf("truncate: %v", err)
 	}
 
-	snap := seed.Load(cfg)
+	snap := seed.Load(cfg, clk)
 	if snap.SeedAt.IsZero() {
 		t.Fatal("expected SeedAt from clock")
 	}
-	wantPeriod := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, cfg.Clock()).String()
+	wantPeriod := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, clk).String()
 	if wantPeriod != "2026-06" {
 		t.Fatalf("want open period 2026-06, got %q", wantPeriod)
 	}
-	if !snap.SeedAt.Equal(cfg.Clock().Now().UTC()) {
-		t.Fatalf("SeedAt=%v want clock %v", snap.SeedAt, cfg.Clock().Now().UTC())
+	if !snap.SeedAt.Equal(clk.Now().UTC()) {
+		t.Fatalf("SeedAt=%v want clock %v", snap.SeedAt, clk.Now().UTC())
 	}
 
 	tx, err := pool.Begin(ctx)

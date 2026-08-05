@@ -23,23 +23,23 @@ func (r *monthTestEnqueuer) InsertRebalance(_ context.Context, _ uuid.UUID, _ st
 
 func TestEnsureMonthRebalanceEnqueuesCompanyAxis(t *testing.T) {
 	t.Parallel()
-	cfg, st := testutil.NewTestStore(t)
+	_, st := testutil.NewTestStore(t)
 	enqueuer := &monthTestEnqueuer{}
 	ctx := testutil.Ctx()
 
-	if err := schedule.EnsureMonthRebalance(ctx, cfg, st, enqueuer, contract.DefaultCompanyID); err != nil {
+	if err := schedule.EnsureMonthRebalance(ctx, testutil.TestClock(), st, enqueuer, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 	if enqueuer.rebalance != 1 {
 		t.Fatalf("expected 1 rebalance enqueue, got %d", enqueuer.rebalance)
 	}
 
-	current := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, cfg.Clock()).String()
+	current := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, testutil.TestClock()).String()
 	if err := st.TenantBackgroundState().SetLastRebalancedPeriod(ctx, contract.DefaultCompanyID, current); err != nil {
 		t.Fatal(err)
 	}
 	enqueuer.rebalance = 0
-	if err := schedule.EnsureMonthRebalance(ctx, cfg, st, enqueuer, contract.DefaultCompanyID); err != nil {
+	if err := schedule.EnsureMonthRebalance(ctx, testutil.TestClock(), st, enqueuer, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
 	if enqueuer.rebalance != 0 {

@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -25,10 +26,11 @@ type DueWork struct {
 type Service struct {
 	cfg   config.Config
 	store store.Store
+	clk   clock.Clock
 }
 
-func NewService(cfg config.Config, st store.Store) *Service {
-	return &Service{cfg: cfg, store: st}
+func NewService(cfg config.Config, st store.Store, clk clock.Clock) *Service {
+	return &Service{cfg: cfg, store: st, clk: clock.OrDefault(clk)}
 }
 
 func (s *Service) CollectDue(ctx context.Context, now time.Time) ([]DueWork, error) {
@@ -67,7 +69,7 @@ func (s *Service) tenantDue(ctx context.Context, companyID uuid.UUID, now time.T
 		}
 	}
 
-	currentMonth := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, s.cfg.Clock()).String()
+	currentMonth := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, s.clk).String()
 	if monthDue(tbs, currentMonth) {
 		work.NeedsMonthRebalance = true
 	}

@@ -261,29 +261,3 @@ func TestProductionRejectsSimulateDelay(t *testing.T) {
 		t.Fatalf("expected SIMULATE_DELAY error, got %v", err)
 	}
 }
-
-func TestProductionRejectsClockAnchor(t *testing.T) {
-	testutil.ApplyProductionEnv(t)
-	t.Setenv("CLOCK_ANCHOR", "2026-06-19")
-
-	_, err := config.Load()
-	if err == nil {
-		t.Fatal("expected error when production sets CLOCK_ANCHOR")
-	}
-	if !strings.Contains(err.Error(), "CLOCK_ANCHOR") {
-		t.Fatalf("expected CLOCK_ANCHOR error, got %v", err)
-	}
-}
-
-func TestInvalidClockAnchorFails(t *testing.T) {
-	testutil.ApplyLocalEnv(t)
-	t.Setenv("CLOCK_ANCHOR", "not-a-date")
-
-	_, err := config.Load()
-	if err == nil {
-		t.Fatal("expected error for invalid CLOCK_ANCHOR")
-	}
-	if !strings.Contains(err.Error(), "CLOCK_ANCHOR") {
-		t.Fatalf("expected CLOCK_ANCHOR error, got %v", err)
-	}
-}

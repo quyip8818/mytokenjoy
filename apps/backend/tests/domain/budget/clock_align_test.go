@@ -11,10 +11,10 @@ import (
 
 func TestOpenBudgetPeriodAlignsTreeAndDepartmentFactory(t *testing.T) {
 	t.Parallel()
-	cfg, st := testutil.NewTestStore(t, testutil.WithClockAnchor("2026-06-19"))
+	_, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
 
-	open, err := pkgbudget.OpenDepartmentPeriod(ctx, st.Org().Nodes(), contract.IDDept3, cfg.Clock())
+	open, err := pkgbudget.OpenDepartmentPeriod(ctx, st.Org().Nodes(), contract.IDDept3, testutil.TestClock())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func TestOpenBudgetPeriodAlignsTreeAndDepartmentFactory(t *testing.T) {
 	if node == nil {
 		t.Fatal("dept-3 missing from tree")
 	}
-	treePeriod := pkgbudget.OpenSnapshotKey(node.Period, cfg.Clock())
+	treePeriod := pkgbudget.OpenSnapshotKey(node.Period, testutil.TestClock())
 	if treePeriod.String() != open.String() {
 		t.Fatalf("tree open period %q != department open %q", treePeriod.String(), open.String())
 	}

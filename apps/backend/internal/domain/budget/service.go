@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -52,18 +53,20 @@ type Store interface {
 type service struct {
 	cfg      config.Config
 	store    Store
+	clk      clock.Clock
 	delayer  common.Delayer
 	logger   *slog.Logger
 	enqueuer JobEnqueuer
 }
 
-func NewService(cfg config.Config, st Store, delayer common.Delayer, enqueuer JobEnqueuer) Service {
+func NewService(cfg config.Config, st Store, delayer common.Delayer, enqueuer JobEnqueuer, clk clock.Clock) Service {
 	if enqueuer == nil {
 		enqueuer = NoopJobEnqueuer
 	}
 	return &service{
 		cfg:      cfg,
 		store:    st,
+		clk:      clock.OrDefault(clk),
 		delayer:  delayer,
 		logger:   slog.Default(),
 		enqueuer: enqueuer,

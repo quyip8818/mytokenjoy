@@ -35,7 +35,7 @@ func enableOrgSyncSchedule(t *testing.T, st store.Store) {
 func TestCollectDueMonthRebalanceWhenPeriodMissing(t *testing.T) {
 	cfg, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
-	svc := scheduler.NewService(cfg, st)
+	svc := scheduler.NewService(cfg, st, testutil.TestClock())
 
 	due, err := svc.CollectDue(ctx, time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC))
 	if err != nil {
@@ -56,7 +56,7 @@ func TestCollectDueMonthRebalanceWhenPeriodMissing(t *testing.T) {
 func TestCollectDueSkipsMonthRebalanceAfterPeriodSet(t *testing.T) {
 	cfg, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
-	current := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, cfg.Clock()).String()
+	current := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, testutil.TestClock()).String()
 	if err := st.TenantBackgroundState().EnsureRow(ctx, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +64,7 @@ func TestCollectDueSkipsMonthRebalanceAfterPeriodSet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	svc := scheduler.NewService(cfg, st)
+	svc := scheduler.NewService(cfg, st, testutil.TestClock())
 	due, err := svc.CollectDue(ctx, time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatal(err)
@@ -81,7 +81,7 @@ func TestCollectDueOrgSyncWhenEnabledWithoutSchedule(t *testing.T) {
 	ctx := testutil.Ctx()
 	enableOrgSyncSchedule(t, st)
 
-	svc := scheduler.NewService(cfg, st)
+	svc := scheduler.NewService(cfg, st, testutil.TestClock())
 	due, err := svc.CollectDue(ctx, time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatal(err)
@@ -102,7 +102,7 @@ func TestCollectDueSkipsOrgSyncWhenDisabledWithoutSchedule(t *testing.T) {
 	cfg, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
 
-	svc := scheduler.NewService(cfg, st)
+	svc := scheduler.NewService(cfg, st, testutil.TestClock())
 	due, err := svc.CollectDue(ctx, time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatal(err)
@@ -125,7 +125,7 @@ func TestCollectDueOrgSyncWhenNextAtPassed(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	svc := scheduler.NewService(cfg, st)
+	svc := scheduler.NewService(cfg, st, testutil.TestClock())
 	due, err := svc.CollectDue(ctx, time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatal(err)
@@ -158,7 +158,7 @@ func TestCollectDueSkipsOrgSyncWhenPendingJobExists(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	svc := scheduler.NewService(cfg, st)
+	svc := scheduler.NewService(cfg, st, testutil.TestClock())
 	due, err := svc.CollectDue(ctx, time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatal(err)

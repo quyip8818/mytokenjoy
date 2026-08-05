@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 所以口语里的 **「现在开着哪本预算」** = **当前业务时钟落在哪个月的 `period_key`，门禁与快照读写的是哪一本消耗账**。  
-答：只看 `cfg.Clock()`（生产即真实「今天」所在月；本地可用 `CLOCK_ANCHOR` 钉死）。
+答：只看 `cfg.Clock()`（生产即真实「今天」所在月；测试可通过 `SetClock()` 钉死）。
 
 另一句 **「这笔调用发生在哪个月」** = 这条用量记在审计账本的哪个月，只看 `OccurredAt`，可以和「当前开着的那本」不同（跨月延迟入库时就会不同）。
 
@@ -76,7 +76,7 @@ sequenceDiagram
 
 | 名称         | 来源                                          | 干什么                                                                              | 不干什么                                                 |
 | ------------ | --------------------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| **墙钟**     | 调度比较用 PG `NOW()`；ID 等可用 `time.Now()` | `river_job` 调度 / retry / Unique 窗口、session TTL、生成 ID                        | 不算开账 period、不写账本发生月；**不**读 `CLOCK_ANCHOR` |
+| **墙钟**     | 调度比较用 PG `NOW()`；ID 等可用 `time.Now()` | `river_job` 调度 / retry / Unique 窗口、session TTL、生成 ID                        | 不算开账 period、不写账本发生月 |
 | **业务时钟** | `cfg.Clock()`                                 | 开账键、预检、超支、预算树 / Key used、看板「今天」、worker 月切触发、seed 开账快照 | 不驱动 lease                                             |
 | **事件时间** | `OccurredAt`（来自上游 `CreatedAt`）          | ledger `period_key`、`usage_buckets`、审计归因                                      | 不写开账快照                                             |
 
@@ -208,26 +208,21 @@ flowchart TB
 
 ---
 
-## 6. 配置与本地锚点
+## 6. 时钟注入
 
 | 项                | 现状                                                                 |
 | ----------------- | -------------------------------------------------------------------- |
-| `CLOCK_ANCHOR`    | 可选 `YYYY-MM-DD`；空 = 系统时钟；**生产禁止**                       |
-| `cfg.Clock()`     | 空锚点 → `System()`；有锚点 → `Fixed(UTC 零点)`                      |
+| `cfg.Clock()`     | 默认 `System()`；测试通过 `cfg.SetClock(clock.Fixed(...))` 覆盖      |
 | 域代码            | 只调 `cfg.Clock()` / 注入的 `clock.Clock`，不读 env                  |
-| demo              | `SUPPORT_SAAS=true` + 空库自动写 demo 快照；本地联调建议加 `CLOCK_ANCHOR`，让种子与门禁同月 |
+| demo              | `SUPPORT_SAAS=true` + 空库自动写 demo 快照；测试用 `SetClock` 让种子与门禁同月 |
 | `Snapshot.SeedAt` | `clock.NowUTC(cfg.Clock())`；缺则 seed 开账快照 fail-fast            |
 | seed 开账快照     | `RootPeriodKey(nodes, SeedAt)`                                       |
 | seed ledger       | `OccurrenceSnapshotKey(PeriodMonthly, OccurredAt)`（可与开账月不同） |
 
 ```mermaid
 flowchart TD
-  Env[CLOCK_ANCHOR]
-  Env -->|空| Sys[System 墙钟感业务现在]
-  Env -->|YYYY-MM-DD| Fix[Fixed 锚定日 UTC 0:00]
-  Env -->|production 非空| Boom[启动失败]
-  Sys --> Clock[cfg.Clock]
-  Fix --> Clock
+  Default[System 墙钟] --> Clock[cfg.Clock]
+  Override[SetClock - 仅测试] --> Clock
   Clock --> Gates[预检 / Load* / 看板 / worker 月切]
   Clock --> SeedAt[Snapshot.SeedAt]
   SeedAt --> Snap[seed snapshots]
@@ -305,7 +300,6 @@ flowchart TB
 | 树与工厂同月                            | `TestOpenBudgetPeriodAlignsTreeAndDepartmentFactory`                                                                                              |
 | seed 快照跟 Clock、ledger 跟 OccurredAt | `TestSeedBudgetConsumedAlignWithClockAnchor`（`tests/seed/clock_align_test.go`）                                                                  |
 | Load\* 开账月跟 Clock                   | `TestLoadPlatformKeysWithUsedResolvesDepartmentPeriod`、`TestLoadProjectsWithConsumedUsesOpenPeriod`（用 `clock.Fixed`，勿改 `org_nodes.period`） |
-| 生产禁锚点                              | `TestProductionRejectsClockAnchor`                                                                                                                |
 
 ---
 
@@ -313,4 +307,4 @@ flowchart TB
 
 1. 这段要的是墙钟、**当前开着哪本消耗账**，还是 **事件发生在哪月**？
 2. 开账 `period_key` 是否只来自 `Open*` / `RootPeriodKey`（seed）？
-3. 有 `CLOCK_ANCHOR` 时：开账路径（seed consumed / 看板 / 预检 / Projector）是否落在同一本？ledger 是否仍跟 `OccurredAt`？
+3. 测试中固定时钟时：开账路径（seed consumed / 看板 / 预检 / Projector）是否落在同一本？ledger 是否仍跟 `OccurredAt`？

@@ -120,7 +120,7 @@ func (s *service) validateFuturePeriod(period string) error {
 	if !periodKeyPattern.MatchString(period) {
 		return domain.BadRequest("period must be YYYY-MM format")
 	}
-	currentPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, clock.NowUTC(s.cfg.Clock()))
+	currentPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, clock.NowUTC(s.clk))
 	if period <= currentPeriod {
 		return domain.BadRequest("can only modify a future period snapshot")
 	}

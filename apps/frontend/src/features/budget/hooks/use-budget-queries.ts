@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { AppApis } from '@/api/app-apis'
 import type { ProjectView } from '@/api/types'
 import { queryKeys, useInjectedQuery } from '@/features/query'
@@ -12,7 +12,6 @@ import {
 
 export function useBudgetQueries(injectedApis?: AppApis) {
   const [period, setPeriod] = useState(getCurrentBudgetPeriod)
-  const periodSyncedFromTree = useRef(false)
 
   const {
     data: rawTree,
@@ -42,13 +41,6 @@ export function useBudgetQueries(injectedApis?: AppApis) {
     queryKey: queryKeys.budget.overrunPolicy(),
     queryFn: (api) => api.budgetApi.getOverrunPolicy(),
   })
-
-  useEffect(() => {
-    if (!periodSyncedFromTree.current && tree[0]?.period) {
-      setPeriod(tree[0].period)
-      periodSyncedFromTree.current = true
-    }
-  }, [tree])
 
   const loading = treeLoading || projectsLoading
   const error = treeError ?? projectsError

@@ -17,12 +17,12 @@ func newMemberAnalyticsService(t *testing.T) (domainmemberanalytics.Service, con
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t)
 	ctx := testutil.CtxForCompany(contract.DefaultCompanyID)
-	if err := runtime.ApplyUsageBuckets(ctx, st, cfg); err != nil {
+	if err := runtime.ApplyUsageBuckets(ctx, st, cfg, testutil.TestClock()); err != nil {
 		t.Fatal(err)
 	}
-	budgetSvc := domainbudget.NewService(cfg, st, common.NewDelayer(false), nil)
+	budgetSvc := domainbudget.NewService(cfg, st, common.NewDelayer(false), nil, testutil.TestClock())
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
-	return domainmemberanalytics.NewService(cfg, budgetSvc, reader), ctx
+	return domainmemberanalytics.NewService(cfg, budgetSvc, reader, testutil.TestClock()), ctx
 }
 
 func TestGetDashboardReturnsUsageForMember(t *testing.T) {

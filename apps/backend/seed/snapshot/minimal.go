@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/seed/filler"
 )
 
-func BuildMinimal(cfg config.Config) store.Snapshot {
+func BuildMinimal(cfg config.Config, clk clock.Clock) store.Snapshot {
 	members := filler.BuildAnchorMembers()
 	roles := buildRoles(members)
 	orgIntegration := types.OrgIntegrationFromStatusAndConfig(
@@ -23,7 +23,8 @@ func BuildMinimal(cfg config.Config) store.Snapshot {
 	)
 	orgIntegration.FieldMappings = buildDefaultFieldMappings()
 	platformKeys := minimalPlatformKeys()
-	ref := cfg.SeedReferenceDate()
+	clk = clock.OrDefault(clk)
+	ref := clock.NowUTC(clk).Format("2006-01-02")
 	return store.Snapshot{
 		Company:        defaultCompany(cfg),
 		OrgIntegration: orgIntegration,
@@ -45,7 +46,7 @@ func BuildMinimal(cfg config.Config) store.Snapshot {
 		AuditSettings:  buildAuditSettings(),
 		OperationLogs:  loadOperationLogs()[:1],
 		UsageLedger:    nil,
-		SeedAt:         clock.NowUTC(cfg.Clock()),
+		SeedAt:         clock.NowUTC(clk),
 	}
 }
 

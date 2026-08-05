@@ -9,14 +9,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
-// EnsureMonthRebalanceCurrent marks the tenant as rebalanced for the cfg clock month so
+// EnsureMonthRebalanceCurrent marks the tenant as rebalanced for the given clock month so
 // budget.Projector batch tests are not blocked by EnsureMonthRebalance side effects.
-func EnsureMonthRebalanceCurrent(t *testing.T, ctx context.Context, cfg config.Config, st store.Store, companyID uuid.UUID) {
+func EnsureMonthRebalanceCurrent(t *testing.T, ctx context.Context, cfg config.Config, st store.Store, companyID uuid.UUID, clk clock.Clock) {
 	t.Helper()
-	current := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, cfg.Clock()).String()
+	current := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, clk).String()
 	if err := st.TenantBackgroundState().EnsureRow(ctx, companyID); err != nil {
 		t.Fatal(err)
 	}

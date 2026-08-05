@@ -63,7 +63,7 @@ func buildStressEnv(t *testing.T, opts stressEnvOpts) *stressEnv {
 	runner, st, ingest := riverfix.NewIngestRuntime(t, stub)
 
 	cfg := runner.Cfg
-	precheck := gateway.NewPrecheckServiceLegacy(st.GatewayPrecheck(), cfg.Clock(), nil)
+	precheck := gateway.NewPrecheckServiceLegacy(st.GatewayPrecheck(), testutil.TestClock(), nil)
 
 	// Prepare budget fixtures
 	ctx := testutil.Ctx()
@@ -254,7 +254,7 @@ func assertGatewayBlocked(t *testing.T, env *stressEnv, keyHash string) {
 	t.Helper()
 	// Use a fresh precheck (no cache) to check current PG state.
 	// SkipModelAllowlist: these helpers test budget/key-status blocking, not model access.
-	fresh := gateway.NewPrecheckServiceLegacy(env.Store.GatewayPrecheck(), env.Cfg.Clock(), nil)
+	fresh := gateway.NewPrecheckServiceLegacy(env.Store.GatewayPrecheck(), testutil.TestClock(), nil)
 	_, err := fresh.Run(testutil.Ctx(), keyHash, "test-model", gateway.PrecheckOpts{SkipModelAllowlist: true})
 	if err == nil {
 		t.Error("expected gateway precheck to block, but it passed")
@@ -265,7 +265,7 @@ func assertGatewayAllowed(t *testing.T, env *stressEnv, keyHash string) {
 	t.Helper()
 	// Use a fresh precheck (no cache) to check current PG state.
 	// SkipModelAllowlist: these helpers test budget/key-status blocking, not model access.
-	fresh := gateway.NewPrecheckServiceLegacy(env.Store.GatewayPrecheck(), env.Cfg.Clock(), nil)
+	fresh := gateway.NewPrecheckServiceLegacy(env.Store.GatewayPrecheck(), testutil.TestClock(), nil)
 	_, err := fresh.Run(testutil.Ctx(), keyHash, "test-model", gateway.PrecheckOpts{SkipModelAllowlist: true})
 	if err != nil {
 		t.Errorf("expected gateway precheck to pass, got: %v", err)

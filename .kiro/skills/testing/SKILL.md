@@ -14,7 +14,7 @@ cd apps/frontend && vitest run
    - 文件：`tests/testutil/pg/template.go`
    - 不 bump = 旧模板复用 = 幽灵失败
 
-2. **时钟固定**：测试默认 `ClockAnchor = "2026-06-19"`，period = `"2026-06"`
+2. **时钟固定**：测试默认通过 `WithClockAnchor("2026-06-19")` 固定时钟，period = `"2026-06"`
    - 不要用 `time.Now()` 做 period 断言
 
 3. **Build tag**：运行后端测试必须加 `-tags=testhook`

@@ -146,7 +146,7 @@ func TestUpdatePlatformKeyRefreshesGatewaySoft(t *testing.T) {
 func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 	t.Parallel()
 	svc, st, _ := newKeysServiceWithNewAPI(t)
-	budgetSvc := domainbudget.NewService(testutil.TestConfig(), st, common.NewDelayer(false), nil)
+	budgetSvc := domainbudget.NewService(testutil.TestConfig(), st, common.NewDelayer(false), nil, testutil.TestClock())
 	memberID := contract.IDMember1
 	created, err := svc.CreatePlatformKey(testutil.Ctx(), types.CreatePlatformKeyInput{
 		Name: "release-me", Scope: types.PlatformKeyScopeMember, MemberID: &memberID, Budget: 500,
@@ -177,7 +177,7 @@ func TestDeletePlatformKeyReleasesQuota(t *testing.T) {
 func TestBudgetSummaryIncludesSnapshotConsumed(t *testing.T) {
 	t.Parallel()
 	_, st := newKeysService(t)
-	budgetSvc := domainbudget.NewService(testutil.TestConfig(), st, common.NewDelayer(false), nil)
+	budgetSvc := domainbudget.NewService(testutil.TestConfig(), st, common.NewDelayer(false), nil, testutil.TestClock())
 	ctx := testutil.Ctx()
 	// Zero out existing consumed, then set controlled values.
 	budgetfix.SetPlatformKeySnapshotConsumed(t, st, contract.IDPlatformKey1, 1000)

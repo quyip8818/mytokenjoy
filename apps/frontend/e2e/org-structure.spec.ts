@@ -147,7 +147,20 @@ test.describe('组织架构 - 成员 CRUD', () => {
     await page.getByRole('button', { name: '添加' }).click()
 
     await expect(page.getByRole('dialog')).toBeHidden({ timeout: 10_000 })
-    // Verify through API that member was created
+    // Verify through API with retry — backend may still be writing
+    await expect(async () => {
+      const members = await page.evaluate(async (name) => {
+        const res = await fetch(
+          `/api/org/members?page=1&pageSize=100&keyword=${encodeURIComponent(name)}`,
+          { credentials: 'include' },
+        )
+        return res.json()
+      }, uniqueName)
+      expect(members.items.length).toBeGreaterThan(0)
+      expect(members.items[0].alias).toBe(uniqueName)
+    }).toPass({ timeout: 10_000 })
+
+    // Cleanup
     const members = await page.evaluate(async (name) => {
       const res = await fetch(
         `/api/org/members?page=1&pageSize=100&keyword=${encodeURIComponent(name)}`,
@@ -155,18 +168,16 @@ test.describe('组织架构 - 成员 CRUD', () => {
       )
       return res.json()
     }, uniqueName)
-    expect(members.items.length).toBeGreaterThan(0)
-    expect(members.items[0].alias).toBe(uniqueName)
-
-    // ponytail: teardown 在 page context 里做（有 cookie），globalTeardown drop 库兜底
-    await page.evaluate(async (id) => {
-      await fetch('/api/org/members', {
-        method: 'DELETE',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: [id] }),
-      })
-    }, members.items[0].id)
+    if (members.items.length > 0) {
+      await page.evaluate(async (id) => {
+        await fetch('/api/org/members', {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: [id] }),
+        })
+      }, members.items[0].id)
+    }
   })
 
   test('编辑成员：修改姓名后列表更新', async ({ page }) => {
@@ -291,8 +302,8 @@ test.describe('组织架构 - 批量操作', () => {
       .click()
     await expect(page.getByRole('alertdialog')).toBeHidden()
 
-    // After deactivation, the batch bar should disappear (member count = 0 selected)
-    await expect(page.getByText('已选')).toBeHidden({ timeout: 5_000 })
+    // After deactivation, batch bar should disappear (selection is cleared on success)
+    await expect(page.getByText('已选')).toBeHidden()
   })
 })
 

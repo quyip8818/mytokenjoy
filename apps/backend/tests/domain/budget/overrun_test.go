@@ -33,7 +33,7 @@ func setupOverrun(t *testing.T) *overrunFixture {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	notifier := &testutil.RecordingNotifier{}
-	svc := budgetfix.NewOverrunService(t, cfg, st, stub, notifier)
+	svc := budgetfix.NewOverrunService(t, cfg, st, stub, notifier, testutil.TestClock())
 	return &overrunFixture{stub: stub, notifier: notifier, overrun: svc, st: st}
 }
 
@@ -122,7 +122,7 @@ func (f *overrunFixture) seedProjectOverrun(t *testing.T) uuid.UUID {
 func TestOverrunSkipsWhenLifecycleDisabled(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
-	svc := budget.NewOverrunService(cfg, st, nil, notification.NewService(cfg, st, slog.Default()), slog.Default())
+	svc := budget.NewOverrunService(cfg, st, nil, notification.NewService(cfg, st, slog.Default()), slog.Default(), testutil.TestClock())
 
 	data, _ := json.Marshal(map[string]any{"departmentId": contract.IDDept3})
 	if err := svc.ProcessOverrunPayload(testutil.Ctx(), data); err != nil {
@@ -154,7 +154,7 @@ func TestOverrunDepartmentAxis(t *testing.T) {
 		t.Parallel()
 		stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
 		cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
-		svc := budgetfix.NewOverrunService(t, cfg, st, stub, &testutil.FailingNotifier{})
+		svc := budgetfix.NewOverrunService(t, cfg, st, stub, &testutil.FailingNotifier{}, testutil.TestClock())
 		budgetfix.SeedDeptOverrun(t, st, contract.IDDept3, 25000)
 
 		data, _ := json.Marshal(deptPayload)

@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -14,13 +14,13 @@ type RebalanceEnqueuer interface {
 	InsertRebalance(ctx context.Context, companyID uuid.UUID, axisKind string, axisID uuid.UUID) error
 }
 
-func EnsureMonthRebalance(ctx context.Context, cfg config.Config, st store.Store, enqueuer RebalanceEnqueuer, companyID uuid.UUID) error {
+func EnsureMonthRebalance(ctx context.Context, clk clock.Clock, st store.Store, enqueuer RebalanceEnqueuer, companyID uuid.UUID) error {
 	entryCtx := company.WithDefaultCompany(ctx, companyID)
 	tbs, err := st.TenantBackgroundState().Get(entryCtx, companyID)
 	if err != nil {
 		return err
 	}
-	current := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, cfg.Clock()).String()
+	current := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, clk).String()
 	if tbs != nil && tbs.LastRebalancedPeriod == current {
 		return nil
 	}

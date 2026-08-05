@@ -8,7 +8,7 @@ import (
 	"github.com/tokenjoy/backend/seed/filler"
 )
 
-func Build(cfg config.Config) store.Snapshot {
+func Build(cfg config.Config, clk clock.Clock) store.Snapshot {
 	members := filler.BuildMembers()
 	roles := buildRoles(members)
 	orgIntegration := types.OrgIntegrationFromStatusAndConfig(
@@ -20,7 +20,8 @@ func Build(cfg config.Config) store.Snapshot {
 		},
 	)
 	orgIntegration.FieldMappings = buildDefaultFieldMappings()
-	ref := cfg.SeedReferenceDate()
+	clk = clock.OrDefault(clk)
+	ref := clock.NowUTC(clk).Format("2006-01-02")
 	return store.Snapshot{
 		Company:        defaultCompany(cfg),
 		OrgIntegration: orgIntegration,
@@ -40,6 +41,6 @@ func Build(cfg config.Config) store.Snapshot {
 		AuditSettings:  buildAuditSettings(),
 		OperationLogs:  loadOperationLogs(),
 		UsageLedger:    loadUsageLedger(),
-		SeedAt:         clock.NowUTC(cfg.Clock()),
+		SeedAt:         clock.NowUTC(clk),
 	}
 }

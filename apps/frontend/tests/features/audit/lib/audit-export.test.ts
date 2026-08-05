@@ -42,13 +42,13 @@ describe('audit-export', () => {
 
   it('buildCallAuditCsvRows maps call log fields', () => {
     expect(buildCallAuditCsvRows([sampleCallLog])).toEqual([
-      ['2026-06-19 10:30', 'Alice', 'gpt-4', '100', '50', '1200', 'success', '0.05'],
+      ['2026-06-19 10:30:00', 'Alice', 'gpt-4', '100', '50', '1200', 'success', '0.05'],
     ])
   })
 
   it('buildOperationAuditCsvRows maps action labels', () => {
     expect(buildOperationAuditCsvRows([sampleOperationLog])).toEqual([
-      ['2026-06-19 09:00', 'Key 创建', 'Bob', 'key-1', 'Created platform key', '10.0.0.1'],
+      ['2026-06-19 09:00:00', 'Key 创建', 'Bob', 'key-1', 'Created platform key', '10.0.0.1'],
     ])
   })
 })

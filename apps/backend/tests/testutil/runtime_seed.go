@@ -45,7 +45,7 @@ func resetRuntimeTables(t *testing.T, cfg config.Config, st store.Store) {
 func ApplyDemoRuntime(t *testing.T, st store.Store, cfg config.Config) {
 	t.Helper()
 	ctx := company.WithContext(context.Background(), company.Context{CompanyID: contract.DefaultCompanyID})
-	if err := runtime.ApplyDemo(ctx, st, cfg); err != nil {
+	if err := runtime.ApplyDemo(ctx, st, cfg, TestClock()); err != nil {
 		t.Fatalf("apply demo runtime: %v", err)
 	}
 }

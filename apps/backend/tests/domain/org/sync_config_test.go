@@ -24,6 +24,7 @@ func TestUpdateSyncConfigValidation(t *testing.T) {
 		common.NewDelayer(false),
 		slog.Default(),
 		permission.NewGrantNormalizer(),
+		nil, // clock — defaults to system via clock.OrDefault
 	)
 	svc := remote.New(deps, nil)
 

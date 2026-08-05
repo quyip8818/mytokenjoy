@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/bootstrap"
 	"github.com/tokenjoy/backend/seed/runtime"
@@ -20,7 +21,7 @@ import (
 //  2. SaaS mode + empty DB → apply demo snapshot data
 //
 // Local mode: bootstrap only (company created by setup flow, no demo data).
-func Init(ctx context.Context, pool *pgxpool.Pool, st store.Store, cfg config.Config) error {
+func Init(ctx context.Context, pool *pgxpool.Pool, st store.Store, cfg config.Config, clk clock.Clock) error {
 	// Load bootstrap config from file or defaults.
 	bsCfg, err := bootstrap.LoadConfig(os.Getenv("BOOTSTRAP_CONFIG_PATH"))
 	if err != nil {
@@ -48,7 +49,7 @@ func Init(ctx context.Context, pool *pgxpool.Pool, st store.Store, cfg config.Co
 			return err
 		}
 		if empty {
-			if err := applySeedData(ctx, pool, st, cfg); err != nil {
+			if err := applySeedData(ctx, pool, st, cfg, clk); err != nil {
 				return err
 			}
 		}
@@ -57,14 +58,14 @@ func Init(ctx context.Context, pool *pgxpool.Pool, st store.Store, cfg config.Co
 	return nil
 }
 
-func applySeedData(ctx context.Context, pool *pgxpool.Pool, st store.Store, cfg config.Config) error {
+func applySeedData(ctx context.Context, pool *pgxpool.Pool, st store.Store, cfg config.Config, clk clock.Clock) error {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin seed tx: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
-	snap := Load(cfg)
+	snap := Load(cfg, clk)
 	if err := ApplyTables(ctx, tx, snap); err != nil {
 		return err
 	}
@@ -72,7 +73,7 @@ func applySeedData(ctx context.Context, pool *pgxpool.Pool, st store.Store, cfg 
 		return fmt.Errorf("commit seed tx: %w", err)
 	}
 	// Runtime demo data (usage ledger projections etc.)
-	return runtime.ApplyDemo(ctx, st, cfg)
+	return runtime.ApplyDemo(ctx, st, cfg, clk)
 }
 
 func isDatabaseEmpty(ctx context.Context, pool *pgxpool.Pool) (bool, error) {

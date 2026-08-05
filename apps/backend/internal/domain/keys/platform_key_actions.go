@@ -39,7 +39,7 @@ func (s *service) TogglePlatformKey(ctx context.Context, id uuid.UUID, enabled b
 	}
 	s.cacheInvalidator.InvalidateByKeyID(id)
 	if enabled {
-		if err := domainbudget.RefreshPlatformKeyCombined(ctx, s.store, id, s.cfg.Clock(), nil); err != nil {
+		if err := domainbudget.RefreshPlatformKeyCombined(ctx, s.store, id, s.clk, nil); err != nil {
 			return types.PlatformKey{}, err
 		}
 	}

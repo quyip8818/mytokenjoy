@@ -67,7 +67,6 @@
 | `DEPLOY_ENV`                 | `local` | `local` / `staging` / `production`；`production` 触发生产契约校验                                                      |
 | `SUPPORT_SAAS`               | `false` | `true`=SaaS 多租户（空库自动写 demo 快照）；`false`=单租户私有化（setup 流程产出 `cfg.CompanyID`）                     |
 | `SECURE_COOKIE`              | `false` | Set-Cookie Secure；`production` 下必须为 `true`                                                                        |
-| `CLOCK_ANCHOR`               | 空      | 可选 `YYYY-MM-DD`；固定看板「今天」与种子参考日期；账期语义见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md) |
 | `DATA_SOURCE_CREDENTIAL_KEY` | 必填    | 数据源凭证加密密钥（32 字节 hex 或 base64）                                                                            |
 | `SIMULATE_DELAY`             | `false` | 模拟外部 API 延迟（测试/演示）                                                                                         |
 

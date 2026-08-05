@@ -25,5 +25,5 @@ func NewIngestServiceWithEnqueuer(t *testing.T, cfg config.Config, st store.Stor
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	budgetOps := bridge.NewUsageBudgetOps(nil, nil, logger)
 	lotConsumer := bridge.NewUsageLotConsumer()
-	return usage.NewIngestService(cfg, st, st.Logs(), logger, enqueue.NewUsageIngestEnqueuer(enqueuer), nil, budgetOps, lotConsumer, nil)
+	return usage.NewIngestService(cfg, st, st.Logs(), logger, enqueue.NewUsageIngestEnqueuer(enqueuer), nil, budgetOps, lotConsumer, nil, nil)
 }

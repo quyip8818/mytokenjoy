@@ -54,7 +54,7 @@ func TestWorkerCompanyRebalanceSetsLastRebalancedPeriod(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 42, RemainQuota: 1000}}
 	fix := newWorkerFixture(t, stub)
 	ctx := testutil.Ctx()
-	current := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, fix.rt.Registry.Config.Clock()).String()
+	current := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, testutil.TestClock()).String()
 
 	if err := jobs.InsertRebalance(ctx, fix.rt.Enqueuer, nil, contract.DefaultCompanyID, store.RebalanceAxisCompany, contract.DefaultCompanyID); err != nil {
 		t.Fatal(err)

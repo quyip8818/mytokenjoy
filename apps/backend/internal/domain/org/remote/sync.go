@@ -54,7 +54,7 @@ func (s *Service) UpdateSyncConfig(ctx context.Context, cfg types.SyncConfig) er
 	if err != nil {
 		return err
 	}
-	return s.rescheduleOrgSync(ctx, cfg, tbs, clock.NowUTC(s.d.Cfg.Clock()))
+	return s.rescheduleOrgSync(ctx, cfg, tbs, clock.NowUTC(s.d.Clock))
 }
 
 func (s *Service) ListSyncLogs(ctx context.Context, page, pageSize int) (types.PageResult[types.SyncLog], error) {

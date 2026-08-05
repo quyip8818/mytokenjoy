@@ -289,7 +289,6 @@ export const saasEnv = {
   PLATFORM_BOOTSTRAP_EMAIL: 'admin@tokenjoy.me',
   PLATFORM_BOOTSTRAP_PASSWORD: 'admin1234',
   COMPANY_NAME: '',
-  CLOCK_ANCHOR: '',
 }
 
 // e2e/env/local.ts
@@ -297,7 +296,6 @@ export const localEnv = {
   SUPPORT_SAAS: 'false',
   BOOTSTRAP_MODE: 'demo',
   COMPANY_NAME: 'Demo Company',
-  CLOCK_ANCHOR: '2026-06-19',
 }
 ```
 

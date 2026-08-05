@@ -67,7 +67,7 @@ func BuildGatewayScenario(t *testing.T, opts GatewayScenarioOpts) GatewayScenari
 }
 
 func NewPrecheckService(cfg config.Config, st store.Store, cache domainbudget.CombinedKeyCache) *domaingateway.PrecheckService {
-	return domaingateway.NewPrecheckServiceLegacy(st.GatewayPrecheck(), cfg.Clock(), cache)
+	return domaingateway.NewPrecheckServiceLegacy(st.GatewayPrecheck(), testutil.TestClock(), cache)
 }
 
 func setBudgetOnTree(nodes []types.BudgetNode, deptID uuid.UUID, budget, consumed float64) bool {

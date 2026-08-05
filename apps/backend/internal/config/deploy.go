@@ -3,9 +3,6 @@ package config
 import (
 	"fmt"
 	"strings"
-	"time"
-
-	"github.com/tokenjoy/backend/internal/pkg/clock"
 )
 
 const (
@@ -22,18 +19,6 @@ func (c Config) IsProductionDeploy() bool { return c.DeployEnv == DeployEnvProdu
 // Do not register or serve dev HTTP routes under staging/production, and do not
 // add alternate env flags or feature toggles for this surface.
 func (c Config) AllowsDevHTTPRoutes() bool { return c.DeployEnv == DeployEnvLocal }
-
-func (c Config) Clock() clock.Clock {
-	anchor := strings.TrimSpace(c.ClockAnchor)
-	if anchor == "" {
-		return clock.System()
-	}
-	parsed, err := time.Parse("2006-01-02", anchor)
-	if err != nil {
-		return clock.System()
-	}
-	return clock.Fixed(time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 0, 0, 0, 0, time.UTC))
-}
 
 func (c Config) validateProductionContract() error {
 	if !c.SecureCookie {
@@ -56,19 +41,6 @@ func (c Config) validateProductionContract() error {
 	}
 	if c.SkipVerifyCode {
 		return fmt.Errorf("SKIP_VERIFY_CODE must be false in production")
-	}
-	if strings.TrimSpace(c.ClockAnchor) != "" {
-		return fmt.Errorf("CLOCK_ANCHOR must not be set in production")
-	}
-	return nil
-}
-
-func validateClockAnchor(raw string) error {
-	if strings.TrimSpace(raw) == "" {
-		return nil
-	}
-	if _, err := time.Parse("2006-01-02", strings.TrimSpace(raw)); err != nil {
-		return fmt.Errorf("CLOCK_ANCHOR must be YYYY-MM-DD")
 	}
 	return nil
 }

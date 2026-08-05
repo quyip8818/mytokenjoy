@@ -61,9 +61,8 @@ func TestIngestIdempotentAndRollup(t *testing.T) {
 // event occurred in a past month.
 func TestIngestSnapshotUsesNowPeriodForMonthlyOrg(t *testing.T) {
 	stub := &mock.StubAdminClient{Token: newapi.Token{ID: 99, RemainQuota: 1000}}
-	runner, st, ingest := riverfix.NewIngestRuntime(t, stub)
+	_, st, ingest := riverfix.NewIngestRuntime(t, stub)
 	ctx := testutil.Ctx()
-	cfg := runner.Cfg
 	nodes, err := st.Org().Nodes().Tree(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -78,7 +77,7 @@ func TestIngestSnapshotUsesNowPeriodForMonthlyOrg(t *testing.T) {
 	newapisynctf.PrepareIngestFixture(t, st, newapisynctf.DefaultMappingOpts())
 
 	occurred := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
-	snapshotPeriod := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, cfg.Clock()).String()
+	snapshotPeriod := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, testutil.TestClock()).String()
 	ledgerPeriod := pkgbudget.OccurrenceSnapshotKey(pkgbudget.PeriodMonthly, occurred).String()
 	if snapshotPeriod == ledgerPeriod {
 		t.Skip("requires occurred month to differ from current month")

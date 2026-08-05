@@ -28,7 +28,7 @@ func (s *Service) ensureScheduledOrgSync(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	now := clock.NowUTC(s.d.Cfg.Clock())
+	now := clock.NowUTC(s.d.Clock)
 	if tbs != nil && tbs.NextOrgSyncAt != nil && tbs.NextOrgSyncAt.After(now) {
 		hasPending, err := s.d.Store.RiverJob().HasActiveOrgSync(ctx, companyID)
 		if err != nil {
@@ -57,7 +57,7 @@ func (s *Service) recordSyncSuccess(ctx context.Context, syncedAt time.Time) err
 	if !cfg.Enabled {
 		return nil
 	}
-	next := ComputeNextOrgSync(cfg, &syncedAt, s.d.Cfg.Clock())
+	next := ComputeNextOrgSync(cfg, &syncedAt, s.d.Clock)
 	if err := s.d.Store.TenantBackgroundState().UpsertOrgSchedule(ctx, companyID, next, &syncedAt); err != nil {
 		return err
 	}
@@ -76,7 +76,7 @@ func (s *Service) rescheduleOrgSync(ctx context.Context, cfg types.SyncConfig, t
 	if tbs != nil {
 		last = tbs.LastOrgSyncAt
 	}
-	next := ComputeNextOrgSync(cfg, last, s.d.Cfg.Clock())
+	next := ComputeNextOrgSync(cfg, last, s.d.Clock)
 	if next.Before(now) {
 		next = now
 	}

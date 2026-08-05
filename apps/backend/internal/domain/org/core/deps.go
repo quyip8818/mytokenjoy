@@ -10,6 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/invitetoken"
 	"github.com/tokenjoy/backend/internal/store"
@@ -34,6 +35,7 @@ type DirectSender interface {
 
 type Deps struct {
 	Cfg          config.Config
+	Clock        clock.Clock
 	Store        Store
 	Factory      datasource.Factory
 	Notifier     types.Notifier
@@ -54,6 +56,7 @@ func NewDeps(
 	delayer common.Delayer,
 	logger *slog.Logger,
 	grants grants.Normalizer,
+	clk clock.Clock,
 ) *Deps {
 	if logger == nil {
 		logger = slog.Default()
@@ -72,6 +75,7 @@ func NewDeps(
 
 	return &Deps{
 		Cfg:          cfg,
+		Clock:        clock.OrDefault(clk),
 		Store:        st,
 		Factory:      factory,
 		Notifier:     notifier,

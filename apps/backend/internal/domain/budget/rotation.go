@@ -17,7 +17,7 @@ import (
 // Called at the beginning of GetTree to ensure the current period's snapshot is applied.
 // Returns true if rotation was performed.
 func (s *service) MaybeRotatePeriod(ctx context.Context) bool {
-	currentPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, clock.NowUTC(s.cfg.Clock()))
+	currentPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, clock.NowUTC(s.clk))
 	companyID := store.CompanyID(ctx)
 
 	state, err := s.store.TenantBackgroundState().Get(ctx, companyID)

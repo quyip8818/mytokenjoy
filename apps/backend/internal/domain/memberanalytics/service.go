@@ -25,11 +25,12 @@ func NewService(
 	cfg config.Config,
 	budget domainbudget.Service,
 	reader domainusage.Reader,
+	clk clock.Clock,
 ) Service {
 	return &service{
 		cfg:    cfg,
 		budget: budget,
 		reader: reader,
-		clock:  cfg.Clock(),
+		clock:  clock.OrDefault(clk),
 	}
 }
