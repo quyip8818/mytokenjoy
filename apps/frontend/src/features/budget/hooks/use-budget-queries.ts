@@ -9,6 +9,7 @@ import {
   mapProjectsToViews,
   shiftBudgetPeriod,
 } from '../lib/mappers'
+import { getPeriodState, isPeriodEditable } from '../lib/period-state'
 
 export function useBudgetQueries(injectedApis?: AppApis) {
   const [period, setPeriod] = useState(getCurrentBudgetPeriod)
@@ -67,12 +68,18 @@ export function useBudgetQueries(injectedApis?: AppApis) {
 
   const periodLabel = useMemo(() => formatBudgetPeriodLabel(period), [period])
 
+  const editable = isPeriodEditable(period)
+  // ponytail: future period can edit budget numbers but cannot create/delete entities
+  const canMutateEntities = editable && getPeriodState(period) === 'current'
+
   return {
     tree,
     projectsData,
     projects,
     period,
     periodLabel,
+    editable,
+    canMutateEntities,
     overrunPolicy,
     loading,
     error,

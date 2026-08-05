@@ -18,6 +18,7 @@ const emptyMemberBudgets: MemberBudget[] = []
 
 interface BudgetEditMemberBudgetProps {
   node: BudgetNode
+  editable?: boolean
   onUpdated: () => void
   getMemberBudgets: (departmentId: string) => Promise<MemberBudget[]>
   updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) => Promise<MemberBudget>
@@ -29,6 +30,7 @@ interface BudgetEditMemberBudgetProps {
 
 export function BudgetEditMemberBudget({
   node,
+  editable = true,
   onUpdated,
   getMemberBudgets,
   updateMemberBudget,
@@ -43,17 +45,19 @@ export function BudgetEditMemberBudget({
           <Users className="size-4 text-muted-foreground" />
           <h4 className="text-sm font-semibold text-foreground">成员额度</h4>
         </div>
-        <PermissionGate permission={PERMISSION.BUDGET_MANAGE}>
-          <Button
-            variant="ghost"
+        {editable && (
+          <PermissionGate permission={PERMISSION.BUDGET_MANAGE}>
+            <Button
+              variant="ghost"
 
-            className="h-7 gap-1.5 text-xs text-muted-foreground"
-            onClick={() => setDialogOpen(true)}
-          >
-            <Pencil className="size-3.5" />
-            编辑
-          </Button>
-        </PermissionGate>
+              className="h-7 gap-1.5 text-xs text-muted-foreground"
+              onClick={() => setDialogOpen(true)}
+            >
+              <Pencil className="size-3.5" />
+              编辑
+            </Button>
+          </PermissionGate>
+        )}
       </div>
 
       <div className="flex items-center gap-3 rounded-md bg-muted/50 px-3 py-2.5">
@@ -188,7 +192,11 @@ function MemberBudgetEditDialog({
         const updated = await updateMemberBudget(memberId, {
           personalBudget: value,
         })
-        replaceMembers(members.map((m) => (m.memberId === memberId ? updated : m)))
+        replaceMembers(
+          members.map((m) =>
+            m.memberId === memberId ? { ...m, ...updated, personalBudget: value } : m,
+          ),
+        )
         setEditingId(null)
         setDraft('')
         toast.success('成员额度已更新')

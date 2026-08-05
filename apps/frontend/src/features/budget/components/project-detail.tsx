@@ -11,6 +11,8 @@ import { useWorkflow } from '@/features/workflow'
 
 interface ProjectDetailProps {
   project: ProjectView
+  editable?: boolean
+  canMutateEntities?: boolean
   members: Member[]
   departmentMembers: Member[]
   membersLoading?: boolean
@@ -36,6 +38,8 @@ interface ProjectDetailProps {
 
 export function ProjectDetail({
   project,
+  editable = true,
+  canMutateEntities = true,
   members,
   departmentMembers,
   membersLoading = false,
@@ -65,7 +69,7 @@ export function ProjectDetail({
       <div className="flex items-center justify-between gap-3">
         <ProjectHeader project={project} />
         <div className="flex items-center gap-2">
-          {isOwner && (
+          {editable && isOwner && (
             <Button
               variant="outline"
               className="h-8 gap-1.5"
@@ -89,11 +93,13 @@ export function ProjectDetail({
             <Plus className="size-3.5" />
             签发项目 Key
           </Button>
-          <ProjectDeleteAction
-            projectName={project.name}
-            deleting={deleting}
-            onDelete={handleDelete}
-          />
+          {canMutateEntities && (
+            <ProjectDeleteAction
+              projectName={project.name}
+              deleting={deleting}
+              onDelete={handleDelete}
+            />
+          )}
         </div>
       </div>
 
@@ -101,6 +107,7 @@ export function ProjectDetail({
 
       <ProjectMembersSection
         project={project}
+        editable={editable}
         members={members}
         departmentMembers={departmentMembers}
         membersLoading={membersLoading}
@@ -110,6 +117,7 @@ export function ProjectDetail({
 
       <ProjectSettingsForm
         project={project}
+        editable={editable}
         members={members}
         onUpdateProject={onUpdateProject}
         onUpdated={onUpdated}

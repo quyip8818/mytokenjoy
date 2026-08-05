@@ -85,6 +85,7 @@ func newRuntime(t *testing.T, stub *mock.StubAdminClient, orgSync domainorg.Sync
 		Store:              st,
 		Overrun:            reg.Overrun,
 		Rebalance:          reg.Rebalance,
+		BudgetService:      reg.BudgetSvc,
 		NewAPISync:         reg.MustNewAPISync(),
 		OrgSync:            reg.OrgSync,
 		BudgetReconcile:    budgetReconcile,

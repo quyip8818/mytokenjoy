@@ -21,6 +21,8 @@ import { Plus, ChevronRight } from 'lucide-react'
 
 interface BudgetDetailTeamProps {
   node: BudgetNode
+  editable?: boolean
+  canMutateEntities?: boolean
   projects: ProjectView[]
   onUpdated: () => void
   onNavigateToProject: (projectId: string) => void
@@ -77,6 +79,8 @@ function SummaryCard({
 
 export function BudgetDetailTeam({
   node,
+  editable = true,
+  canMutateEntities = true,
   projects,
   onUpdated,
   onNavigateToProject,
@@ -159,6 +163,7 @@ export function BudgetDetailTeam({
 
       <BudgetEditAllocation
         node={node}
+        editable={editable}
         projects={projects}
         onUpdated={onUpdated}
         onUpdateDepartment={onUpdateDepartment}
@@ -167,29 +172,33 @@ export function BudgetDetailTeam({
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h4 className="text-sm font-semibold text-foreground">项目预算</h4>
-          <PermissionGate permission={PERMISSION.BUDGET_MANAGE}>
-            <Button
-              variant="ghost"
+          {canMutateEntities && (
+            <PermissionGate permission={PERMISSION.BUDGET_MANAGE}>
+              <Button
+                variant="ghost"
 
-              aria-label="创建项目"
-              onClick={() => setCreateDialogOpen(true)}
-            >
-              <Plus className="h-4 w-4" />
-              创建项目
-            </Button>
-          </PermissionGate>
+                aria-label="创建项目"
+                onClick={() => setCreateDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+                创建项目
+              </Button>
+            </PermissionGate>
+          )}
         </div>
 
         <div className="divide-y divide-border rounded-lg border border-border">
           {nodeProjects.length === 0 ? (
             <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
               <p className="text-sm text-muted-foreground">暂无项目</p>
-              <PermissionGate permission={PERMISSION.BUDGET_MANAGE}>
-                <Button variant="outline" onClick={() => setCreateDialogOpen(true)}>
-                  <Plus className="h-4 w-4" />
-                  创建第一个项目
-                </Button>
-              </PermissionGate>
+              {canMutateEntities && (
+                <PermissionGate permission={PERMISSION.BUDGET_MANAGE}>
+                  <Button variant="outline" onClick={() => setCreateDialogOpen(true)}>
+                    <Plus className="h-4 w-4" />
+                    创建第一个项目
+                  </Button>
+                </PermissionGate>
+              )}
             </div>
           ) : (
             nodeProjects.map((project) => {
@@ -232,6 +241,7 @@ export function BudgetDetailTeam({
 
       <BudgetEditMemberBudget
         node={node}
+        editable={editable}
         onUpdated={() => {
           onUpdated()
           setMemberRefreshKey((k) => k + 1)

@@ -1,18 +1,55 @@
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import type { AppApis } from '@/api/app-apis'
 import type { PlatformKeyScope, ProjectView, UpdateMemberBudgetInput } from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
 import { queryKeys } from '@/features/query'
 import { useWorkflowRefresh } from '@/features/workflow'
+import { getPeriodState } from '../lib/period-state'
 
 interface UseBudgetActionsOptions {
   injectedApis?: AppApis
+  period: string
   refresh: () => Promise<void>
 }
 
-export function useBudgetActions({ injectedApis, refresh }: UseBudgetActionsOptions) {
+export function useBudgetActions({ injectedApis, period, refresh }: UseBudgetActionsOptions) {
   const apis = useInjectedApis(injectedApis)
+
+  // ponytail: track whether we've already ensured a snapshot for the future period this session.
+  // Avoids redundant copyPeriod calls when multiple edits happen in sequence.
+  const snapshotEnsuredRef = useRef<string | null>(null)
+  const snapshotPendingRef = useRef<Promise<void> | null>(null)
+
+  /**
+   * For future periods, ensure a snapshot exists before mutation.
+   * Copy-on-write: first edit creates the snapshot, subsequent edits reuse it.
+   * Deduplicates concurrent calls via shared promise.
+   */
+  const ensureSnapshot = useCallback(
+    async (targetPeriod: string) => {
+      if (getPeriodState(targetPeriod) !== 'future') return
+      if (snapshotEnsuredRef.current === targetPeriod) return
+      if (snapshotPendingRef.current) {
+        await snapshotPendingRef.current
+        return
+      }
+      const p = apis.budgetApi
+        .copyPeriod(targetPeriod)
+        .then(() => {
+          snapshotEnsuredRef.current = targetPeriod
+        })
+        .finally(() => {
+          snapshotPendingRef.current = null
+        })
+      snapshotPendingRef.current = p
+      await p
+    },
+    [apis],
+  )
+
+  /** Returns true if the current period requires snapshot-based mutation (i.e. future period). */
+  const isFuturePeriod = getPeriodState(period) === 'future'
 
   const { openWithRefresh } = useWorkflowRefresh({
     refresh,
@@ -20,10 +57,16 @@ export function useBudgetActions({ injectedApis, refresh }: UseBudgetActionsOpti
   })
 
   const updateDepartmentMutation = useMutation({
-    mutationFn: (params: {
+    mutationFn: async (params: {
       departmentId: string
       data: { budget: number; reservedPool?: number }
-    }) => apis.budgetApi.updateDepartment(params.departmentId, params.data),
+    }) => {
+      if (isFuturePeriod) {
+        await ensureSnapshot(period)
+        return apis.budgetApi.updateSnapshotDepartment(period, params.departmentId, params.data)
+      }
+      return apis.budgetApi.updateDepartment(params.departmentId, params.data)
+    },
     onSuccess: () => void refresh(),
   })
 
@@ -38,7 +81,7 @@ export function useBudgetActions({ injectedApis, refresh }: UseBudgetActionsOpti
   })
 
   const updateProjectMutation = useMutation({
-    mutationFn: (params: {
+    mutationFn: async (params: {
       groupId: string
       data: {
         budget?: number
@@ -46,7 +89,19 @@ export function useBudgetActions({ injectedApis, refresh }: UseBudgetActionsOpti
         memberBudgets?: Record<string, number>
         ownerId?: string
       }
-    }) => apis.budgetApi.updateProject(params.groupId, params.data),
+    }) => {
+      if (isFuturePeriod && params.data.budget !== undefined) {
+        await ensureSnapshot(period)
+        // ponytail: snapshot only stores budget; other fields (memberIds, owner) are live entities
+        const { budget, ...liveFields } = params.data
+        await apis.budgetApi.updateSnapshotProject(period, params.groupId, { budget })
+        if (Object.keys(liveFields).length > 0) {
+          await apis.budgetApi.updateProject(params.groupId, liveFields)
+        }
+        return
+      }
+      return apis.budgetApi.updateProject(params.groupId, params.data)
+    },
     onSuccess: () => void refresh(),
   })
 
@@ -126,9 +181,18 @@ export function useBudgetActions({ injectedApis, refresh }: UseBudgetActionsOpti
   )
 
   const updateMemberBudget = useCallback(
-    (memberId: string, data: UpdateMemberBudgetInput) =>
-      apis.budgetApi.updateMemberBudget(memberId, data),
-    [apis],
+    async (memberId: string, data: UpdateMemberBudgetInput) => {
+      if (isFuturePeriod) {
+        await ensureSnapshot(period)
+        await apis.budgetApi.updateSnapshotMember(period, memberId, {
+          personalBudget: data.personalBudget,
+        })
+        // ponytail: snapshot returns void; caller merges via spread so partial is safe
+        return { memberId, personalBudget: data.personalBudget }
+      }
+      return apis.budgetApi.updateMemberBudget(memberId, data)
+    },
+    [apis, isFuturePeriod, period, ensureSnapshot],
   )
 
   const getDepartmentTree = useCallback(() => apis.orgApi.departments.getTree(), [apis])

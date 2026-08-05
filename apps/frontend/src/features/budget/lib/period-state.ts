@@ -8,3 +8,8 @@ export function getPeriodState(period: string): PeriodState {
   if (period === current) return 'current'
   return 'future'
 }
+
+/** Only current and next month are editable; past months are frozen. */
+export function isPeriodEditable(period: string): boolean {
+  return getPeriodState(period) !== 'past'
+}

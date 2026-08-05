@@ -16,6 +16,8 @@ export function BudgetPageShell({
   tree,
   projects,
   period,
+  editable,
+  canMutateEntities,
   shiftPeriod,
   selectedTeamId,
   selectedNode,
@@ -88,6 +90,8 @@ export function BudgetPageShell({
                 {activeProject ? (
                   <ProjectDetail
                     project={activeProject}
+                    editable={editable}
+                    canMutateEntities={canMutateEntities}
                     members={projectMembers}
                     departmentMembers={departmentMembers}
                     membersLoading={departmentMembersLoading}
@@ -102,6 +106,8 @@ export function BudgetPageShell({
                 ) : selectedNode ? (
                   <BudgetDetailTeam
                     node={selectedNode}
+                    editable={editable}
+                    canMutateEntities={canMutateEntities}
                     projects={projects.filter((project) =>
                       projectsForNode(selectedNode.id).some((group) => group.id === project.id),
                     )}

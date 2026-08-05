@@ -20,6 +20,7 @@ export function useBudgetPage(injectedApis?: AppApis) {
 
   const actions = useBudgetActions({
     injectedApis,
+    period: queries.period,
     refresh: queries.refresh,
   })
 

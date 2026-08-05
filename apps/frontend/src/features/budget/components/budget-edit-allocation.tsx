@@ -9,6 +9,7 @@ import { BudgetAllocationDialog } from './budget-allocation-dialog'
 
 interface BudgetEditAllocationProps {
   node: BudgetNode
+  editable?: boolean
   projects: ProjectView[]
   onUpdated: () => void
   onUpdateDepartment: (
@@ -19,6 +20,7 @@ interface BudgetEditAllocationProps {
 
 export function BudgetEditAllocation({
   node,
+  editable = true,
   projects,
   onUpdated,
   onUpdateDepartment,
@@ -34,17 +36,19 @@ export function BudgetEditAllocation({
     <div>
       <div className="mb-3 flex items-center justify-between">
         <h4 className="text-sm font-semibold text-foreground">子节点分配</h4>
-        <PermissionGate permission={PERMISSION.BUDGET_MANAGE}>
-          <Button
-            variant="ghost"
+        {editable && (
+          <PermissionGate permission={PERMISSION.BUDGET_MANAGE}>
+            <Button
+              variant="ghost"
 
-            className="h-7 gap-1.5 text-xs text-muted-foreground"
-            onClick={() => setDialogOpen(true)}
-          >
-            <Pencil className="size-3.5" />
-            编辑
-          </Button>
-        </PermissionGate>
+              className="h-7 gap-1.5 text-xs text-muted-foreground"
+              onClick={() => setDialogOpen(true)}
+            >
+              <Pencil className="size-3.5" />
+              编辑
+            </Button>
+          </PermissionGate>
+        )}
       </div>
 
       <BudgetAllocationTable

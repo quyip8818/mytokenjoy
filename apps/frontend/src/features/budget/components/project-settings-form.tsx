@@ -24,6 +24,7 @@ import { formatMoney } from '@/lib/quota-display'
 
 type ProjectSettingsFormProps = {
   project: ProjectView
+  editable?: boolean
   members?: Member[]
   onUpdateProject: (projectId: string, data: { budget?: number; ownerId?: string }) => Promise<void>
   onUpdated: () => void
@@ -31,6 +32,7 @@ type ProjectSettingsFormProps = {
 
 export function ProjectSettingsForm({
   project,
+  editable = true,
   members = [],
   onUpdateProject,
   onUpdated,
@@ -80,16 +82,18 @@ export function ProjectSettingsForm({
     <div>
       <div className="mb-3 flex items-center justify-between">
         <h4 className="text-sm font-semibold text-foreground">项目设置</h4>
-        <Button
-          variant="ghost"
+        {editable && (
+          <Button
+            variant="ghost"
 
-          className="h-7 gap-1.5 text-xs text-muted-foreground"
-          onClick={openDialog}
-          aria-label="编辑项目设置"
-        >
-          <Pencil className="size-3.5" />
-          编辑
-        </Button>
+            className="h-7 gap-1.5 text-xs text-muted-foreground"
+            onClick={openDialog}
+            aria-label="编辑项目设置"
+          >
+            <Pencil className="size-3.5" />
+            编辑
+          </Button>
+        )}
       </div>
 
       <div className="rounded-lg border border-border p-4">

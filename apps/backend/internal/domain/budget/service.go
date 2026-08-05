@@ -16,6 +16,7 @@ type Service interface {
 	GetTree(ctx context.Context) ([]types.BudgetNode, error)
 	GetTreeForPeriod(ctx context.Context, period string) ([]types.BudgetNode, error)
 	CopyPeriod(ctx context.Context, toPeriod string) error
+	ArchivePreviousPeriod(ctx context.Context) error
 	UpdateSnapshotNode(ctx context.Context, period string, nodeID uuid.UUID, budget float64, reservedPool *float64) error
 	UpdateSnapshotMember(ctx context.Context, period string, memberID uuid.UUID, personalBudget float64) error
 	UpdateSnapshotProject(ctx context.Context, period string, projectID uuid.UUID, budget float64) error

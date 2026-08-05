@@ -27,6 +27,7 @@ import { useWorkflow } from '@/features/workflow'
 
 type ProjectMembersSectionProps = {
   project: ProjectView
+  editable?: boolean
   members: Member[]
   departmentMembers: Member[]
   membersLoading?: boolean
@@ -37,6 +38,7 @@ type ProjectMembersSectionProps = {
 
 export function ProjectMembersSection({
   project,
+  editable = true,
   members,
   departmentMembers,
   membersLoading = false,
@@ -97,16 +99,18 @@ export function ProjectMembersSection({
     <div>
       <div className="mb-3 flex items-center justify-between">
         <h4 className="text-sm font-semibold text-foreground">关联成员</h4>
-        <Button
-          variant="ghost"
+        {editable && (
+          <Button
+            variant="ghost"
 
-          className="h-7 gap-1.5 text-xs text-muted-foreground"
-          onClick={openDialog}
-          aria-label="编辑成员"
-        >
-          <UserPlus className="size-3.5" />
-          编辑成员
-        </Button>
+            className="h-7 gap-1.5 text-xs text-muted-foreground"
+            onClick={openDialog}
+            aria-label="编辑成员"
+          >
+            <UserPlus className="size-3.5" />
+            编辑成员
+          </Button>
+        )}
       </div>
 
       <div className="rounded-lg border border-border">
