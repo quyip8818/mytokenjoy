@@ -6,11 +6,23 @@ async function loginAndSave(email: string, password: string, savePath: string) {
   const context = await browser.newContext()
   const page = await context.newPage()
 
-  const response = await page.request.post(`${E2E_BASE_URL}/api/auth/login`, {
+  // Step 1: Authenticate — gets register cookie + company list
+  const loginResp = await page.request.post(`${E2E_BASE_URL}/api/auth/login`, {
     data: { email, password },
   })
-  if (!response.ok()) {
-    throw new Error(`Login failed for ${email}: ${response.status()}`)
+  if (!loginResp.ok()) {
+    throw new Error(`Login failed for ${email}: ${loginResp.status()}`)
+  }
+  const loginData = await loginResp.json()
+
+  // Step 2: Select company — gets session cookie
+  if (loginData.action === 'select_company' && loginData.companies?.length > 0) {
+    const selectResp = await page.request.post(`${E2E_BASE_URL}/api/auth/select-company`, {
+      data: { companyId: loginData.companies[0].companyId },
+    })
+    if (!selectResp.ok()) {
+      throw new Error(`Select company failed: ${selectResp.status()}`)
+    }
   }
 
   await page.goto(E2E_BASE_URL)
