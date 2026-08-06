@@ -77,7 +77,7 @@ PRD 与当前实现的差距。**工程待办**见 [plan/plan.md](./plan/plan.md
 
 ## 7. 权限与鉴权
 
-**目标架构**见 [permission-hierarchy.md](./permission-hierarchy.md) §11–§12。后端 identity 收口与 HTTP/DI 简化已完成（`internal/identity/`、`deps.Public` / `Protected` / `Platform`；middleware 与 handler 统一 `deps.Protected`）。
+**目标架构**见 [permission-hierarchy.md](./permission-hierarchy.md) §11–§12。后端 identity 收口与 HTTP/DI 简化已完成（`internal/domain/identity/`、`deps.Public` / `Protected` / `Platform`；middleware 与 handler 统一 `deps.Protected`）。
 
 | 项                                | 状态 | 说明                                                       |
 | --------------------------------- | ---- | ---------------------------------------------------------- |

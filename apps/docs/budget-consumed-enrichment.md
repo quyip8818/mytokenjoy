@@ -14,7 +14,7 @@ Phase 1 + Phase 2 均已实现并合入 main。
 // domain/budget/tree_query.go
 func (s *service) GetTree(ctx context.Context) ([]types.BudgetNode, error) {
     s.MaybeRotatePeriod(ctx)
-    tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
+    tree, err := pkgorg.LoadBudgetTree(ctx, s.store.Org().Nodes())
     if err != nil { return nil, err }
     periodKey := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, s.clk).String()
     enrichTreeConsumed(ctx, s.store.Ledger(), tree, periodKey)

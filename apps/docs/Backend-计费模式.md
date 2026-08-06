@@ -254,7 +254,7 @@ DefaultQuotaPerUnit = 10000
 
 | 模块 | 文件 | 职责 |
 |------|------|------|
-| 常量 | `pkg/common/constants.go` | DefaultBillingCurrency / DefaultQuotaPerUnit |
+| 常量 | `support/quota/quota.go` | DefaultBillingCurrency / DefaultQuotaPerUnit |
 | 币种解析 | `domain/billing/currency.go` | ResolveCompanyChargeRate |
 | Lot 写入 | `domain/billing/lot/consume.go` | CreditFromLot / ConsumeLots |
 | 充值确认 | `domain/billing/lot_confirm.go` | confirmPaidRecharge / syncWalletBestEffort |

@@ -196,15 +196,15 @@ platform_keys (
 
 | 功能                                 | 路径                                                          |
 | ------------------------------------ | ------------------------------------------------------------- |
-| JWT 签发/解析                        | `internal/identity/sessiontoken/issuer.go`                    |
-| Cookie 操作                          | `internal/identity/httpx/token.go`                            |
-| Token Pair 签发                      | `internal/identity/httpx/issue.go`                            |
+| JWT 签发/解析                        | `internal/domain/identity/sessiontoken/issuer.go`                    |
+| Cookie 操作                          | `internal/http/httpx/token.go`                            |
+| Token Pair 签发                      | `internal/http/httpx/issue.go`                            |
 | Session 存储                         | `internal/store/session_repo.go` + `postgres/session_repo.go` |
 | Auth handler（Login/Logout/Refresh） | `internal/http/handler/auth/`                                 |
 | RequireSession middleware            | `internal/http/middleware/session.go`                         |
 | RequirePlatformAdmin middleware      | `internal/http/middleware/require_platform.go`                |
-| AuthzSvc（权限缓存）                 | `internal/identity/authz/service.go`                          |
-| AuthzSvc LRU 缓存                    | `internal/identity/authz/cache.go`                            |
+| AuthzSvc（权限缓存）                 | `internal/domain/identity/authz/service.go`                          |
+| AuthzSvc LRU 缓存                    | `internal/domain/identity/authz/cache.go`                            |
 | Authz Revision header                | `internal/http/middleware/authz_revision.go`                  |
 | Gateway（Platform Key 认证）         | `internal/domain/gateway/gateway_service.go`                  |
 | Platform Key hash                    | `internal/store/platform_key_mapping_repo.go`                 |
@@ -290,7 +290,7 @@ BatchImport 对每行执行同样逻辑。
 
 ### 9.3 加密 Token
 
-XOR 加密（HMAC-SHA256 派生密钥流）+ 4 字节截断 MAC，密钥 `INVITE_SECRET`（`internal/pkg/invitetoken`）。为兼容短信长度限制（阿里云变量 ≤35 字符）刻意做成 18 字符紧凑 token；预留升级路径为 AES-GCM（若字符预算允许 50+ 字符）。
+XOR 加密（HMAC-SHA256 派生密钥流）+ 4 字节截断 MAC，密钥 `INVITE_SECRET`（`internal/support/invitetoken`）。为兼容短信长度限制（阿里云变量 ≤35 字符）刻意做成 18 字符紧凑 token；预留升级路径为 AES-GCM（若字符预算允许 50+ 字符）。
 
 **明文**：9 字节 `[8字节 code][1字节 channel]`（`channel` 为单字符：`s`=sms、`e`=email、`a`=admin_link），**不含** exp——过期只在 DB 侧 `expires_at` 校验。
 
@@ -350,7 +350,7 @@ POST /auth/accept-invite { inviteCode, password, name? }
 
 | 功能 | 路径 |
 |------|------|
-| invite token 加解密 | `internal/pkg/invitetoken/` |
+| invite token 加解密 | `internal/support/invitetoken/` |
 | 创建成员 + 邀请 | `internal/domain/org/structure/member_mutate.go` |
 | 批量导入 + 邀请 | `internal/domain/org/structure/member_batch.go` |
 | AcceptInvite | `internal/domain/company/service_invite.go` |

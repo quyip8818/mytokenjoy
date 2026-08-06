@@ -235,10 +235,10 @@ flowchart TD
 ## 7. 代码放哪
 
 ```text
-internal/pkg/clock/          Clock 接口、System / Fixed / NowUTC
+internal/support/clock/          Clock 接口、System / Fixed / NowUTC
 internal/config/             Clock()、SeedReferenceDate、生产禁锚点
 
-internal/pkg/budget/
+internal/support/budget/
   period_key.go              PeriodMonthly、SnapshotKey
   period.go                  Open* / Occurrence*、RootPeriodKey
   cost_range.go              看板 Resolve / PreviousRange

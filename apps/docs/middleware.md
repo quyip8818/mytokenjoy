@@ -166,7 +166,7 @@ internal/http/middleware/
 ├── sync_trigger.go        AllowSyncTrigger（数据源同步触发鉴权）
 └── timeout.go             RequestTimeout
 
-internal/pkg/ratelimit/
+internal/infra/ratelimit/
 ├── limiter.go             Limiter 接口 + RedisLimiter
 ├── memory.go              MemoryLimiter (本地 fallback)
 └── response.go            WriteHeaders / WriteRejection

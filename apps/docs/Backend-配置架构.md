@@ -97,7 +97,7 @@ InviteSecretKeys() / InviteExpireDuration()
 
 ---
 
-## 4. 时钟（`internal/pkg/clock`）
+## 4. 时钟（`internal/support/clock`）
 
 ```go
 type Clock interface { Now() time.Time }
@@ -120,7 +120,7 @@ func NowUTC(clk Clock) time.Time
 | `integration/newapisync`              | `Load*(..., cfg.Clock())`                                                                          |
 | `domain/gateway/precheck`             | `GatewayPrecheck.LoadPrecheckContext`；SQL 内按 `org_nodes.period` + `Clock` 算 `period_key`       |
 | `domain/usage/ingest`                 | `OccurrenceDepartmentPeriod(..., OccurredAt)` + `OpenDepartmentPeriod(..., cfg.Clock())`           |
-| `pkg/budget`                          | 开账工厂见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)；`Load*` 收 `clock.Clock`      |
+| `support/budget`                          | 开账工厂见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)；`Load*` 收 `clock.Clock`      |
 | `org/core` `BudgetPeriod()`           | 返回 `pkgbudget.PeriodMonthly`；实时 period_key 由 Clock 解析                                      |
 
 账期语义、双轨与护栏全文见 [Backend-业务时钟与账期.md](./Backend-业务时钟与账期.md)。  
@@ -211,7 +211,7 @@ func NowUTC(clk Clock) time.Time
 | `internal/config/deploy.go`                | IsProductionDeploy / Clock / validateProductionContract      |
 | `internal/config/validate.go`             | validate 主流程                                              |
 | `internal/config/store_bootstrap.go`      | StoreBootstrap（测试专用）                                   |
-| `internal/pkg/clock/clock.go`             | Clock 接口                                                   |
+| `internal/support/clock/clock.go`             | Clock 接口                                                   |
 | `seed/init.go`                            | `seed.Init` — 数据引导总入口                                 |
 | `seed/bootstrap/`                         | `ApplyBootstrap` / `seedGlobalPresetRoles` / bootstrap config |
 | `seed/runtime/demo.go`                    | `ApplyDemo`（demo 运行时数据）                               |

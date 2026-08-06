@@ -125,7 +125,7 @@ apps/backend/
 │   │   ├── org/             # 组织域（见下）；对外仍 domain/org.Service
 │   │   │   ├── core/        # Deps、provision、authz bump
 │   │   │   ├── structure/   # 本地成员/角色/部门
-│   │   │   └── remote/      # 数据源凭证、导入、同步（消费 datasource.Provider）
+│   │   │   └── remote/      # 数据源凭证、导入、同步（消费 types.DataSourceProvider）
 │   │   ├── budget/          # 预算树、组、预警、rebalance、overrun
 │   │   ├── keys/            # 平台/上游 Key、审批
 │   │   ├── models/          # 模型目录、路由白名单
@@ -324,11 +324,11 @@ type Store interface {
 | `sync_diff.go`                                                | `BuildSyncDiff`：远程与本地部门/成员 diff          |
 | `departments.go` / `members.go` / `roles.go` / `org_nodes.go` | 树组装、成员筛选等共享逻辑                         |
 
-**扩展钉钉/企微**：在 `integration/datasource` 实现 `Provider` 并扩展 `factory.ForPlatform`；`org/remote` 保持平台无关，通常无需修改。
+**扩展钉钉/企微**：在 `integration/datasource` 实现 `types.DataSourceProvider` 并扩展 `factory.ForPlatform`；`org/remote` 保持平台无关，通常无需修改。
 
 ### 5.2 `pkg/` 与 `domain/` 放置准则
 
-| 放 `internal/pkg/`                      | 放 `internal/domain/`  |
+| 放 `internal/support/`                   | 放 `internal/domain/`  |
 | --------------------------------------- | ---------------------- |
 | 纯函数、无 I/O（预算树计算、sync diff） | 业务流程、状态机、编排 |
 | 2+ 域共用的数据结构变换                 | 单域 CRUD + 规则       |
@@ -526,7 +526,7 @@ HTTP JSON **camelCase**；DB **snake_case**。
 | Middleware       | `tests/http/middleware/middleware_test.go`（非 `NewApp`）    |
 | Handler 测       | 按域分子目录；fixture 用 `testutil/http`、`testutil/saas`    |
 | Domain 测        | 共享 helper 收拢至 `tests/domain/<域>/helpers_test.go`       |
-| pkg 测           | `tests/pkg/org/` 等；组织 diff/ID 与 `internal/pkg/org` 对称 |
+| pkg 测           | `tests/pkg/org/` 等；组织 diff/ID 与 `internal/support/org` 对称 |
 
 变更检查清单见 [Backend-架构.md](./Backend-架构.md)。
 
@@ -548,7 +548,7 @@ HTTP JSON **camelCase**；DB **snake_case**。
 | 逻辑模块         | 包路径                                                         | 职责                                  |
 | ---------------- | -------------------------------------------------------------- | ------------------------------------- |
 | **平台与租户**   | `company`、`org`、`grants`                                     | 开户、邀请、组织树、数据源同步        |
-| **身份与鉴权**   | `identity/*`、`infra/permission`                               | Session JWT、RBAC、权限 manifest      |
+| **身份与鉴权**   | `domain/identity/*`、`domain/grants`                           | Session JWT、RBAC、权限 manifest      |
 | **计费与预算**   | `billing`、`billing/lot`、`budget`、`usage`                    | 充值 lot、双轴预算、入账与投影        |
 | **数据面与同步** | `gateway`、`keys`、`newapisync`、`adminport`                   | `/v1` 预检、PlatformKey、NewAPI Admin |
 | **只读聚合**     | `dashboard`、`memberanalytics`、`audit`、`models`              | 看板、工作台、审计、模型目录          |
@@ -598,7 +598,7 @@ infra/
 ```bash
 # scripts/layer-guard.sh — make lint 含此检查
 rg 'internal/infra/'           apps/backend/internal/domain/       # domain 零 infra import
-rg 'integration/newapi|integration/datasource/feishu' apps/backend/internal/domain/
+rg 'integration/newapi|integration/datasource/feishu' apps/backend/internal/integration/
 rg '\.Store\b'                 apps/backend/internal/http/handler/  # handler 不直访 Store
 rg 'fanout'                    apps/backend/internal/infra/river/periodic/
 ```
@@ -615,7 +615,7 @@ rg 'fanout'                    apps/backend/internal/infra/river/periodic/
 
 billing 域没有独立入队端口——充值只走 post-commit `QuotaSyncer.ManageUser` 实时覆盖 NewAPI，不入队 River job。
 
-**其它端口：** `adminport.Port`、`types.Notifier`、`budgetcheck.Store`、`datasource.Provider`、`authz.RevisionReader`。
+**其它端口：** `adminport.Port`、`types.Notifier`、`budgetcheck.Store`、`types.DataSourceProvider`、`authz.RevisionReader`。
 
 ### 12.3 钱包与 lot 边界
 

@@ -353,10 +353,10 @@ members.direct_permissions[] (TEXT[])
 | 模块 | 路径 |
 |------|------|
 | 契约 | `packages/contracts/permission/manifest.json` |
-| 后端生成常量 | `internal/infra/permission/keys.go` |
-| 层级展开 | `internal/infra/permission/manifest.go` → `ExpandHierarchy` |
-| PDP 服务 | `internal/identity/authz/service.go` |
-| 权限展开 | `internal/identity/authz/resolve.go` |
+| 后端生成常量 | `internal/domain/grants/keys.go` |
+| 层级展开 | `internal/domain/grants/manifest.go` → `ExpandHierarchy` |
+| PDP 服务 | `internal/domain/identity/authz/service.go` |
+| 权限展开 | `internal/domain/identity/authz/resolve.go` |
 | Session 中间件 | `internal/http/middleware/session.go` |
 | Authz 中间件 | `internal/http/middleware/authz.go` |
 | Platform 中间件 | `internal/http/middleware/require_platform.go` |

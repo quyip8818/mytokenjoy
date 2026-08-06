@@ -52,18 +52,19 @@ internal/
 └── support/          # 跨层无业务语义工具
     ├── clock/        # Clock interface + System/Fixed
     ├── tenant/       # context key + Get/Set（原 ctxcompany）
-    ├── tree/         # 通用树结构操作
     ├── budget/       # 预算计算 helper（跨 5 domain 共用）
-    ├── org/          # 组织树 helper（跨 domain 共用）
-    ├── common/       # MoneyToQuota、crypto、paginate 等（待后续细粒度拆分）
+    ├── org/          # 组织树/路由规则 helper + LoadDepartments/LoadBudgetTree
+    ├── quota/        # MoneyToQuota/QuotaToMoney/ResolveBillingCurrency + 常量
+    ├── crypto/       # AES-GCM 加解密（凭证字段）
+    ├── simulate/     # Delayer（开发延迟模拟）
+    ├── sliceutil/    # Paginate、HasAny 泛型工具
     ├── ratelimit/    # Limiter interface + Result + HTTP response helpers
     ├── invitetoken/  # 邀请 token 签发/解析
     ├── baseurl/      # URL 派生
     └── modelcatalog/ # 模型目录数据结构
 ```
 
-删除的目录：`internal/identity/`、`infra/permission/`、`domain/port/`。
-`internal/pkg/` 瘦身后 rename 为 `internal/support/`（或保留 `pkg` 名仅瘦身，见问题 5）。
+删除的目录：`internal/identity/`、`infra/permission/`、`domain/port/`、`internal/pkg/`、`support/common/`、`support/tree/`。
 
 ---
 
@@ -362,3 +363,70 @@ domain/org → domain/company（合法单向）
 - domain service 窄 Store 接口模式（如 `budget.Store` 新增 `Ledger()`）— 继续演进
 - clock constructor injection 模式 — 已确立，所有 service 通过构造函数接收 clock
 - worker 委托 domain service 模式（如 rebalance worker → budget.Service.RotatePeriod）— 正确方向
+
+---
+
+## 阶段 6+7：support/common 拆分 + datasource 依赖翻转（2026-08-06）
+
+### 阶段 6：`support/common` 彻底拆空删除 ✅
+
+`support/common` 是从 `internal/pkg/common` 整体迁移来的杂物间（10 个文件），现已按语义拆分：
+
+| 原 common 文件 | 新归属 | 理由 |
+|---|---|---|
+| `constants.go` (MoneyToQuota/QuotaToMoney/ResolveBillingCurrency/DefaultQuotaPerUnit/DefaultBillingCurrency/DefaultPersonalBudget) | `support/quota/quota.go` | 纯 billing 计算，无外部依赖 |
+| `routing.go` (GetRoutingRuleForDept/ShrinkChildRoutingRules/ValidateModelIDsForMember 等) | `support/org/routing.go` | 组织路由规则逻辑 |
+| `org_store.go` (LoadDepartments/LoadBudgetTree/LoadRoutingRules/PersistRoutingRules) | `support/org/org_store.go` | 组织树数据加载 |
+| `crypto.go` + `fieldcrypto.go` | `support/crypto/crypto.go` | AES-GCM 加解密 |
+| `paginate.go` + `scope_check.go` (Paginate/HasAny) | `support/sliceutil/sliceutil.go` | 泛型 slice 工具 |
+| `parse.go` (ParseIntParam) | `http/httputil/params.go` | 纯 HTTP 参数解析 |
+| `simulate.go` (Delayer) | `support/simulate/delayer.go` | 开发延迟模拟 |
+| `auditfilter.go` | 删除 | 零 production 调用者（dead code） |
+
+**关键设计决策**：
+- `support/org/org_store.go` 定义了 narrow interface（`OrgNodeTreeReader`、`AllowlistWriter`）而非 import store 包，避免 `store → support/org → store` 循环依赖
+- `PersistRoutingRules` 签名改为接收 `AllowlistWriter` + `OrgNodeTreeWriter` 两个参数（而非一个组合接口），让调用方直接传 `st.Models().Allowlist()` + `st.Org().Nodes()`
+- `support/tree` 泛型 `Flatten` 仅有 1 个调用者 → inline 到 `support/budget/tree.go`，包目录删除
+
+**同时完成**：
+- `billing.DefaultQuotaPerUnit()` wrapper 函数删除（调用者改用 `quota.DefaultQuotaPerUnit` 常量）
+- `ModelNotInDeptMessage`/`NewAPIGroupPrefix` 常量规范化到 `support/org`（从 `support/quota` 中删除重复定义）
+- `app/testhook.go` 加 `//go:build testhook`（`NewWithStore` 不出现在 production binary）
+
+**验证**：109 files changed, +330 -1459 lines。`go build ./...` ✅ `make lint` ✅ `make test-unit-nocache` ✅
+
+---
+
+### 阶段 7：翻转 `domain/org` → `integration/datasource` 依赖方向 ✅
+
+**问题**：domain/org 的 7 个文件直接 import `integration/datasource`（向上引用外部层）。
+
+**修正**：
+- `RemoteDepartment`、`RemoteMember` struct + `DataSourceProvider`、`DataSourceFactory` interface 移入 `domain/types/datasource.go`（shared kernel）
+- `integration/datasource/provider.go` 改为 type alias（`type Provider = types.DataSourceProvider`）
+- `support/org/sync_diff.go` 改为 import `domain/types`
+
+**修正后依赖**：
+```
+Before: domain/org → integration/datasource  (向上 ❌)
+After:  integration/datasource → domain/types (向下 ✅)
+```
+
+**验证**：`grep -rl 'integration/' internal/domain/` = 0。10 files changed。
+
+---
+
+## 当前架构健康度总结
+
+| 指标 | 值 | 评价 |
+|------|-----|------|
+| domain → integration | 0 文件 | ✅ |
+| domain → infra | 0 文件 | ✅ |
+| domain → http | 0 文件 | ✅ |
+| domain → support | 68 文件 | ✅ 合法 |
+| domain → store | 77 文件 | ✅ Go 惯例 |
+| domain → config | 19 文件 | ✅ 合法 |
+| support/ 包数 | 12 | ✅ 各包职责单一 |
+| 总 .go 文件数 | 505 | — |
+
+**结论**：无剩余结构性问题。后续优化仅为 cosmetic 级（`integration/` rename 为 `adapter/`、`Deps` 渐进窄化），等业务需求触碰时顺手做。
