@@ -35,4 +35,5 @@ type LedgerRepository interface {
 	ListCallSettledAfterCursor(ctx context.Context, cursor LedgerProjectorCursor) ([]types.UsageLedgerEntry, error)
 	ListCallSettledSince(ctx context.Context, since time.Time) ([]types.UsageLedgerEntry, error)
 	SumCostByDepartment(ctx context.Context, departmentID uuid.UUID, periodKey string) (float64, error)
+	SumCostAllDepartments(ctx context.Context, periodKey string) (map[uuid.UUID]float64, error)
 }

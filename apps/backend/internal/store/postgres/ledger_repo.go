@@ -232,6 +232,32 @@ func (r *pgLedgerRepo) SumCostByDepartment(ctx context.Context, departmentID uui
 	return total, err
 }
 
+func (r *pgLedgerRepo) SumCostAllDepartments(ctx context.Context, periodKey string) (map[uuid.UUID]float64, error) {
+	companyID := store.CompanyID(ctx)
+	rows, err := r.db.Query(ctx, `
+		SELECT department_id, COALESCE(SUM(cost), 0)
+		FROM usage_ledger
+		WHERE company_id = $1
+		  AND period_key = $2
+		  AND event_type = $3
+		GROUP BY department_id
+	`, companyID, periodKey, types.EventTypeCallSettled)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make(map[uuid.UUID]float64)
+	for rows.Next() {
+		var deptID uuid.UUID
+		var cost float64
+		if err := rows.Scan(&deptID, &cost); err != nil {
+			return nil, err
+		}
+		result[deptID] = cost
+	}
+	return result, rows.Err()
+}
+
 func (r *pgLedgerRepo) CallsSummary(ctx context.Context, filter store.LedgerCallFilter) (types.CallsSummary, error) {
 	companyID := store.CompanyID(ctx)
 	where, args := buildLedgerCallWhere(companyID, filter)

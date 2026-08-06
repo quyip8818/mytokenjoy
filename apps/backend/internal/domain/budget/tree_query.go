@@ -12,7 +12,15 @@ import (
 
 func (s *service) GetTree(ctx context.Context) ([]types.BudgetNode, error) {
 	s.MaybeRotatePeriod(ctx) // lazy rotation: ensure current period is active
-	return common.LoadBudgetTree(ctx, s.store.Org().Nodes())
+	tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
+	if err != nil {
+		return nil, err
+	}
+	periodKey := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, s.clk).String()
+	if err := enrichTreeConsumed(ctx, s.store.Ledger(), tree, periodKey); err != nil {
+		s.logger.Warn("enrich tree consumed failed", "err", err)
+	}
+	return tree, nil
 }
 
 func (s *service) MemberSummary(ctx context.Context, memberID uuid.UUID) (types.MemberBudgetSummary, error) {

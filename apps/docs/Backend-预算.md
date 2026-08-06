@@ -135,7 +135,7 @@ flowchart LR
 | 1      | `platform_key` += cost             | Key 已用                                           |
 | 2      | `project` += cost                  | `project` / `project_member` scope                 |
 | 3      | `member` += cost                   | 仅 `member` scope                                  |
-| —      | 无 org_node 轴                     | 部门报表用 ledger                                  |
+| —      | 无 org_node 轴                     | 部门花费用 ledger 聚合（GetTree 自动 enrichment）  |
 | 同事务 | `combined_key_remain`              | 预检热读                                           |
 | 提交后 | 告警直做；wallet override 直做；overrun/rebalance 按需 | 见 [Backend-离线任务.md](./Backend-离线任务.md) §5 |
 
@@ -284,7 +284,7 @@ flowchart TB
 | 存储                             | 职责                                                                       |
 | -------------------------------- | -------------------------------------------------------------------------- |
 | `usage_ledger`                   | 消耗 SSOT；幂等 `newapi:{log_id}`                                          |
-| `budget_consumed`                | 三轴 `platform_key` · `member` · `project`；部门报表读 `usage_ledger` 聚合 |
+| `budget_consumed`                | 三轴 `platform_key` · `member` · `project`；部门 consumed 由 GetTree 从 `usage_ledger` 聚合（read-time enrichment） |
 | `platform_keys.combined_key_remain` | Gateway 预检缓存剩余（Ingest / Rebalance 同事务刷新）                    |
 | `usage_buckets`                  | 按小时聚合，供趋势图                                                       |
 | 组织树 / 成员 / Key / 组         | 仅存 limit                                                                 |
@@ -292,6 +292,7 @@ flowchart TB
 | 读场景                 | 数据源                                                |
 | ---------------------- | ----------------------------------------------------- |
 | 预算树 limit、Key 已用 | `org_nodes.budget` 等配置 + `budget_consumed`（三轴） |
+| 预算树部门 consumed    | `usage_ledger` GROUP BY department_id（GetTree read-time enrichment） |
 | Gateway 预检           | `combined_key_remain` + limit                         |
 | 看板趋势               | `usage_buckets`                                       |
 | 调用审计               | `usage_ledger`                                        |

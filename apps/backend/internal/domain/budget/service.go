@@ -45,6 +45,7 @@ type Store interface {
 	BudgetSnapshot() store.BudgetSnapshotRepository
 	Org() store.OrgRepository
 	Keys() store.KeysRepository
+	Ledger() store.LedgerRepository
 	PlatformKeyMappings() store.PlatformKeyMappingRepository
 	Audit() store.AuditRepository
 	TenantBackgroundState() store.TenantBackgroundStateRepository

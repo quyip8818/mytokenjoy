@@ -72,7 +72,7 @@ func (s *service) rotatePeriod(ctx context.Context, tx store.Store, currentPerio
 		}
 		if !exists {
 			// Save the current state as the previous period's terminal snapshot
-			payload, err := s.buildSnapshotFromTx(ctx, tx)
+			payload, err := s.buildSnapshotFromTx(ctx, tx, lastRotated)
 			if err != nil {
 				return fmt.Errorf("build previous snapshot: %w", err)
 			}
@@ -184,10 +184,16 @@ func (s *service) applySnapshot(ctx context.Context, tx store.Store, payload *Sn
 }
 
 // buildSnapshotFromTx builds a snapshot using a transaction's store (for consistency).
-func (s *service) buildSnapshotFromTx(ctx context.Context, tx store.Store) (*SnapshotPayload, error) {
+// periodKey is used to enrich tree nodes with consumed data from ledger.
+func (s *service) buildSnapshotFromTx(ctx context.Context, tx store.Store, periodKey string) (*SnapshotPayload, error) {
 	tree, err := common.LoadBudgetTree(ctx, tx.Org().Nodes())
 	if err != nil {
 		return nil, err
+	}
+	if periodKey != "" {
+		if err := enrichTreeConsumed(ctx, tx.Ledger(), tree, periodKey); err != nil {
+			s.logger.Warn("archive enrich consumed failed", "period", periodKey, "err", err)
+		}
 	}
 	members, err := tx.Org().Members(ctx)
 	if err != nil {
