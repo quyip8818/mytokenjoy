@@ -13,7 +13,7 @@ import (
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/domain/identity/httpx"
+	"github.com/tokenjoy/backend/internal/http/httpx"
 	"github.com/tokenjoy/backend/internal/domain/identity/registertoken"
 	"github.com/tokenjoy/backend/internal/domain/identity/verifycode"
 	"github.com/tokenjoy/backend/internal/support/tenant"

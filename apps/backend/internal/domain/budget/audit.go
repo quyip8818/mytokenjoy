@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/domain/identity/httpx"
+
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -28,7 +28,7 @@ func (s *service) appendBudgetLog(ctx context.Context, action, target, detail st
 }
 
 func resolveOperator(ctx context.Context) (string, uuid.UUID) {
-	if session, ok := httpx.SessionFromContext(ctx); ok {
+	if session, ok := types.SessionFromContext(ctx); ok {
 		return session.Member.Alias, session.Member.ID
 	}
 	return "system", uuid.Nil

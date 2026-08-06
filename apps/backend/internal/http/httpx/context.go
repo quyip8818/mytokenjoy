@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/domain/identity/sessiontoken"
+	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
 type sessionClaimsKey struct{}
@@ -20,15 +20,14 @@ func SessionClaimsFromContext(ctx context.Context) (sessiontoken.Claims, bool) {
 	return claims, ok
 }
 
-type sessionContextKey struct{}
-
+// WithSessionContext delegates to types.WithSessionContext.
 func WithSessionContext(ctx context.Context, sessionCtx types.SessionContext) context.Context {
-	return context.WithValue(ctx, sessionContextKey{}, sessionCtx)
+	return types.WithSessionContext(ctx, sessionCtx)
 }
 
+// SessionFromContext delegates to types.SessionFromContext.
 func SessionFromContext(ctx context.Context) (types.SessionContext, bool) {
-	sessionCtx, ok := ctx.Value(sessionContextKey{}).(types.SessionContext)
-	return sessionCtx, ok
+	return types.SessionFromContext(ctx)
 }
 
 func SetAuthzRevisionHeader(w http.ResponseWriter, revision int64) {

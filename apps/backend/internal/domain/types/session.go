@@ -1,6 +1,10 @@
 package types
 
-import "github.com/google/uuid"
+import (
+	"context"
+
+	"github.com/google/uuid"
+)
 
 type Member struct {
 	ID             uuid.UUID `json:"id"`
@@ -57,4 +61,17 @@ type SessionContext struct {
 	ReadOnly        bool        `json:"readOnly"`
 	BillingCurrency string      `json:"billingCurrency"`
 	QuotaPerUnit    int64       `json:"quotaPerUnit"`
+}
+
+type sessionContextKey struct{}
+
+// WithSessionContext stores a SessionContext in the given context.
+func WithSessionContext(ctx context.Context, sc SessionContext) context.Context {
+	return context.WithValue(ctx, sessionContextKey{}, sc)
+}
+
+// SessionFromContext retrieves the SessionContext from ctx, if any.
+func SessionFromContext(ctx context.Context) (SessionContext, bool) {
+	sc, ok := ctx.Value(sessionContextKey{}).(SessionContext)
+	return sc, ok
 }

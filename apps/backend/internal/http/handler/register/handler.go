@@ -12,7 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	mehandler "github.com/tokenjoy/backend/internal/http/handler/me"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/domain/identity/httpx"
+	"github.com/tokenjoy/backend/internal/http/httpx"
 	"github.com/tokenjoy/backend/internal/domain/identity/registertoken"
 	"github.com/tokenjoy/backend/internal/domain/identity/sessiontoken"
 	"github.com/tokenjoy/backend/internal/domain/identity/verifycode"
