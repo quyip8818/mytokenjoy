@@ -223,15 +223,15 @@ func listCurrencies(t *testing.T, router http.Handler, cookie string) []currency
 
 func fetchCurrenciesVersion(t *testing.T, router http.Handler) int {
 	t.Helper()
-	req := httptest.NewRequest(http.MethodGet, "/api/platform/sync/versions", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/platform/sync/catalog/currencies", nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
-		t.Fatalf("fetchVersions: expected 200, got %d", rec.Code)
+		t.Fatalf("fetchCurrenciesVersion: expected 200, got %d", rec.Code)
 	}
 	var v struct {
-		Currencies int `json:"currencies"`
+		Version int `json:"version"`
 	}
 	_ = json.NewDecoder(rec.Body).Decode(&v)
-	return v.Currencies
+	return v.Version
 }

@@ -40,8 +40,8 @@ TokenJoy 支持两种部署模式：
 
 发布不是"把数据推到 local"——而是 bump 一个版本号。Local worker 定期检查版本号，发现变更时主动拉取。
 
-- **模型发布**：点击"发布"按钮 → bump `catalog.models_version`
-- **定价变更**：`SetGlobalPricing` / `SetModelPricing` / `CreateModel`（有价时）自动 bump `catalog.pricing_version`（无需手动发布）
+- **模型发布**：点击"发布"按钮 → bump `sync_versions` 表中 `(GlobalSyncVersion, "models")` 的 version
+- **定价变更**：`SetGlobalPricing` / `SetModelPricing` / `CreateModel`（有价时）自动 bump `sync_versions` 表中 `(GlobalSyncVersion, "pricing")`（无需手动发布）
 
 好处：模型 batch 编辑时攒一批一起发布；定价变更即时生效（下次 sync 周期内）。
 
@@ -54,13 +54,6 @@ TokenJoy 支持两种部署模式：
 注册在 `/api/platform/` 路由下。分为公开端点和 sync token 保护端点。
 
 **公开端点（无需鉴权）：**
-
-```
-GET /api/platform/sync/versions
-响应: { "models": 3, "pricing": 2, "currencies": 1, "walletLots": 1 }
-```
-
-返回当前模型、定价、币种、wallet_lots 的发布版本号。Worker 分别和本地版本比较，相同则跳过。
 
 ```
 GET /api/platform/sync/catalog/models
@@ -84,6 +77,14 @@ GET /api/platform/sync/catalog/models
 **Sync token 保护端点（per-company 隔离）：**
 
 ```
+GET /api/platform/sync/versions
+Header: Authorization: Bearer cst_<hex64>
+响应: { "models": 3, "pricing": 2, "currencies": 1, "discounts": 1, "walletLots": 1 }
+```
+
+返回当前各类型版本号。全局类型（models/pricing/currencies）+ per-company 类型（discounts/walletLots）。Worker 分别和本地版本比较，相同则跳过。
+
+```
 GET /api/platform/sync/catalog/pricing
 Header: Authorization: Bearer cst_<hex64>
 响应: {
@@ -95,7 +96,7 @@ Header: Authorization: Bearer cst_<hex64>
 }
 ```
 
-返回全局定价（实时从 NewAPI ratio 转换为 display price）。`version` 字段为当前 `catalog.pricing_version` 值。同一 sync token 保护组下还有 `GET /sync/catalog/wallet_lots`（wallet lot 目录同步）。
+返回全局定价（实时从 NewAPI ratio 转换为 display price）。`version` 字段从 `sync_versions` 表读取。同一 sync token 保护组下还有 `GET /sync/catalog/discounts`（per-company 折扣同步）和 `GET /sync/catalog/wallet_lots`（wallet lot 目录同步）。
 
 鉴权由 `RequireSyncToken` 中间件完成：从 `Authorization: Bearer cst_xxx` 提取 token → SHA-256 hash → 查 `companies.sync_token_hash` → 验公司 status=active → 注入 companyID 到 context。
 
@@ -159,25 +160,39 @@ Append-only 折扣系数表。按 `(company_id, model_type, effective_from DESC)
 
 `CurrentPricesBatch` 取每个 model_type 的最新 effective_from 行。Ingest 优先用合同价，无合同价时 fallback 全局价。
 
-### system_settings 表
+### sync_versions 表
 
-| key | 说明 |
-|-----|------|
-| `catalog.models_version` | 模型目录发布版本号（手动 Publish bump） |
-| `catalog.pricing_version` | 定价版本号（SetGlobalPricing / SetModelPricing / CreateModel 有价时自动 bump） |
-| `catalog.currencies_version` | 币种版本号（币种 CRUD 自动 bump） |
-| `catalog.wallet_lots_version` | wallet lot 目录版本号 |
-| `catalog_sync_token` | Local 侧的 sync token 明文（setup 写入） |
-| `setup_company_id` | Local 侧注册获得的 companyId（setup 写入） |
-| `register_local:<idempotencyKey>` | 注册幂等映射 → 完整注册结果 JSON（companyId/walletUserId/platformKey/syncToken） |
+所有 catalog sync 版本号统一存储在 `sync_versions` 表。`company_id = uuid.Nil`（全零 UUID）代表全局 version，真实公司 UUID 代表 per-company version。
+
+| company_id | type | 说明 |
+|------------|------|------|
+| `00000000-...` | `models` | 模型目录发布版本号（手动 Publish bump） |
+| `00000000-...` | `pricing` | 定价版本号（SetGlobalPricing / SetModelPricing / CreateModel 有价时自动 bump） |
+| `00000000-...` | `currencies` | 币种版本号（币种 CRUD 自动 bump） |
+| `<companyID>` | `discounts` | per-company 折扣版本号（SetCompanyDiscount bump） |
+| `<companyID>` | `wallet_lots` | per-company wallet lot 版本号（充值/消费 bump） |
 
 版本号的 `Increment` 方法使用原子 SQL：
 
 ```sql
-INSERT INTO system_settings (key, value) VALUES ($1, '1')
-ON CONFLICT (key) DO UPDATE SET value = (system_settings.value::int + 1)::text
-RETURNING value::int
+INSERT INTO sync_versions (company_id, type, version) VALUES ($1, $2, 1)
+ON CONFLICT (company_id, type)
+DO UPDATE SET version = sync_versions.version + 1
+RETURNING version
 ```
+
+### system_settings 表
+
+仅用于 Local 部署的 setup 配置（不再存储 catalog version）：
+
+| key | 说明 |
+|-----|------|
+| `catalog_sync_token` | Local 侧的 sync token 明文（setup 写入） |
+| `setup_company_id` | Local 侧注册获得的 companyId（setup 写入） |
+| `setup_admin_email` | Local 管理员邮箱（setup 写入） |
+| `platform_channel_id` | Local NewAPI 上游 channel ID（启动时动态创建） |
+| `saas_platform_key` | Local 连 SaaS 的 platform key（setup 写入） |
+| `register_local:<idempotencyKey>` | 注册幂等映射 → 完整注册结果 JSON |
 
 ### companies 表（sync 相关列）
 
@@ -208,22 +223,22 @@ Sync token 由 setup 流程自动获取并存入 `system_settings` 表（key: `c
 ```
 每 CATALOG_SYNC_INTERVAL_SEC 秒执行一次：
 
-1. GET /sync/versions → { models: M, pricing: P }
+1. GET /sync/versions (Bearer cst_xxx) → { models: M, pricing: P, currencies: C, discounts: D, walletLots: W }
 
 2. Models sync（独立通道）：
-   - 比较本地 catalog.models_version 与远端 models version
+   - 比较本地 sync_versions (GlobalSyncVersion, "models") 与远端
    - 相同 → 跳过
    - 不同 → GET /sync/catalog/models
      → SyncFromPlatform: upsert 到本地 models 表
-     → 更新本地 catalog.models_version
+     → Set 本地 version
 
 3. Pricing sync（独立通道）：
-   - 比较本地 catalog.pricing_version 与远端 pricing version
+   - 比较本地 sync_versions (GlobalSyncVersion, "pricing") 与远端
    - 相同 → 跳过
    - 不同 → GET /sync/catalog/pricing (Bearer cst_xxx)
      → 遍历返回数据：
        - push NewAPI gateway（UpsertModelRatio）
-     → 更新本地 catalog.pricing_version
+     → Set 本地 version
 ```
 
 模型和定价各自独立 version，互不影响。改价不需要重新同步模型，模型变更也不触发定价同步。

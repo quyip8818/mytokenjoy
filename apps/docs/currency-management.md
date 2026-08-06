@@ -38,7 +38,7 @@ FK 约束：`companies.billing_currency REFERENCES currencies(currency)` — 币
 
 ### 3.1 SaaS（`SupportSaas=true`）
 
-SaaS 是 currencies 的 Source of Truth。平台管理员通过 UI 管理，每次写操作自动 bump `catalog.currencies_version`。
+SaaS 是 currencies 的 Source of Truth。平台管理员通过 UI 管理，每次写操作自动 bump `sync_versions` 表中 `(GlobalSyncVersion, "currencies")`。
 
 ```
 平台管理员 → CRUD API → currencies 表 → bump version
@@ -60,7 +60,7 @@ currencies 由 seed 初始化，后续手动修改数据库或扩展管理接口
 
 ## 4. 管理 API（SaaS 平台管理员）
 
-所有写操作需 `PLATFORM_MANAGE` 权限，每次成功后自动 `Increment(catalog.currencies_version)`。
+所有写操作需 `PLATFORM_MANAGE` 权限，每次成功后自动 bump `sync_versions` 表中 `(GlobalSyncVersion, "currencies")`。
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
@@ -93,8 +93,8 @@ currencies 由 seed 初始化，后续手动修改数据库或扩展管理接口
 
 ```
 Executor.Execute() — 每 5 分钟（默认，CATALOG_SYNC_INTERVAL_SEC 可覆盖）
-  ├─ FetchVersions → remote.Currencies
-  ├─ 比较 local system_settings["catalog.currencies_version"]
+  ├─ FetchVersions → remote.Currencies （需 sync token）
+  ├─ 比较本地 sync_versions (GlobalSyncVersion, "currencies")
   │   相同 → 跳过
   │   不同 → FetchCurrencies
   ├─ WithTx:
@@ -173,7 +173,7 @@ t4: 消耗 lot1 时 display = quota / 500,000
 | `seed/bootstrap`（`ApplyBootstrap` → `insertCurrencies`） | **每次启动**都执行（幂等） | `500,000` | `bootstrap.Config.Billing.QuotaPerUnit`，可经 `BOOTSTRAP_CONFIG_PATH` YAML 覆盖 |
 | `seed/apply`（`insertSeedCurrencies`） | 仅 SaaS 模式且库为空时（demo 数据） | `10,000` | `common.DefaultQuotaPerUnit`（运行期兜底常量，也用于 `entry_load.go` 查不到 currency 行时的 fallback） |
 
-两条路径 `ON CONFLICT DO UPDATE`，后执行的会覆盖前者的 QPU 值。`catalog.currencies_version` 由 `seedCatalogVersions` 统一初始化为 `1`（`ON CONFLICT DO NOTHING`，仅首次生效）。
+两条路径 `ON CONFLICT DO UPDATE`，后执行的会覆盖前者的 QPU 值。`sync_versions` 表中 `(GlobalSyncVersion, "currencies")` 由 `seedCatalogVersions` 统一初始化为 `1`（`ON CONFLICT DO NOTHING`，仅首次生效）。
 
 ---
 

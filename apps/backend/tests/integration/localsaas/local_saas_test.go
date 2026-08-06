@@ -189,7 +189,7 @@ func TestWalletLotsVersionBump(t *testing.T) {
 
 	// Check initial wallet_lots_version (should be 0 — no lot activity yet)
 	ctx := context.Background()
-	v0, _ := saasApp.Store.SystemSettings().Get(ctx, "catalog.wallet_lots_version")
+	v0, _ := saasApp.Store.SyncVersions().Get(ctx, companyID, "wallet_lots")
 
 	// Recharge → should bump version
 	platformCookie := saas.LoginPlatform(t, saasRouter)
@@ -202,9 +202,9 @@ func TestWalletLotsVersionBump(t *testing.T) {
 		t.Fatalf("recharge: %d %s", rec.Code, rec.Body.String())
 	}
 
-	v1, _ := saasApp.Store.SystemSettings().Get(ctx, "catalog.wallet_lots_version")
+	v1, _ := saasApp.Store.SyncVersions().Get(ctx, companyID, "wallet_lots")
 	if v1 == v0 {
-		t.Fatalf("expected wallet_lots_version to bump after recharge: before=%q after=%q", v0, v1)
+		t.Fatalf("expected wallet_lots_version to bump after recharge: before=%d after=%d", v0, v1)
 	}
 
 	// Setup local store + run catalog sync
@@ -228,9 +228,9 @@ func TestWalletLotsVersionBump(t *testing.T) {
 	if err := executor.Execute(ctx); err != nil {
 		t.Fatalf("first sync: %v", err)
 	}
-	localV, _ := localStore.SystemSettings().Get(ctx, "catalog.wallet_lots_version")
+	localV, _ := localStore.SyncVersions().Get(ctx, store.GlobalSyncVersion, "wallet_lots")
 	if localV != v1 {
-		t.Fatalf("local wallet_lots_version should match SaaS: local=%q saas=%q", localV, v1)
+		t.Fatalf("local wallet_lots_version should match SaaS: local=%d saas=%d", localV, v1)
 	}
 	lots, _ := localStore.Billing().ListActiveLotsFIFO(ctx, companyID, nil)
 	if len(lots) == 0 {

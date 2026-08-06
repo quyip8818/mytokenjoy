@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	catalog "github.com/tokenjoy/backend/internal/integration/catalogsync"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/tenant"
 	"github.com/tokenjoy/backend/internal/worker/catalogsync"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -73,15 +74,15 @@ func TestBootSyncAllChannels(t *testing.T) {
 	}
 
 	// --- Pricing: verify written ---
-	vStr, _ := st.SystemSettings().Get(ctx, "catalog.pricing_version")
-	if vStr != "2" {
-		t.Errorf("pricing version: want '2', got %q", vStr)
+	pv, _ := st.SyncVersions().Get(ctx, store.GlobalSyncVersion, "pricing")
+	if pv != 2 {
+		t.Errorf("pricing version: want 2, got %d", pv)
 	}
 
 	// --- Currencies: verify written ---
-	vStr, _ = st.SystemSettings().Get(ctx, "catalog.currencies_version")
-	if vStr != "2" {
-		t.Errorf("currencies version: want '2', got %q", vStr)
+	cv, _ := st.SyncVersions().Get(ctx, store.GlobalSyncVersion, "currencies")
+	if cv != 2 {
+		t.Errorf("currencies version: want 2, got %d", cv)
 	}
 	cny, err := st.Billing().GetCurrency(ctx, "CNY")
 	if err != nil || cny == nil {
@@ -89,9 +90,9 @@ func TestBootSyncAllChannels(t *testing.T) {
 	}
 
 	// --- Models version: verify stored ---
-	vStr, _ = st.SystemSettings().Get(ctx, "catalog.models_version")
-	if vStr != "2" {
-		t.Errorf("models version: want '2', got %q", vStr)
+	mv, _ := st.SyncVersions().Get(ctx, store.GlobalSyncVersion, "models")
+	if mv != 2 {
+		t.Errorf("models version: want 2, got %d", mv)
 	}
 }
 
@@ -104,9 +105,9 @@ func TestBootSyncSkipsWhenAlreadySynced(t *testing.T) {
 	localCompanyID := createTestCompany(t, st)
 
 	ctx := context.Background()
-	_ = st.SystemSettings().Set(ctx, "catalog.models_version", "5")
-	_ = st.SystemSettings().Set(ctx, "catalog.pricing_version", "5")
-	_ = st.SystemSettings().Set(ctx, "catalog.currencies_version", "5")
+	_ = st.SyncVersions().Set(ctx, store.GlobalSyncVersion, "models", 5)
+	_ = st.SyncVersions().Set(ctx, store.GlobalSyncVersion, "pricing", 5)
+	_ = st.SyncVersions().Set(ctx, store.GlobalSyncVersion, "currencies", 5)
 
 	var fetchCalls int
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

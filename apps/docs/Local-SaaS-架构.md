@@ -189,31 +189,37 @@ Catalog Sync 是一个统一的定期同步 Worker，通过 version 门控拉取
 ```
 Catalog Sync Worker（每 5min，River PeriodicJob）:
 
-  1. GET SaaS /api/platform/sync/versions （公开，无需认证）
-     → 返回 { models: N, pricing: N, currencies: N, walletLots: N }
+  1. GET SaaS /api/platform/sync/versions （需要 sync token）
+     → 返回 { models: N, pricing: N, currencies: N, discounts: N, walletLots: N }
+     → 全局版本（models/pricing/currencies）+ per-company 版本（discounts/walletLots）
 
-  2. 比较本地 catalog.models_version vs 远端
+  2. 比较本地 sync_versions 表中 (GlobalSyncVersion, "models") vs 远端
      → 不同 → GET /api/platform/sync/catalog/models
      → 更新本地 models 表 + NewAPI model_ratio
-     → 存本地 version
+     → Set 本地 version = resp.Version
 
-  3. 比较本地 catalog.pricing_version vs 远端
+  3. 比较本地 sync_versions (GlobalSyncVersion, "pricing") vs 远端
      → 不同 → GET /api/platform/sync/catalog/pricing （需要 sync token）
      → push NewAPI ratio（UpsertModelRatio）
-     → 存本地 version
+     → Set 本地 version
 
-  4. 比较本地 catalog.currencies_version vs 远端
+  4. 比较本地 sync_versions (GlobalSyncVersion, "currencies") vs 远端
      → 不同 → GET /api/platform/sync/catalog/currencies
      → 更新本地 currencies 表
-     → 存本地 version
+     → Set 本地 version
 
-  5. 比较本地 catalog.wallet_lots_version vs 远端
+  5. 比较本地 sync_versions (GlobalSyncVersion, "discounts") vs 远端
+     → 不同 → GET /api/platform/sync/catalog/discounts （需要 sync token）
+     → 写入本地 model_discount 表
+     → Set 本地 version
+
+  6. 比较本地 sync_versions (GlobalSyncVersion, "wallet_lots") vs 远端
      → 不同 → GET /api/platform/sync/catalog/wallet_lots （需要 sync token）
      → 返回 { data: [...lots], orders: [...orders], walletRemainQuota: N }
      → Upsert orders 到本地 company_recharge_orders 表
      → Upsert lots 到本地 company_recharge_lots 表（保留原始 kind）
      → 覆盖写入 companies.wallet_remain_quota（对账修正）
-     → 存本地 version
+     → Set 本地 version
 ```
 
 | 属性 | 说明 |
@@ -221,10 +227,10 @@ Catalog Sync Worker（每 5min，River PeriodicJob）:
 | 频率 | 默认 5min（`CATALOG_SYNC_INTERVAL_SEC`） |
 | 余额对账 | wallet_lots 通道：SaaS 真实余额覆盖 Local wallet |
 | lot 同步 | 直接镜像 SaaS 的 lot + order 列表（paid/gift/adjust），保留原始 kind |
-| version 门控 | 各通道独立版本号，无变化时跳过（避免无谓 IO） |
-| version bump | SaaS 侧：充值/Ingest 后自动 bump `catalog.wallet_lots_version` |
+| version 门控 | 各通道独立版本号（`sync_versions` 表），无变化时跳过（避免无谓 IO） |
+| version bump | SaaS 侧：充值/Ingest 后 per-company bump `wallet_lots`；折扣变更 per-company bump `discounts`；全局操作 bump `models`/`pricing`/`currencies` |
 | 失败处理 | 保留上次数据继续用；SaaS Gateway 兜底 |
-| 认证 | pricing + wallet_lots 需要 sync token（cst_ 前缀） |
+| 认证 | /sync/versions + pricing + discounts + wallet_lots 需要 sync token（cst_ 前缀） |
 
 ---
 
@@ -416,10 +422,16 @@ Setup 时的管理员邮箱+密码同时在 SaaS 创建 User + Member：
 | `saas_platform_key` | Setup | 总 key（sk-xxx） |
 | `saas_wallet_user_id` | Setup | NewAPI wallet user ID |
 | `platform_channel_id` | 启动时（ensurePlatformChannel） | tokenjoy-upstream channel ID |
-| `catalog.models_version` | Catalog Sync | 本地模型版本号 |
-| `catalog.pricing_version` | Catalog Sync | 本地定价版本号 |
-| `catalog.currencies_version` | Catalog Sync | 本地币种版本号 |
-| `catalog.wallet_lots_version` | Catalog Sync | 本地 wallet lots 版本号 |
+
+Local 的 catalog sync 版本号存储在 `sync_versions` 表（统一用 `GlobalSyncVersion` 作为 company_id）：
+
+| type | 说明 |
+|------|------|
+| `models` | 本地模型版本号 |
+| `pricing` | 本地定价版本号 |
+| `currencies` | 本地币种版本号 |
+| `discounts` | 本地折扣版本号 |
+| `wallet_lots` | 本地 wallet lots 版本号 |
 
 ### SaaS 侧
 
@@ -428,14 +440,15 @@ Setup 时的管理员邮箱+密码同时在 SaaS 创建 User + Member：
 | `SUPPORT_SAAS=true` | SaaS 模式 |
 | `LOCAL_REGISTRATION_SECRET` | 接受 Local 注册的密钥 |
 
-SaaS `system_settings`（自动维护）：
+SaaS `sync_versions` 表（自动维护）：
 
-| key | bump 时机 | 说明 |
-|-----|-----------|------|
-| `catalog.models_version` | 创建/更新/删除模型 + PublishCatalog | 模型目录版本 |
-| `catalog.pricing_version` | SetGlobalPricing / SetModelPricing / CreateModel（有价时） | 定价版本 |
-| `catalog.currencies_version` | 创建/更新币种 | 币种版本 |
-| `catalog.wallet_lots_version` | 充值（CreditFromLot）/ Ingest 扣 lot | wallet lots 版本 |
+| company_id | type | bump 时机 | 说明 |
+|------------|------|-----------|------|
+| GlobalSyncVersion | `models` | 创建/更新/删除模型 + PublishCatalog | 模型目录版本（全局） |
+| GlobalSyncVersion | `pricing` | SetGlobalPricing / SetModelPricing / CreateModel（有价时） | 定价版本（全局） |
+| GlobalSyncVersion | `currencies` | 创建/更新币种 | 币种版本（全局） |
+| `<companyID>` | `discounts` | SetCompanyDiscount | 折扣版本（per-company） |
+| `<companyID>` | `wallet_lots` | 充值（CreditFromLot）/ Ingest 扣 lot | wallet lots 版本（per-company） |
 
 ---
 

@@ -23,15 +23,16 @@ func NewHandler(p httpdeps.Platform, protected httpdeps.Protected) *Handler {
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	// Public read-only — Catalog sync (no auth required)
-	r.Get("/sync/versions", h.CatalogVersions)
+	// Public read-only — Catalog sync (no auth required, global data)
 	r.Get("/sync/catalog/models", h.CatalogModels)
 	r.Get("/sync/catalog/currencies", h.CatalogCurrencies)
 
 	// Per-company sync token protected — contains company-isolated data
 	r.Group(func(r chi.Router) {
 		r.Use(httpmiddleware.RequireSyncToken(h.p.Companies))
+		r.Get("/sync/versions", h.CatalogVersions)
 		r.Get("/sync/catalog/pricing", h.CatalogPricing)
+		r.Get("/sync/catalog/discounts", h.CatalogDiscounts)
 		r.Get("/sync/catalog/wallet_lots", h.CatalogWalletLots)
 	})
 

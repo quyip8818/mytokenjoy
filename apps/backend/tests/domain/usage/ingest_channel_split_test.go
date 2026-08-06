@@ -97,7 +97,7 @@ func TestIngestNonPlatformChannelSkipsLots(t *testing.T) {
 }
 
 // TestIngestPlatformChannelBumpsWalletLotsVersion verifies that platform channel
-// ingest bumps the catalog.wallet_lots_version for sync clients to detect changes.
+// ingest bumps the wallet_lots version for sync clients to detect changes.
 func TestIngestPlatformChannelBumpsWalletLotsVersion(t *testing.T) {
 	t.Parallel()
 	fix := newIngestFixture(t)
@@ -105,7 +105,7 @@ func TestIngestPlatformChannelBumpsWalletLotsVersion(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	// Get version before.
-	vBefore, _ := fix.Store.SystemSettings().Get(ctx, "catalog.wallet_lots_version")
+	vBefore, _ := fix.Store.SyncVersions().Get(ctx, contract.DefaultCompanyID, "wallet_lots")
 
 	// Ingest on platform channel (ChannelID=0 → platform).
 	raw := testutil.DefaultConsumeLog(7003, 99)
@@ -117,9 +117,9 @@ func TestIngestPlatformChannelBumpsWalletLotsVersion(t *testing.T) {
 	}
 
 	// Version should have incremented.
-	vAfter, _ := fix.Store.SystemSettings().Get(ctx, "catalog.wallet_lots_version")
+	vAfter, _ := fix.Store.SyncVersions().Get(ctx, contract.DefaultCompanyID, "wallet_lots")
 	if vAfter == vBefore {
-		t.Fatalf("expected wallet_lots_version to bump after platform ingest: before=%q after=%q", vBefore, vAfter)
+		t.Fatalf("expected wallet_lots version to bump after platform ingest: before=%d after=%d", vBefore, vAfter)
 	}
 }
 
@@ -135,7 +135,7 @@ func TestIngestNonPlatformChannelDoesNotBumpVersion(t *testing.T) {
 	_ = fix.Store.SystemSettings().Set(ctx, "platform_channel_id", "42")
 
 	// Get version before.
-	vBefore, _ := fix.Store.SystemSettings().Get(ctx, "catalog.wallet_lots_version")
+	vBefore, _ := fix.Store.SyncVersions().Get(ctx, contract.DefaultCompanyID, "wallet_lots")
 
 	// Ingest on non-platform channel.
 	raw := store.RawConsumeLog{
@@ -149,8 +149,8 @@ func TestIngestNonPlatformChannelDoesNotBumpVersion(t *testing.T) {
 	}
 
 	// Version should NOT have changed.
-	vAfter, _ := fix.Store.SystemSettings().Get(ctx, "catalog.wallet_lots_version")
+	vAfter, _ := fix.Store.SyncVersions().Get(ctx, contract.DefaultCompanyID, "wallet_lots")
 	if vAfter != vBefore {
-		t.Fatalf("expected wallet_lots_version unchanged for non-platform ingest: before=%q after=%q", vBefore, vAfter)
+		t.Fatalf("expected wallet_lots version unchanged for non-platform ingest: before=%d after=%d", vBefore, vAfter)
 	}
 }

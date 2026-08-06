@@ -3,11 +3,11 @@ package platform
 import (
 	"context"
 	"net/http"
-	"strconv"
 
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/http/response"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/modelcatalog"
 )
 
@@ -51,7 +51,6 @@ func (h *Handler) CatalogPricing(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) pricingVersion(ctx context.Context) int {
-	vStr, _ := h.p.SystemSettings.Get(ctx, catalogPricingVersionKey)
-	v, _ := strconv.Atoi(vStr)
+	v, _ := h.p.SyncVersions.Get(ctx, store.GlobalSyncVersion, "pricing")
 	return v
 }

@@ -278,7 +278,7 @@ func (s *IngestService) IngestRaw(ctx context.Context, raw store.RawConsumeLog, 
 
 	// Bump wallet_lots catalog version so Local sync picks up consumption.
 	if isPlatform {
-		_, _ = s.store.SystemSettings().Increment(ctx, "catalog.wallet_lots_version")
+		_, _ = s.store.SyncVersions().Increment(ctx, companyID, "wallet_lots")
 	}
 
 	// Sync wallet to external gateway (NewAPI) — only when lots were consumed.

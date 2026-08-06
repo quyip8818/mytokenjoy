@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,15 +16,6 @@ import (
 	catalog "github.com/tokenjoy/backend/internal/integration/catalogsync"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/modelcatalog"
-)
-
-// Version keys in system_settings.
-const (
-	keyModelsVersion     = "catalog.models_version"
-	keyPricingVersion    = "catalog.pricing_version"
-	keyDiscountsVersion  = "catalog.discounts_version"
-	keyCurrenciesVersion = "catalog.currencies_version"
-	keyWalletLotsVersion = "catalog.wallet_lots_version"
 )
 
 // Executor holds the dependencies for catalog sync.
@@ -48,20 +38,20 @@ func NewExecutor(client *catalog.Client, port adminport.Port, st store.Store, gl
 }
 
 // Execute performs a single sync cycle with independent models and pricing channels.
+// ponytail: Local stores all versions under GlobalSyncVersion (single-company deployment).
 func (e *Executor) Execute(ctx context.Context) error {
 	remote, err := e.client.FetchVersions(ctx)
 	if err != nil {
 		return fmt.Errorf("catalogsync fetch versions: %w", err)
 	}
 
-	settings := e.store.SystemSettings()
+	sv := e.store.SyncVersions()
 
 	// --- Models sync ---
-	localModelsStr, err := settings.Get(ctx, keyModelsVersion)
+	localModels, err := sv.Get(ctx, store.GlobalSyncVersion, "models")
 	if err != nil {
 		return fmt.Errorf("catalogsync get models version: %w", err)
 	}
-	localModels, _ := strconv.Atoi(localModelsStr)
 
 	if localModels != remote.Models {
 		resp, err := e.client.FetchModels(ctx)
@@ -71,15 +61,14 @@ func (e *Executor) Execute(ctx context.Context) error {
 		if err := e.syncModels(ctx, resp.Data); err != nil {
 			return fmt.Errorf("catalogsync sync models: %w", err)
 		}
-		if err := settings.Set(ctx, keyModelsVersion, strconv.Itoa(resp.Version)); err != nil {
+		if err := sv.Set(ctx, store.GlobalSyncVersion, "models", resp.Version); err != nil {
 			return fmt.Errorf("catalogsync set models version: %w", err)
 		}
 		slog.Info("catalogsync: models synced", "version", resp.Version, "count", len(resp.Data))
 	}
 
 	// --- Pricing sync (independent channel) ---
-	localPricingStr, _ := settings.Get(ctx, keyPricingVersion)
-	localPricing, _ := strconv.Atoi(localPricingStr)
+	localPricing, _ := sv.Get(ctx, store.GlobalSyncVersion, "pricing")
 
 	if localPricing != remote.Pricing {
 		if err := e.syncPricing(ctx, remote.Pricing); err != nil {
@@ -89,8 +78,7 @@ func (e *Executor) Execute(ctx context.Context) error {
 	}
 
 	// --- Discounts sync (independent channel) ---
-	localDiscountsStr, _ := settings.Get(ctx, keyDiscountsVersion)
-	localDiscounts, _ := strconv.Atoi(localDiscountsStr)
+	localDiscounts, _ := sv.Get(ctx, store.GlobalSyncVersion, "discounts")
 
 	if localDiscounts != remote.Discounts {
 		if err := e.syncDiscounts(ctx, remote.Discounts); err != nil {
@@ -100,8 +88,7 @@ func (e *Executor) Execute(ctx context.Context) error {
 	}
 
 	// --- Currencies sync (independent channel) ---
-	localCurrenciesStr, _ := settings.Get(ctx, keyCurrenciesVersion) // key may not exist on first run → "" → 0
-	localCurrencies, _ := strconv.Atoi(localCurrenciesStr)
+	localCurrencies, _ := sv.Get(ctx, store.GlobalSyncVersion, "currencies")
 
 	if localCurrencies != remote.Currencies {
 		if err := e.syncCurrencies(ctx); err != nil {
@@ -111,14 +98,13 @@ func (e *Executor) Execute(ctx context.Context) error {
 	}
 
 	// --- Wallet lots sync (version-gated) ---
-	localWalletLotsStr, _ := settings.Get(ctx, keyWalletLotsVersion)
-	localWalletLots, _ := strconv.Atoi(localWalletLotsStr)
+	localWalletLots, _ := sv.Get(ctx, store.GlobalSyncVersion, "wallet_lots")
 
 	if localWalletLots != remote.WalletLots {
 		if err := e.syncWalletLots(ctx); err != nil {
 			return fmt.Errorf("catalogsync sync wallet_lots: %w", err)
 		}
-		if err := settings.Set(ctx, keyWalletLotsVersion, strconv.Itoa(remote.WalletLots)); err != nil {
+		if err := sv.Set(ctx, store.GlobalSyncVersion, "wallet_lots", remote.WalletLots); err != nil {
 			return fmt.Errorf("catalogsync set wallet_lots version: %w", err)
 		}
 		slog.Info("catalogsync: wallet_lots synced", "version", remote.WalletLots)
@@ -178,7 +164,7 @@ func (e *Executor) syncPricing(ctx context.Context, remoteVersion int) error {
 		return fmt.Errorf("catalogsync write CacheRatio: %w", err)
 	}
 
-	return e.store.SystemSettings().Set(ctx, keyPricingVersion, strconv.Itoa(remoteVersion))
+	return e.store.SyncVersions().Set(ctx, store.GlobalSyncVersion, "pricing", remoteVersion)
 }
 
 // syncDiscounts fetches per-company discount coefficients and writes to model_discount.
@@ -197,7 +183,7 @@ func (e *Executor) syncDiscounts(ctx context.Context, remoteVersion int) error {
 		_ = e.store.ModelDiscount().Insert(ctx, row)
 	}
 
-	return e.store.SystemSettings().Set(ctx, keyDiscountsVersion, strconv.Itoa(remoteVersion))
+	return e.store.SyncVersions().Set(ctx, store.GlobalSyncVersion, "discounts", remoteVersion)
 }
 
 // syncCurrencies fetches currencies from the platform and replaces local data.
@@ -224,7 +210,7 @@ func (e *Executor) syncCurrencies(ctx context.Context) error {
 	}
 
 	// Use resp.Version (actual data version) rather than remote.Currencies.
-	return e.store.SystemSettings().Set(ctx, keyCurrenciesVersion, strconv.Itoa(resp.Version))
+	return e.store.SyncVersions().Set(ctx, store.GlobalSyncVersion, "currencies", resp.Version)
 }
 
 // syncWalletLots fetches active lots + wallet balance from SaaS and mirrors them locally.

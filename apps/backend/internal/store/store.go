@@ -61,6 +61,7 @@ type Store interface {
 	BudgetSnapshot() BudgetSnapshotRepository
 	ModelDiscount() ModelDiscountRepository
 	SystemSettings() SystemSettingsRepository
+	SyncVersions() SyncVersionRepository
 	PlatformQuery() PlatformQueryRepository
 	Logs() LogStore
 	WithTx(ctx context.Context, fn func(Store) error) error

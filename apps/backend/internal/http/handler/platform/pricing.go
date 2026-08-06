@@ -127,5 +127,6 @@ func (h *Handler) SetCompanyDiscount(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, err)
 		return
 	}
+	_, _ = h.p.SyncVersions.Increment(r.Context(), companyID, "discounts")
 	response.Void(w)
 }

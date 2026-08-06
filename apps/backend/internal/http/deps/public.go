@@ -28,6 +28,7 @@ type Platform struct {
 	Models         store.ModelsRepository
 	ModelDiscount  store.ModelDiscountRepository
 	SystemSettings store.SystemSettingsRepository
+	SyncVersions   store.SyncVersionRepository
 	PlatformQuery  store.PlatformQueryRepository
 	Billing        store.BillingRepository
 	Companies      store.CompanyRepository // direct repo access for register-local
@@ -55,6 +56,7 @@ func (d Deps) Platform() Platform {
 		Models:         d.Store.Models(),
 		ModelDiscount:  d.Store.ModelDiscount(),
 		SystemSettings: d.Store.SystemSettings(),
+		SyncVersions:   d.Store.SyncVersions(),
 		PlatformQuery:  d.Store.PlatformQuery(),
 		Billing:        d.Store.Billing(),
 		Companies:      d.Store.Company(),

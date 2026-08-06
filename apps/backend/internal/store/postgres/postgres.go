@@ -200,6 +200,10 @@ func (s *Store) ModelDiscount() store.ModelDiscountRepository {
 func (s *Store) SystemSettings() store.SystemSettingsRepository {
 	return &pgSystemSettingsRepo{db: s.pool}
 }
+
+func (s *Store) SyncVersions() store.SyncVersionRepository {
+	return &syncVersionsRepo{db: s.pool}
+}
 func (s *Store) Logs() store.LogStore { return s.logs }
 
 func (s *Store) PlatformQuery() store.PlatformQueryRepository {

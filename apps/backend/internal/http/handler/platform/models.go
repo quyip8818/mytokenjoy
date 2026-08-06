@@ -12,37 +12,36 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/httputil"
+	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/http/response"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/modelcatalog"
 	"github.com/tokenjoy/backend/internal/support/tenant"
 )
 
-// --- Catalog API (public, no auth) ---
+// --- Catalog API ---
 
-const catalogModelsVersionKey = "catalog.models_version"
-const catalogPricingVersionKey = "catalog.pricing_version"
-const catalogDiscountsVersionKey = "catalog.discounts_version"
-const catalogCurrenciesVersionKey = "catalog.currencies_version"
-const catalogWalletLotsVersionKey = "catalog.wallet_lots_version"
-
-// CatalogVersions returns the current catalog version for sync clients.
+// CatalogVersions returns the current catalog versions for the authenticated sync client.
 func (h *Handler) CatalogVersions(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	modelsV, err := h.p.SystemSettings.Get(ctx, catalogModelsVersionKey)
+	companyID, ok := httpmiddleware.SyncCompanyIDFromContext(r.Context())
+	if !ok {
+		httputil.WriteStatus(w, http.StatusUnauthorized, "missing sync identity")
+		return
+	}
+
+	global, company, err := h.p.SyncVersions.GetVersions(r.Context(), companyID)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
 	}
-	pricingV, _ := h.p.SystemSettings.Get(ctx, catalogPricingVersionKey)
-	discountsV, _ := h.p.SystemSettings.Get(ctx, catalogDiscountsVersionKey)
-	currenciesV, _ := h.p.SystemSettings.Get(ctx, catalogCurrenciesVersionKey)
-	walletLotsV, _ := h.p.SystemSettings.Get(ctx, catalogWalletLotsVersionKey)
-	mv, _ := strconv.Atoi(modelsV)     // empty → 0
-	pv, _ := strconv.Atoi(pricingV)    // empty → 0
-	dv, _ := strconv.Atoi(discountsV)  // empty → 0
-	cv, _ := strconv.Atoi(currenciesV) // empty → 0
-	wv, _ := strconv.Atoi(walletLotsV) // empty → 0
-	response.JSON(w, http.StatusOK, map[string]int{"models": mv, "pricing": pv, "discounts": dv, "currencies": cv, "walletLots": wv})
+
+	response.JSON(w, http.StatusOK, map[string]int{
+		"models":     global["models"],
+		"pricing":    global["pricing"],
+		"currencies": global["currencies"],
+		"discounts":  company["discounts"],
+		"walletLots": company["wallet_lots"],
+	})
 }
 
 // catalogModelDTO is the public Catalog API response format.
@@ -60,8 +59,7 @@ type catalogModelDTO struct {
 func (h *Handler) CatalogModels(w http.ResponseWriter, r *http.Request) {
 	ctx := h.globalCtx(r.Context())
 
-	version, _ := h.p.SystemSettings.Get(ctx, catalogModelsVersionKey)
-	v, _ := strconv.Atoi(version) // empty → 0
+	v, _ := h.p.SyncVersions.Get(ctx, store.GlobalSyncVersion, "models")
 
 	models, err := h.p.Models.Models(ctx)
 	if err != nil {
@@ -277,7 +275,7 @@ func (h *Handler) SetModelPricing(w http.ResponseWriter, r *http.Request) {
 
 // PublishCatalog forces a version bump (useful for manual re-sync trigger).
 func (h *Handler) PublishCatalog(w http.ResponseWriter, r *http.Request) {
-	newVersion, err := h.p.SystemSettings.Increment(r.Context(), catalogModelsVersionKey)
+	newVersion, err := h.p.SyncVersions.Increment(r.Context(), store.GlobalSyncVersion, "models")
 	if err != nil {
 		httputil.WriteError(w, fmt.Errorf("publish catalog: %w", err))
 		return
@@ -288,11 +286,11 @@ func (h *Handler) PublishCatalog(w http.ResponseWriter, r *http.Request) {
 // --- Helpers ---
 
 func (h *Handler) bumpModelsCatalogVersion(ctx context.Context) {
-	_, _ = h.p.SystemSettings.Increment(ctx, catalogModelsVersionKey)
+	_, _ = h.p.SyncVersions.Increment(ctx, store.GlobalSyncVersion, "models")
 }
 
 func (h *Handler) bumpPricingVersion(ctx context.Context) {
-	_, _ = h.p.SystemSettings.Increment(ctx, catalogPricingVersionKey)
+	_, _ = h.p.SyncVersions.Increment(ctx, store.GlobalSyncVersion, "pricing")
 }
 
 // mergePricing enriches models with prices from NewAPI (SOT).

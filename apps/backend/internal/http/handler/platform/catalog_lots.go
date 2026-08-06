@@ -2,7 +2,6 @@ package platform
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
@@ -115,8 +114,7 @@ func (h *Handler) CatalogWalletLots(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	vStr, _ := h.p.SystemSettings.Get(ctx, catalogWalletLotsVersionKey)
-	v, _ := strconv.Atoi(vStr)
+	v, _ := h.p.SyncVersions.Get(ctx, companyID, "wallet_lots")
 
 	response.JSON(w, http.StatusOK, map[string]any{
 		"version":           v,

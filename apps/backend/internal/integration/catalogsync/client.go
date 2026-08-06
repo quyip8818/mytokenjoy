@@ -31,7 +31,7 @@ func NewClient(cfg Config) *Client {
 // FetchVersions returns the remote catalog version from GET /api/platform/sync/versions.
 func (c *Client) FetchVersions(ctx context.Context) (*CatalogVersions, error) {
 	var v CatalogVersions
-	if err := c.doGet(ctx, "/api/platform/sync/versions", false, &v); err != nil {
+	if err := c.doGet(ctx, "/api/platform/sync/versions", true, &v); err != nil {
 		return nil, fmt.Errorf("catalog fetch versions: %w", err)
 	}
 	return &v, nil

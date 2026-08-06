@@ -114,6 +114,10 @@ func (s *txStore) SystemSettings() store.SystemSettingsRepository {
 	return &pgSystemSettingsRepo{db: s.tx}
 }
 
+func (s *txStore) SyncVersions() store.SyncVersionRepository {
+	return &syncVersionsRepo{db: s.tx}
+}
+
 func (s *txStore) ModelDiscount() store.ModelDiscountRepository {
 	return &modelDiscountRepo{db: s.tx}
 }

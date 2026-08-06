@@ -668,10 +668,20 @@ CREATE INDEX IF NOT EXISTS idx_approval_company_status ON approval_requests(comp
 CREATE INDEX IF NOT EXISTS idx_approval_applicant      ON approval_requests(company_id, applicant_id);
 CREATE INDEX IF NOT EXISTS idx_approval_created_at     ON approval_requests(company_id, created_at DESC);
 
--- Global: system-level key-value settings (sync versions, feature flags, etc.)
+-- Global: system-level key-value settings (setup config, feature flags, etc.)
 CREATE TABLE IF NOT EXISTS system_settings (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
+);
+
+-- Sync versions: unified version tracking for catalog sync.
+-- company_id = '00000000-0000-0000-0000-000000000000' (uuid.Nil) = global version.
+-- Real company UUIDs = per-company version.
+CREATE TABLE IF NOT EXISTS sync_versions (
+    company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+    type       TEXT NOT NULL,
+    version    INT  NOT NULL DEFAULT 0,
+    PRIMARY KEY (company_id, type)
 );
 
 -- Model discount: append-only per-company discount coefficients.

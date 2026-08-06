@@ -3,7 +3,6 @@ package platform
 import (
 	"net/http"
 	"regexp"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -27,8 +26,7 @@ type catalogCurrencyDTO struct {
 // GET /api/platform/sync/catalog/currencies (public)
 func (h *Handler) CatalogCurrencies(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	version, _ := h.p.SystemSettings.Get(ctx, catalogCurrenciesVersionKey)
-	v, _ := strconv.Atoi(version)
+	v, _ := h.p.SyncVersions.Get(ctx, store.GlobalSyncVersion, "currencies")
 
 	currencies, err := h.p.Billing.ListEnabledCurrencies(ctx)
 	if err != nil {
@@ -136,7 +134,7 @@ func (h *Handler) CreateCurrency(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.p.SystemSettings.Increment(ctx, catalogCurrenciesVersionKey)
+	h.p.SyncVersions.Increment(ctx, store.GlobalSyncVersion, "currencies")
 
 	// Re-read to get updatedAt
 	created, _ := h.p.Billing.GetCurrency(ctx, body.Code)
@@ -188,7 +186,7 @@ func (h *Handler) UpdateCurrency(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.p.SystemSettings.Increment(ctx, catalogCurrenciesVersionKey)
+	h.p.SyncVersions.Increment(ctx, store.GlobalSyncVersion, "currencies")
 
 	updated, _ := h.p.Billing.GetCurrency(ctx, code)
 	if updated == nil {
@@ -246,7 +244,7 @@ func (h *Handler) ToggleCurrencyStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.p.SystemSettings.Increment(ctx, catalogCurrenciesVersionKey)
+	h.p.SyncVersions.Increment(ctx, store.GlobalSyncVersion, "currencies")
 
 	updated, _ := h.p.Billing.GetCurrency(ctx, code)
 	if updated == nil {

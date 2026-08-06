@@ -61,10 +61,10 @@ func TestCurrenciesSyncTriggered(t *testing.T) {
 		t.Errorf("USD: got qpu=%d enabled=%v, want 3600000/true", usd.QuotaPerUnit, usd.Enabled)
 	}
 
-	// Verify: system_settings version updated
-	vStr, _ := st.SystemSettings().Get(ctx, "catalog.currencies_version")
-	if vStr != "2" {
-		t.Errorf("expected local currencies version '2', got %q", vStr)
+	// Verify: sync_versions currencies updated
+	cv, _ := st.SyncVersions().Get(ctx, store.GlobalSyncVersion, "currencies")
+	if cv != 2 {
+		t.Errorf("expected local currencies version 2, got %d", cv)
 	}
 }
 
@@ -120,7 +120,7 @@ func TestCurrenciesSyncSkipsWhenUpToDate(t *testing.T) {
 
 	ctx := context.Background()
 	// Pre-set local currencies version to 2
-	_ = st.SystemSettings().Set(ctx, "catalog.currencies_version", "2")
+	_ = st.SyncVersions().Set(ctx, store.GlobalSyncVersion, "currencies", 2)
 
 	called := false
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
