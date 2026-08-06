@@ -43,8 +43,8 @@ func TestLoginEndpoints(t *testing.T) {
 		if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
 			t.Fatalf("decode: %v", err)
 		}
-		if resp["memberId"] == nil || resp["memberId"] == "" {
-			t.Error("expected memberId in response")
+		if resp["action"] != "select_company" {
+			t.Errorf("expected action=select_company, got %v", resp["action"])
 		}
 	})
 

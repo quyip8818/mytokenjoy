@@ -22,15 +22,14 @@ export interface PendingInvite {
 }
 
 export type VerifyResult =
-  | { action: 'enter' }
   | { action: 'select_company'; companies: CompanyOption[] }
   | { action: 'choose'; invites: PendingInvite[] }
   | { action: 'create_company' }
   | { action: 'not_found' }
 
 export type LoginResult =
-  | { memberId: string }
   | { action: 'select_company'; companies: CompanyOption[] }
+  | { action: 'choose'; invites: PendingInvite[] }
   | { action: 'create_company' }
 
 export const authApi = {

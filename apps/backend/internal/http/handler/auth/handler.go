@@ -73,15 +73,20 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 }
 
 type loginBody struct {
-	Email     string    `json:"email"` // phone or email
-	Password  string    `json:"password"`
-	CompanyID uuid.UUID `json:"companyId"` // optional — used by select-company flow
+	Email    string `json:"email"` // phone or email
+	Password string `json:"password"`
 }
 
-// Login authenticates by password. The "email" field accepts either a phone number or email.
-// Flow: resolve user → verify password → route by member count (single/multi/none).
-// companyId is optional. If provided and valid, log in directly to that company.
-// Otherwise, routeByMembership: 1 company → auto-enter, N → select_company, 0 → create_company.
+// authenticateResponse is the unified response for identity verification endpoints.
+// Frontend uses this to decide: auto-select (1 company), show picker (N), create company, or accept invite.
+type authenticateResponse struct {
+	Action    string                `json:"action"`              // "select_company" | "create_company" | "choose"
+	Companies []companyOption       `json:"companies,omitempty"` // non-empty when action=select_company
+	Invites   []pendingInviteOption `json:"invites,omitempty"`   // non-empty when action=choose
+}
+
+// Login verifies credentials and returns an authToken (register cookie) + company list.
+// It does NOT issue a session — the frontend must call POST /auth/select-company to establish a session.
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var body loginBody
 	if err := httputil.DecodeJSON(r, &body); err != nil {
@@ -112,63 +117,29 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Step 3: If companyId explicitly provided, try direct login to that company.
-	if body.CompanyID != uuid.Nil {
-		h.loginWithCompanyID(w, r, user.ID, body.CompanyID)
-		return
-	}
-
-	// Step 4: No companyId provided — route by member companies.
-	// 1 company → auto-enter, N companies → select_company, 0 → create_company.
-	h.routeByMembership(w, r, user.ID)
+	// Step 3: Issue authToken + return companies.
+	h.respondWithAuthToken(w, r, user.ID)
 }
 
-// resolveUserByIdentifier looks up user by phone (if identifier looks like a phone) or email.
-func (h *Handler) resolveUserByIdentifier(ctx context.Context, identifier string) (*store.User, error) {
-	if isPhoneNumber(identifier) {
-		return h.users.GetByPhone(ctx, verifycode.FormatPhone(identifier))
-	}
-	return h.users.GetByEmail(ctx, identifier)
-}
-
-// loginWithCompanyID handles SaaS login where the user specifies which company to log into.
-func (h *Handler) loginWithCompanyID(w http.ResponseWriter, r *http.Request, userID uuid.UUID, companyID uuid.UUID) {
-	members, err := h.users.ListMemberCompanies(r.Context(), userID)
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
-		return
-	}
-	for _, m := range members {
-		if m.CompanyID == companyID {
-			h.issueTokenPairAndRespond(w, r, m.CompanyID, m.MemberID, userID,
-				map[string]any{"memberId": m.MemberID.String()}, false)
-			return
-		}
-	}
-	httputil.WriteJSON(w, http.StatusUnauthorized, nil, domain.NewDomainError(401, "Invalid credentials"))
-}
-
-// routeByMembership queries a user's active memberships and routes:
-//   - 1 company  → issue session directly
-//   - N companies → issue register token + return select_company list
-//   - 0 companies → issue register token + return create_company
-func (h *Handler) routeByMembership(w http.ResponseWriter, r *http.Request, userID uuid.UUID) {
-	members, err := h.users.ListMemberCompanies(r.Context(), userID)
+// respondWithAuthToken issues a register token and returns the company list (or invites).
+// This is the shared "step 1 complete" response for both Login and VerifyCode.
+func (h *Handler) respondWithAuthToken(w http.ResponseWriter, r *http.Request, userID uuid.UUID) {
+	ctx := r.Context()
+	members, err := h.users.ListMemberCompanies(ctx, userID)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
 	}
 
-	switch len(members) {
-	case 1:
-		m := members[0]
-		h.issueTokenPairAndRespond(w, r, m.CompanyID, m.MemberID, userID,
-			map[string]any{"memberId": m.MemberID.String()}, false)
-	case 0:
-		h.issueRegisterSessionAndRespond(w, userID, map[string]any{
-			"action": "create_company",
-		})
-	default:
+	regToken, err := h.registerToken.Issue(userID)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return
+	}
+	registertoken.SetCookie(w, regToken, h.pub.SecureCookie)
+
+	// Has companies → select_company
+	if len(members) > 0 {
 		companies := make([]companyOption, len(members))
 		for i, m := range members {
 			companies[i] = companyOption{
@@ -177,11 +148,52 @@ func (h *Handler) routeByMembership(w http.ResponseWriter, r *http.Request, user
 				Role:        m.Role,
 			}
 		}
-		h.issueRegisterSessionAndRespond(w, userID, map[string]any{
-			"action":    "select_company",
-			"companies": companies,
-		})
+		httputil.WriteJSON(w, http.StatusOK, authenticateResponse{
+			Action:    "select_company",
+			Companies: companies,
+		}, nil)
+		return
 	}
+
+	// No companies → check pending invites
+	user, _ := h.users.GetByID(ctx, userID)
+	if user != nil {
+		invites, err := h.companySvc.PendingInvitesForUser(ctx, domaincompany.PendingInvitesForUserRequest{
+			Email:  user.Email,
+			Phone:  user.Phone,
+			UserID: userID,
+		})
+		if err == nil && len(invites) > 0 {
+			opts := make([]pendingInviteOption, len(invites))
+			for i, inv := range invites {
+				opts[i] = pendingInviteOption{
+					InviteCode:  inv.InviteCode,
+					CompanyID:   inv.CompanyID,
+					CompanyName: inv.CompanyName,
+					Role:        inv.Role,
+					ExpiresAt:   inv.ExpiresAt.Format(time.RFC3339),
+				}
+			}
+			httputil.WriteJSON(w, http.StatusOK, authenticateResponse{
+				Action:  "choose",
+				Invites: opts,
+			}, nil)
+			return
+		}
+	}
+
+	// No companies, no invites → create_company
+	httputil.WriteJSON(w, http.StatusOK, authenticateResponse{
+		Action: "create_company",
+	}, nil)
+}
+
+// resolveUserByIdentifier looks up user by phone (if identifier looks like a phone) or email.
+func (h *Handler) resolveUserByIdentifier(ctx context.Context, identifier string) (*store.User, error) {
+	if isPhoneNumber(identifier) {
+		return h.users.GetByPhone(ctx, verifycode.FormatPhone(identifier))
+	}
+	return h.users.GetByEmail(ctx, identifier)
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {

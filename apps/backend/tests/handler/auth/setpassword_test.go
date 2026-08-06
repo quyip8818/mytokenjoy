@@ -8,8 +8,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/domain/identity/registertoken"
 	"github.com/tokenjoy/backend/internal/http/httpx"
 	"github.com/tokenjoy/backend/seed/contract"
+	"github.com/tokenjoy/backend/tests/testutil"
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 )
 
@@ -26,6 +28,7 @@ func TestSetPassword_Success(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
 
+	// Two-step login: authenticate → select-company to get a real session cookie.
 	loginRec := postJSON(router, "/api/auth/login", map[string]any{
 		"email":    "zhangsan@example.com",
 		"password": contract.DemoPassword,
@@ -33,19 +36,38 @@ func TestSetPassword_Success(t *testing.T) {
 	if loginRec.Code != http.StatusOK {
 		t.Fatalf("login failed: %d %s", loginRec.Code, loginRec.Body.String())
 	}
-	cookie := extractSessionCookie(loginRec)
+	// Extract register cookie from login response.
+	var registerCookie string
+	for _, c := range loginRec.Result().Cookies() {
+		if c.Name == registertoken.CookieName {
+			registerCookie = c.Name + "=" + c.Value
+			break
+		}
+	}
+	if registerCookie == "" {
+		t.Fatal("no register cookie from login")
+	}
+	// Select company to establish session.
+	selectRec := postJSON(router, "/api/auth/select-company", map[string]any{
+		"companyId": contract.DefaultCompanyID.String(),
+	}, registerCookie)
+	if selectRec.Code != http.StatusOK {
+		t.Fatalf("select-company failed: %d %s", selectRec.Code, selectRec.Body.String())
+	}
+	cookie := extractSessionCookie(selectRec)
 	if cookie == "" {
-		t.Fatal("no session cookie in login response")
+		t.Fatal("no session cookie after select-company")
 	}
 
+	// Now test set-password with the real session.
 	rec := postJSON(router, "/api/auth/set-password", map[string]any{
 		"password": "newpass123",
 	}, cookie)
-
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("expected 204, got %d body=%s", rec.Code, rec.Body.String())
 	}
 
+	// Verify login works with new password.
 	rec2 := postJSON(router, "/api/auth/login", map[string]any{
 		"email":    "zhangsan@example.com",
 		"password": "newpass123",
@@ -61,19 +83,10 @@ func TestAuthValidation(t *testing.T) {
 
 	t.Run("SetPassword_TooShort", func(t *testing.T) {
 		t.Parallel()
-		loginRec := postJSON(router, "/api/auth/login", map[string]any{
-			"email":    "zhangsan@example.com",
-			"password": contract.DemoPassword,
-		}, "")
-		cookie := extractSessionCookie(loginRec)
-		if cookie == "" {
-			t.Fatal("no session cookie")
-		}
-
+		cookie := testutil.SessionCookie(t, contract.IDMemberAdmin)
 		rec := postJSON(router, "/api/auth/set-password", map[string]any{
 			"password": "short",
 		}, cookie)
-
 		if rec.Code != http.StatusBadRequest {
 			t.Fatalf("expected 400, got %d body=%s", rec.Code, rec.Body.String())
 		}

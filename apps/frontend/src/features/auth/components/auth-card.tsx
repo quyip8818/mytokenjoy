@@ -129,42 +129,34 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
     [changeStep],
   )
 
-  // --- Shared login result handler (password login) ---
-  const handleLoginResult = useCallback(
-    (result: LoginResult) => {
-      if ('action' in result && result.action === 'select_company') {
+  // --- Shared login result handler (password login + verify code) ---
+  const handleAuthResult = useCallback(
+    async (result: LoginResult | VerifyResult) => {
+      if (result.action === 'not_found') {
+        setError('该账号尚未注册')
+        return
+      }
+      if (result.action === 'create_company') {
+        setStep('register-info')
+        return
+      }
+      if (result.action === 'choose') {
+        setInvites(result.invites)
+        setStep('select-invite')
+        return
+      }
+      // action === 'select_company'
+      if (result.companies.length === 1) {
+        // Single company — auto-select
+        try {
+          await authApi.selectCompany(result.companies[0].companyId)
+          onSuccess?.()
+        } catch (err) {
+          setError(err instanceof ApiError ? err.message : '登录失败')
+        }
+      } else {
         setCompanies(result.companies)
         setStep('select-company')
-      } else if ('action' in result && result.action === 'create_company') {
-        setStep('register-info')
-      } else {
-        onSuccess?.()
-      }
-    },
-    [onSuccess],
-  )
-
-  // --- Shared verify code result handler ---
-  const handleVerifyResult = useCallback(
-    (result: VerifyResult, notFoundMsg: string) => {
-      switch (result.action) {
-        case 'enter':
-          onSuccess?.()
-          break
-        case 'select_company':
-          setCompanies(result.companies)
-          setStep('select-company')
-          break
-        case 'choose':
-          setInvites(result.invites)
-          setStep('select-invite')
-          break
-        case 'create_company':
-          setStep('register-info')
-          break
-        case 'not_found':
-          setError(notFoundMsg)
-          break
       }
     },
     [onSuccess],
@@ -180,14 +172,14 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
       setSuccessMessage(null)
       try {
         const result = await authApi.login({ email: phone.trim(), password })
-        handleLoginResult(result)
+        handleAuthResult(result)
       } catch (err) {
         setError(err instanceof ApiError ? err.message : '登录失败')
       } finally {
         setSubmitting(false)
       }
     },
-    [phone, password, handleLoginResult],
+    [phone, password, handleAuthResult],
   )
 
   // --- Login: email + password ---
@@ -200,14 +192,14 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
       setSuccessMessage(null)
       try {
         const result = await authApi.login({ email: email.trim(), password })
-        handleLoginResult(result)
+        handleAuthResult(result)
       } catch (err) {
         setError(err instanceof ApiError ? err.message : '登录失败')
       } finally {
         setSubmitting(false)
       }
     },
-    [email, password, handleLoginResult],
+    [email, password, handleAuthResult],
   )
 
   // --- Login: phone + SMS code ---
@@ -219,14 +211,14 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
       setError(null)
       try {
         const result = await authApi.verifyCode({ phone: phone.trim(), code: code.trim() })
-        handleVerifyResult(result, '该手机号尚未注册，请切换到注册')
+        handleAuthResult(result)
       } catch (err) {
         setError(err instanceof ApiError ? err.message : '验证失败')
       } finally {
         setSubmitting(false)
       }
     },
-    [phone, code, handleVerifyResult],
+    [phone, code, handleAuthResult],
   )
 
   // --- Login: email + verify code ---
@@ -238,14 +230,14 @@ export function AuthCard({ defaultMode = 'login', onSuccess }: AuthCardProps) {
       setError(null)
       try {
         const result = await authApi.verifyCode({ email: email.trim(), code: code.trim() })
-        handleVerifyResult(result, '该邮箱尚未注册')
+        handleAuthResult(result)
       } catch (err) {
         setError(err instanceof ApiError ? err.message : '验证失败')
       } finally {
         setSubmitting(false)
       }
     },
-    [email, code, handleVerifyResult],
+    [email, code, handleAuthResult],
   )
 
   // --- Select company ---

@@ -9,12 +9,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/domain/identity/registertoken"
 	"github.com/tokenjoy/backend/internal/http/httpx"
 	"github.com/tokenjoy/backend/seed/contract"
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 )
 
 func login(router http.Handler) string {
+	// Step 1: authenticate
 	b, _ := json.Marshal(map[string]any{
 		"email":    "zhangsan@example.com",
 		"password": contract.DemoPassword,
@@ -26,7 +28,27 @@ func login(router http.Handler) string {
 	if rec.Code != http.StatusOK {
 		return ""
 	}
+	var registerCookie string
 	for _, c := range rec.Result().Cookies() {
+		if c.Name == registertoken.CookieName {
+			registerCookie = c.Name + "=" + c.Value
+			break
+		}
+	}
+	if registerCookie == "" {
+		return ""
+	}
+	// Step 2: select-company
+	b2, _ := json.Marshal(map[string]any{"companyId": contract.DefaultCompanyID.String()})
+	req2 := httptest.NewRequest(http.MethodPost, "/api/auth/select-company", bytes.NewReader(b2))
+	req2.Header.Set("Content-Type", "application/json")
+	req2.Header.Set("Cookie", registerCookie)
+	rec2 := httptest.NewRecorder()
+	router.ServeHTTP(rec2, req2)
+	if rec2.Code != http.StatusOK {
+		return ""
+	}
+	for _, c := range rec2.Result().Cookies() {
 		if c.Name == httpx.SessionCookie {
 			return c.Name + "=" + c.Value
 		}

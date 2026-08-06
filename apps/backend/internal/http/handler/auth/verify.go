@@ -2,10 +2,8 @@ package auth
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/google/uuid"
-	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/identity/registertoken"
 	"github.com/tokenjoy/backend/internal/domain/identity/verifycode"
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
@@ -164,69 +162,8 @@ func (h *Handler) VerifyCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Step 3: Query members for this user.
-	members, err := h.users.ListMemberCompanies(ctx, user.ID)
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
-		return
-	}
-
-	// Step 4: Route based on member count.
-	switch {
-	case len(members) == 1:
-		m := members[0]
-		h.issueTokenPairAndRespond(w, r, m.CompanyID, m.MemberID, user.ID,
-			map[string]any{"action": "enter"}, false)
-
-	case len(members) >= 2:
-		companies := make([]companyOption, len(members))
-		for i, m := range members {
-			companies[i] = companyOption{
-				CompanyID:   m.CompanyID,
-				CompanyName: m.CompanyName,
-				Role:        m.Role,
-			}
-		}
-		h.issueRegisterSessionAndRespond(w, user.ID, map[string]any{
-			"action":    "select_company",
-			"companies": companies,
-		})
-
-	default:
-		// 0 members → check invites.
-		invites, err := h.companySvc.PendingInvitesForUser(ctx, domaincompany.PendingInvitesForUserRequest{
-			Email:  user.Email,
-			Phone:  user.Phone,
-			UserID: user.ID,
-		})
-		if err != nil {
-			httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
-			return
-		}
-
-		if len(invites) > 0 {
-			opts := make([]pendingInviteOption, len(invites))
-			for i, inv := range invites {
-				opts[i] = pendingInviteOption{
-					InviteCode:  inv.InviteCode,
-					CompanyID:   inv.CompanyID,
-					CompanyName: inv.CompanyName,
-					Role:        inv.Role,
-					ExpiresAt:   inv.ExpiresAt.Format(time.RFC3339),
-				}
-			}
-			h.issueRegisterSessionAndRespond(w, user.ID, map[string]any{
-				"action":  "choose",
-				"invites": opts,
-			})
-			return
-		}
-
-		// No members and no invites — user needs to create a company.
-		h.issueRegisterSessionAndRespond(w, user.ID, map[string]any{
-			"action": "create_company",
-		})
-	}
+	// Step 3: Issue authToken + return companies/invites.
+	h.respondWithAuthToken(w, r, user.ID)
 }
 
 // --- SelectCompany ---
@@ -293,15 +230,5 @@ func (h *Handler) issueTokenPairAndRespond(w http.ResponseWriter, r *http.Reques
 	if clearRegister {
 		registertoken.ClearCookie(w)
 	}
-	httputil.WriteJSON(w, http.StatusOK, payload, nil)
-}
-
-func (h *Handler) issueRegisterSessionAndRespond(w http.ResponseWriter, userID uuid.UUID, payload map[string]any) {
-	regToken, err := h.registerToken.Issue(userID)
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
-		return
-	}
-	registertoken.SetCookie(w, regToken, h.pub.SecureCookie)
 	httputil.WriteJSON(w, http.StatusOK, payload, nil)
 }

@@ -22,7 +22,9 @@ func SessionIssuer(t *testing.T) sessiontoken.Issuer {
 
 func IssueSessionJWT(t *testing.T, companyID uuid.UUID, memberID uuid.UUID) string {
 	t.Helper()
-	token, err := SessionIssuer(t).Issue(companyID, memberID)
+	// Include a synthetic userID so claims.UserID is non-nil (required by set-password etc.)
+	userID := uuid.NewSHA1(companyID, []byte(memberID.String()))
+	token, err := SessionIssuer(t).IssueWithUser(companyID, memberID, userID)
 	if err != nil {
 		t.Fatalf("issue session jwt: %v", err)
 	}

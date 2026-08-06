@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/domain/identity/registertoken"
 	"github.com/tokenjoy/backend/internal/http/httpx"
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
@@ -55,15 +56,15 @@ func TestAuthzSecurityReadOnly(t *testing.T) {
 		}
 	})
 
-	t.Run("AuthLoginIssuesJWTCookie", func(t *testing.T) {
+	t.Run("AuthLoginIssuesRegisterCookie", func(t *testing.T) {
 		t.Parallel()
 		rec := testhttp.ServeAuthz(t, router, http.MethodPost, "/api/auth/login", "", `{"email":"demo@tokenjoy.me","password":"demo1234"}`, nil)
 		if rec.Code != http.StatusOK {
 			t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
 		}
 		setCookie := rec.Header().Get("Set-Cookie")
-		if !strings.Contains(setCookie, httpx.SessionCookie+"=") {
-			t.Fatalf("expected session cookie, got %q", setCookie)
+		if !strings.Contains(setCookie, registertoken.CookieName+"=") {
+			t.Fatalf("expected register cookie, got %q", setCookie)
 		}
 	})
 }
