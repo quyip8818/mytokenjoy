@@ -20,6 +20,6 @@ func Mount(r chi.Router, d httpdeps.Deps) {
 		}
 	}
 
-	h := NewHandler(d.Public(), d.CompanySvc, d.Users(), d.Sessions(), d.Invites(), d.Org(), d.Store.Company(), d.VerifyCodeSvc, regTokenIssuer, invTokenIssuer)
+	h := NewHandler(d.Public(), d.CompanySvc, d.Users(), d.Sessions(), d.Invites(), d.Org(), d.Company(), d.VerifyCodeSvc, regTokenIssuer, invTokenIssuer)
 	h.RegisterRoutes(r)
 }

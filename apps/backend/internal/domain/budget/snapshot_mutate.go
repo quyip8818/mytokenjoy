@@ -9,7 +9,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -120,7 +119,7 @@ func (s *service) validateFuturePeriod(period string) error {
 	if !periodKeyPattern.MatchString(period) {
 		return domain.BadRequest("period must be YYYY-MM format")
 	}
-	currentPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, clock.NowUTC(s.clk))
+	currentPeriod := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, s.clk).String()
 	if period <= currentPeriod {
 		return domain.BadRequest("can only modify a future period snapshot")
 	}

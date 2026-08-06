@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -33,7 +32,7 @@ func (s *service) MaybeRotatePeriod(ctx context.Context) bool {
 // doRotate is the shared rotation logic. If enqueueRebalance is true, a follow-up
 // company rebalance is enqueued on success (for the lazy/GetTree path).
 func (s *service) doRotate(ctx context.Context, enqueueRebalance bool) (bool, error) {
-	currentPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, clock.NowUTC(s.clk))
+	currentPeriod := pkgbudget.OpenSnapshotKey(pkgbudget.PeriodMonthly, s.clk).String()
 	companyID := store.CompanyID(ctx)
 
 	state, err := s.store.TenantBackgroundState().Get(ctx, companyID)
