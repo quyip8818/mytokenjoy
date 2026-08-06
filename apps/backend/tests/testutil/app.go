@@ -13,6 +13,7 @@ import (
 	"github.com/tokenjoy/backend/internal/app"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
+	"github.com/tokenjoy/backend/internal/http/httpx"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
@@ -27,6 +28,7 @@ func NewTestAppWithOptions(t *testing.T, mutate func(*config.Config), opts ...ap
 	if mutate != nil {
 		mutate(&cfg)
 	}
+	httpx.InitCookieNames(cfg.DeployEnv, cfg.SupportSaas)
 	_, st := NewTestStore(t, WithConfig(cfg))
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	application, err := app.NewWithStore(cfg, logger, st, opts...)

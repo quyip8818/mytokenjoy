@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/http/httpx"
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
 	"github.com/tokenjoy/backend/seed/contract"
@@ -19,7 +20,7 @@ func TestAuthzSecurityReadOnly(t *testing.T) {
 
 	t.Run("BareMemberIDCookieRejected", func(t *testing.T) {
 		t.Parallel()
-		rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/session", "tokenjoy_session_member=m-admin", "", nil)
+		rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/session", httpx.SessionCookie+"=m-admin", "", nil)
 		if rec.Code != http.StatusUnauthorized {
 			t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
 		}
@@ -39,7 +40,7 @@ func TestAuthzSecurityReadOnly(t *testing.T) {
 		t.Parallel()
 		token := testutil.IssueSessionJWT(t, contract.DefaultCompanyID, contract.IDMemberAdmin)
 		tampered := token + "x"
-		rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/session", "tokenjoy_session_member="+tampered, "", nil)
+		rec := testhttp.ServeAuthz(t, router, http.MethodGet, "/api/session", httpx.SessionCookie+"="+tampered, "", nil)
 		if rec.Code != http.StatusUnauthorized {
 			t.Fatalf("expected 401, got %d body=%s", rec.Code, rec.Body.String())
 		}
@@ -61,7 +62,7 @@ func TestAuthzSecurityReadOnly(t *testing.T) {
 			t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
 		}
 		setCookie := rec.Header().Get("Set-Cookie")
-		if !strings.Contains(setCookie, "tokenjoy_session_member=") {
+		if !strings.Contains(setCookie, httpx.SessionCookie+"=") {
 			t.Fatalf("expected session cookie, got %q", setCookie)
 		}
 	})

@@ -8,13 +8,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/http/httpx"
 	"github.com/tokenjoy/backend/seed/contract"
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 )
 
 func extractSessionCookie(rec *httptest.ResponseRecorder) string {
 	for _, c := range rec.Result().Cookies() {
-		if c.Name == "tokenjoy_session_member" {
+		if c.Name == httpx.SessionCookie {
 			return c.Name + "=" + c.Value
 		}
 	}

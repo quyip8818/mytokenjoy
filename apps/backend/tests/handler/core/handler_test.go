@@ -13,6 +13,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/http/httpx"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -29,7 +30,7 @@ func TestCoreHandler(t *testing.T) {
 			cookie string
 		}{
 			{name: "demo missing member id", cookie: ""},
-			{name: "invalid token", cookie: "tokenjoy_session_member=missing"},
+			{name: "invalid token", cookie: httpx.SessionCookie + "=missing"},
 			{name: "production unauthorized", cookie: ""},
 		}
 		for _, tc := range cases {

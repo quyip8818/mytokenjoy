@@ -9,6 +9,7 @@ import (
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/http/httpx"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -45,7 +46,7 @@ func TestSessionInvalidTokenReturns401(t *testing.T) {
 	t.Parallel()
 	router := testhttp.NewRouter(t)
 	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
-	req.Header.Set("Cookie", "tokenjoy_session_member=not-a-valid-jwt")
+	req.Header.Set("Cookie", httpx.SessionCookie+"=not-a-valid-jwt")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusUnauthorized {
