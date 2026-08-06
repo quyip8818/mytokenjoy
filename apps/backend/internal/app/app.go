@@ -11,7 +11,7 @@ import (
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	httpapi "github.com/tokenjoy/backend/internal/http"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
-	"github.com/tokenjoy/backend/internal/pkg/clock"
+	"github.com/tokenjoy/backend/internal/support/clock"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 )

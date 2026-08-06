@@ -9,7 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/identity/httpx"
+	"github.com/tokenjoy/backend/internal/domain/identity/httpx"
 )
 
 type profileCompany struct {

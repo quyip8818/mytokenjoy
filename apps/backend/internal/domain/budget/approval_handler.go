@@ -9,7 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/approval"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

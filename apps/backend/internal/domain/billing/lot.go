@@ -1,7 +1,7 @@
 package billing
 
 import (
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

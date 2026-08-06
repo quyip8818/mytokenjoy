@@ -12,7 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"

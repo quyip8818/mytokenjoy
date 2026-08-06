@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/identity/httpx"
-	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
+	"github.com/tokenjoy/backend/internal/domain/identity/httpx"
+	"github.com/tokenjoy/backend/internal/domain/identity/sessiontoken"
 )
 
 // Refresh validates the refresh cookie and issues a new access token.

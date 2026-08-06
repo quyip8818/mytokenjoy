@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/pkg/clock"
+	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
+	"github.com/tokenjoy/backend/internal/support/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

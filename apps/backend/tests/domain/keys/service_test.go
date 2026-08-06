@@ -8,7 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"

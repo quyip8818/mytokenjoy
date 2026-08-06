@@ -3,7 +3,7 @@ package baseurl_test
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/pkg/baseurl"
+	"github.com/tokenjoy/backend/internal/support/baseurl"
 )
 
 func TestOrigin(t *testing.T) {

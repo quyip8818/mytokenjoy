@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
-	"github.com/tokenjoy/backend/internal/pkg/ratelimit"
+	"github.com/tokenjoy/backend/internal/support/modelcatalog"
+	"github.com/tokenjoy/backend/internal/infra/ratelimit"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

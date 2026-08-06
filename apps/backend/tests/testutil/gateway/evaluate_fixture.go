@@ -4,7 +4,7 @@ package gatewayfix
 
 import (
 	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 // BasePrecheckContext returns a minimal passing Evaluate input for unit tests.

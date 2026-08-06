@@ -2,7 +2,7 @@ package snapshot
 
 import (
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
+	"github.com/tokenjoy/backend/internal/support/modelcatalog"
 	"github.com/tokenjoy/backend/seed/contract"
 )
 

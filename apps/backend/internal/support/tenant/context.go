@@ -1,4 +1,4 @@
-package ctxcompany
+package tenant
 
 import (
 	"context"

@@ -2,7 +2,7 @@
 
 package budgetfix
 
-import "github.com/tokenjoy/backend/internal/pkg/common"
+import "github.com/tokenjoy/backend/internal/support/common"
 
 func FloatPtr(v float64) *float64 { return &v }
 

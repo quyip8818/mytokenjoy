@@ -11,8 +11,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/pkg/clock"
+	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
+	"github.com/tokenjoy/backend/internal/support/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

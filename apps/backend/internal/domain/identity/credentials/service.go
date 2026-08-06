@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
+	"github.com/tokenjoy/backend/internal/support/tenant"
 	"github.com/tokenjoy/backend/internal/store"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -70,7 +70,7 @@ func (s *service) BootstrapPlatformIfNeeded(ctx context.Context) error {
 
 	// PlatformAdmin is a global preset role (seeded by bootstrap), no need to insert it.
 	// Only need to create the member with the role assignment.
-	companyCtx := ctxcompany.With(ctx, ctxcompany.Info{CompanyID: s.cfg.TokenJoyCompanyID})
+	companyCtx := tenant.With(ctx, tenant.Info{CompanyID: s.cfg.TokenJoyCompanyID})
 
 	member := types.Member{
 		ID:                memberID,
@@ -139,7 +139,7 @@ func (s *service) BootstrapLocalAdminIfNeeded(ctx context.Context) error {
 	}
 
 	// Create member with super_admin role
-	companyCtx := ctxcompany.With(ctx, ctxcompany.Info{CompanyID: s.cfg.CompanyID})
+	companyCtx := tenant.With(ctx, tenant.Info{CompanyID: s.cfg.CompanyID})
 	memberID := uuid.Must(uuid.NewV7())
 	member := types.Member{
 		ID:        memberID,

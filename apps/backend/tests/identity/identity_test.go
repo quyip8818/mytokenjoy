@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/identity/registertoken"
-	"github.com/tokenjoy/backend/internal/identity/verifycode"
+	"github.com/tokenjoy/backend/internal/domain/identity/registertoken"
+	"github.com/tokenjoy/backend/internal/domain/identity/verifycode"
 )
 
 // --- register token ---

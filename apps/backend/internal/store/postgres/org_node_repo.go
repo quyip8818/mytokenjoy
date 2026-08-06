@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
-	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
+	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

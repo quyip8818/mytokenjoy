@@ -14,10 +14,10 @@ import (
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/common"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
-	"github.com/tokenjoy/backend/internal/pkg/invitetoken"
-	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
+	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/tenant"
+	"github.com/tokenjoy/backend/internal/support/invitetoken"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -126,7 +126,7 @@ func (s *LocalService) sendInviteNotifications(ctx context.Context, inviteCode s
 	}
 	baseURL := s.d.Cfg.FrontendURL
 	companyName := ""
-	if info, ok := ctxcompany.From(ctx); ok {
+	if info, ok := tenant.From(ctx); ok {
 		companyName = info.Name
 	}
 	if companyName == "" {

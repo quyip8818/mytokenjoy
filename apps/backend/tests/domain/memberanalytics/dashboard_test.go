@@ -7,7 +7,7 @@ import (
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	domainmemberanalytics "github.com/tokenjoy/backend/internal/domain/memberanalytics"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/seed/runtime"
 	"github.com/tokenjoy/backend/tests/testutil"

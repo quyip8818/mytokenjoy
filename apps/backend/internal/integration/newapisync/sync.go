@@ -6,8 +6,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
+	"github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/domain/port"
+	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/devapi"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/platformkey"
@@ -113,6 +114,6 @@ var (
 
 	// Compile-time check: NewAPISync satisfies the domain port interfaces
 	// that keys and budget consume.
-	_ port.KeySyncPort       = (*NewAPISync)(nil)
-	_ port.OverrunKeyControl = (*NewAPISync)(nil)
+	_ domainkeys.KeySyncPort   = (*NewAPISync)(nil)
+	_ budget.OverrunKeyControl = (*NewAPISync)(nil)
 )

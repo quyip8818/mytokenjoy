@@ -13,11 +13,11 @@ import (
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/identity/httpx"
-	"github.com/tokenjoy/backend/internal/identity/registertoken"
-	"github.com/tokenjoy/backend/internal/identity/verifycode"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
-	"github.com/tokenjoy/backend/internal/pkg/invitetoken"
+	"github.com/tokenjoy/backend/internal/domain/identity/httpx"
+	"github.com/tokenjoy/backend/internal/domain/identity/registertoken"
+	"github.com/tokenjoy/backend/internal/domain/identity/verifycode"
+	"github.com/tokenjoy/backend/internal/support/tenant"
+	"github.com/tokenjoy/backend/internal/support/invitetoken"
 	"github.com/tokenjoy/backend/internal/store"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -224,7 +224,7 @@ func (h *Handler) InviteInfo(w http.ResponseWriter, r *http.Request) {
 
 	// Lookup member alias using invite's company context.
 	var alias string
-	tenantCtx := ctxcompany.With(ctx, ctxcompany.Info{CompanyID: invite.CompanyID})
+	tenantCtx := tenant.With(ctx, tenant.Info{CompanyID: invite.CompanyID})
 	if invite.MemberID != uuid.Nil {
 		if member, err := h.orgRepo.MemberByID(tenantCtx, invite.MemberID); err == nil && member != nil {
 			alias = member.Alias

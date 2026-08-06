@@ -7,7 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/scheduler"
-	"github.com/tokenjoy/backend/internal/pkg/clock"
+	"github.com/tokenjoy/backend/internal/support/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

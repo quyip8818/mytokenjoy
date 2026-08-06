@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
-	"github.com/tokenjoy/backend/internal/pkg/ratelimit"
+	"github.com/tokenjoy/backend/internal/support/tenant"
+	"github.com/tokenjoy/backend/internal/infra/ratelimit"
 )
 
 // RateLimitTenant applies per-tenant (companyID) token bucket rate limiting.
@@ -19,7 +19,7 @@ func RateLimitTenant(limiter ratelimit.Limiter, rate, burst int, dryRun bool, lo
 				next.ServeHTTP(w, r)
 				return
 			}
-			companyID := ctxcompany.ID(r.Context())
+			companyID := tenant.ID(r.Context())
 			if companyID == uuid.Nil {
 				// No tenant resolved yet — skip (login/public routes).
 				next.ServeHTTP(w, r)

@@ -5,7 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
+	"github.com/tokenjoy/backend/internal/support/modelcatalog"
 )
 
 // TestMergePricingIntoModels verifies the merge logic that ListModelsWithPricing uses:

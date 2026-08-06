@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/identity/httpx"
+	"github.com/tokenjoy/backend/internal/domain/identity/httpx"
 )
 
 func SessionFromContext(ctx context.Context) (types.SessionContext, bool) {

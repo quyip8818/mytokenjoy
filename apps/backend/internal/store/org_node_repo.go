@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 // OrgNodeRepository reads and writes org_nodes. department_id columns elsewhere

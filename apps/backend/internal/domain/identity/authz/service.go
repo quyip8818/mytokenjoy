@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
+	"github.com/tokenjoy/backend/internal/support/tenant"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -133,7 +133,7 @@ func ScopePermissions(perms []string, companyType string, supportSaas bool) []st
 // companyInfoFromContext tries to get company type and name from the request context first
 // (already resolved by CompanyResolve middleware), falling back to a DB lookup only if needed.
 func companyInfoFromContext(ctx context.Context, companyID uuid.UUID, st Store) (companyType, companyName string) {
-	if info, ok := ctxcompany.From(ctx); ok && info.CompanyID == companyID {
+	if info, ok := tenant.From(ctx); ok && info.CompanyID == companyID {
 		if info.Type != "" {
 			return info.Type, info.Name
 		}

@@ -9,7 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/scheduler"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"

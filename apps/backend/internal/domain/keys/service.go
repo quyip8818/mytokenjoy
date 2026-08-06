@@ -5,10 +5,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/domain/port"
+
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/clock"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/clock"
+	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -46,11 +46,11 @@ type service struct {
 	store            Store
 	clk              clock.Clock
 	delayer          common.Delayer
-	newAPISync       port.KeySyncPort
+	newAPISync       KeySyncPort
 	cacheInvalidator types.PrecheckCacheInvalidator
 }
 
-func NewService(cfg config.Config, st Store, newAPISync port.KeySyncPort, delayer common.Delayer, clk clock.Clock, opts ...ServiceOption) Service {
+func NewService(cfg config.Config, st Store, newAPISync KeySyncPort, delayer common.Delayer, clk clock.Clock, opts ...ServiceOption) Service {
 	s := &service{
 		cfg:              cfg,
 		store:            st,

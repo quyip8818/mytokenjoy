@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/clock"
+	"github.com/tokenjoy/backend/internal/support/clock"
 )
 
 // ResolvedRange is a dashboard / cost-query time window (not a budget snapshot period_key).

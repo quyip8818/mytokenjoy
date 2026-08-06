@@ -12,7 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
+	"github.com/tokenjoy/backend/internal/support/tenant"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -86,7 +86,7 @@ func (h *Handler) ConfirmRecharge(w http.ResponseWriter, r *http.Request) {
 
 // isTrialOrDemoCompany checks if the current request belongs to a trial or demo tenant.
 func isTrialOrDemoCompany(r *http.Request) bool {
-	info, ok := ctxcompany.From(r.Context())
+	info, ok := tenant.From(r.Context())
 	return ok && (info.Type == store.CompanyTypeTrial || info.Type == store.CompanyTypeDemo)
 }
 

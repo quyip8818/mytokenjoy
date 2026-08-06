@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/identity/authz"
+	"github.com/tokenjoy/backend/internal/domain/identity/authz"
 )
 
 func TestResolveMemberPermissionsSuperAdmin(t *testing.T) {

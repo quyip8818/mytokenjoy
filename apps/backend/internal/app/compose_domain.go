@@ -13,7 +13,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/integration/newapisync"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/devapi"
-	"github.com/tokenjoy/backend/internal/pkg/clock"
+	"github.com/tokenjoy/backend/internal/support/clock"
 )
 
 func ingestMetricsRecorder(cfg config.Config) ingestmetrics.Recorder {

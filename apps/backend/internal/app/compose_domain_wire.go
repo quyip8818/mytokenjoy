@@ -23,8 +23,8 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 
 	"github.com/tokenjoy/backend/internal/integration/datasource"
-	"github.com/tokenjoy/backend/internal/pkg/clock"
-	"github.com/tokenjoy/backend/internal/pkg/invitetoken"
+	"github.com/tokenjoy/backend/internal/support/clock"
+	"github.com/tokenjoy/backend/internal/support/invitetoken"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

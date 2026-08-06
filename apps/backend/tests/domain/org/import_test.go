@@ -7,9 +7,9 @@ import (
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/pkg/common"
-	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
+	"github.com/tokenjoy/backend/internal/support/budget"
+	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )

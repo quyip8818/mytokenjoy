@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/common"
-	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
+	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 func (s *LocalService) ListMembers(ctx context.Context, departmentID uuid.UUID, keyword string, directOnly bool, status string, page, pageSize int) (types.MemberPageResult, error) {

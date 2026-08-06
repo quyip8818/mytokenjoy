@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/org/remote"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 

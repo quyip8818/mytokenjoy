@@ -8,9 +8,9 @@ import (
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/identity/httpx"
-	"github.com/tokenjoy/backend/internal/identity/registertoken"
-	"github.com/tokenjoy/backend/internal/identity/verifycode"
+	"github.com/tokenjoy/backend/internal/domain/identity/httpx"
+	"github.com/tokenjoy/backend/internal/domain/identity/registertoken"
+	"github.com/tokenjoy/backend/internal/domain/identity/verifycode"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

@@ -6,8 +6,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/common"
-	"github.com/tokenjoy/backend/internal/pkg/org"
+	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/org"
 	"github.com/tokenjoy/backend/seed/contract"
 )
 

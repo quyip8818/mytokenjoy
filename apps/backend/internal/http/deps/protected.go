@@ -2,8 +2,8 @@ package deps
 
 import (
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/identity/authz"
-	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
+	"github.com/tokenjoy/backend/internal/domain/identity/authz"
+	"github.com/tokenjoy/backend/internal/domain/identity/sessiontoken"
 )
 
 type Protected struct {

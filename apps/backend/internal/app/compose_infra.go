@@ -12,7 +12,7 @@ import (
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/identity/verifycode"
+	"github.com/tokenjoy/backend/internal/domain/identity/verifycode"
 	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
@@ -20,8 +20,8 @@ import (
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/integration/newapisync"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/policy"
-	"github.com/tokenjoy/backend/internal/pkg/common"
-	pkgrl "github.com/tokenjoy/backend/internal/pkg/ratelimit"
+	"github.com/tokenjoy/backend/internal/support/common"
+	pkgrl "github.com/tokenjoy/backend/internal/infra/ratelimit"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

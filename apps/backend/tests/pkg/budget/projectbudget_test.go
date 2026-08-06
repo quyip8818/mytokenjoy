@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/pkg/budget"
+	"github.com/tokenjoy/backend/internal/support/budget"
 	"github.com/tokenjoy/backend/seed/contract"
 )
 

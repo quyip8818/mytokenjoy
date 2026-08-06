@@ -6,8 +6,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/pkg/common"
-	"github.com/tokenjoy/backend/internal/pkg/org"
+	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/org"
 )
 
 func (s *service) ModelUsage(ctx context.Context, params types.CostQueryParams, deptID uuid.UUID, scope domainusage.SessionScope) ([]types.ModelUsage, error) {

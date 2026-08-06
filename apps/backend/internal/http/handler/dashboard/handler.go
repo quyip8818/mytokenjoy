@@ -14,7 +14,7 @@ import (
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 type Handler struct {

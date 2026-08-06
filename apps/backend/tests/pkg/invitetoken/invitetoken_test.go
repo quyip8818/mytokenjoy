@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/pkg/invitetoken"
+	"github.com/tokenjoy/backend/internal/support/invitetoken"
 )
 
 // Valid 32-byte hex key for tests.

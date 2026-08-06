@@ -7,7 +7,7 @@ import (
 
 	"github.com/caarlos0/env/v11"
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/pkg/baseurl"
+	"github.com/tokenjoy/backend/internal/support/baseurl"
 )
 
 // HTTPConfig holds HTTP server settings.

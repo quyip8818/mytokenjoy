@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/identity/authz"
-	"github.com/tokenjoy/backend/internal/identity/httpx"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
+	"github.com/tokenjoy/backend/internal/domain/identity/authz"
+	"github.com/tokenjoy/backend/internal/domain/identity/httpx"
+	"github.com/tokenjoy/backend/internal/support/tenant"
 )
 
 func AuthzRevisionHeader(reader authz.RevisionReader) func(http.Handler) http.Handler {
@@ -17,7 +17,7 @@ func AuthzRevisionHeader(reader authz.RevisionReader) func(http.Handler) http.Ha
 			if sessionCtx, ok := SessionFromContext(r.Context()); ok {
 				revision = sessionCtx.AuthzRevision
 				hasRevision = true
-			} else if companyID := ctxcompany.ID(r.Context()); companyID != uuid.Nil {
+			} else if companyID := tenant.ID(r.Context()); companyID != uuid.Nil {
 				if rev, err := reader.GetAuthzRevision(r.Context(), companyID); err == nil {
 					revision = rev
 					hasRevision = true

@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
 	"github.com/tokenjoy/backend/internal/store"
 	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )

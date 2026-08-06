@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
+	"github.com/tokenjoy/backend/internal/domain/identity/sessiontoken"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

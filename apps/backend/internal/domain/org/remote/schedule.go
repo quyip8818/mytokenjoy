@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/clock"
+	"github.com/tokenjoy/backend/internal/support/clock"
 )
 
 func ComputeNextOrgSync(cfg types.SyncConfig, lastSyncAt *time.Time, clk clock.Clock) time.Time {

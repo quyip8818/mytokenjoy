@@ -6,7 +6,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 func (s *Service) loadStoredCredential(ctx context.Context) (types.Credential, error) {

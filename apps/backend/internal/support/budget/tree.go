@@ -3,7 +3,7 @@ package budget
 import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/tree"
+	"github.com/tokenjoy/backend/internal/support/tree"
 )
 
 func SumChildrenBudget(node types.BudgetNode) float64 {

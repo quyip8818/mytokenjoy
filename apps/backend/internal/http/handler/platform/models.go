@@ -13,8 +13,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/http/response"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
-	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
+	"github.com/tokenjoy/backend/internal/support/tenant"
+	"github.com/tokenjoy/backend/internal/support/modelcatalog"
 )
 
 // --- Catalog API (public, no auth) ---
@@ -312,7 +312,7 @@ func (h *Handler) mergePricing(ctx context.Context, models []types.ModelInfo) {
 // globalCtx returns a context with TokenJoyCompanyID set, for public endpoints
 // that need to query global models without a session.
 func (h *Handler) globalCtx(ctx context.Context) context.Context {
-	return ctxcompany.With(ctx, ctxcompany.Info{CompanyID: h.p.Cfg.TokenJoyCompanyID})
+	return tenant.With(ctx, tenant.Info{CompanyID: h.p.Cfg.TokenJoyCompanyID})
 }
 
 func primaryCapability(caps []string) string {

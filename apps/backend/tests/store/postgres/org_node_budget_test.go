@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"

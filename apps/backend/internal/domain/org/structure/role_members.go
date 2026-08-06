@@ -8,7 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 func (s *LocalService) ListRoleMembers(ctx context.Context, roleID uuid.UUID) ([]types.Member, error) {

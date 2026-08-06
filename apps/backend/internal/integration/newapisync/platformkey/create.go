@@ -14,8 +14,8 @@ import (
 	"github.com/tokenjoy/backend/internal/integration/newapisync/outbox"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/ports"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/syncdeps"
-	"github.com/tokenjoy/backend/internal/pkg/common"
-	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
+	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

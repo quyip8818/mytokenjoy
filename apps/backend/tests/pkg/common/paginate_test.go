@@ -3,7 +3,7 @@ package common_test
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 func TestPaginate(t *testing.T) {

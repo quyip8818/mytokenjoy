@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
+	"github.com/tokenjoy/backend/internal/domain/identity/sessiontoken"
 )
 
 type sessionClaimsKey struct{}

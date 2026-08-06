@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/budget"
+	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 func (s *service) UpdatePlatformKey(ctx context.Context, id uuid.UUID, input types.UpdatePlatformKeyInput) (types.PlatformKey, error) {

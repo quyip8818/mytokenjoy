@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
+	"github.com/tokenjoy/backend/internal/support/tenant"
 )
 
 // AccessLog records a structured JSON log entry for each HTTP request.
@@ -41,7 +41,7 @@ func AccessLog(logger *slog.Logger, slowThresholdMs int) func(http.Handler) http
 				"bytes", wrapped.bytes,
 			}
 
-			if companyID := ctxcompany.ID(r.Context()); companyID != uuid.Nil {
+			if companyID := tenant.ID(r.Context()); companyID != uuid.Nil {
 				attrs = append(attrs, "company_id", companyID)
 			}
 

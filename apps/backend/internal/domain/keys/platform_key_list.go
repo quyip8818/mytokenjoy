@@ -5,9 +5,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/pkg/common"
-	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
+	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
+	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 func (s *service) ListPlatformKeys(

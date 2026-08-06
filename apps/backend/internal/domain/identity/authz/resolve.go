@@ -3,7 +3,7 @@ package authz
 import (
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 func expandRoleDefinition(role types.Role) []string {

@@ -5,7 +5,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 func (h *Handler) SyncConfigGet(w http.ResponseWriter, r *http.Request) {

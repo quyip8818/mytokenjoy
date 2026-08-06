@@ -7,7 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/org"
+	"github.com/tokenjoy/backend/internal/support/org"
 )
 
 func (s *service) requireNewAPI() error {

@@ -8,9 +8,9 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/pkg/common"
-	pkgorg "github.com/tokenjoy/backend/internal/pkg/org"
+	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
+	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 // roundCost rounds a monetary value to 2 decimal places.

@@ -10,7 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/seed/contract"

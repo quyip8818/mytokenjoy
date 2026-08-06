@@ -14,7 +14,7 @@ import (
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/devapi"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
+	"github.com/tokenjoy/backend/internal/support/tenant"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -205,7 +205,7 @@ func (h *Handler) PlatformDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) SimulateBearer(w http.ResponseWriter, r *http.Request) {
-	info, ok := ctxcompany.From(r.Context())
+	info, ok := tenant.From(r.Context())
 	if !ok {
 		httputil.WriteStatus(w, http.StatusUnauthorized, "no company context")
 		return

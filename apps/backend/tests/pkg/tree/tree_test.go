@@ -3,7 +3,7 @@ package tree_test
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/pkg/tree"
+	"github.com/tokenjoy/backend/internal/support/tree"
 )
 
 type node struct {

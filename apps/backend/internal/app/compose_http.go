@@ -9,12 +9,12 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/billing"
 	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
-	"github.com/tokenjoy/backend/internal/identity/authz"
-	"github.com/tokenjoy/backend/internal/identity/credentials"
-	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
+	"github.com/tokenjoy/backend/internal/domain/identity/authz"
+	"github.com/tokenjoy/backend/internal/domain/identity/credentials"
+	"github.com/tokenjoy/backend/internal/domain/identity/sessiontoken"
 	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/infra/gatewaymetrics"
-	"github.com/tokenjoy/backend/internal/pkg/clock"
+	"github.com/tokenjoy/backend/internal/support/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

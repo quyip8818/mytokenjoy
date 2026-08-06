@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/identity/httpx"
+	"github.com/tokenjoy/backend/internal/domain/identity/httpx"
 )
 
 type loginActivityItem struct {

@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/integration/newapisync"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/policy"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/ports"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"

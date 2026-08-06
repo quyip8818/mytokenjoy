@@ -25,3 +25,10 @@ func (noopJobEnqueuer) InsertBudgetReconcile(context.Context, uuid.UUID) error {
 var NoopJobEnqueuer JobEnqueuer = noopJobEnqueuer{}
 
 var _ JobEnqueuer = noopJobEnqueuer{}
+
+// OverrunKeyControl is consumed by the budget domain's overrun processor
+// to disable keys that exceed their budget. Implemented by newapisync.
+type OverrunKeyControl interface {
+	Enabled() bool
+	DisablePlatformKey(ctx context.Context, platformKeyID uuid.UUID) error
+}

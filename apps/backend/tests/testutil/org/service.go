@@ -13,7 +13,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
 )

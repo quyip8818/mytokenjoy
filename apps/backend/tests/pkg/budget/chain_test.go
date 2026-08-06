@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
+	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
 )
 
 func TestGatewayChainRemain(t *testing.T) {

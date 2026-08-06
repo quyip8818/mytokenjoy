@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 func TestDelayerDisabled(t *testing.T) {

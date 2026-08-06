@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/pkg/clock"
+	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
+	"github.com/tokenjoy/backend/internal/support/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

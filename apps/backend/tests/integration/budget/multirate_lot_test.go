@@ -12,7 +12,7 @@ import (
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/tests/testutil"

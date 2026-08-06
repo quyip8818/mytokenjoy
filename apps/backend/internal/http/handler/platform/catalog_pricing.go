@@ -8,7 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/http/response"
-	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
+	"github.com/tokenjoy/backend/internal/support/modelcatalog"
 )
 
 // catalogPricingDTO is a model price entry in the sync response.

@@ -4,21 +4,21 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
+	"github.com/tokenjoy/backend/internal/support/tenant"
 )
 
-type Context = ctxcompany.Info
+type Context = tenant.Info
 
 func WithContext(ctx context.Context, info Context) context.Context {
-	return ctxcompany.With(ctx, info)
+	return tenant.With(ctx, info)
 }
 
 func FromContext(ctx context.Context) (Context, bool) {
-	return ctxcompany.From(ctx)
+	return tenant.From(ctx)
 }
 
 func CompanyID(ctx context.Context) uuid.UUID {
-	return ctxcompany.ID(ctx)
+	return tenant.ID(ctx)
 }
 
 func DefaultContext(companyID uuid.UUID) context.Context {

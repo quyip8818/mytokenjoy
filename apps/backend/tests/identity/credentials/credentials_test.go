@@ -5,7 +5,7 @@ package credentials_test
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/identity/credentials"
+	"github.com/tokenjoy/backend/internal/domain/identity/credentials"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )

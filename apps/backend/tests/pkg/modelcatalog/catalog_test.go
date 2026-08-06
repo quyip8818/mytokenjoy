@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
+	"github.com/tokenjoy/backend/internal/support/modelcatalog"
 )
 
 var (

@@ -6,14 +6,14 @@ import (
 	"runtime"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
+	"github.com/tokenjoy/backend/internal/support/tenant"
 )
 
 // CompanyID extracts the tenant company ID from context.
 // Logs a warning if missing (zero) — this indicates a programming error where
 // a tenant-scoped query is called without proper company context setup.
 func CompanyID(ctx context.Context) uuid.UUID {
-	id := ctxcompany.ID(ctx)
+	id := tenant.ID(ctx)
 	if id == uuid.Nil {
 		_, file, line, _ := runtime.Caller(1)
 		slog.Default().Warn("store.CompanyID called with zero company context",
@@ -26,5 +26,5 @@ func CompanyID(ctx context.Context) uuid.UUID {
 // Use for operations that legitimately work without tenant context
 // (e.g., cross-tenant lookups like FindMemberCompanyID).
 func CompanyIDOrZero(ctx context.Context) uuid.UUID {
-	return ctxcompany.ID(ctx)
+	return tenant.ID(ctx)
 }

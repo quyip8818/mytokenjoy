@@ -7,10 +7,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/domain/port"
+
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/pkg/clock"
+	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
+	"github.com/tokenjoy/backend/internal/support/clock"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -35,7 +35,7 @@ type OverrunService struct {
 	cfg        config.Config
 	store      OverrunStore
 	clk        clock.Clock
-	keyControl port.OverrunKeyControl
+	keyControl OverrunKeyControl
 	notifier   types.Notifier
 	logger     *slog.Logger
 }
@@ -43,7 +43,7 @@ type OverrunService struct {
 func NewOverrunService(
 	cfg config.Config,
 	st OverrunStore,
-	keyControl port.OverrunKeyControl,
+	keyControl OverrunKeyControl,
 	notifier types.Notifier,
 	logger *slog.Logger,
 	clk clock.Clock,

@@ -18,7 +18,7 @@ import (
 	riverinfra "github.com/tokenjoy/backend/internal/infra/river"
 	"github.com/tokenjoy/backend/internal/infra/scheduler"
 	catalogintegration "github.com/tokenjoy/backend/internal/integration/catalogsync"
-	"github.com/tokenjoy/backend/internal/pkg/clock"
+	"github.com/tokenjoy/backend/internal/support/clock"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/worker/catalogsync"
 )

@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/pkg/clock"
+	"github.com/tokenjoy/backend/internal/support/clock"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/bootstrap"
 	"github.com/tokenjoy/backend/seed/runtime"

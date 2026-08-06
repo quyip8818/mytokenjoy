@@ -8,8 +8,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/clock"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/clock"
+	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 func (s *Service) GetSyncConfig(ctx context.Context) (types.SyncConfig, error) {

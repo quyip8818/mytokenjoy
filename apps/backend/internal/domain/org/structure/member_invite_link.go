@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/invitetoken"
+	"github.com/tokenjoy/backend/internal/support/invitetoken"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

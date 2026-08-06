@@ -1,6 +1,4 @@
-// Package port defines cross-domain interfaces consumed by multiple domains.
-// Implementations live in integration/ or adapter/ — domain packages only import this package.
-package port
+package keys
 
 import (
 	"context"
@@ -23,11 +21,4 @@ type KeySyncPort interface {
 	DisablePlatformKey(ctx context.Context, platformKeyID uuid.UUID) error
 	EnqueueUpsertProviderKey(ctx context.Context, providerKeyID uuid.UUID) error
 	SyncUpsertProviderKey(ctx context.Context, providerKeyID uuid.UUID) error
-}
-
-// OverrunKeyControl is consumed by the budget domain's overrun processor
-// to disable keys that exceed their budget. Implemented by newapisync.
-type OverrunKeyControl interface {
-	Enabled() bool
-	DisablePlatformKey(ctx context.Context, platformKeyID uuid.UUID) error
 }

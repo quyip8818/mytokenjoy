@@ -12,7 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
+	"github.com/tokenjoy/backend/internal/support/tenant"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -70,7 +70,7 @@ func (s *LocalService) checkTrialMemberLimitBatch(ctx context.Context, members [
 	if limit <= 0 {
 		return nil // no limit configured
 	}
-	info, ok := ctxcompany.From(ctx)
+	info, ok := tenant.From(ctx)
 	if !ok || info.Type != store.CompanyTypeTrial {
 		return nil // not a trial company, no limit
 	}

@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/pkg/common"
-	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
+	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/modelcatalog"
 )
 
 var PriceFromRatio = modelcatalog.PriceFromRatio

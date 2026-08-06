@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 func TestEncryptDecryptRoundTrip(t *testing.T) {

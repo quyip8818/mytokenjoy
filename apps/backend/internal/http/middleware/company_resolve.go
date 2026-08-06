@@ -10,8 +10,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/identity/httpx"
-	"github.com/tokenjoy/backend/internal/identity/sessiontoken"
+	"github.com/tokenjoy/backend/internal/domain/identity/httpx"
+	"github.com/tokenjoy/backend/internal/domain/identity/sessiontoken"
 )
 
 type CompanyService interface {

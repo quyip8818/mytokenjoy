@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	catalog "github.com/tokenjoy/backend/internal/integration/catalogsync"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
+	"github.com/tokenjoy/backend/internal/support/tenant"
 	"github.com/tokenjoy/backend/internal/worker/catalogsync"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
@@ -48,7 +48,7 @@ func TestBootSyncAllChannels(t *testing.T) {
 	}
 
 	// --- Models: verify synced to globalCompanyID ---
-	modelCtx := ctxcompany.With(ctx, ctxcompany.Info{CompanyID: globalCompanyID})
+	modelCtx := tenant.With(ctx, tenant.Info{CompanyID: globalCompanyID})
 	allModels, err := st.Models().Models(modelCtx)
 	if err != nil {
 		t.Fatal(err)

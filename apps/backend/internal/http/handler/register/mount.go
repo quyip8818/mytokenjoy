@@ -3,7 +3,7 @@ package register
 import (
 	"github.com/go-chi/chi/v5"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
-	"github.com/tokenjoy/backend/internal/identity/registertoken"
+	"github.com/tokenjoy/backend/internal/domain/identity/registertoken"
 )
 
 // Mount registers the register handler on the given router (SaaS mode only).

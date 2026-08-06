@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/grants"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 func TestHasAnyWildcard(t *testing.T) {

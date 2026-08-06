@@ -4,13 +4,11 @@ import (
 	"context"
 	"log/slog"
 	"strings"
-
-	pkgrl "github.com/tokenjoy/backend/internal/pkg/ratelimit"
 )
 
 // Open creates a Redis-backed Limiter. If Redis is unavailable, returns nil.
 // Callers should check for nil and decide on fallback behavior.
-func Open(ctx context.Context, redisURL string, logger *slog.Logger) pkgrl.Limiter {
+func Open(ctx context.Context, redisURL string, logger *slog.Logger) Limiter {
 	if strings.TrimSpace(redisURL) == "" {
 		if logger != nil {
 			logger.Info("ratelimit: disabled (no REDIS_URL)")

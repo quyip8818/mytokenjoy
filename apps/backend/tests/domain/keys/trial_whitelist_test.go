@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
+	"github.com/tokenjoy/backend/internal/support/tenant"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -21,7 +21,7 @@ func TestCreatePlatformKeyTrialAllowsRealModel(t *testing.T) {
 	t.Parallel()
 	svc, _, _ := newKeysServiceWithNewAPI(t)
 
-	ctx := domaincompany.WithContext(testutil.Ctx(), ctxcompany.Info{
+	ctx := domaincompany.WithContext(testutil.Ctx(), tenant.Info{
 		CompanyID: contract.DefaultCompanyID,
 		Type:      store.CompanyTypeTrial,
 		Status:    store.CompanyStatusActive,
@@ -44,7 +44,7 @@ func TestCreatePlatformKeyDemoAllowsRealModel(t *testing.T) {
 	t.Parallel()
 	svc, _, _ := newKeysServiceWithNewAPI(t)
 
-	ctx := domaincompany.WithContext(testutil.Ctx(), ctxcompany.Info{
+	ctx := domaincompany.WithContext(testutil.Ctx(), tenant.Info{
 		CompanyID: contract.DefaultCompanyID,
 		Type:      store.CompanyTypeDemo,
 		Status:    store.CompanyStatusActive,

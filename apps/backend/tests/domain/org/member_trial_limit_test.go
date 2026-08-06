@@ -6,15 +6,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
+	"github.com/tokenjoy/backend/internal/support/tenant"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	orgfix "github.com/tokenjoy/backend/tests/testutil/org"
 )
 
-func trialCtx() *ctxcompany.Info {
-	return &ctxcompany.Info{
+func trialCtx() *tenant.Info {
+	return &tenant.Info{
 		CompanyID: contract.DefaultCompanyID,
 		Type:      store.CompanyTypeTrial,
 		Status:    store.CompanyStatusActive,
@@ -78,7 +78,7 @@ func TestTrialMemberLimitAllowsNonTrial(t *testing.T) {
 	_ = st
 
 	// Standard company context (not trial) — should not be limited
-	ctx := company.WithContext(testutil.Ctx(), ctxcompany.Info{
+	ctx := company.WithContext(testutil.Ctx(), tenant.Info{
 		CompanyID: contract.DefaultCompanyID,
 		Type:      store.CompanyTypeSelfhosted,
 		Status:    store.CompanyStatusActive,

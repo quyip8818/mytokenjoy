@@ -5,8 +5,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgbudget "github.com/tokenjoy/backend/internal/pkg/budget"
-	"github.com/tokenjoy/backend/internal/pkg/org"
+	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
+	"github.com/tokenjoy/backend/internal/support/org"
 )
 
 func DepartmentIDForPlatformKey(key types.PlatformKey, budgetCtx pkgbudget.BudgetContext) uuid.UUID {

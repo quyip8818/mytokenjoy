@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

@@ -21,7 +21,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/river/workers"
 	"github.com/tokenjoy/backend/internal/infra/scheduler"
 	"github.com/tokenjoy/backend/internal/integration/newapisync"
-	"github.com/tokenjoy/backend/internal/pkg/clock"
+	"github.com/tokenjoy/backend/internal/support/clock"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/worker/catalogsync"
 )

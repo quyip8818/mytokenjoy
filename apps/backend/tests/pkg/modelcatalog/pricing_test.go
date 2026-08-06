@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/pkg/modelcatalog"
+	"github.com/tokenjoy/backend/internal/support/modelcatalog"
 )
 
 func TestPriceFromRatio(t *testing.T) {

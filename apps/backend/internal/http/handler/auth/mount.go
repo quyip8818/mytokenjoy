@@ -3,8 +3,8 @@ package auth
 import (
 	"github.com/go-chi/chi/v5"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
-	"github.com/tokenjoy/backend/internal/identity/registertoken"
-	"github.com/tokenjoy/backend/internal/pkg/invitetoken"
+	"github.com/tokenjoy/backend/internal/domain/identity/registertoken"
+	"github.com/tokenjoy/backend/internal/support/invitetoken"
 )
 
 // Mount registers the auth handler on the given router.

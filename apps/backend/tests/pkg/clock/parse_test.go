@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tokenjoy/backend/internal/pkg/clock"
+	"github.com/tokenjoy/backend/internal/support/clock"
 )
 
 func TestParse(t *testing.T) {

@@ -2,7 +2,7 @@ package core
 
 import (
 	"github.com/tokenjoy/backend/internal/domain"
-	"github.com/tokenjoy/backend/internal/pkg/common"
+	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 const credentialKeySize = 32
