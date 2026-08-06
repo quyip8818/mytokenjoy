@@ -105,7 +105,7 @@ verify_wait_newapi() {
   curl -fsS "${NEWAPI_URL}/api/status" >/dev/null || verify_fail "NewAPI /api/status unreachable"
 }
 
-# Mirror of apps/backend/internal/pkg/baseurl.Origin
+# Mirror of apps/backend/internal/support/baseurl.Origin
 verify_http_origin() {
   python3 "${VERIFY_SCRIPTS_DIR}/lib/newapi_admin.py" origin "${1:-}"
 }

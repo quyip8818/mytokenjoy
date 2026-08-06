@@ -24,7 +24,7 @@ make scaffold-domain DOMAIN=notification
 
 脚本会在终端打印需手动粘贴到以下文件的代码片段：
 
-- `internal/infra/permission/keys.go` — 权限 key
+- `internal/domain/grants/keys.go` — 权限 key
 - `internal/app/compose_domain.go` 与 `registry.go` — DI 注册
 - `internal/http/deps/deps.go` — 新增 `__DOMAIN_TITLE__Svc`（完整字段见 `snippets/deps_reference.go.snippet`）
 - `internal/http/handler/register.go` — Handler 构造与 `/api` 路由注册
