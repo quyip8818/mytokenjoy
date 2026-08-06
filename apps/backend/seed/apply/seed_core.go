@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/quota"
 	"github.com/tokenjoy/backend/seed/contract"
 )
 
@@ -16,7 +16,7 @@ func insertSeedCurrencies(ctx context.Context, exec TableWriter) error {
 		INSERT INTO currencies (currency, quota_per_unit, enabled)
 		VALUES ($1, $2, TRUE)
 		ON CONFLICT (currency) DO UPDATE SET quota_per_unit = EXCLUDED.quota_per_unit
-	`, common.DefaultBillingCurrency, common.DefaultQuotaPerUnit); err != nil {
+	`, quota.DefaultBillingCurrency, quota.DefaultQuotaPerUnit); err != nil {
 		return fmt.Errorf("seed currencies: %w", err)
 	}
 	return nil

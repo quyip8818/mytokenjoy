@@ -9,7 +9,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
-	"github.com/tokenjoy/backend/internal/support/common"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
@@ -68,7 +67,7 @@ func (s *service) DepartmentCosts(ctx context.Context, parentID uuid.UUID, param
 	if err != nil {
 		return nil, err
 	}
-	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
+	departments, err := pkgorg.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +108,7 @@ func (s *service) DepartmentCosts(ctx context.Context, parentID uuid.UUID, param
 }
 
 func (s *service) DepartmentMemberCosts(ctx context.Context, deptID uuid.UUID, params types.CostQueryParams, scope domainusage.SessionScope) ([]types.DepartmentCostMember, error) {
-	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
+	departments, err := pkgorg.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +196,7 @@ func (s *service) TopConsumers(ctx context.Context, limit int, params types.Cost
 	if err != nil {
 		return nil, err
 	}
-	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
+	departments, err := pkgorg.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return nil, err
 	}

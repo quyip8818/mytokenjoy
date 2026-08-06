@@ -10,7 +10,7 @@ import (
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/quota"
 	"github.com/tokenjoy/backend/seed/contract"
 )
 
@@ -32,12 +32,12 @@ func ApplyRechargeOrders(ctx context.Context, st store.Store) error {
 	if co == nil {
 		return fmt.Errorf("company %d not found for seed recharge", contract.DefaultCompanyID)
 	}
-	currency := common.ResolveBillingCurrency(co.BillingCurrency)
+	currency := quota.ResolveBillingCurrency(co.BillingCurrency)
 	cur, err := st.Billing().GetCurrency(ctx, currency)
 	if err != nil {
 		return fmt.Errorf("load currency %s: %w", currency, err)
 	}
-	ppu := domainbilling.DefaultQuotaPerUnit()
+	ppu := quota.DefaultQuotaPerUnit
 	if cur != nil && cur.QuotaPerUnit > 0 {
 		ppu = cur.QuotaPerUnit
 	}
@@ -49,7 +49,7 @@ func ApplyRechargeOrders(ctx context.Context, st store.Store) error {
 	for _, order := range buildSeedRechargeOrders() {
 		order.Currency = currency
 		order.QuotaPerUnit = ppu
-		order.QuotaGranted = common.MoneyToQuota(order.Amount, ppu)
+		order.QuotaGranted = quota.MoneyToQuota(order.Amount, ppu)
 		order.LotKind = lotKind
 		if lotKind == store.LotKindMock {
 			order.Amount = 0 // mock lots have no real payment

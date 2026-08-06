@@ -15,9 +15,9 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/support/invitetoken"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
+	"github.com/tokenjoy/backend/internal/support/quota"
 	"github.com/tokenjoy/backend/internal/support/tenant"
 )
 
@@ -26,7 +26,7 @@ func (s *LocalService) CreateMember(ctx context.Context, input types.CreateMembe
 		return types.Member{}, domain.NewDomainError(domain.StatusBadRequest, "phone or email is required")
 	}
 
-	departments, err := common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
+	departments, err := pkgorg.LoadDepartments(ctx, s.d.Store.Org().Nodes())
 	if err != nil {
 		return types.Member{}, err
 	}
@@ -63,7 +63,7 @@ func (s *LocalService) CreateMember(ctx context.Context, input types.CreateMembe
 		Status:         types.MemberStatusPending,
 		Roles:          []string{grants.RoleMember},
 		Source:         types.MemberSourceManual,
-		PersonalBudget: common.DefaultPersonalBudget,
+		PersonalBudget: quota.DefaultPersonalBudget,
 	}
 
 	// Generate invite code.
@@ -207,7 +207,7 @@ func (s *LocalService) UpdateMember(ctx context.Context, id uuid.UUID, input typ
 				existing.HireDate = input.HireDate
 			}
 			if input.DepartmentID != uuid.Nil && input.DepartmentID != existing.DepartmentID {
-				departments, err := common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
+				departments, err := pkgorg.LoadDepartments(ctx, s.d.Store.Org().Nodes())
 				if err != nil {
 					return types.Member{}, err
 				}
@@ -320,7 +320,7 @@ func (s *LocalService) TransferMembers(ctx context.Context, ids []uuid.UUID, dep
 	}
 
 	return s.d.Store.WithTx(ctx, func(st store.Store) error {
-		departments, err := common.LoadDepartments(ctx, st.Org().Nodes())
+		departments, err := pkgorg.LoadDepartments(ctx, st.Org().Nodes())
 		if err != nil {
 			return err
 		}

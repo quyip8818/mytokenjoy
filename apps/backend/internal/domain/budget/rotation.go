@@ -9,7 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
-	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 // RotatePeriod performs the month rotation if needed: archive previous period,
@@ -185,7 +185,7 @@ func (s *service) applySnapshot(ctx context.Context, tx store.Store, payload *Sn
 // buildSnapshotFromTx builds a snapshot using a transaction's store (for consistency).
 // periodKey is used to enrich tree nodes with consumed data from ledger.
 func (s *service) buildSnapshotFromTx(ctx context.Context, tx store.Store, periodKey string) (*SnapshotPayload, error) {
-	tree, err := common.LoadBudgetTree(ctx, tx.Org().Nodes())
+	tree, err := pkgorg.LoadBudgetTree(ctx, tx.Org().Nodes())
 	if err != nil {
 		return nil, err
 	}

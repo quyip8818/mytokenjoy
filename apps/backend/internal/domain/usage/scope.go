@@ -8,8 +8,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/support/clock"
-	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/support/org"
+	"github.com/tokenjoy/backend/internal/support/sliceutil"
 )
 
 type SessionScope struct {
@@ -61,13 +61,13 @@ func IsDepartmentAccessible(departments []types.Department, scope SessionScope, 
 }
 
 func hasOrgWideDashboardAccess(permissions []string, cfg DashboardScopeConfig) bool {
-	if common.HasAny(permissions, "*") {
+	if sliceutil.HasAny(permissions, "*") {
 		return true
 	}
 	if len(cfg.OrgWidePermissions) == 0 {
 		return false
 	}
-	return common.HasAny(permissions, cfg.OrgWidePermissions...)
+	return sliceutil.HasAny(permissions, cfg.OrgWidePermissions...)
 }
 
 func collectSubtreeIDs(departments []types.Department, rootID uuid.UUID) []uuid.UUID {

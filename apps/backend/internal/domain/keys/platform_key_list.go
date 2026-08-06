@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
-	"github.com/tokenjoy/backend/internal/support/common"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
@@ -27,7 +26,7 @@ func (s *service) ListPlatformKeys(
 	var allowedDeptIDs map[uuid.UUID]struct{}
 
 	if filter.DepartmentID != uuid.Nil {
-		departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
+		departments, err := pkgorg.LoadDepartments(ctx, s.store.Org().Nodes())
 		if err != nil {
 			return types.PageResult[types.PlatformKey]{}, err
 		}

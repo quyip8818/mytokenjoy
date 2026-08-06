@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/org/remote"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/simulate"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -21,7 +21,7 @@ func TestUpdateSyncConfigValidation(t *testing.T) {
 		testutil.TestConfig(),
 		nil, // store not reached for invalid inputs
 		nil, nil, nil,
-		common.NewDelayer(false),
+		simulate.NewDelayer(false),
 		slog.Default(),
 		grants.NewGrantNormalizer(),
 		nil, // clock — defaults to system via clock.OrDefault

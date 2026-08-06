@@ -11,7 +11,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/clock"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/quota"
 	"github.com/tokenjoy/backend/seed/contract"
 )
 
@@ -59,7 +59,7 @@ func buildUsageBuckets(refDate string) []types.UsageBucketRow {
 	rootDisplay := contract.DemoRootConsumed()
 	const rawDisplayTotal = 39.5
 	displayScale := rootDisplay / rawDisplayTotal
-	ppu := float64(common.DefaultQuotaPerUnit)
+	ppu := float64(quota.DefaultQuotaPerUnit)
 
 	type entry struct {
 		day    int

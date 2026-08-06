@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/support/org"
 )
 
@@ -77,12 +76,12 @@ func (s *service) DepartmentUsage(ctx context.Context, params types.CostQueryPar
 	if err != nil {
 		return nil, err
 	}
-	deptTree, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
+	deptTree, err := org.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return nil, err
 	}
 	departments := org.FlattenDepartmentTree(deptTree)
-	tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
+	tree, err := org.LoadBudgetTree(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return nil, err
 	}

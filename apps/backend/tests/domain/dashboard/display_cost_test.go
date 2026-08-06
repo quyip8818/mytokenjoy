@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/quota"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -39,7 +39,7 @@ func TestCostSummaryUsesCostNotPointsOrPPU(t *testing.T) {
 	if summary.TotalCost != 10 {
 		t.Fatalf("expected display total 10, got %v", summary.TotalCost)
 	}
-	ppuApprox := (5000 + 3000) / float64(common.DefaultQuotaPerUnit)
+	ppuApprox := (5000 + 3000) / float64(quota.DefaultQuotaPerUnit)
 	if summary.TotalCost == ppuApprox {
 		t.Fatalf("totalCost must not equal point/PPU approximation %v", ppuApprox)
 	}

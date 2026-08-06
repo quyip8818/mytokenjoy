@@ -11,7 +11,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
-	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -20,7 +20,7 @@ func TestOrgNodesBudgetRoundTrip(t *testing.T) {
 	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
-	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
+	tree, err := pkgorg.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +35,7 @@ func TestOrgNodesBudgetRoundTrip(t *testing.T) {
 	if err := orgfix.PersistBudgetTree(ctx, st, tree); err != nil {
 		t.Fatal(err)
 	}
-	got, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
+	got, err := pkgorg.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +113,7 @@ func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := common.PersistRoutingRules(ctx, st, nodes, rules); err != nil {
+	if err := pkgorg.PersistRoutingRules(ctx, st.Models().Allowlist(), st.Org().Nodes(), nodes, rules); err != nil {
 		t.Fatal(err)
 	}
 	gotModels, err := st.Models().Models(ctx)
@@ -132,7 +132,7 @@ func TestModelAllowlistRoutingRoundTrip(t *testing.T) {
 	if !foundModel {
 		t.Fatal("model not found after round-trip")
 	}
-	gotRules, err := common.LoadRoutingRules(ctx, st.Org().Nodes(), st.Models().Allowlist())
+	gotRules, err := pkgorg.LoadRoutingRules(ctx, st.Org().Nodes(), st.Models().Allowlist())
 	if err != nil {
 		t.Fatal(err)
 	}

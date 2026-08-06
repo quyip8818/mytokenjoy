@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/budget"
 	"github.com/tokenjoy/backend/internal/support/clock"
-	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 type Service interface {
@@ -58,7 +58,7 @@ func (s *service) resolveRange(params types.CostQueryParams) (budget.ResolvedRan
 }
 
 func (s *service) resolveScope(ctx context.Context, scope domainusage.SessionScope, requestedDeptID uuid.UUID) ([]uuid.UUID, error) {
-	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
+	departments, err := pkgorg.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return nil, err
 	}

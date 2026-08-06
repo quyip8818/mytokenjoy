@@ -15,7 +15,6 @@ import (
 	"github.com/tokenjoy/backend/internal/integration/newapisync/ports"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/syncdeps"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
@@ -96,7 +95,7 @@ func TrySyncCreate(ctx context.Context, d syncdeps.Deps, platformKeyID uuid.UUID
 	if departmentID == uuid.Nil {
 		return "", fmt.Errorf("department not resolved for key")
 	}
-	departments, err := common.LoadDepartments(ctx, d.Store.Org().Nodes())
+	departments, err := pkgorg.LoadDepartments(ctx, d.Store.Org().Nodes())
 	if err != nil {
 		return "", err
 	}

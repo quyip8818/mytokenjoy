@@ -12,7 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/quota"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/seed/runtime"
 )
@@ -31,16 +31,16 @@ func SeedDeptOverrun(t *testing.T, st store.Store, deptID uuid.UUID, spent float
 	}
 	memberID := contract.IDMember1
 	now := time.Now().UTC()
-	quota := common.MoneyToQuota(spent, common.DefaultQuotaPerUnit)
+	quotaAmount := quota.MoneyToQuota(spent, quota.DefaultQuotaPerUnit)
 	entry := types.UsageLedgerEntry{
 		ID:               uuid.Must(uuid.NewV7()),
 		CompanyID:        contract.DefaultCompanyID,
 		EventType:        types.EventTypeCallSettled,
 		IdempotencyKey:   fmt.Sprintf("test:dept-overrun:%s:%g", deptID, spent),
 		LotID:            lots[0].ID,
-		QuotaAmount:      quota,
+		QuotaAmount:      quotaAmount,
 		Cost:             spent,
-		BillingCurrency:  common.DefaultBillingCurrency,
+		BillingCurrency:  quota.DefaultBillingCurrency,
 		DepartmentID:     deptID,
 		MemberID:         &memberID,
 		PlatformKeyID:    contract.IDPlatformKey1,

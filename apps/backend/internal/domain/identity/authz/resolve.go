@@ -3,7 +3,7 @@ package authz
 import (
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/sliceutil"
 )
 
 func expandRoleDefinition(role types.Role) []string {
@@ -75,7 +75,7 @@ func IsReadOnlySession(permissions []string) bool {
 }
 
 func HasAny(have []string, required ...string) bool {
-	return common.HasAny(have, required...)
+	return sliceutil.HasAny(have, required...)
 }
 
 func contains(items []string, target string) bool {

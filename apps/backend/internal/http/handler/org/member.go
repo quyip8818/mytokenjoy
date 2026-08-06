@@ -8,13 +8,12 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 func (h *Handler) MembersList(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
-	page := common.ParseIntParam(query.Get("page"), 1)
-	pageSize := common.ParseIntParam(query.Get("pageSize"), 20)
+	page := httputil.ParseIntParam(query.Get("page"), 1)
+	pageSize := httputil.ParseIntParam(query.Get("pageSize"), 20)
 	directOnly := query.Get("directOnly") == "true"
 	departmentID, _ := uuid.Parse(query.Get("departmentId"))
 	result, err := h.service.ListMembers(r.Context(),

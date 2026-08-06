@@ -9,7 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
 	pkgtime "github.com/tokenjoy/backend/internal/support/clock"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/quota"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/seed/data"
 )
@@ -79,7 +79,7 @@ func loadUsageLedger() []types.UsageLedgerEntry {
 			LotID:            seedLotID,
 			QuotaAmount:      seedQuota(row.Cost),
 			Cost:             row.Cost,
-			BillingCurrency:  common.DefaultBillingCurrency,
+			BillingCurrency:  quota.DefaultBillingCurrency,
 			DepartmentID:     contract.IDDept3,
 			MemberID:         memberID,
 			PlatformKeyID:    platformKeyID,

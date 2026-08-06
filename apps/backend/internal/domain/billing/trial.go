@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/quota"
 )
 
 // SeedTrialCredit creates a trial lot with simulated funds for a newly registered
@@ -19,8 +19,8 @@ func SeedTrialCredit(ctx context.Context, st billinglot.CreditStore, companyID u
 	if trialQuota <= 0 {
 		return fmt.Errorf("trial credit amount must be positive")
 	}
-	currency := common.DefaultBillingCurrency
-	ppu := common.DefaultQuotaPerUnit
+	currency := quota.DefaultBillingCurrency
+	ppu := quota.DefaultQuotaPerUnit
 	now := time.Now().UTC()
 	orderID := uuid.Must(uuid.NewV7())
 

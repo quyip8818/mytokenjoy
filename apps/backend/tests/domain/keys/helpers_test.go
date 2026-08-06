@@ -11,7 +11,7 @@ import (
 	"github.com/tokenjoy/backend/internal/integration/newapisync/policy"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/ports"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/simulate"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
@@ -28,7 +28,7 @@ func newKeysService(t *testing.T) (domainkeys.Service, store.Store) {
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t)
 	newAPISync := newapisync.New(cfg, st, nil, policy.NewChannelPolicy(cfg), testSyncEnqueuer(t, cfg, st))
-	return domainkeys.NewService(cfg, st, newAPISync, common.NewDelayer(false), testutil.TestClock()), st
+	return domainkeys.NewService(cfg, st, newAPISync, simulate.NewDelayer(false), testutil.TestClock()), st
 }
 
 func newKeysServiceWithNewAPI(t *testing.T) (domainkeys.Service, store.Store, *mock.StubAdminClient) {
@@ -40,7 +40,7 @@ func newKeysServiceWithNewAPI(t *testing.T) (domainkeys.Service, store.Store, *m
 	)
 	newapisynctf.EnsureWalletCompanyID(t, st, contract.DefaultCompanyID, newapisynctf.TestWalletCompanyID)
 	newAPISync := newapisync.New(cfg, st, stub, policy.NewChannelPolicy(cfg), testSyncEnqueuer(t, cfg, st))
-	return domainkeys.NewService(cfg, st, newAPISync, common.NewDelayer(false), testutil.TestClock()), st, stub
+	return domainkeys.NewService(cfg, st, newAPISync, simulate.NewDelayer(false), testutil.TestClock()), st, stub
 }
 
 func newNewAPISync(t *testing.T, stub *mock.StubAdminClient) (*newapisync.NewAPISync, store.Store) {

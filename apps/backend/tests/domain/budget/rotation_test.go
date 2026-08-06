@@ -8,7 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/budget"
 	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
 	"github.com/tokenjoy/backend/internal/support/clock"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/simulate"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -20,7 +20,7 @@ func TestRotatePeriodAppliesSnapshot(t *testing.T) {
 
 	// Use a clock at June 19 — current period is 2026-06.
 	juneClock := clock.Fixed(time.Date(2026, 6, 19, 0, 0, 0, 0, time.UTC))
-	svc := budget.NewService(cfg, st, common.NewDelayer(false), nil, juneClock)
+	svc := budget.NewService(cfg, st, simulate.NewDelayer(false), nil, juneClock)
 
 	// Mark current period as already rotated (simulate normal state mid-month).
 	junePeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, time.Date(2026, 6, 19, 0, 0, 0, 0, time.UTC))
@@ -43,7 +43,7 @@ func TestRotatePeriodAppliesSnapshot(t *testing.T) {
 
 	// Advance clock to July — now RotatePeriod should apply the snapshot.
 	julyClock := clock.Fixed(time.Date(2026, 7, 1, 3, 0, 0, 0, time.UTC))
-	svcJuly := budget.NewService(cfg, st, common.NewDelayer(false), nil, julyClock)
+	svcJuly := budget.NewService(cfg, st, simulate.NewDelayer(false), nil, julyClock)
 
 	if err := svcJuly.RotatePeriod(ctx); err != nil {
 		t.Fatal(err)
@@ -88,7 +88,7 @@ func TestRotatePeriodIdempotent(t *testing.T) {
 
 	// Start at July 1, with lastRebalancedPeriod = June (needs rotation).
 	julyClock := clock.Fixed(time.Date(2026, 7, 1, 3, 0, 0, 0, time.UTC))
-	svc := budget.NewService(cfg, st, common.NewDelayer(false), nil, julyClock)
+	svc := budget.NewService(cfg, st, simulate.NewDelayer(false), nil, julyClock)
 
 	junePeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC))
 	if err := st.TenantBackgroundState().EnsureRow(ctx, contract.DefaultCompanyID); err != nil {

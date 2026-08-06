@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/quota"
 	budgetfix "github.com/tokenjoy/backend/tests/testutil/budget"
 )
 
@@ -33,7 +33,7 @@ func PrepareIngestBudgetHeadroom(t *testing.T, st store.Store, fixture IngestBud
 	if fixture.Amount <= 0 {
 		fixture.Amount = DefaultConsumeLogQuota()
 	}
-	spend := common.QuotaToMoney(fixture.Amount, common.DefaultQuotaPerUnit)
+	spend := quota.QuotaToMoney(fixture.Amount, quota.DefaultQuotaPerUnit)
 
 	ctx := Ctx()
 	if fixture.MemberID != uuid.Nil {

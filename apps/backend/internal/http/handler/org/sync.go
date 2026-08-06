@@ -5,7 +5,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 func (h *Handler) SyncConfigGet(w http.ResponseWriter, r *http.Request) {
@@ -29,8 +28,8 @@ func (h *Handler) SyncTrigger(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) SyncLogs(w http.ResponseWriter, r *http.Request) {
-	page := common.ParseIntParam(r.URL.Query().Get("page"), 1)
-	pageSize := common.ParseIntParam(r.URL.Query().Get("pageSize"), 10)
+	page := httputil.ParseIntParam(r.URL.Query().Get("page"), 1)
+	pageSize := httputil.ParseIntParam(r.URL.Query().Get("pageSize"), 10)
 	result, err := h.service.ListSyncLogs(r.Context(), page, pageSize)
 	httputil.WriteJSON(w, http.StatusOK, result, err)
 }

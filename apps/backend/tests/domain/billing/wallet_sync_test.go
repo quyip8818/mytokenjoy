@@ -12,7 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/quota"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -53,7 +53,7 @@ func TestCreditFromLotReturnsNewWalletRemain(t *testing.T) {
 	now := time.Now().UTC()
 
 	order := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001101"), 100, now)
-	lot := domainbilling.BuildLot(order, common.DefaultBillingCurrency, store.LotKindPaid, order.Amount)
+	lot := domainbilling.BuildLot(order, quota.DefaultBillingCurrency, store.LotKindPaid, order.Amount)
 
 	newRemain, err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted)
 	if err != nil {
@@ -65,7 +65,7 @@ func TestCreditFromLotReturnsNewWalletRemain(t *testing.T) {
 
 	// Second recharge should accumulate.
 	order2 := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001102"), 50, now.Add(time.Second))
-	lot2 := domainbilling.BuildLot(order2, common.DefaultBillingCurrency, store.LotKindPaid, order2.Amount)
+	lot2 := domainbilling.BuildLot(order2, quota.DefaultBillingCurrency, store.LotKindPaid, order2.Amount)
 
 	newRemain2, err := billinglot.CreditFromLot(ctx, st, order2, lot2, lot2.QuotaGranted)
 	if err != nil {
@@ -86,7 +86,7 @@ func TestConsumeLotsDecrementsWallet(t *testing.T) {
 
 	// Seed balance.
 	order := paidRechargeOrder(companyID, uuid.MustParse("00000000-0000-7000-0000-000000001201"), 100, now)
-	lot := domainbilling.BuildLot(order, common.DefaultBillingCurrency, store.LotKindPaid, order.Amount)
+	lot := domainbilling.BuildLot(order, quota.DefaultBillingCurrency, store.LotKindPaid, order.Amount)
 	_, err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted)
 	if err != nil {
 		t.Fatal(err)

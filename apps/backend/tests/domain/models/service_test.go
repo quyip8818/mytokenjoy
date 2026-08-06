@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/models"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/simulate"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
@@ -15,7 +15,7 @@ import (
 func newModelsService(t *testing.T) models.Service {
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t)
-	return models.NewService(cfg, st, &mock.StubAdminClient{}, nil, common.NewDelayer(false))
+	return models.NewService(cfg, st, &mock.StubAdminClient{}, nil, simulate.NewDelayer(false))
 }
 
 func TestResolveRoutingWithoutRule(t *testing.T) {

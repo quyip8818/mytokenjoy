@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/quota"
 )
 
 type companyRepo struct {
@@ -58,7 +58,7 @@ func (r *companyRepo) GetByIDs(ctx context.Context, ids []uuid.UUID) ([]store.Co
 
 func (r *companyRepo) Create(ctx context.Context, company store.Company) error {
 	if company.BillingCurrency == "" {
-		company.BillingCurrency = common.ResolveBillingCurrency("")
+		company.BillingCurrency = quota.ResolveBillingCurrency("")
 	}
 	if company.Type == "" {
 		company.Type = store.CompanyTypeSelfhosted

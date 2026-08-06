@@ -11,7 +11,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/budget"
-	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatformKeyInput) (types.PlatformKey, error) {
@@ -32,11 +32,11 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 	platformKeys := budgetCtx.PlatformKeys
 	projects := budgetCtx.Projects
 	members := budgetCtx.Members
-	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
+	departments, err := pkgorg.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
-	rules, err := common.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
+	rules, err := pkgorg.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
@@ -47,7 +47,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 
 	switch input.Scope {
 	case types.PlatformKeyScopeMember:
-		if msg := common.ValidateModelIDsForMember(*input.MemberID, input.ModelWhitelist, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
+		if msg := pkgorg.ValidateModelIDsForMember(*input.MemberID, input.ModelWhitelist, members, departments, rules, models, pkgorg.ModelNotInDeptMessage); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
 		if msg := budget.ValidateMemberScopeKeyBudget(members, platformKeys, *input.MemberID, input.Budget, uuid.Nil); msg != nil {
@@ -62,7 +62,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
 		if input.MemberID != nil {
-			if msg := common.ValidateModelIDsForMember(*input.MemberID, input.ModelWhitelist, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
+			if msg := pkgorg.ValidateModelIDsForMember(*input.MemberID, input.ModelWhitelist, members, departments, rules, models, pkgorg.ModelNotInDeptMessage); msg != nil {
 				return types.PlatformKey{}, domain.Validation(*msg)
 			}
 		}
@@ -74,7 +74,7 @@ func (s *service) CreatePlatformKey(ctx context.Context, input types.CreatePlatf
 		if err := budget.ValidateProjectMemberRoster(project, *input.MemberID); err != nil {
 			return types.PlatformKey{}, domain.Validation(err.Error())
 		}
-		if msg := common.ValidateModelIDsForMember(*input.MemberID, input.ModelWhitelist, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
+		if msg := pkgorg.ValidateModelIDsForMember(*input.MemberID, input.ModelWhitelist, members, departments, rules, models, pkgorg.ModelNotInDeptMessage); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
 		if msg := budget.ValidateProjectScopeKeyBudget(input.Scope, project, platformKeys, input.MemberID, input.Budget, uuid.Nil); msg != nil {

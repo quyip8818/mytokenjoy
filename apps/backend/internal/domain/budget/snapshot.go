@@ -9,7 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
-	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 // periodKeyPattern validates "YYYY-MM" format.
@@ -107,7 +107,7 @@ func (s *service) GetTreeForPeriod(ctx context.Context, period string) ([]types.
 
 // buildCurrentSnapshot reads current org_nodes, members, and projects to produce a full snapshot.
 func (s *service) buildCurrentSnapshot(ctx context.Context) (*SnapshotPayload, error) {
-	tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
+	tree, err := pkgorg.LoadBudgetTree(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return nil, err
 	}

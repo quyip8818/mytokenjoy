@@ -12,7 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/integration/datasource"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/clock"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/simulate"
 )
 
 type service struct {
@@ -26,7 +26,7 @@ func NewService(
 	factory datasource.Factory,
 	notifier types.Notifier,
 	sender core.DirectSender,
-	delayer common.Delayer,
+	delayer simulate.Delayer,
 	logger *slog.Logger,
 	grants grants.Normalizer,
 	enqueuer remote.JobEnqueuer,

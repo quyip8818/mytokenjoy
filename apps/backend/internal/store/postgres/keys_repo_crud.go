@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/crypto"
 )
 
 func (r *pgKeysRepo) ProviderKeys(ctx context.Context) ([]types.ProviderKey, error) {
@@ -33,7 +33,7 @@ func (r *pgKeysRepo) ProviderKeys(ctx context.Context) ([]types.ProviderKey, err
 		); err != nil {
 			return nil, err
 		}
-		item.SecretKey, err = common.DecryptField(r.credentialKey, item.SecretKey)
+		item.SecretKey, err = crypto.DecryptField(r.credentialKey, item.SecretKey)
 		if err != nil {
 			return nil, fmt.Errorf("decrypt provider key %s: %w", item.ID, err)
 		}
@@ -55,7 +55,7 @@ func (r *pgKeysRepo) SetProviderKeys(ctx context.Context, keys []types.ProviderK
 		if err != nil {
 			return err
 		}
-		storedSecret, err := common.EncryptField(r.credentialKey, key.SecretKey)
+		storedSecret, err := crypto.EncryptField(r.credentialKey, key.SecretKey)
 		if err != nil {
 			return fmt.Errorf("encrypt provider key %s: %w", key.ID, err)
 		}

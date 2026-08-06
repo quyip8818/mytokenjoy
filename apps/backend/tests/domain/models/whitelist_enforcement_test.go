@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 func TestValidateModelIDsForMember_AllowedModel(t *testing.T) {
@@ -21,7 +21,7 @@ func TestValidateModelIDsForMember_AllowedModel(t *testing.T) {
 		{ID: model1, Type: "gpt-4", Deprecated: false},
 		{ID: model2, Type: "claude", Deprecated: false},
 	}
-	errMsg := common.ValidateModelIDsForMember(m1, []uuid.UUID{model1}, members, departments, rules, models, "模型不可用")
+	errMsg := pkgorg.ValidateModelIDsForMember(m1, []uuid.UUID{model1}, members, departments, rules, models, "模型不可用")
 	if errMsg != nil {
 		t.Errorf("expected nil error for allowed model, got %q", *errMsg)
 	}
@@ -40,7 +40,7 @@ func TestValidateModelIDsForMember_BlockedModel(t *testing.T) {
 		{ID: model1, Type: "gpt-4", Deprecated: false},
 		{ID: model2, Type: "claude", Deprecated: false},
 	}
-	errMsg := common.ValidateModelIDsForMember(m1, []uuid.UUID{model2}, members, departments, rules, models, "模型不可用")
+	errMsg := pkgorg.ValidateModelIDsForMember(m1, []uuid.UUID{model2}, members, departments, rules, models, "模型不可用")
 	if errMsg == nil {
 		t.Fatal("expected error for blocked model")
 	}
@@ -60,7 +60,7 @@ func TestValidateModelIDsForMember_EmptyWhitelist(t *testing.T) {
 		{ID: model1, Type: "gpt-4", Deprecated: false},
 		{ID: model2, Type: "claude", Deprecated: false},
 	}
-	errMsg := common.ValidateModelIDsForMember(m1, []uuid.UUID{model1}, members, nil, nil, models, "模型不可用")
+	errMsg := pkgorg.ValidateModelIDsForMember(m1, []uuid.UUID{model1}, members, nil, nil, models, "模型不可用")
 	if errMsg != nil {
 		t.Errorf("no rules should allow all enabled models, got %q", *errMsg)
 	}
@@ -71,10 +71,10 @@ func TestValidateModelIDsForMember_NoModelsProvided(t *testing.T) {
 	m1 := uuid.MustParse("00000000-0000-7000-0000-000000000001")
 	d1 := uuid.MustParse("00000000-0000-7000-0000-000000000011")
 	members := []types.Member{{ID: m1, DepartmentID: d1}}
-	if errMsg := common.ValidateModelIDsForMember(m1, nil, members, nil, nil, nil, "err"); errMsg != nil {
+	if errMsg := pkgorg.ValidateModelIDsForMember(m1, nil, members, nil, nil, nil, "err"); errMsg != nil {
 		t.Error("nil models should pass validation")
 	}
-	if errMsg := common.ValidateModelIDsForMember(m1, []uuid.UUID{}, members, nil, nil, nil, "err"); errMsg != nil {
+	if errMsg := pkgorg.ValidateModelIDsForMember(m1, []uuid.UUID{}, members, nil, nil, nil, "err"); errMsg != nil {
 		t.Error("empty models should pass validation")
 	}
 }
@@ -101,10 +101,10 @@ func TestWhitelistInheritance_ChildNarrowsFromParent(t *testing.T) {
 		{ID: model3, Type: "deepseek", Deprecated: false},
 	}
 	member := []types.Member{{ID: mChild, DepartmentID: dChild}}
-	if errMsg := common.ValidateModelIDsForMember(mChild, []uuid.UUID{model1}, member, departments, rules, models, "模型不可用"); errMsg != nil {
+	if errMsg := pkgorg.ValidateModelIDsForMember(mChild, []uuid.UUID{model1}, member, departments, rules, models, "模型不可用"); errMsg != nil {
 		t.Errorf("child should access gpt-4: %q", *errMsg)
 	}
-	if errMsg := common.ValidateModelIDsForMember(mChild, []uuid.UUID{model3}, member, departments, rules, models, "模型不可用"); errMsg == nil {
+	if errMsg := pkgorg.ValidateModelIDsForMember(mChild, []uuid.UUID{model3}, member, departments, rules, models, "模型不可用"); errMsg == nil {
 		t.Error("child should NOT access deepseek (narrowed from parent)")
 	}
 }
@@ -123,7 +123,7 @@ func TestWhitelistInheritance_ParentShrinkSyncsChild(t *testing.T) {
 	rules := []types.RoutingRule{
 		{NodeID: dChild, AllowedModelIDs: []uuid.UUID{model1, model2, model3}, Inherited: true},
 	}
-	updated := common.ShrinkChildRoutingRules(dParent, []uuid.UUID{model1}, rules, departments)
+	updated := pkgorg.ShrinkChildRoutingRules(dParent, []uuid.UUID{model1}, rules, departments)
 	if len(updated[0].AllowedModelIDs) != 1 {
 		t.Fatalf("expected child shrunk to 1 model, got %d: %v", len(updated[0].AllowedModelIDs), updated[0].AllowedModelIDs)
 	}
@@ -151,7 +151,7 @@ func TestResolveDeptAllowedModelIDs_InheritedFromParent(t *testing.T) {
 		{ID: model2, Type: "claude", Deprecated: false},
 		{ID: model3, Type: "other", Deprecated: false},
 	}
-	allowed := common.ResolveDeptAllowedModelIDs(dChild, departments, rules, models)
+	allowed := pkgorg.ResolveDeptAllowedModelIDs(dChild, departments, rules, models)
 	if len(allowed) != 2 {
 		t.Fatalf("expected 2 inherited models, got %d: %v", len(allowed), allowed)
 	}

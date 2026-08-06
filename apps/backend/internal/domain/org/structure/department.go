@@ -10,12 +10,11 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 func (s *LocalService) GetDepartmentTree(ctx context.Context) ([]types.Department, error) {
-	return common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
+	return pkgorg.LoadDepartments(ctx, s.d.Store.Org().Nodes())
 }
 
 func (s *LocalService) CreateDepartment(ctx context.Context, name string, parentID uuid.UUID) (types.Department, error) {
@@ -122,7 +121,7 @@ func (s *LocalService) DeleteDepartment(ctx context.Context, id uuid.UUID) error
 	}
 
 	return s.d.Store.WithTx(ctx, func(st store.Store) error {
-		departments, err := common.LoadDepartments(ctx, st.Org().Nodes())
+		departments, err := pkgorg.LoadDepartments(ctx, st.Org().Nodes())
 		if err != nil {
 			return err
 		}

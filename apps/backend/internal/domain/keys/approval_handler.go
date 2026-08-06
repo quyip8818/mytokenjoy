@@ -12,7 +12,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/budget"
-	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/support/org"
 )
 
@@ -52,11 +51,11 @@ func (h *KeyApprovalHandler) Validate(ctx context.Context, input approval.Create
 	if err != nil {
 		return err
 	}
-	departments, err := common.LoadDepartments(ctx, h.svc.store.Org().Nodes())
+	departments, err := org.LoadDepartments(ctx, h.svc.store.Org().Nodes())
 	if err != nil {
 		return err
 	}
-	rules, err := common.LoadRoutingRules(ctx, h.svc.store.Org().Nodes(), h.svc.store.Models().Allowlist())
+	rules, err := org.LoadRoutingRules(ctx, h.svc.store.Org().Nodes(), h.svc.store.Models().Allowlist())
 	if err != nil {
 		return err
 	}
@@ -64,7 +63,7 @@ func (h *KeyApprovalHandler) Validate(ctx context.Context, input approval.Create
 	if err != nil {
 		return err
 	}
-	if msg := common.ValidateModelIDsForMember(input.ApplicantID, meta.RequestedModels, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
+	if msg := org.ValidateModelIDsForMember(input.ApplicantID, meta.RequestedModels, members, departments, rules, models, org.ModelNotInDeptMessage); msg != nil {
 		return domain.Validation(*msg)
 	}
 	return nil

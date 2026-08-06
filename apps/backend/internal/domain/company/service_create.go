@@ -13,8 +13,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/budget"
-	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/support/invitetoken"
+	"github.com/tokenjoy/backend/internal/support/quota"
 )
 
 func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (CreateCompanyResult, error) {
@@ -144,19 +144,19 @@ func (s *service) provisionCompany(ctx context.Context, tx store.Store, name, in
 	if company.Type == store.CompanyTypeTrial || company.Type == store.CompanyTypeDemo {
 		_ = s.client.ManageUser(ctx, user.ID, "add_quota", 500000*500000)
 		// Seed 1000 mock money so the trial wallet has usable balance.
-		trialQuota := int64(1000) * common.DefaultQuotaPerUnit
+		trialQuota := int64(1000) * quota.DefaultQuotaPerUnit
 		orderID := uuid.Must(uuid.NewV7())
 		order := store.RechargeOrder{
 			ID: orderID, CompanyID: company.ID, Amount: 0,
-			Currency: common.DefaultBillingCurrency, QuotaPerUnit: common.DefaultQuotaPerUnit,
+			Currency: quota.DefaultBillingCurrency, QuotaPerUnit: quota.DefaultQuotaPerUnit,
 			QuotaGranted: trialQuota, Source: store.RechargeSourceSystem,
 			LotKind: store.LotKindMock, Status: store.RechargeStatusConfirmed,
 			CreatedBy: uuid.Nil, CreatedAt: now, UpdatedAt: now,
 		}
 		lot := store.RechargeLot{
 			ID: orderID, CompanyID: company.ID, RechargeOrderID: orderID,
-			BillingCurrency: common.DefaultBillingCurrency, LotKind: store.LotKindMock,
-			PaidAmount: 0, QuotaPerUnit: common.DefaultQuotaPerUnit,
+			BillingCurrency: quota.DefaultBillingCurrency, LotKind: store.LotKindMock,
+			PaidAmount: 0, QuotaPerUnit: quota.DefaultQuotaPerUnit,
 			QuotaGranted: trialQuota, QuotaRemaining: trialQuota,
 			Status: store.LotStatusActive, CreatedAt: now, UpdatedAt: now,
 		}
@@ -228,7 +228,7 @@ func (s *service) addMember(ctx context.Context, tx store.Store, userID, company
 		DepartmentID:   deptID,
 		Status:         types.MemberStatusActive,
 		Roles:          memberRolesFromInvite(role),
-		PersonalBudget: common.DefaultPersonalBudget,
+		PersonalBudget: quota.DefaultPersonalBudget,
 	}
 
 	members = append(members, member)

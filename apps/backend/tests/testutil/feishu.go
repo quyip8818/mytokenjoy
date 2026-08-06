@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/crypto"
 	"github.com/tokenjoy/backend/seed/contract"
 )
 
@@ -122,14 +122,14 @@ func StartMutableFeishuServer(t *testing.T, deptName *string, users []map[string
 func ConnectFeishuDataSource(t *testing.T, cfg *config.Config, st store.Store, baseURL string) {
 	t.Helper()
 	cfg.FeishuBaseURL = baseURL
-	key := common.DevDefaultKey()
+	key := crypto.DevDefaultKey()
 	payload, err := json.Marshal(types.FeishuCredential{
 		Platform: types.PlatformFeishu, AppID: "cli_test", AppSecret: "secret_test",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	encrypted, err := common.Encrypt(key, payload)
+	encrypted, err := crypto.Encrypt(key, payload)
 	if err != nil {
 		t.Fatal(err)
 	}

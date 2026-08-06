@@ -8,7 +8,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
-	"github.com/tokenjoy/backend/internal/support/common"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
@@ -115,7 +114,7 @@ func (s *Service) SearchDataSource(ctx context.Context, keyword string) (types.D
 		}
 	}
 
-	localDepts, err := common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
+	localDepts, err := pkgorg.LoadDepartments(ctx, s.d.Store.Org().Nodes())
 	if err != nil {
 		return types.DataSourceSearchResult{}, err
 	}

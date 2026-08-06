@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/quota"
 	"github.com/tokenjoy/backend/seed/runtime"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -54,7 +54,7 @@ func TestApplyUsageBucketsProducesNonZeroDashboardSummary(t *testing.T) {
 	if totals.Cost <= 0 {
 		t.Fatalf("expected non-zero display spend, got %+v", totals)
 	}
-	wantDisplay := totals.QuotaConsumed / float64(common.DefaultQuotaPerUnit)
+	wantDisplay := totals.QuotaConsumed / float64(quota.DefaultQuotaPerUnit)
 	if math.Abs(totals.Cost-wantDisplay) > 0.01 {
 		t.Fatalf("cost should be point/PPU: cost=%v display=%v want≈%v", totals.QuotaConsumed, totals.Cost, wantDisplay)
 	}

@@ -13,7 +13,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
@@ -212,7 +212,7 @@ func TestCreateCompanyPresetRolesAndBudgetTree(t *testing.T) {
 	}
 
 	companyCtx := company.WithContext(ctx, company.Context{CompanyID: result.Company.ID})
-	tree, err := common.LoadBudgetTree(companyCtx, st.Org().Nodes())
+	tree, err := pkgorg.LoadBudgetTree(companyCtx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}

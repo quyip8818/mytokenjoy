@@ -7,7 +7,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
+	"github.com/tokenjoy/backend/internal/support/quota"
 )
 
 type EntryBuildSnapshot struct {
@@ -45,12 +46,12 @@ func LoadEntryBuildSnapshot(ctx context.Context, deps EntryBuildReader, tokenJoy
 func resolveQPU(ctx context.Context, deps EntryBuildReader, companyID uuid.UUID) int64 {
 	co, err := deps.Company().GetByID(ctx, companyID)
 	if err != nil || co == nil {
-		return common.DefaultQuotaPerUnit
+		return quota.DefaultQuotaPerUnit
 	}
-	currency := common.ResolveBillingCurrency(co.BillingCurrency)
+	currency := quota.ResolveBillingCurrency(co.BillingCurrency)
 	cur, err := deps.Billing().GetCurrency(ctx, currency)
 	if err != nil || cur == nil || cur.QuotaPerUnit <= 0 {
-		return common.DefaultQuotaPerUnit
+		return quota.DefaultQuotaPerUnit
 	}
 	return cur.QuotaPerUnit
 }
@@ -89,11 +90,11 @@ func resolveBillingAllowedIDs(ctx context.Context, deps EntryBuildReader, mappin
 	keyIDs := append([]uuid.UUID{}, platformKey.ModelWhitelist...)
 	orgNodes := cachedOrgNodes{tree: snap.OrgTree}
 	departments := types.OrgNodesToDepartments(snap.OrgTree)
-	rules, err := common.LoadRoutingRules(ctx, orgNodes, deps.Models().Allowlist())
+	rules, err := pkgorg.LoadRoutingRules(ctx, orgNodes, deps.Models().Allowlist())
 	if err != nil {
 		return keyIDs
 	}
-	deptAllowed := common.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, snap.Catalog)
+	deptAllowed := pkgorg.ResolveDeptAllowedModelIDs(mapping.DepartmentID, departments, rules, snap.Catalog)
 	return effectiveWhitelistIDs(keyIDs, deptAllowed)
 }
 

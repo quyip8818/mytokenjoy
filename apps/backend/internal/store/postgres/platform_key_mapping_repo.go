@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 type platformKeyMappingRepo struct {
@@ -50,8 +50,8 @@ func scanMapping(row pgx.Row) (store.PlatformKeyMapping, error) {
 	if departmentID != nil {
 		m.DepartmentID = *departmentID
 	}
-	if m.DepartmentID == uuid.Nil && strings.HasPrefix(m.NewAPIGroup, common.NewAPIGroupPrefix) {
-		parsed, parseErr := uuid.Parse(strings.TrimPrefix(m.NewAPIGroup, common.NewAPIGroupPrefix))
+	if m.DepartmentID == uuid.Nil && strings.HasPrefix(m.NewAPIGroup, pkgorg.NewAPIGroupPrefix) {
+		parsed, parseErr := uuid.Parse(strings.TrimPrefix(m.NewAPIGroup, pkgorg.NewAPIGroupPrefix))
 		if parseErr == nil {
 			m.DepartmentID = parsed
 		}

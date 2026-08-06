@@ -23,7 +23,7 @@ import (
 )
 
 type Handler struct {
-	pub           httpdeps.Public
+	pub           httpdeps.Public // ponytail: embedded via Auth, kept as named field for h.pub.X access pattern
 	companySvc    domaincompany.Service
 	users         store.UserRepository
 	sessions      store.SessionRepository
@@ -35,23 +35,18 @@ type Handler struct {
 	inviteToken   *invitetoken.Issuer
 }
 
-func NewHandler(pub httpdeps.Public, companySvc domaincompany.Service,
-	users store.UserRepository, sessions store.SessionRepository,
-	invites store.InviteRepository, orgRepo store.OrgRepository,
-	companies store.CompanyRepository,
-	vc *verifycode.Service, regToken *registertoken.Issuer,
-	invToken *invitetoken.Issuer) *Handler {
+func NewHandler(d httpdeps.Auth) *Handler {
 	return &Handler{
-		pub:           pub,
-		companySvc:    companySvc,
-		users:         users,
-		sessions:      sessions,
-		invites:       invites,
-		orgRepo:       orgRepo,
-		companies:     companies,
-		verifyCode:    vc,
-		registerToken: regToken,
-		inviteToken:   invToken,
+		pub:           d.Public,
+		companySvc:    d.CompanySvc,
+		users:         d.Users,
+		sessions:      d.Sessions,
+		invites:       d.Invites,
+		orgRepo:       d.OrgRepo,
+		companies:     d.Companies,
+		verifyCode:    d.VerifyCode,
+		registerToken: d.RegisterToken,
+		inviteToken:   d.InviteToken,
 	}
 }
 

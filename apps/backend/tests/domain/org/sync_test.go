@@ -10,7 +10,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/support/budget"
-	"github.com/tokenjoy/backend/internal/support/common"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -65,7 +64,7 @@ func TestSyncRenamesBudgetAndRouting(t *testing.T) {
 	if _, err := env.Svc.TriggerSync(testutil.Ctx()); err != nil {
 		t.Fatal(err)
 	}
-	departments, err := common.LoadDepartments(ctx, env.Store.Org().Nodes())
+	departments, err := pkgorg.LoadDepartments(ctx, env.Store.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +72,7 @@ func TestSyncRenamesBudgetAndRouting(t *testing.T) {
 	if dept == nil || dept.Name != "Renamed Dept" {
 		t.Fatalf("expected renamed department, got %+v", dept)
 	}
-	budgetTree, err := common.LoadBudgetTree(ctx, env.Store.Org().Nodes())
+	budgetTree, err := pkgorg.LoadBudgetTree(ctx, env.Store.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +80,7 @@ func TestSyncRenamesBudgetAndRouting(t *testing.T) {
 	if node == nil || node.Name != "Renamed Dept" {
 		t.Fatalf("expected renamed budget node, got %+v", node)
 	}
-	rules, err := common.LoadRoutingRules(ctx, env.Store.Org().Nodes(), env.Store.Models().Allowlist())
+	rules, err := pkgorg.LoadRoutingRules(ctx, env.Store.Org().Nodes(), env.Store.Models().Allowlist())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +143,7 @@ func TestSyncSkipsManualDepartmentDeletion(t *testing.T) {
 	env := orgfix.SetupImportedFeishuOrg(t)
 	ctx := testutil.Ctx()
 	manual := types.DeptSourceManual
-	departments, err := common.LoadDepartments(ctx, env.Store.Org().Nodes())
+	departments, err := pkgorg.LoadDepartments(ctx, env.Store.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,7 +163,7 @@ func TestSyncSkipsManualDepartmentDeletion(t *testing.T) {
 	if _, err := env.Svc.TriggerSync(testutil.Ctx()); err != nil {
 		t.Fatal(err)
 	}
-	departments, err = common.LoadDepartments(ctx, env.Store.Org().Nodes())
+	departments, err = pkgorg.LoadDepartments(ctx, env.Store.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}

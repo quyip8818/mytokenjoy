@@ -21,8 +21,8 @@ import (
 	"github.com/tokenjoy/backend/internal/integration/newapisync"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/policy"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
 	pkgrl "github.com/tokenjoy/backend/internal/support/ratelimit"
+	"github.com/tokenjoy/backend/internal/support/simulate"
 )
 
 type infra struct {
@@ -33,7 +33,7 @@ type infra struct {
 	companyGate     *domaincompany.Gate
 	notifier        types.Notifier
 	notificationSvc *notification.Service
-	delayer         common.Delayer
+	delayer         simulate.Delayer
 	enqueuer        jobs.Enqueuer
 	budgetCheck     budgetcheck.Store
 	rateLimiter     pkgrl.Limiter
@@ -67,7 +67,7 @@ func buildInfraWithStore(cfg config.Config, logger *slog.Logger, st store.Store,
 		newAPISync:      newapisync.New(cfg, st, adminPort, channelPolicy, enqueue.NewNewAPISyncEnqueuer(enqueuer)),
 		notifier:        notifySvc,
 		notificationSvc: notifySvc,
-		delayer:         common.NewDelayer(cfg.SimulateDelay),
+		delayer:         simulate.NewDelayer(cfg.SimulateDelay),
 		enqueuer:        enqueuer,
 		budgetCheck:     budgetcheck.Open(context.Background(), cfg, logger),
 		rateLimiter:     ratelimit.Open(context.Background(), cfg.RedisURL, logger),

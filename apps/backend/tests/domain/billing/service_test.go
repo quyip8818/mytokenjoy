@@ -8,7 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/quota"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -96,7 +96,7 @@ func TestCreateSelfRechargeRejectsDuplicateIdempotencyKey(t *testing.T) {
 func TestCreateSelfRechargeUsesCurrenciesPointsPerUnit(t *testing.T) {
 	t.Parallel()
 	svc, st, ctx := newBillingService(t)
-	cur, err := st.Billing().GetCurrency(ctx, common.DefaultBillingCurrency)
+	cur, err := st.Billing().GetCurrency(ctx, quota.DefaultBillingCurrency)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,13 +107,13 @@ func TestCreateSelfRechargeUsesCurrenciesPointsPerUnit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if order.Currency != common.DefaultBillingCurrency {
+	if order.Currency != quota.DefaultBillingCurrency {
 		t.Fatalf("currency: got %q want default currency", order.Currency)
 	}
 	if order.QuotaPerUnit != cur.QuotaPerUnit {
 		t.Fatalf("points_per_unit: got %d want %d (from currencies)", order.QuotaPerUnit, cur.QuotaPerUnit)
 	}
-	wantGranted := common.MoneyToQuota(15, cur.QuotaPerUnit)
+	wantGranted := quota.MoneyToQuota(15, cur.QuotaPerUnit)
 	if order.QuotaGranted != wantGranted {
 		t.Fatalf("points_granted: got %v want %v", order.QuotaGranted, wantGranted)
 	}

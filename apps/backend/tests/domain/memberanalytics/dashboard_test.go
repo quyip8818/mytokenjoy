@@ -7,7 +7,7 @@ import (
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
 	domainmemberanalytics "github.com/tokenjoy/backend/internal/domain/memberanalytics"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/simulate"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/seed/runtime"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -22,7 +22,7 @@ func newMemberAnalyticsService(t *testing.T) (domainmemberanalytics.Service, con
 	if err := runtime.ApplyUsageBuckets(ctx, st, cfg, testutil.TestClock()); err != nil {
 		t.Fatal(err)
 	}
-	budgetSvc := domainbudget.NewService(cfg, st, common.NewDelayer(false), nil, testutil.TestClock())
+	budgetSvc := domainbudget.NewService(cfg, st, simulate.NewDelayer(false), nil, testutil.TestClock())
 	reader := domainusage.NewReader(st.Usage(), st.Ledger())
 	return domainmemberanalytics.NewService(cfg, budgetSvc, reader, testutil.TestClock()), ctx
 }

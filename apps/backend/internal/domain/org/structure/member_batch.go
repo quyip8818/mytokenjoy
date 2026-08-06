@@ -10,8 +10,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
+	"github.com/tokenjoy/backend/internal/support/quota"
 )
 
 func (s *LocalService) BatchInvite(ctx context.Context, ids []uuid.UUID, callerMemberID uuid.UUID) (types.BatchInviteResult, error) {
@@ -173,7 +173,7 @@ func (s *LocalService) BatchImport(ctx context.Context, rows []types.BatchImport
 			HireDate:     row.HireDate,
 			DepartmentID: dept.ID, DepartmentName: dept.Name,
 			Status: types.MemberStatusPending, Roles: []string{grants.RoleMember}, Source: types.MemberSourceCSV,
-			PersonalBudget: common.DefaultPersonalBudget,
+			PersonalBudget: quota.DefaultPersonalBudget,
 		})
 
 		// Create invite for this member.

@@ -4,7 +4,7 @@ package gatewayfix
 
 import (
 	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/quota"
 )
 
 // BasePrecheckContext returns a minimal passing Evaluate input for unit tests.
@@ -23,6 +23,6 @@ func BasePrecheckContext() domaingateway.PrecheckContext {
 // SufficientBudgetContext returns a context that passes wallet checks.
 func SufficientBudgetContext() domaingateway.PrecheckContext {
 	pc := BasePrecheckContext()
-	pc.Wallet.WalletRemainQuota = common.DefaultQuotaPerUnit * 100
+	pc.Wallet.WalletRemainQuota = quota.DefaultQuotaPerUnit * 100
 	return pc
 }

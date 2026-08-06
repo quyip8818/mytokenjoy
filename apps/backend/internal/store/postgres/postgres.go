@@ -9,7 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/clock"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/crypto"
 	"github.com/tokenjoy/backend/seed"
 )
 
@@ -56,7 +56,7 @@ func New(ctx context.Context, cfg config.Config, clk ...clock.Clock) (store.Stor
 		}
 	}
 
-	credentialKey, err := common.ParseKey(cfg.DataSourceCredentialKey)
+	credentialKey, err := crypto.ParseKey(cfg.DataSourceCredentialKey)
 	if err != nil {
 		pool.Close()
 		return nil, fmt.Errorf("parse DATA_SOURCE_CREDENTIAL_KEY: %w", err)

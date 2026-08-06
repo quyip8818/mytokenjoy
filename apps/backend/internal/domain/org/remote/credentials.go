@@ -6,7 +6,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/crypto"
 )
 
 func (s *Service) loadStoredCredential(ctx context.Context) (types.Credential, error) {
@@ -21,7 +21,7 @@ func (s *Service) loadStoredCredential(ctx context.Context) (types.Credential, e
 	if err != nil {
 		return types.Credential{}, err
 	}
-	raw, err := common.Decrypt(key, stored.Encrypted)
+	raw, err := crypto.Decrypt(key, stored.Encrypted)
 	if err != nil {
 		return types.Credential{}, domain.NewDomainError(domain.StatusUnprocessable, "failed to decrypt credential")
 	}
@@ -37,7 +37,7 @@ func (s *Service) saveCredential(ctx context.Context, cred types.Credential) err
 	if err != nil {
 		return err
 	}
-	encrypted, err := common.Encrypt(key, payload)
+	encrypted, err := crypto.Encrypt(key, payload)
 	if err != nil {
 		return err
 	}

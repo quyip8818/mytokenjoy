@@ -7,14 +7,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/quota"
 )
 
 func resolveBillingCurrency(co *store.Company) string {
 	if co == nil {
-		return common.DefaultBillingCurrency
+		return quota.DefaultBillingCurrency
 	}
-	return common.ResolveBillingCurrency(co.BillingCurrency)
+	return quota.ResolveBillingCurrency(co.BillingCurrency)
 }
 
 // CurrencyStore is the narrow store surface for currency lookups.

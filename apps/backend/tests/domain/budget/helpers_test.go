@@ -9,7 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/simulate"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -17,7 +17,7 @@ import (
 func newBudgetService(t *testing.T) (budget.Service, store.Store) {
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t)
-	return budget.NewService(cfg, st, common.NewDelayer(false), nil, testutil.TestClock()), st
+	return budget.NewService(cfg, st, simulate.NewDelayer(false), nil, testutil.TestClock()), st
 }
 
 type deptBudgetInputs struct {

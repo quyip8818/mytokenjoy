@@ -11,7 +11,6 @@ import (
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 type Handler struct {
@@ -44,8 +43,8 @@ func (h *Handler) SettingsUpdate(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) OperationsList(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	params := types.AuditOperationsQueryParams{
-		Page:       common.ParseIntParam(query.Get("page"), 1),
-		PageSize:   common.ParseIntParam(query.Get("pageSize"), 20),
+		Page:       httputil.ParseIntParam(query.Get("page"), 1),
+		PageSize:   httputil.ParseIntParam(query.Get("pageSize"), 20),
 		Action:     query.Get("action"),
 		OperatorID: query.Get("operatorId"),
 		Keyword:    query.Get("keyword"),
@@ -59,8 +58,8 @@ func (h *Handler) OperationsList(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) CallsList(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	params := types.AuditCallsQueryParams{
-		Page:     common.ParseIntParam(query.Get("page"), 1),
-		PageSize: common.ParseIntParam(query.Get("pageSize"), 20),
+		Page:     httputil.ParseIntParam(query.Get("page"), 1),
+		PageSize: httputil.ParseIntParam(query.Get("pageSize"), 20),
 		Model:    query.Get("model"),
 		Status:   query.Get("status"),
 		CallerID: query.Get("callerId"),

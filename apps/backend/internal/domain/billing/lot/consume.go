@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/quota"
 )
 
 type Segment struct {
@@ -70,7 +70,7 @@ func consumeLotsWithCompany(ctx context.Context, st LotStore, co *store.Company,
 		if take > remaining {
 			take = remaining
 		}
-		cost := common.QuotaToMoney(take, lotRow.QuotaPerUnit)
+		cost := quota.QuotaToMoney(take, lotRow.QuotaPerUnit)
 		segments = append(segments, Segment{
 			LotID:           lotRow.ID,
 			Quota:           take,
@@ -91,7 +91,7 @@ func consumeLotsWithCompany(ctx context.Context, st LotStore, co *store.Company,
 		remaining -= take
 	}
 	if remaining > 0 {
-		currency := common.ResolveBillingCurrency(co.BillingCurrency)
+		currency := quota.ResolveBillingCurrency(co.BillingCurrency)
 		overdraftAdded = remaining
 		od, err := st.Billing().ExpandOverdraftLot(ctx, companyID, currency, remaining)
 		if err != nil {

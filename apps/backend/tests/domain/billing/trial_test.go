@@ -8,7 +8,7 @@ import (
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/quota"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -125,19 +125,19 @@ func TestExpireMockLotsPreservesPaidLotBalance(t *testing.T) {
 	}
 
 	// 2. Add a paid lot (simulates real recharge before upgrade).
-	ppu := domainbilling.DefaultQuotaPerUnit()
+	ppu := quota.DefaultQuotaPerUnit
 	paidAmount := float64(50)
-	paidPoints := common.MoneyToQuota(paidAmount, ppu)
+	paidPoints := quota.MoneyToQuota(paidAmount, ppu)
 	now := time.Now().UTC()
 	paidOrder := store.RechargeOrder{
 		ID: uuid.MustParse("00000000-0000-7000-0000-000000009204"), CompanyID: companyID, Amount: paidAmount,
-		Currency: common.DefaultBillingCurrency, QuotaPerUnit: ppu, QuotaGranted: paidPoints,
+		Currency: quota.DefaultBillingCurrency, QuotaPerUnit: ppu, QuotaGranted: paidPoints,
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		Status: store.RechargeStatusConfirmed, DisplayOrderID: "ORD-9204",
 		PaymentMethod: store.PaymentMethodAlipay, InvoiceStatus: store.InvoiceStatusNone,
 		CreatedBy: contract.IDMemberAdmin, CreatedAt: now, UpdatedAt: now,
 	}
-	paidLot := domainbilling.BuildLot(paidOrder, common.DefaultBillingCurrency, store.LotKindPaid, paidOrder.Amount)
+	paidLot := domainbilling.BuildLot(paidOrder, quota.DefaultBillingCurrency, store.LotKindPaid, paidOrder.Amount)
 	if _, err := billinglot.CreditFromLot(ctx, st, paidOrder, paidLot, paidLot.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}

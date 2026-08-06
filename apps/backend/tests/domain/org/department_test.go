@@ -6,7 +6,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	"github.com/tokenjoy/backend/internal/support/budget"
-	"github.com/tokenjoy/backend/internal/support/common"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -36,7 +35,7 @@ func TestCreateDepartmentPersistsAndProvisions(t *testing.T) {
 		t.Fatal("created department not found in tree")
 	}
 
-	budgetTree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
+	budgetTree, err := pkgorg.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,11 +47,11 @@ func TestCreateDepartmentPersistsAndProvisions(t *testing.T) {
 		t.Fatalf("expected budget 0, got %v", budgetNode.Budget)
 	}
 
-	rules, err := common.LoadRoutingRules(ctx, st.Org().Nodes(), st.Models().Allowlist())
+	rules, err := pkgorg.LoadRoutingRules(ctx, st.Org().Nodes(), st.Models().Allowlist())
 	if err != nil {
 		t.Fatal(err)
 	}
-	rule := common.GetRoutingRuleForDept(created.ID, rules, tree)
+	rule := pkgorg.GetRoutingRuleForDept(created.ID, rules, tree)
 	if rule == nil {
 		t.Fatal("routing rule not created")
 	}
@@ -82,7 +81,7 @@ func TestUpdateDepartmentPreservesParent(t *testing.T) {
 		t.Fatalf("unexpected name %s", updated.Name)
 	}
 
-	budgetTree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
+	budgetTree, err := pkgorg.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,11 +94,11 @@ func TestUpdateDepartmentPreservesParent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rules, err := common.LoadRoutingRules(ctx, st.Org().Nodes(), st.Models().Allowlist())
+	rules, err := pkgorg.LoadRoutingRules(ctx, st.Org().Nodes(), st.Models().Allowlist())
 	if err != nil {
 		t.Fatal(err)
 	}
-	rule := common.GetRoutingRuleForDept(created.ID, rules, deptTree)
+	rule := pkgorg.GetRoutingRuleForDept(created.ID, rules, deptTree)
 	if rule == nil || rule.NodeName != "Renamed Team" {
 		t.Fatalf("routing rule name not updated: %+v", rule)
 	}
@@ -149,14 +148,14 @@ func TestDeleteLeafDepartment(t *testing.T) {
 		t.Fatal("department still in tree")
 	}
 
-	budgetTree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
+	budgetTree, err := pkgorg.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
 	if budget.FindBudgetNode(budgetTree, created.ID) != nil {
 		t.Fatal("budget node still exists")
 	}
-	rules, err := common.LoadRoutingRules(ctx, st.Org().Nodes(), st.Models().Allowlist())
+	rules, err := pkgorg.LoadRoutingRules(ctx, st.Org().Nodes(), st.Models().Allowlist())
 	if err != nil {
 		t.Fatal(err)
 	}

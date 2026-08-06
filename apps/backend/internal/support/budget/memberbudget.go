@@ -5,19 +5,19 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/support/org"
+	"github.com/tokenjoy/backend/internal/support/quota"
 )
 
 func GetPersonalBudget(members []types.Member, memberID uuid.UUID) float64 {
 	member, ok := org.FindMemberByID(members, memberID)
 	if !ok {
-		return common.DefaultPersonalBudget
+		return quota.DefaultPersonalBudget
 	}
 	if member.PersonalBudget > 0 {
 		return member.PersonalBudget
 	}
-	return common.DefaultPersonalBudget
+	return quota.DefaultPersonalBudget
 }
 
 func AddMemberPersonalBudget(members []types.Member, memberID uuid.UUID, amount float64) []types.Member {

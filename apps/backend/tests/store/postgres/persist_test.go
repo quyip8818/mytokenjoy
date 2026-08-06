@@ -12,7 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
-	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -73,7 +73,7 @@ func TestLoadOrSeedDomain(t *testing.T) {
 	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
-	departments, err := common.LoadDepartments(ctx, st.Org().Nodes())
+	departments, err := pkgorg.LoadDepartments(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func TestMemberPersistAcrossRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	budgetTree, err := common.LoadBudgetTree(ctx, st1.Org().Nodes())
+	budgetTree, err := pkgorg.LoadBudgetTree(ctx, st1.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +162,7 @@ func TestMemberPersistAcrossRestart(t *testing.T) {
 	if got := findMemberName(members, contract.IDMember1); got != "PersistTest" {
 		t.Fatalf("expected persisted member name, got %q", got)
 	}
-	budgetTree, err = common.LoadBudgetTree(ctx, st2.Org().Nodes())
+	budgetTree, err = pkgorg.LoadBudgetTree(ctx, st2.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +195,7 @@ func TestWithTxCommitsDomainWrites(t *testing.T) {
 		if err := tx.Org().SetMembers(ctx, members); err != nil {
 			return err
 		}
-		tree, err := common.LoadBudgetTree(ctx, tx.Org().Nodes())
+		tree, err := pkgorg.LoadBudgetTree(ctx, tx.Org().Nodes())
 		if err != nil {
 			return err
 		}

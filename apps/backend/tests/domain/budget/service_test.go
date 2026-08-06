@@ -8,7 +8,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
-	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
+	"github.com/tokenjoy/backend/internal/support/simulate"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -26,7 +27,7 @@ func TestUpdateNodeSuccess(t *testing.T) {
 	if updated.Budget != wantBudget {
 		t.Fatalf("expected budget %v, got %v", wantBudget, updated.Budget)
 	}
-	nodeTree, err := common.LoadBudgetTree(testutil.Ctx(), st.Org().Nodes())
+	nodeTree, err := pkgorg.LoadBudgetTree(testutil.Ctx(), st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +79,7 @@ func TestUpdateMemberBudgetSuccess(t *testing.T) {
 	if err := st.Org().SetMembers(testutil.Ctx(), filtered); err != nil {
 		t.Fatal(err)
 	}
-	svc := budget.NewService(cfg, st, common.NewDelayer(false), nil, testutil.TestClock())
+	svc := budget.NewService(cfg, st, simulate.NewDelayer(false), nil, testutil.TestClock())
 
 	wantBudget := float64(15_000) // currency; must exceed allocated key budgets for member1
 	result, err := svc.UpdateMemberBudget(testutil.Ctx(), contract.IDMember1, wantBudget)
@@ -275,7 +276,7 @@ func TestDeptRemainingAllocatableBudget(t *testing.T) {
 	t.Parallel()
 	_, st := newBudgetService(t)
 	ctx := testutil.Ctx()
-	tree, err := common.LoadBudgetTree(ctx, st.Org().Nodes())
+	tree, err := pkgorg.LoadBudgetTree(ctx, st.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}

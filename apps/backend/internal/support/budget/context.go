@@ -7,7 +7,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/clock"
-	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 type BudgetContext struct {
@@ -25,7 +25,7 @@ func LoadBudgetContext(
 	keys store.KeysRepository,
 	clk clock.Clock,
 ) (BudgetContext, error) {
-	tree, err := common.LoadBudgetTree(ctx, org.Nodes())
+	tree, err := pkgorg.LoadBudgetTree(ctx, org.Nodes())
 	if err != nil {
 		return BudgetContext{}, err
 	}

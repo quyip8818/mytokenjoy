@@ -1,21 +1,21 @@
-package common_test
+package crypto_test
 
 import (
 	"bytes"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/crypto"
 )
 
 func TestEncryptDecryptRoundTrip(t *testing.T) {
 	t.Parallel()
-	key := common.DevDefaultKey()
+	key := crypto.DevDefaultKey()
 	plaintext := []byte(`{"appId":"cli_test","appSecret":"secret"}`)
-	encrypted, err := common.Encrypt(key, plaintext)
+	encrypted, err := crypto.Encrypt(key, plaintext)
 	if err != nil {
 		t.Fatal(err)
 	}
-	decrypted, err := common.Decrypt(key, encrypted)
+	decrypted, err := crypto.Decrypt(key, encrypted)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +26,7 @@ func TestEncryptDecryptRoundTrip(t *testing.T) {
 
 func TestParseKeyAcceptsBase64(t *testing.T) {
 	t.Parallel()
-	key, err := common.ParseKey("dGV2LWNyZWRlbnRpYWwta2V5LWZvci1sb2NhbC1kZXY=")
+	key, err := crypto.ParseKey("dGV2LWNyZWRlbnRpYWwta2V5LWZvci1sb2NhbC1kZXY=")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,15 +37,15 @@ func TestParseKeyAcceptsBase64(t *testing.T) {
 
 func TestEncryptDecryptFieldRoundTrip(t *testing.T) {
 	t.Parallel()
-	key := common.DevDefaultKey()
-	encrypted, err := common.EncryptField(key, "sk-provider-secret")
+	key := crypto.DevDefaultKey()
+	encrypted, err := crypto.EncryptField(key, "sk-provider-secret")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !common.IsEncryptedField(encrypted) {
+	if !crypto.IsEncryptedField(encrypted) {
 		t.Fatalf("expected encrypted prefix, got %q", encrypted)
 	}
-	plain, err := common.DecryptField(key, encrypted)
+	plain, err := crypto.DecryptField(key, encrypted)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -7,12 +7,12 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
-	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 func (s *service) GetTree(ctx context.Context) ([]types.BudgetNode, error) {
 	s.MaybeRotatePeriod(ctx) // lazy rotation: ensure current period is active
-	tree, err := common.LoadBudgetTree(ctx, s.store.Org().Nodes())
+	tree, err := pkgorg.LoadBudgetTree(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return nil, err
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/simulate"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -267,7 +267,7 @@ func TestUpdateMemberBudgetNoDecreaseCurrentMonth(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
-	svc := budget.NewService(cfg, st, common.NewDelayer(false), nil, testutil.TestClock())
+	svc := budget.NewService(cfg, st, simulate.NewDelayer(false), nil, testutil.TestClock())
 
 	// Get current budget for member1
 	budgets, err := svc.ListMemberBudgets(ctx, contract.IDDept3)

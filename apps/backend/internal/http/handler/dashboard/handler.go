@@ -14,7 +14,6 @@ import (
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 type Handler struct {
@@ -70,7 +69,7 @@ func (h *Handler) DailyCosts(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) TopConsumers(w http.ResponseWriter, r *http.Request) {
 	h.withScope(w, r, func(ctx context.Context, scope domainusage.SessionScope) {
 		query := r.URL.Query()
-		limit := common.ParseIntParam(query.Get("limit"), 5)
+		limit := httputil.ParseIntParam(query.Get("limit"), 5)
 		params := parseCostQueryParams(r)
 		deptID, _ := uuid.Parse(query.Get("departmentId"))
 		result, err := h.service.TopConsumers(ctx, limit, params, deptID, scope)

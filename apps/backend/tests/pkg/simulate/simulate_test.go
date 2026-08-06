@@ -1,16 +1,16 @@
-package common_test
+package simulate_test
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/simulate"
 )
 
 func TestDelayerDisabled(t *testing.T) {
 	t.Parallel()
-	d := common.NewDelayer(false)
+	d := simulate.NewDelayer(false)
 	start := time.Now()
 	err := d.Wait(context.Background(), 5*time.Second)
 	elapsed := time.Since(start)
@@ -24,7 +24,7 @@ func TestDelayerDisabled(t *testing.T) {
 
 func TestDelayerEnabled(t *testing.T) {
 	t.Parallel()
-	d := common.NewDelayer(true)
+	d := simulate.NewDelayer(true)
 	start := time.Now()
 	err := d.Wait(context.Background(), 50*time.Millisecond)
 	elapsed := time.Since(start)
@@ -38,7 +38,7 @@ func TestDelayerEnabled(t *testing.T) {
 
 func TestDelayerCancelledContext(t *testing.T) {
 	t.Parallel()
-	d := common.NewDelayer(true)
+	d := simulate.NewDelayer(true)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	err := d.Wait(ctx, 5*time.Second)

@@ -14,7 +14,7 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/notification"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/simulate"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -27,7 +27,7 @@ func NewServiceWithEnqueuer(t *testing.T, cfg config.Config, st store.Store, enq
 	t.Helper()
 	factory := datasource.NewFactory(cfg)
 	notifier := notification.NewService(cfg, st, slog.Default())
-	return org.NewService(cfg, st, factory, notifier, notifier, common.NewDelayer(false), slog.Default(), grants.NewGrantNormalizer(), enqueue.NewOrgEnqueuer(enqueuer, enqueue.NewOrgRiverAdminHolder(nil)), testutil.TestClock())
+	return org.NewService(cfg, st, factory, notifier, notifier, simulate.NewDelayer(false), slog.Default(), grants.NewGrantNormalizer(), enqueue.NewOrgEnqueuer(enqueuer, enqueue.NewOrgRiverAdminHolder(nil)), testutil.TestClock())
 }
 
 func NewServiceFromStore(t *testing.T, opts ...testutil.ConfigOption) (config.Config, store.Store, org.Service) {

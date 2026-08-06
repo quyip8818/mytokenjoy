@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/support/common"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
+	"github.com/tokenjoy/backend/internal/support/sliceutil"
 )
 
 func (s *LocalService) ListMembers(ctx context.Context, departmentID uuid.UUID, keyword string, directOnly bool, status string, page, pageSize int) (types.MemberPageResult, error) {
@@ -16,7 +16,7 @@ func (s *LocalService) ListMembers(ctx context.Context, departmentID uuid.UUID, 
 		return types.MemberPageResult{}, err
 	}
 	if departmentID != uuid.Nil {
-		departments, err := common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
+		departments, err := pkgorg.LoadDepartments(ctx, s.d.Store.Org().Nodes())
 		if err != nil {
 			return types.MemberPageResult{}, err
 		}
@@ -54,7 +54,7 @@ func (s *LocalService) ListMembers(ctx context.Context, departmentID uuid.UUID, 
 		}
 		items = filtered
 	}
-	paged, total, safePage, safeSize := common.Paginate(items, page, pageSize)
+	paged, total, safePage, safeSize := sliceutil.Paginate(items, page, pageSize)
 	return types.MemberPageResult{
 		Items: paged, Total: total, Page: safePage, PageSize: safeSize,
 		PendingCount: pendingCount,

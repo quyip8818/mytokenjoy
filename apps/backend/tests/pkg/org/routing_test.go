@@ -1,29 +1,26 @@
-package common_test
+package org_test
 
 import (
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 var (
-	dept1 = uuid.MustParse("00000000-0000-7000-0000-000000000d01")
-	dept2 = uuid.MustParse("00000000-0000-7000-0000-000000000d02")
-	dept3 = uuid.MustParse("00000000-0000-7000-0000-000000000d03")
-
+	dept1  = uuid.MustParse("00000000-0000-7000-0000-000000000d01")
+	dept2  = uuid.MustParse("00000000-0000-7000-0000-000000000d02")
+	dept3  = uuid.MustParse("00000000-0000-7000-0000-000000000d03")
 	model1 = uuid.MustParse("00000000-0000-7000-0000-0000000000b1")
 	model2 = uuid.MustParse("00000000-0000-7000-0000-0000000000b2")
 	model3 = uuid.MustParse("00000000-0000-7000-0000-0000000000b3")
 	model4 = uuid.MustParse("00000000-0000-7000-0000-0000000000b4")
-
-	ruleA = uuid.MustParse("00000000-0000-7000-0000-00000000aa01")
-	ruleB = uuid.MustParse("00000000-0000-7000-0000-00000000aa02")
-
-	nodeA = uuid.MustParse("00000000-0000-7000-0000-00000000cc01")
-	nodeB = uuid.MustParse("00000000-0000-7000-0000-00000000cc02")
-	nodeC = uuid.MustParse("00000000-0000-7000-0000-00000000cc03")
+	ruleA  = uuid.MustParse("00000000-0000-7000-0000-00000000aa01")
+	ruleB  = uuid.MustParse("00000000-0000-7000-0000-00000000aa02")
+	nodeA  = uuid.MustParse("00000000-0000-7000-0000-00000000cc01")
+	nodeB  = uuid.MustParse("00000000-0000-7000-0000-00000000cc02")
+	nodeC  = uuid.MustParse("00000000-0000-7000-0000-00000000cc03")
 )
 
 func TestShrinkChildRoutingRules(t *testing.T) {
@@ -37,7 +34,7 @@ func TestShrinkChildRoutingRules(t *testing.T) {
 		{ID: ruleA, NodeID: dept2, AllowedModelIDs: []uuid.UUID{model1, model2, model3}},
 		{ID: ruleB, NodeID: dept3, AllowedModelIDs: []uuid.UUID{model1, model2, model3}},
 	}
-	updated := common.ShrinkChildRoutingRules(dept1, []uuid.UUID{model1}, rules, departments)
+	updated := pkgorg.ShrinkChildRoutingRules(dept1, []uuid.UUID{model1}, rules, departments)
 	if len(updated[0].AllowedModelIDs) != 1 || updated[0].AllowedModelIDs[0] != model1 {
 		t.Fatalf("expected child rule to shrink to model1, got %v", updated[0].AllowedModelIDs)
 	}
@@ -53,7 +50,7 @@ func TestResolveDeptAllowedModelIDs_NoRules(t *testing.T) {
 		{ID: model2, Type: "disabled", Deprecated: true},
 		{ID: model3, Type: "claude", Deprecated: false},
 	}
-	result := common.ResolveDeptAllowedModelIDs(dept1, nil, nil, models)
+	result := pkgorg.ResolveDeptAllowedModelIDs(dept1, nil, nil, models)
 	if len(result) != 2 {
 		t.Fatalf("expected 2 enabled models, got %d: %v", len(result), result)
 	}
@@ -72,7 +69,7 @@ func TestResolveDeptAllowedModelIDs_WithRule(t *testing.T) {
 		{ID: model3, Type: "claude", Deprecated: false},
 		{ID: model4, Type: "other", Deprecated: false},
 	}
-	result := common.ResolveDeptAllowedModelIDs(dept1, departments, rules, models)
+	result := pkgorg.ResolveDeptAllowedModelIDs(dept1, departments, rules, models)
 	if len(result) != 2 {
 		t.Fatalf("expected 2 models from rule, got %d: %v", len(result), result)
 	}
@@ -85,7 +82,7 @@ func TestRemoveRuleByNodeID(t *testing.T) {
 		{NodeID: nodeB},
 		{NodeID: nodeC},
 	}
-	result := common.RemoveRuleByNodeID(rules, nodeB)
+	result := pkgorg.RemoveRuleByNodeID(rules, nodeB)
 	if len(result) != 2 {
 		t.Fatalf("expected 2, got %d", len(result))
 	}
@@ -102,7 +99,7 @@ func TestUpdateRuleNodeName(t *testing.T) {
 		{NodeID: nodeA, NodeName: "old-a"},
 		{NodeID: nodeB, NodeName: "old-b"},
 	}
-	result := common.UpdateRuleNodeName(rules, nodeA, "new-a")
+	result := pkgorg.UpdateRuleNodeName(rules, nodeA, "new-a")
 	if result[0].NodeName != "new-a" {
 		t.Errorf("expected 'new-a', got %q", result[0].NodeName)
 	}
@@ -120,7 +117,7 @@ func TestGetRoutingRuleForDept_Inherited(t *testing.T) {
 	rules := []types.RoutingRule{
 		{NodeID: dept1, AllowedModelIDs: []uuid.UUID{model1}},
 	}
-	rule := common.GetRoutingRuleForDept(dept2, rules, departments)
+	rule := pkgorg.GetRoutingRuleForDept(dept2, rules, departments)
 	if rule == nil {
 		t.Fatal("expected to find parent rule")
 	}
@@ -135,13 +132,11 @@ func TestGetParentDeptID(t *testing.T) {
 		{ID: dept1, Name: "Parent"},
 		{ID: dept2, Name: "Child", ParentID: &dept1},
 	}
-
-	parent := common.GetParentDeptID(dept2, departments)
+	parent := pkgorg.GetParentDeptID(dept2, departments)
 	if parent == nil || *parent != dept1 {
 		t.Errorf("expected parent dept1, got %v", parent)
 	}
-
-	root := common.GetParentDeptID(dept1, departments)
+	root := pkgorg.GetParentDeptID(dept1, departments)
 	if root != nil {
 		t.Errorf("expected nil for root, got %v", *root)
 	}

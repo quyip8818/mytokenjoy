@@ -9,7 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/quota"
 )
 
 type Service interface {
@@ -102,7 +102,7 @@ func (s *service) CreateSelfRecharge(ctx context.Context, amount float64, idempo
 	key := idempotencyKey
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: amount, Currency: currency,
-		QuotaPerUnit: ppu, QuotaGranted: common.MoneyToQuota(amount, ppu),
+		QuotaPerUnit: ppu, QuotaGranted: quota.MoneyToQuota(amount, ppu),
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		IdempotencyKey: &key, Status: store.RechargeStatusPending, CreatedBy: memberID,
 		DisplayOrderID: formatDisplayOrderID(now),

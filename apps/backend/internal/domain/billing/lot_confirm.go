@@ -10,7 +10,7 @@ import (
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/quota"
 )
 
 func (s *service) confirmGiftLot(ctx context.Context, amount float64, createdBy uuid.UUID) error {
@@ -21,7 +21,7 @@ func (s *service) confirmGiftLot(ctx context.Context, amount float64, createdBy 
 	}
 	now := time.Now().UTC()
 	orderID := uuid.Must(uuid.NewV7())
-	quotaGranted := common.MoneyToQuota(amount, ppu)
+	quotaGranted := quota.MoneyToQuota(amount, ppu)
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: 0, Currency: currency,
 		QuotaPerUnit: ppu, QuotaGranted: quotaGranted,
@@ -46,7 +46,7 @@ func (s *service) confirmAdjustLot(ctx context.Context, amount, paidAmount float
 	}
 	now := time.Now().UTC()
 	orderID := uuid.Must(uuid.NewV7())
-	quotaGranted := common.MoneyToQuota(amount, ppu)
+	quotaGranted := quota.MoneyToQuota(amount, ppu)
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: paidAmount, Currency: currency,
 		QuotaPerUnit: ppu, QuotaGranted: quotaGranted,
@@ -84,7 +84,7 @@ func (s *service) finishPendingOrder(ctx context.Context, order store.RechargeOr
 		}
 	}
 	if order.QuotaGranted <= 0 {
-		order.QuotaGranted = common.MoneyToQuota(order.Amount, ppu)
+		order.QuotaGranted = quota.MoneyToQuota(order.Amount, ppu)
 	}
 	order.Currency = currency
 	order.LotKind = store.LotKindPaid
@@ -107,7 +107,7 @@ func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, sourc
 	}
 	now := time.Now().UTC()
 	orderID := uuid.Must(uuid.NewV7())
-	quotaGranted := common.MoneyToQuota(amount, ppu)
+	quotaGranted := quota.MoneyToQuota(amount, ppu)
 	order := store.RechargeOrder{
 		ID: orderID, CompanyID: companyID, Amount: amount, Currency: currency,
 		QuotaPerUnit: ppu, QuotaGranted: quotaGranted,

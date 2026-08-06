@@ -7,7 +7,7 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/models"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/simulate"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
@@ -89,7 +89,7 @@ func TestToggleModel_RejectsEnablingGloballyInactiveModel(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 	ctx := testutil.Ctx()
-	svc := models.NewService(cfg, st, &mock.StubAdminClient{}, nil, common.NewDelayer(false))
+	svc := models.NewService(cfg, st, &mock.StubAdminClient{}, nil, simulate.NewDelayer(false))
 
 	globalID := cfg.TokenJoyCompanyID
 

@@ -9,7 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/clock"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/simulate"
 )
 
 type Service interface {
@@ -56,12 +56,12 @@ type service struct {
 	cfg      config.Config
 	store    Store
 	clk      clock.Clock
-	delayer  common.Delayer
+	delayer  simulate.Delayer
 	logger   *slog.Logger
 	enqueuer JobEnqueuer
 }
 
-func NewService(cfg config.Config, st Store, delayer common.Delayer, enqueuer JobEnqueuer, clk clock.Clock) Service {
+func NewService(cfg config.Config, st Store, delayer simulate.Delayer, enqueuer JobEnqueuer, clk clock.Clock) Service {
 	if enqueuer == nil {
 		enqueuer = NoopJobEnqueuer
 	}

@@ -8,7 +8,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/support/budget"
-	"github.com/tokenjoy/backend/internal/support/common"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -26,7 +25,7 @@ func TestImportCreatesDepartmentsAndMembers(t *testing.T) {
 	if result.SuccessDepartments < 1 || result.SuccessMembers < 1 {
 		t.Fatalf("unexpected result %+v", result)
 	}
-	departments, err := common.LoadDepartments(ctx, env.Store.Org().Nodes())
+	departments, err := pkgorg.LoadDepartments(ctx, env.Store.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +60,7 @@ func TestImportDoesNotOverwriteManualDepartment(t *testing.T) {
 	env := orgfix.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
 	manual := types.DeptSourceManual
-	departments, err := common.LoadDepartments(ctx, env.Store.Org().Nodes())
+	departments, err := pkgorg.LoadDepartments(ctx, env.Store.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +75,7 @@ func TestImportDoesNotOverwriteManualDepartment(t *testing.T) {
 	orgfix.PersistDepartmentsT(t, ctx, env.Store, departments)
 	orgfix.ImportFeishuOrg(t, env)
 
-	departments, err = common.LoadDepartments(ctx, env.Store.Org().Nodes())
+	departments, err = pkgorg.LoadDepartments(ctx, env.Store.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,14 +113,14 @@ func TestImportProvisionsBudgetAndRouting(t *testing.T) {
 	env := orgfix.SetupFeishuConnected(t)
 	ctx := testutil.Ctx()
 	orgfix.ImportFeishuOrg(t, env)
-	budgetTree, err := common.LoadBudgetTree(ctx, env.Store.Org().Nodes())
+	budgetTree, err := pkgorg.LoadBudgetTree(ctx, env.Store.Org().Nodes())
 	if err != nil {
 		t.Fatal(err)
 	}
 	if budget.FindBudgetNode(budgetTree, contract.IDFeishuDept1) == nil {
 		t.Fatal("expected budget node for imported department")
 	}
-	rules, err := common.LoadRoutingRules(ctx, env.Store.Org().Nodes(), env.Store.Models().Allowlist())
+	rules, err := pkgorg.LoadRoutingRules(ctx, env.Store.Org().Nodes(), env.Store.Models().Allowlist())
 	if err != nil {
 		t.Fatal(err)
 	}

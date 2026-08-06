@@ -10,7 +10,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/support/common"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
@@ -100,7 +99,7 @@ func (s *Service) syncFromProvider(ctx context.Context, syncType string) (types.
 		return types.ImportResult{}, domain.NewDomainError(domain.StatusUnprocessable, err.Error())
 	}
 
-	localDeptsTree, err := common.LoadDepartments(ctx, s.d.Store.Org().Nodes())
+	localDeptsTree, err := pkgorg.LoadDepartments(ctx, s.d.Store.Org().Nodes())
 	if err != nil {
 		return types.ImportResult{}, err
 	}

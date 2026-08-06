@@ -12,8 +12,8 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
 	"github.com/tokenjoy/backend/internal/support/clock"
-	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/support/invitetoken"
+	"github.com/tokenjoy/backend/internal/support/simulate"
 )
 
 // Store is the narrow store surface the org domain needs.
@@ -41,7 +41,7 @@ type Deps struct {
 	Notifier     types.Notifier
 	Sender       DirectSender
 	InviteIssuer *invitetoken.Issuer // nil if INVITE_SECRET not configured
-	Delayer      common.Delayer
+	Delayer      simulate.Delayer
 	Logger       *slog.Logger
 	Grants       grants.Normalizer
 	cryptoKey    []byte
@@ -53,7 +53,7 @@ func NewDeps(
 	factory datasource.Factory,
 	notifier types.Notifier,
 	sender DirectSender,
-	delayer common.Delayer,
+	delayer simulate.Delayer,
 	logger *slog.Logger,
 	grants grants.Normalizer,
 	clk clock.Clock,

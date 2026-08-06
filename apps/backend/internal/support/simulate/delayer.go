@@ -1,4 +1,5 @@
-package common
+// Package simulate provides dev/testing helpers for simulated latency.
+package simulate
 
 import (
 	"context"

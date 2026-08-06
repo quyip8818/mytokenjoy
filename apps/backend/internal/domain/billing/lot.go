@@ -2,7 +2,6 @@ package billing
 
 import (
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 // BuildLot creates a RechargeLot from an order with the given kind and paid amount.
@@ -26,8 +25,4 @@ func BuildLot(order store.RechargeOrder, billingCurrency string, kind string, pa
 // BuildPaidLot is a convenience wrapper for paid lots where paidAmount = order.Amount.
 func BuildPaidLot(order store.RechargeOrder, billingCurrency string) store.RechargeLot {
 	return BuildLot(order, billingCurrency, store.LotKindPaid, order.Amount)
-}
-
-func DefaultQuotaPerUnit() int64 {
-	return common.DefaultQuotaPerUnit
 }

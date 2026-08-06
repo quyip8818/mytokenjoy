@@ -1,9 +1,9 @@
-package common_test
+package httputil_test
 
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/http/httputil"
 )
 
 func TestParseIntParam(t *testing.T) {
@@ -22,10 +22,9 @@ func TestParseIntParam(t *testing.T) {
 		{"large number", "1000", 1, 1000},
 		{"one", "1", 99, 1},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := common.ParseIntParam(tt.value, tt.fallback)
+			got := httputil.ParseIntParam(tt.value, tt.fallback)
 			if got != tt.want {
 				t.Errorf("ParseIntParam(%q, %d) = %d, want %d", tt.value, tt.fallback, got, tt.want)
 			}

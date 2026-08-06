@@ -8,7 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/support/budget"
-	"github.com/tokenjoy/backend/internal/support/common"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 func (s *service) UpdatePlatformKey(ctx context.Context, id uuid.UUID, input types.UpdatePlatformKeyInput) (types.PlatformKey, error) {
@@ -34,11 +34,11 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id uuid.UUID, input typ
 	existing := platformKeys[idx]
 	previous := existing
 	members := budgetCtx.Members
-	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
+	departments, err := pkgorg.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
-	rules, err := common.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
+	rules, err := pkgorg.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
 	if err != nil {
 		return types.PlatformKey{}, err
 	}
@@ -48,7 +48,7 @@ func (s *service) UpdatePlatformKey(ctx context.Context, id uuid.UUID, input typ
 	}
 
 	if len(input.ModelWhitelist) > 0 && existing.MemberID != nil {
-		if msg := common.ValidateModelIDsForMember(*existing.MemberID, input.ModelWhitelist, members, departments, rules, models, common.ModelNotInDeptMessage); msg != nil {
+		if msg := pkgorg.ValidateModelIDsForMember(*existing.MemberID, input.ModelWhitelist, members, departments, rules, models, pkgorg.ModelNotInDeptMessage); msg != nil {
 			return types.PlatformKey{}, domain.Validation(*msg)
 		}
 	}

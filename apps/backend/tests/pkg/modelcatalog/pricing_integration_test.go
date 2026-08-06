@@ -11,8 +11,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/models"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/support/modelcatalog"
+	"github.com/tokenjoy/backend/internal/support/simulate"
 )
 
 // --- Minimal mock models repo (only what CreateModel/ListModels/UpdateModel need) ---
@@ -149,7 +149,7 @@ func newTestSvc(client *pricingTracker, seedModels ...types.ModelInfo) models.Se
 	st := &modelsStore{repo: &inMemModelsRepo{models: seedModels}}
 	cfg := config.Config{}
 	cfg.TokenJoyCompanyID = uuid.MustParse("00000000-0000-7000-8000-000000000001")
-	return models.NewService(cfg, st, client, nil, common.NewDelayer(false))
+	return models.NewService(cfg, st, client, nil, simulate.NewDelayer(false))
 }
 
 // --- Integration tests: verify TJ model write → NewAPI price update ---

@@ -6,8 +6,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/support/org"
+	"github.com/tokenjoy/backend/internal/support/quota"
 	"github.com/tokenjoy/backend/seed/contract"
 )
 
@@ -176,7 +176,7 @@ func applyMemberPersonalBudgets(members []types.Member) {
 			members[i].PersonalBudget = amount
 			continue
 		}
-		members[i].PersonalBudget = common.DefaultPersonalBudget
+		members[i].PersonalBudget = quota.DefaultPersonalBudget
 	}
 }
 

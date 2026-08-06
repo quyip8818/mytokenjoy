@@ -1,8 +1,9 @@
-package common
+// Package quota provides billing currency and quota conversion helpers.
+// These are pure functions with no external dependencies, safe to import
+// from any layer (domain, store, infra, support).
+package quota
 
 import "math"
-
-const ModelNotInDeptMessage = "该模型不在您部门的可用范围内"
 
 const DefaultPersonalBudget = 0
 
@@ -21,8 +22,6 @@ func ResolveBillingCurrency(code string) string {
 	}
 	return code
 }
-
-const NewAPIGroupPrefix = "dept-"
 
 // MoneyToQuota converts a currency amount (e.g. CNY) to quota using the given quotaPerUnit.
 func MoneyToQuota(amount float64, quotaPerUnit int64) int64 {

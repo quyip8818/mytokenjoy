@@ -10,7 +10,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/clock"
-	"github.com/tokenjoy/backend/internal/support/common"
+	pkgquota "github.com/tokenjoy/backend/internal/support/quota"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/seed/snapshot"
 )
@@ -49,13 +49,13 @@ func ensureSeedLot(ctx context.Context, st store.Store) error {
 		return nil
 	}
 
-	ppu := common.DefaultQuotaPerUnit
+	ppu := pkgquota.DefaultQuotaPerUnit
 	quota := ppu * 99999
 	order := store.RechargeOrder{
 		ID:           contract.IDSeedLotOrder,
 		CompanyID:    companyID,
 		Amount:       0,
-		Currency:     common.DefaultBillingCurrency,
+		Currency:     pkgquota.DefaultBillingCurrency,
 		QuotaPerUnit: ppu,
 		QuotaGranted: quota,
 		Source:       "seed",
@@ -67,7 +67,7 @@ func ensureSeedLot(ctx context.Context, st store.Store) error {
 		ID:              contract.IDSeedLot,
 		CompanyID:       companyID,
 		RechargeOrderID: contract.IDSeedLotOrder,
-		BillingCurrency: common.DefaultBillingCurrency,
+		BillingCurrency: pkgquota.DefaultBillingCurrency,
 		LotKind:         store.LotKindMock,
 		PaidAmount:      0,
 		QuotaPerUnit:    ppu,

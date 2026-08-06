@@ -14,7 +14,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/quota"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -37,20 +37,20 @@ func TestMultiRateRechargeAndConsume(t *testing.T) {
 	// --- Recharge lot 1: ¥10 at QPU=500000 → 5,000,000 quota ---
 	qpu1 := int64(500_000)
 	amount1 := 10.0
-	quota1 := common.MoneyToQuota(amount1, qpu1)
+	quota1 := quota.MoneyToQuota(amount1, qpu1)
 	if quota1 != 5_000_000 {
 		t.Fatalf("lot1 quota: got %d want 5000000", quota1)
 	}
 	order1 := store.RechargeOrder{
 		ID: uuid.MustParse("00000000-0000-7000-0000-000000009211"), CompanyID: companyID,
-		Amount: amount1, Currency: common.DefaultBillingCurrency,
+		Amount: amount1, Currency: quota.DefaultBillingCurrency,
 		QuotaPerUnit: qpu1, QuotaGranted: quota1,
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		Status: store.RechargeStatusConfirmed, DisplayOrderID: "ORD-rate-1",
 		PaymentMethod: store.PaymentMethodAlipay, InvoiceStatus: store.InvoiceStatusNone,
 		CreatedBy: uuid.Nil, CreatedAt: base, UpdatedAt: base,
 	}
-	lot1 := domainbilling.BuildLot(order1, common.DefaultBillingCurrency, store.LotKindPaid, order1.Amount)
+	lot1 := domainbilling.BuildLot(order1, quota.DefaultBillingCurrency, store.LotKindPaid, order1.Amount)
 	if _, err := billinglot.CreditFromLot(ctx, st, order1, lot1, lot1.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
@@ -58,20 +58,20 @@ func TestMultiRateRechargeAndConsume(t *testing.T) {
 	// --- Recharge lot 2: ¥10 at QPU=600000 → 6,000,000 quota ---
 	qpu2 := int64(600_000)
 	amount2 := 10.0
-	quota2 := common.MoneyToQuota(amount2, qpu2)
+	quota2 := quota.MoneyToQuota(amount2, qpu2)
 	if quota2 != 6_000_000 {
 		t.Fatalf("lot2 quota: got %d want 6000000", quota2)
 	}
 	order2 := store.RechargeOrder{
 		ID: uuid.MustParse("00000000-0000-7000-0000-000000009212"), CompanyID: companyID,
-		Amount: amount2, Currency: common.DefaultBillingCurrency,
+		Amount: amount2, Currency: quota.DefaultBillingCurrency,
 		QuotaPerUnit: qpu2, QuotaGranted: quota2,
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		Status: store.RechargeStatusConfirmed, DisplayOrderID: "ORD-rate-2",
 		PaymentMethod: store.PaymentMethodAlipay, InvoiceStatus: store.InvoiceStatusNone,
 		CreatedBy: uuid.Nil, CreatedAt: base.Add(time.Second), UpdatedAt: base.Add(time.Second),
 	}
-	lot2 := domainbilling.BuildLot(order2, common.DefaultBillingCurrency, store.LotKindPaid, order2.Amount)
+	lot2 := domainbilling.BuildLot(order2, quota.DefaultBillingCurrency, store.LotKindPaid, order2.Amount)
 	if _, err := billinglot.CreditFromLot(ctx, st, order2, lot2, lot2.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
@@ -203,13 +203,13 @@ func TestGiftLotUsesCompanyQPUForDisplay(t *testing.T) {
 	giftQuota := int64(1_000_000) // equivalent to ¥2
 	order := store.RechargeOrder{
 		ID: uuid.MustParse("00000000-0000-7000-0000-000000009221"), CompanyID: companyID,
-		Amount: 0, Currency: common.DefaultBillingCurrency,
+		Amount: 0, Currency: quota.DefaultBillingCurrency,
 		QuotaPerUnit: qpu, QuotaGranted: giftQuota,
 		Source: store.RechargeSourceGift, LotKind: store.LotKindGift,
 		Status:    store.RechargeStatusConfirmed,
 		CreatedBy: uuid.Nil, CreatedAt: now, UpdatedAt: now,
 	}
-	lot := domainbilling.BuildLot(order, common.DefaultBillingCurrency, store.LotKindGift, 0)
+	lot := domainbilling.BuildLot(order, quota.DefaultBillingCurrency, store.LotKindGift, 0)
 	if _, err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
@@ -245,14 +245,14 @@ func TestOverdraftWithMultiRateLots(t *testing.T) {
 	qpu := int64(500_000)
 	order := store.RechargeOrder{
 		ID: uuid.MustParse("00000000-0000-7000-0000-000000009231"), CompanyID: companyID,
-		Amount: 1, Currency: common.DefaultBillingCurrency,
+		Amount: 1, Currency: quota.DefaultBillingCurrency,
 		QuotaPerUnit: qpu, QuotaGranted: 500_000,
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		Status: store.RechargeStatusConfirmed, DisplayOrderID: "ORD-od-1",
 		PaymentMethod: store.PaymentMethodAlipay, InvoiceStatus: store.InvoiceStatusNone,
 		CreatedBy: uuid.Nil, CreatedAt: now, UpdatedAt: now,
 	}
-	lot := domainbilling.BuildLot(order, common.DefaultBillingCurrency, store.LotKindPaid, order.Amount)
+	lot := domainbilling.BuildLot(order, quota.DefaultBillingCurrency, store.LotKindPaid, order.Amount)
 	if _, err := billinglot.CreditFromLot(ctx, st, order, lot, lot.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
@@ -314,17 +314,17 @@ func TestCompanyQPUSwitchMidLifecycle(t *testing.T) {
 
 	// Recharge ¥20 → 10,000,000 quota at QPU=500000.
 	amount1 := 20.0
-	quota1 := common.MoneyToQuota(amount1, qpu1)
+	quota1 := quota.MoneyToQuota(amount1, qpu1)
 	order1 := store.RechargeOrder{
 		ID: uuid.MustParse("00000000-0000-7000-0000-000000009241"), CompanyID: companyID,
-		Amount: amount1, Currency: common.DefaultBillingCurrency,
+		Amount: amount1, Currency: quota.DefaultBillingCurrency,
 		QuotaPerUnit: qpu1, QuotaGranted: quota1,
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		Status: store.RechargeStatusConfirmed, DisplayOrderID: "ORD-switch-1",
 		PaymentMethod: store.PaymentMethodAlipay, InvoiceStatus: store.InvoiceStatusNone,
 		CreatedBy: uuid.Nil, CreatedAt: base, UpdatedAt: base,
 	}
-	lot1 := domainbilling.BuildLot(order1, common.DefaultBillingCurrency, store.LotKindPaid, order1.Amount)
+	lot1 := domainbilling.BuildLot(order1, quota.DefaultBillingCurrency, store.LotKindPaid, order1.Amount)
 	if _, err := billinglot.CreditFromLot(ctx, st, order1, lot1, lot1.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}
@@ -333,33 +333,33 @@ func TestCompanyQPUSwitchMidLifecycle(t *testing.T) {
 	qpu2 := int64(600_000)
 	if _, err := pool.Exec(ctx, `
 		UPDATE currencies SET quota_per_unit = $1 WHERE currency = $2
-	`, qpu2, common.DefaultBillingCurrency); err != nil {
+	`, qpu2, quota.DefaultBillingCurrency); err != nil {
 		t.Fatalf("update currencies QPU: %v", err)
 	}
 	// Restore at end regardless of outcome.
 	t.Cleanup(func() {
 		_, _ = pool.Exec(context.Background(), `
 			UPDATE currencies SET quota_per_unit = $1 WHERE currency = $2
-		`, common.DefaultQuotaPerUnit, common.DefaultBillingCurrency)
+		`, quota.DefaultQuotaPerUnit, quota.DefaultBillingCurrency)
 	})
 
 	// --- Phase 2: QPU = 600000 ---
 	// Recharge ¥20 → 12,000,000 quota at QPU=600000.
 	amount2 := 20.0
-	quota2 := common.MoneyToQuota(amount2, qpu2)
+	quota2 := quota.MoneyToQuota(amount2, qpu2)
 	if quota2 != 12_000_000 {
 		t.Fatalf("lot2 quota: got %d want 12000000", quota2)
 	}
 	order2 := store.RechargeOrder{
 		ID: uuid.MustParse("00000000-0000-7000-0000-000000009242"), CompanyID: companyID,
-		Amount: amount2, Currency: common.DefaultBillingCurrency,
+		Amount: amount2, Currency: quota.DefaultBillingCurrency,
 		QuotaPerUnit: qpu2, QuotaGranted: quota2,
 		Source: store.RechargeSourceSelf, LotKind: store.LotKindPaid,
 		Status: store.RechargeStatusConfirmed, DisplayOrderID: "ORD-switch-2",
 		PaymentMethod: store.PaymentMethodAlipay, InvoiceStatus: store.InvoiceStatusNone,
 		CreatedBy: uuid.Nil, CreatedAt: base.Add(time.Second), UpdatedAt: base.Add(time.Second),
 	}
-	lot2 := domainbilling.BuildLot(order2, common.DefaultBillingCurrency, store.LotKindPaid, order2.Amount)
+	lot2 := domainbilling.BuildLot(order2, quota.DefaultBillingCurrency, store.LotKindPaid, order2.Amount)
 	if _, err := billinglot.CreditFromLot(ctx, st, order2, lot2, lot2.QuotaGranted); err != nil {
 		t.Fatal(err)
 	}

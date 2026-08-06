@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
@@ -39,7 +38,7 @@ func LoadProvisionState(ctx context.Context, st store.Store, nodes []types.OrgNo
 		if err != nil {
 			return nil, err
 		}
-		if common.HasOrgNodeRoutingConfig(node, allowed) {
+		if pkgorg.HasOrgNodeRoutingConfig(node, allowed) {
 			allowlists[node.ID] = allowed
 		}
 	}
@@ -51,7 +50,7 @@ func LoadProvisionState(ctx context.Context, st store.Store, nodes []types.OrgNo
 }
 
 func rulesFromState(state *ProvisionState) []types.RoutingRule {
-	return common.RoutingRulesFromNodes(state.Nodes, state.NodeAllowlists)
+	return pkgorg.RoutingRulesFromNodes(state.Nodes, state.NodeAllowlists)
 }
 
 func DepartmentsFromState(state *ProvisionState) []types.Department {
@@ -99,7 +98,7 @@ func ProvisionDepartment(state *ProvisionState, input ProvisionInput) error {
 
 	departments := DepartmentsFromState(state)
 	rules := rulesFromState(state)
-	parentAllowed := common.ResolveDeptAllowedModelIDs(
+	parentAllowed := pkgorg.ResolveDeptAllowedModelIDs(
 		input.ParentID, departments, rules, state.Models,
 	)
 	if state.NodeAllowlists == nil {

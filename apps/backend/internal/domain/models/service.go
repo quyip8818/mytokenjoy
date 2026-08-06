@@ -12,8 +12,9 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/support/modelcatalog"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
+	"github.com/tokenjoy/backend/internal/support/simulate"
 )
 
 type Service interface {
@@ -35,12 +36,12 @@ type Store interface {
 type service struct {
 	cfg              config.Config
 	store            Store
-	delayer          common.Delayer
+	delayer          simulate.Delayer
 	client           adminport.Port
 	cacheInvalidator types.PrecheckCacheInvalidator
 }
 
-func NewService(cfg config.Config, st Store, client adminport.Port, cacheInvalidator types.PrecheckCacheInvalidator, delayer common.Delayer) Service {
+func NewService(cfg config.Config, st Store, client adminport.Port, cacheInvalidator types.PrecheckCacheInvalidator, delayer simulate.Delayer) Service {
 	if cacheInvalidator == nil {
 		cacheInvalidator = types.NoopPrecheckCacheInvalidator{}
 	}
@@ -176,7 +177,7 @@ func (s *service) UpdateModel(ctx context.Context, id uuid.UUID, input types.Upd
 }
 
 func (s *service) ListRoutingRules(ctx context.Context) ([]types.RoutingRule, error) {
-	rules, err := common.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
+	rules, err := pkgorg.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
 	if err != nil {
 		return nil, err
 	}
@@ -185,17 +186,17 @@ func (s *service) ListRoutingRules(ctx context.Context) ([]types.RoutingRule, er
 		return nil, err
 	}
 	for i := range rules {
-		rules[i] = common.EnrichRoutingRule(rules[i], catalog)
+		rules[i] = pkgorg.EnrichRoutingRule(rules[i], catalog)
 	}
 	return rules, nil
 }
 
 func (s *service) ResolveRouting(ctx context.Context, deptID uuid.UUID) (types.ResolvedWhitelist, error) {
-	departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
+	departments, err := pkgorg.LoadDepartments(ctx, s.store.Org().Nodes())
 	if err != nil {
 		return types.ResolvedWhitelist{}, err
 	}
-	rules, err := common.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
+	rules, err := pkgorg.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
 	if err != nil {
 		return types.ResolvedWhitelist{}, err
 	}
@@ -205,7 +206,7 @@ func (s *service) ResolveRouting(ctx context.Context, deptID uuid.UUID) (types.R
 	}
 	// Exclude test models from routing resolution — they are gateway-implicit only.
 	visibleModels := modelcatalog.FilterVisible(models)
-	rule := common.GetRoutingRuleForDept(deptID, rules, departments)
+	rule := pkgorg.GetRoutingRuleForDept(deptID, rules, departments)
 	if rule == nil {
 		allowedIDs := modelcatalog.EnabledModelIDs(visibleModels)
 		return types.ResolvedWhitelist{
@@ -215,7 +216,7 @@ func (s *service) ResolveRouting(ctx context.Context, deptID uuid.UUID) (types.R
 			ParentCount:     len(visibleModels),
 		}, nil
 	}
-	parentID := common.GetParentDeptID(rule.NodeID, departments)
+	parentID := pkgorg.GetParentDeptID(rule.NodeID, departments)
 	parentCount := len(rule.AllowedModelIDs)
 	if parentID != nil {
 		for i := range rules {
@@ -225,7 +226,7 @@ func (s *service) ResolveRouting(ctx context.Context, deptID uuid.UUID) (types.R
 			}
 		}
 	}
-	allowedModelIDs := common.ResolveDeptAllowedModelIDs(deptID, departments, rules, visibleModels)
+	allowedModelIDs := pkgorg.ResolveDeptAllowedModelIDs(deptID, departments, rules, visibleModels)
 	return types.ResolvedWhitelist{
 		Inherited:       rule.Inherited,
 		AllowedModelIDs: allowedModelIDs,
@@ -242,7 +243,7 @@ func (s *service) UpdateRoutingRule(
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.RoutingRule{}, err
 	}
-	rules, err := common.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
+	rules, err := pkgorg.LoadRoutingRules(ctx, s.store.Org().Nodes(), s.store.Models().Allowlist())
 	if err != nil {
 		return types.RoutingRule{}, err
 	}
@@ -280,11 +281,11 @@ func (s *service) UpdateRoutingRule(
 	}
 	rules[idx] = updated
 	if input.AllowedModelIDs != nil {
-		departments, err := common.LoadDepartments(ctx, s.store.Org().Nodes())
+		departments, err := pkgorg.LoadDepartments(ctx, s.store.Org().Nodes())
 		if err != nil {
 			return types.RoutingRule{}, err
 		}
-		rules = common.ShrinkChildRoutingRules(
+		rules = pkgorg.ShrinkChildRoutingRules(
 			updated.NodeID,
 			updated.AllowedModelIDs,
 			rules,
@@ -295,7 +296,7 @@ func (s *service) UpdateRoutingRule(
 	if err != nil {
 		return types.RoutingRule{}, err
 	}
-	if err := common.PersistRoutingRules(ctx, s.store, nodes, rules); err != nil {
+	if err := pkgorg.PersistRoutingRules(ctx, s.store.Models().Allowlist(), s.store.Org().Nodes(), nodes, rules); err != nil {
 		return types.RoutingRule{}, fmt.Errorf("persist routing rules: %w", err)
 	}
 	if s.client == nil {
@@ -309,7 +310,7 @@ func (s *service) UpdateRoutingRule(
 	if err != nil {
 		return types.RoutingRule{}, err
 	}
-	return common.EnrichRoutingRule(updated, catalog), nil
+	return pkgorg.EnrichRoutingRule(updated, catalog), nil
 }
 
 func (s *service) ListModelsWithPricing(ctx context.Context) ([]types.ModelInfo, error) {

@@ -9,7 +9,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/support/clock"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/sliceutil"
 )
 
 func (s *Service) GetSyncConfig(ctx context.Context) (types.SyncConfig, error) {
@@ -62,7 +62,7 @@ func (s *Service) ListSyncLogs(ctx context.Context, page, pageSize int) (types.P
 	if err != nil {
 		return types.PageResult[types.SyncLog]{}, err
 	}
-	items, total, safePage, safeSize := common.Paginate(logs, page, pageSize)
+	items, total, safePage, safeSize := sliceutil.Paginate(logs, page, pageSize)
 	return types.PageResult[types.SyncLog]{
 		Items: items, Total: total, Page: safePage, PageSize: safeSize,
 	}, nil

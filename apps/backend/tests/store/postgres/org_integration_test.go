@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/support/crypto"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
 
@@ -40,14 +40,14 @@ func TestIntegrationCredentialEncryptRoundTrip(t *testing.T) {
 	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
-	key := common.DevDefaultKey()
+	key := crypto.DevDefaultKey()
 	payload, err := json.Marshal(types.FeishuCredential{
 		Platform: types.PlatformFeishu, AppID: "cli_pg", AppSecret: "secret_pg",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	encrypted, err := common.Encrypt(key, payload)
+	encrypted, err := crypto.Encrypt(key, payload)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,14 +77,14 @@ func TestSaveIntegrationCredentialDoesNotOverwriteSyncConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	key := common.DevDefaultKey()
+	key := crypto.DevDefaultKey()
 	payload, err := json.Marshal(types.FeishuCredential{
 		Platform: types.PlatformFeishu, AppID: "cli_pg", AppSecret: "secret_pg",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	encrypted, err := common.Encrypt(key, payload)
+	encrypted, err := crypto.Encrypt(key, payload)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,14 +112,14 @@ func TestClearIntegrationCredentialSetsNull(t *testing.T) {
 	st := testPostgresStore(t)
 	ctx := testutil.Ctx()
 
-	key := common.DevDefaultKey()
+	key := crypto.DevDefaultKey()
 	payload, err := json.Marshal(types.FeishuCredential{
 		Platform: types.PlatformFeishu, AppID: "cli_pg", AppSecret: "secret_pg",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	encrypted, err := common.Encrypt(key, payload)
+	encrypted, err := crypto.Encrypt(key, payload)
 	if err != nil {
 		t.Fatal(err)
 	}

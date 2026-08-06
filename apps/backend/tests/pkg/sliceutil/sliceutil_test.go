@@ -1,15 +1,15 @@
-package common_test
+package sliceutil_test
 
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/support/common"
+	"github.com/tokenjoy/backend/internal/domain/grants"
+	"github.com/tokenjoy/backend/internal/support/sliceutil"
 )
 
 func TestPaginate(t *testing.T) {
 	t.Parallel()
 	items := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-
 	tests := []struct {
 		name         string
 		page         int
@@ -30,10 +30,9 @@ func TestPaginate(t *testing.T) {
 		{"full page", 1, 10, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, 10, 1, 10},
 		{"pageSize larger than total", 1, 20, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, 10, 1, 20},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, total, safePage, safeSize := common.Paginate(items, tt.page, tt.pageSize)
+			result, total, safePage, safeSize := sliceutil.Paginate(items, tt.page, tt.pageSize)
 			if total != tt.wantTotal {
 				t.Errorf("total = %d, want %d", total, tt.wantTotal)
 			}
@@ -57,11 +56,39 @@ func TestPaginate(t *testing.T) {
 
 func TestPaginateEmptySlice(t *testing.T) {
 	t.Parallel()
-	result, total, _, _ := common.Paginate([]string{}, 1, 10)
+	result, total, _, _ := sliceutil.Paginate([]string{}, 1, 10)
 	if total != 0 {
 		t.Errorf("total = %d, want 0", total)
 	}
 	if len(result) != 0 {
 		t.Errorf("result len = %d, want 0", len(result))
+	}
+}
+
+func TestHasAnyWildcard(t *testing.T) {
+	t.Parallel()
+	if !sliceutil.HasAny([]string{"*"}, grants.OrgAdmin) {
+		t.Fatal("expected wildcard to match any permission")
+	}
+}
+
+func TestHasAnyMatch(t *testing.T) {
+	t.Parallel()
+	if !sliceutil.HasAny([]string{grants.OrgManage}, grants.OrgManage, grants.OrgAdmin) {
+		t.Fatal("expected match on org:manage")
+	}
+}
+
+func TestHasAnyMiss(t *testing.T) {
+	t.Parallel()
+	if sliceutil.HasAny([]string{grants.SelfKeys}, grants.OrgAdmin) {
+		t.Fatal("expected no match")
+	}
+}
+
+func TestHasAnyEmptyRequired(t *testing.T) {
+	t.Parallel()
+	if !sliceutil.HasAny([]string{grants.SelfKeys}) {
+		t.Fatal("empty required should return true")
 	}
 }
