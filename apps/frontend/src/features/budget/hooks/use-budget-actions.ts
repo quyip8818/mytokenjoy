@@ -1,7 +1,11 @@
 import { useCallback, useRef } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import type { AppApis } from '@/api/app-apis'
-import type { MemberBudget, PlatformKeyScope, ProjectView, UpdateMemberBudgetInput } from '@/api/types'
+import type {
+  PlatformKeyScope,
+  ProjectView,
+  UpdateMemberBudgetInput,
+} from '@/api/types'
 import { useInjectedApis } from '@/api/use-apis'
 import { queryKeys } from '@/features/query'
 import { useWorkflowRefresh } from '@/features/workflow'
@@ -181,15 +185,14 @@ export function useBudgetActions({ injectedApis, period, refresh }: UseBudgetAct
   )
 
   const updateMemberBudget = useCallback(
-    async (memberId: string, data: UpdateMemberBudgetInput): Promise<MemberBudget> => {
+    async (memberId: string, data: UpdateMemberBudgetInput) => {
       if (isFuturePeriod) {
         await ensureSnapshot(period)
         await apis.budgetApi.updateSnapshotMember(period, memberId, {
           personalBudget: data.personalBudget,
         })
-        // ponytail: snapshot returns void; return stub that caller spreads over existing record.
-        // Missing fields (memberName, etc.) come from the spread base.
-        return { memberId, personalBudget: data.personalBudget } as MemberBudget
+        // ponytail: snapshot returns void; caller spreads over existing record
+        return { memberId, personalBudget: data.personalBudget }
       }
       return apis.budgetApi.updateMemberBudget(memberId, data)
     },

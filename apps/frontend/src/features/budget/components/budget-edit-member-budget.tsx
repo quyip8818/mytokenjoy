@@ -21,7 +21,7 @@ interface BudgetEditMemberBudgetProps {
   editable?: boolean
   onUpdated: () => void
   getMemberBudgets: (departmentId: string) => Promise<MemberBudget[]>
-  updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) => Promise<MemberBudget>
+  updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) => Promise<Partial<MemberBudget>>
   applyAverageBudget: (
     departmentId: string,
     data: { personalBudget: number; recursive: boolean },
@@ -90,7 +90,7 @@ interface MemberBudgetEditDialogProps {
   onOpenChange: (open: boolean) => void
   departmentId: string
   getMemberBudgets: (departmentId: string) => Promise<MemberBudget[]>
-  updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) => Promise<MemberBudget>
+  updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) => Promise<Partial<MemberBudget>>
   applyAverageBudget: (
     departmentId: string,
     data: { personalBudget: number; recursive: boolean },
