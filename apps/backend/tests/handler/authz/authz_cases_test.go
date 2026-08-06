@@ -14,7 +14,7 @@ import (
 // Demo seed dept-3 is intentionally oversubscribed; use dept-6 for successful budget updates.
 var budgetUpdateDeptID = contract.IDDept6.String()
 
-const validBudgetUpdateAmount = 1000
+const validBudgetUpdateAmount = 20000
 
 type authzCase struct {
 	name       string

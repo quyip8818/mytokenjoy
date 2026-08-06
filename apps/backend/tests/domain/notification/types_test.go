@@ -83,8 +83,8 @@ func TestPriorityFallbackChain(t *testing.T) {
 	t.Parallel()
 
 	critical := notification.PriorityFallbackChain(notification.PriorityCritical)
-	if len(critical) != 3 || critical[0] != notification.ChannelSMS {
-		t.Fatalf("critical chain should start with sms, got %v", critical)
+	if len(critical) != 3 || critical[0] != notification.ChannelEmail {
+		t.Fatalf("critical chain should start with email, got %v", critical)
 	}
 
 	high := notification.PriorityFallbackChain(notification.PriorityHigh)

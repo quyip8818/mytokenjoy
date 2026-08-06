@@ -17,6 +17,8 @@ func newMemberAnalyticsService(t *testing.T) (domainmemberanalytics.Service, con
 	t.Helper()
 	cfg, st := testutil.NewTestStore(t)
 	ctx := testutil.CtxForCompany(contract.DefaultCompanyID)
+	// Truncate usage_buckets so ApplyUsageBuckets generates fresh data aligned to TestClock.
+	testutil.TruncateUsageBuckets(t, st)
 	if err := runtime.ApplyUsageBuckets(ctx, st, cfg, testutil.TestClock()); err != nil {
 		t.Fatal(err)
 	}

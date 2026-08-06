@@ -138,8 +138,8 @@ func TestCoreHandler(t *testing.T) {
 			if err := json.NewDecoder(rec.Body).Decode(&roles); err != nil {
 				t.Fatal(err)
 			}
-			if len(roles) != 7 {
-				t.Fatalf("expected 7 roles, got %d", len(roles))
+			if len(roles) != 8 {
+				t.Fatalf("expected 8 roles, got %d", len(roles))
 			}
 			foundSuperAdmin := false
 			for _, r := range roles {

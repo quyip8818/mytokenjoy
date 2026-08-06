@@ -16,11 +16,11 @@ import (
 )
 
 func currentPeriod() string {
-	return pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, time.Now().UTC())
+	return pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, testutil.TestClock().Now())
 }
 
 func futurePeriod() string {
-	now := time.Now().UTC()
+	now := testutil.TestClock().Now()
 	next := time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, time.UTC)
 	return pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, next)
 }
@@ -81,12 +81,13 @@ func TestCopyPeriodRejectsInvalidFormat(t *testing.T) {
 func TestGetTreeForPeriodEmpty(t *testing.T) {
 	t.Parallel()
 	svc, _ := newBudgetService(t)
-	tree, err := svc.GetTreeForPeriod(testutil.Ctx(), "2099-12")
+	// Past period with no snapshot → nil (no historical data)
+	tree, err := svc.GetTreeForPeriod(testutil.Ctx(), "2020-01")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if tree != nil {
-		t.Fatalf("expected nil tree for empty period, got %d nodes", len(tree))
+		t.Fatalf("expected nil tree for empty past period, got %d nodes", len(tree))
 	}
 }
 
@@ -246,9 +247,9 @@ func TestUpdateNodeNoDecreaseCurrentMonth(t *testing.T) {
 	prepareDept3NodeUpdateFixture(t, st)
 	ctx := testutil.Ctx()
 
-	// First increase budget to a known value
+	// First increase budget to a known value within parent headroom
 	reserved := 0.0
-	increased := 50000.0
+	increased := chooseValidDeptBudget(t, st, contract.IDDept3, reserved)
 	_, err := svc.UpdateNode(ctx, contract.IDDept3, increased, &reserved)
 	if err != nil {
 		t.Fatal(err)

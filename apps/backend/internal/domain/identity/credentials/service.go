@@ -58,6 +58,7 @@ func (s *service) BootstrapPlatformIfNeeded(ctx context.Context) error {
 	} else {
 		if err := s.store.User().Create(ctx, store.User{
 			ID:           userID,
+			Name:         "Platform Admin",
 			Email:        s.cfg.PlatformBootstrapEmail,
 			PasswordHash: string(hash),
 			Status:       types.MemberStatusActive,

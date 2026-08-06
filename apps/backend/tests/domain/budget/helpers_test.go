@@ -91,6 +91,11 @@ func chooseValidDeptBudget(t *testing.T, st store.Store, deptID uuid.UUID, reser
 		pkgbudget.ProjectsBudgetForDept(inputs.projects, deptID) +
 		pkgbudget.MemberBudgetSumForDept(inputs.members, deptID)
 
+	// Current-month rule: budget can only increase.
+	if node.Budget > floor {
+		floor = node.Budget
+	}
+
 	candidates := []float64{floor + 1000, floor}
 	for _, budget := range candidates {
 		if vr := pkgbudget.ValidateBudgetNodeUpdate(
