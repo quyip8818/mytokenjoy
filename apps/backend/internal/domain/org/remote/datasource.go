@@ -7,7 +7,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/datasource"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
@@ -137,20 +136,20 @@ func (s *Service) SearchDataSource(ctx context.Context, keyword string) (types.D
 }
 
 type fixedProvider struct {
-	departments []datasource.RemoteDepartment
-	members     []datasource.RemoteMember
+	departments []types.RemoteDepartment
+	members     []types.RemoteMember
 }
 
 func (p *fixedProvider) TestConnection(ctx context.Context) error { return nil }
 
-func (p *fixedProvider) SearchMember(ctx context.Context, keyword string) (datasource.RemoteMember, error) {
-	return datasource.RemoteMember{}, fmt.Errorf("not implemented")
+func (p *fixedProvider) SearchMember(ctx context.Context, keyword string) (types.RemoteMember, error) {
+	return types.RemoteMember{}, fmt.Errorf("not implemented")
 }
 
-func (p *fixedProvider) ListDepartments(ctx context.Context) ([]datasource.RemoteDepartment, error) {
+func (p *fixedProvider) ListDepartments(ctx context.Context) ([]types.RemoteDepartment, error) {
 	return p.departments, nil
 }
 
-func (p *fixedProvider) ListMembers(ctx context.Context) ([]datasource.RemoteMember, []types.ImportFailure, error) {
+func (p *fixedProvider) ListMembers(ctx context.Context) ([]types.RemoteMember, []types.ImportFailure, error) {
 	return p.members, nil, nil
 }

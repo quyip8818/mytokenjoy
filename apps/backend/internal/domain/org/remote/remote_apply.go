@@ -6,15 +6,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/datasource"
 	"github.com/tokenjoy/backend/internal/store"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 func (s *Service) applySyncDiff(ctx context.Context, platform types.Platform, diff pkgorg.SyncDiff) (types.ImportResult, error) {
-	remoteDepts := append([]datasource.RemoteDepartment{}, diff.AddDepartments...)
+	remoteDepts := append([]types.RemoteDepartment{}, diff.AddDepartments...)
 	remoteDepts = append(remoteDepts, diff.UpdateDepartments...)
-	remoteMembers := append([]datasource.RemoteMember{}, diff.AddMembers...)
+	remoteMembers := append([]types.RemoteMember{}, diff.AddMembers...)
 	remoteMembers = append(remoteMembers, diff.UpdateMembers...)
 
 	result := types.ImportResult{}
@@ -81,8 +80,8 @@ func (s *Service) applySyncDiff(ctx context.Context, platform types.Platform, di
 func (s *Service) importRemoteSnapshot(
 	ctx context.Context,
 	platform types.Platform,
-	remoteDepts []datasource.RemoteDepartment,
-	remoteMembers []datasource.RemoteMember,
+	remoteDepts []types.RemoteDepartment,
+	remoteMembers []types.RemoteMember,
 ) (types.ImportResult, error) {
 	provider := &fixedProvider{departments: remoteDepts, members: remoteMembers}
 	return s.importFromProvider(ctx, provider, platform, importOptions{})
@@ -120,11 +119,11 @@ func flattenDeptNames(departments []types.Department) map[uuid.UUID]string {
 }
 
 func sortRemoteDepartments(
-	remote []datasource.RemoteDepartment,
+	remote []types.RemoteDepartment,
 	_ map[string]string,
-) []datasource.RemoteDepartment {
-	children := make(map[string][]datasource.RemoteDepartment)
-	roots := make([]datasource.RemoteDepartment, 0)
+) []types.RemoteDepartment {
+	children := make(map[string][]types.RemoteDepartment)
+	roots := make([]types.RemoteDepartment, 0)
 	for _, dept := range remote {
 		parentExternal := dept.ParentExternalID
 		if parentExternal == "" || parentExternal == "0" {
@@ -133,7 +132,7 @@ func sortRemoteDepartments(
 		}
 		children[parentExternal] = append(children[parentExternal], dept)
 	}
-	ordered := make([]datasource.RemoteDepartment, 0, len(remote))
+	ordered := make([]types.RemoteDepartment, 0, len(remote))
 	var walk func(parentExternal string)
 	walk = func(parentExternal string) {
 		next := children[parentExternal]
@@ -153,10 +152,10 @@ func sortRemoteDepartments(
 }
 
 func filterRemoteMembersForRetry(
-	members []datasource.RemoteMember,
+	members []types.RemoteMember,
 	retryIDs map[string]struct{},
 	failures []types.ImportFailure,
-) []datasource.RemoteMember {
+) []types.RemoteMember {
 	targets := make(map[string]struct{})
 	for _, failure := range failures {
 		if _, ok := retryIDs[failure.ID.String()]; !ok {
@@ -167,7 +166,7 @@ func filterRemoteMembersForRetry(
 		}
 		targets[failure.ID.String()] = struct{}{}
 	}
-	filtered := make([]datasource.RemoteMember, 0)
+	filtered := make([]types.RemoteMember, 0)
 	for _, member := range members {
 		if _, ok := targets[member.ExternalID]; ok {
 			filtered = append(filtered, member)

@@ -8,7 +8,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/datasource"
 	"github.com/tokenjoy/backend/internal/store"
 	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
 	"github.com/tokenjoy/backend/internal/support/clock"
@@ -37,7 +36,7 @@ type Deps struct {
 	Cfg          config.Config
 	Clock        clock.Clock
 	Store        Store
-	Factory      datasource.Factory
+	Factory      types.DataSourceFactory
 	Notifier     types.Notifier
 	Sender       DirectSender
 	InviteIssuer *invitetoken.Issuer // nil if INVITE_SECRET not configured
@@ -50,7 +49,7 @@ type Deps struct {
 func NewDeps(
 	cfg config.Config,
 	st Store,
-	factory datasource.Factory,
+	factory types.DataSourceFactory,
 	notifier types.Notifier,
 	sender DirectSender,
 	delayer simulate.Delayer,

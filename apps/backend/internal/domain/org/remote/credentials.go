@@ -5,7 +5,6 @@ import (
 
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/datasource"
 	"github.com/tokenjoy/backend/internal/support/crypto"
 )
 
@@ -44,7 +43,7 @@ func (s *Service) saveCredential(ctx context.Context, cred types.Credential) err
 	return s.d.Store.Org().SaveIntegrationCredential(ctx, cred.Platform, encrypted)
 }
 
-func (s *Service) providerForStored(ctx context.Context) (datasource.Provider, types.Platform, error) {
+func (s *Service) providerForStored(ctx context.Context) (types.DataSourceProvider, types.Platform, error) {
 	cred, err := s.loadStoredCredential(ctx)
 	if err != nil {
 		return nil, "", err
@@ -56,6 +55,6 @@ func (s *Service) providerForStored(ctx context.Context) (datasource.Provider, t
 	return provider, cred.Platform, nil
 }
 
-func (s *Service) providerForCredential(cred types.Credential) (datasource.Provider, error) {
+func (s *Service) providerForCredential(cred types.Credential) (types.DataSourceProvider, error) {
 	return s.d.Factory.ForPlatform(cred.Platform, cred)
 }

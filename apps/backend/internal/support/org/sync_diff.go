@@ -2,29 +2,28 @@ package org
 
 import (
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/datasource"
 )
 
 type SyncDiff struct {
-	AddDepartments    []datasource.RemoteDepartment
-	UpdateDepartments []datasource.RemoteDepartment
+	AddDepartments    []types.RemoteDepartment
+	UpdateDepartments []types.RemoteDepartment
 	RemoveDepartments []types.Department
-	AddMembers        []datasource.RemoteMember
-	UpdateMembers     []datasource.RemoteMember
+	AddMembers        []types.RemoteMember
+	UpdateMembers     []types.RemoteMember
 	RemoveMembers     []types.Member
 }
 
 func BuildSyncDiff(
 	localDepts []types.Department,
 	localMembers []types.Member,
-	remoteDepts []datasource.RemoteDepartment,
-	remoteMembers []datasource.RemoteMember,
+	remoteDepts []types.RemoteDepartment,
+	remoteMembers []types.RemoteMember,
 ) SyncDiff {
-	remoteDeptMap := make(map[string]datasource.RemoteDepartment, len(remoteDepts))
+	remoteDeptMap := make(map[string]types.RemoteDepartment, len(remoteDepts))
 	for _, dept := range remoteDepts {
 		remoteDeptMap[dept.ExternalID] = dept
 	}
-	remoteMemberMap := make(map[string]datasource.RemoteMember, len(remoteMembers))
+	remoteMemberMap := make(map[string]types.RemoteMember, len(remoteMembers))
 	for _, member := range remoteMembers {
 		remoteMemberMap[member.ExternalID] = member
 	}

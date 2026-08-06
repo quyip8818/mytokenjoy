@@ -9,7 +9,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/org/remote"
 	"github.com/tokenjoy/backend/internal/domain/org/structure"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/datasource"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/clock"
 	"github.com/tokenjoy/backend/internal/support/simulate"
@@ -23,7 +22,7 @@ type service struct {
 func NewService(
 	cfg config.Config,
 	st store.Store,
-	factory datasource.Factory,
+	factory types.DataSourceFactory,
 	notifier types.Notifier,
 	sender core.DirectSender,
 	delayer simulate.Delayer,

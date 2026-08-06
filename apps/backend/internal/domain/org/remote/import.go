@@ -8,7 +8,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/datasource"
 	"github.com/tokenjoy/backend/internal/store"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
@@ -39,7 +38,7 @@ func (s *Service) RetryImport(ctx context.Context, ids []string) (types.ImportRe
 
 func (s *Service) importFromProvider(
 	ctx context.Context,
-	provider datasource.Provider,
+	provider types.DataSourceProvider,
 	platform types.Platform,
 	opts importOptions,
 ) (types.ImportResult, error) {
@@ -70,7 +69,7 @@ func (s *Service) importFromProvider(
 		for _, member := range remoteMembers {
 			deptSet[member.DepartmentExternalID] = struct{}{}
 		}
-		filteredDepts := make([]datasource.RemoteDepartment, 0)
+		filteredDepts := make([]types.RemoteDepartment, 0)
 		for _, dept := range remoteDepts {
 			if _, ok := deptSet[dept.ExternalID]; ok {
 				filteredDepts = append(filteredDepts, dept)

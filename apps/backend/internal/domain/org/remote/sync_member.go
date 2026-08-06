@@ -4,12 +4,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/datasource"
 )
 
 // syncMember applies remote data to an existing local member using field sync policy.
 // Only fields that pass ShouldSyncField are overwritten.
-func syncMember(m *types.Member, remote datasource.RemoteMember, localDept uuid.UUID, deptName string) {
+func syncMember(m *types.Member, remote types.RemoteMember, localDept uuid.UUID, deptName string) {
 	overrides := m.OverrideFields
 
 	// immutable: employeeId — write only if local is empty
