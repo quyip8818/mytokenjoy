@@ -1,14 +1,14 @@
 package authz
 
 import (
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
 func expandRoleDefinition(role types.Role) []string {
 	if role.Type == "preset" {
-		if caps, ok := permission.PresetRoleCapabilities()[role.Name]; ok {
+		if caps, ok := grants.PresetRoleCapabilities()[role.Name]; ok {
 			return append([]string{}, caps...)
 		}
 		return nil
@@ -17,14 +17,14 @@ func expandRoleDefinition(role types.Role) []string {
 	caps := make(map[string]struct{})
 	for _, permID := range role.Permissions {
 		if permID == "*" {
-			for _, p := range permission.CompanyPermissions {
+			for _, p := range grants.CompanyPermissions {
 				caps[p] = struct{}{}
 			}
 			continue
 		}
-		if mapped, ok := permission.PermissionIDMap[permID]; ok {
+		if mapped, ok := grants.PermissionIDMap[permID]; ok {
 			caps[mapped] = struct{}{}
-		} else if contains(permission.CompanyPermissions, permID) {
+		} else if contains(grants.CompanyPermissions, permID) {
 			caps[permID] = struct{}{}
 		}
 	}
@@ -57,7 +57,7 @@ func ResolveMemberPermissions(member types.Member, roles []types.Role) []string 
 		raw = append(raw, p)
 	}
 	// Apply hierarchy: admin implies manage+read, manage implies read, etc.
-	return permission.ExpandHierarchy(raw)
+	return grants.ExpandHierarchy(raw)
 }
 
 func IsReadOnlySession(permissions []string) bool {
@@ -66,7 +66,7 @@ func IsReadOnlySession(permissions []string) bool {
 			return false
 		}
 	}
-	for _, writeCap := range permission.WriteCapabilitiesFromManifest() {
+	for _, writeCap := range grants.WriteCapabilitiesFromManifest() {
 		if contains(permissions, writeCap) {
 			return false
 		}

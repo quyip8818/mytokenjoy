@@ -1,4 +1,4 @@
-package permission_test
+package grants_test
 
 import (
 	"os"
@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/infra/permission"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 )
 
 func TestManifestLoads(t *testing.T) {
-	m, err := permission.ManifestData()
+	m, err := grants.ManifestData()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,33 +38,33 @@ func TestManifestLoads(t *testing.T) {
 }
 
 func TestGeneratedKeysMatchManifest(t *testing.T) {
-	m := permission.MustManifest()
+	m := grants.MustManifest()
 
 	// CompanyPermissions must match capabilities exactly.
-	if len(permission.CompanyPermissions) != len(m.Capabilities) {
-		t.Fatalf("CompanyPermissions length: got %d want %d", len(permission.CompanyPermissions), len(m.Capabilities))
+	if len(grants.CompanyPermissions) != len(m.Capabilities) {
+		t.Fatalf("CompanyPermissions length: got %d want %d", len(grants.CompanyPermissions), len(m.Capabilities))
 	}
 	for _, cap := range m.Capabilities {
-		if !contains(permission.CompanyPermissions, cap) {
+		if !contains(grants.CompanyPermissions, cap) {
 			t.Fatalf("missing capability in CompanyPermissions: %s", cap)
 		}
 	}
 
 	// AllPermissions must equal capabilities + platformCapabilities.
 	expectedAll := len(m.Capabilities) + len(m.PlatformCapabilities)
-	if len(permission.AllPermissions) != expectedAll {
-		t.Fatalf("AllPermissions length: got %d want %d", len(permission.AllPermissions), expectedAll)
+	if len(grants.AllPermissions) != expectedAll {
+		t.Fatalf("AllPermissions length: got %d want %d", len(grants.AllPermissions), expectedAll)
 	}
 	for _, cap := range m.PlatformCapabilities {
-		if !contains(permission.AllPermissions, cap) {
+		if !contains(grants.AllPermissions, cap) {
 			t.Fatalf("missing platform capability in AllPermissions: %s", cap)
 		}
 	}
 
 	// PermissionIDMap entries should all resolve to company permissions.
 	for id, cap := range m.PermissionIDMap {
-		if permission.PermissionIDMap[id] != cap {
-			t.Fatalf("permission id %s: got %q want %q", id, permission.PermissionIDMap[id], cap)
+		if grants.PermissionIDMap[id] != cap {
+			t.Fatalf("permission id %s: got %q want %q", id, grants.PermissionIDMap[id], cap)
 		}
 	}
 }
@@ -77,7 +77,7 @@ func TestFrontendPermissionKeysMatchManifest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	m := permission.MustManifest()
+	m := grants.MustManifest()
 	keysContent, err := os.ReadFile(keysPath)
 	if err != nil {
 		t.Fatal(err)

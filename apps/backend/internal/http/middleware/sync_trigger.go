@@ -6,9 +6,9 @@ import (
 
 	"github.com/google/uuid"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 )
 
 const SyncTriggerAPIKeyHeader = "X-Sync-API-Key"
@@ -16,7 +16,7 @@ const CompanyIDHeader = "X-Company-ID"
 
 func AllowSyncTrigger(p httpdeps.Protected, companySvc domaincompany.Service) func(http.Handler) http.Handler {
 	sessionChain := RequireSession(p)
-	authzChain := RequireAnyPermission(permission.OrgAdmin)
+	authzChain := RequireAnyPermission(grants.OrgAdmin)
 
 	return func(next http.Handler) http.Handler {
 		protected := sessionChain(authzChain(next))

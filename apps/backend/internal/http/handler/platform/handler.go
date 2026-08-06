@@ -1,7 +1,6 @@
 package platform
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -80,8 +79,8 @@ type loginBody struct {
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var body loginBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	member, err := h.p.Credentials.AuthenticateMember(r.Context(), h.p.Cfg.TokenJoyCompanyID, body.Email, body.Password)
@@ -110,8 +109,8 @@ type createCompanyBody struct {
 
 func (h *Handler) CreateCompany(w http.ResponseWriter, r *http.Request) {
 	var body createCompanyBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	if body.Email == "" {
@@ -146,8 +145,8 @@ func (h *Handler) UpdateCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body updateCompanyBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	if body.Status != nil {
@@ -177,8 +176,8 @@ func (h *Handler) RechargeCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body rechargeBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	operatorID := operatorIDFromSession(r)
@@ -197,8 +196,8 @@ func (h *Handler) GiftCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body giftBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	operatorID := operatorIDFromSession(r)
@@ -218,8 +217,8 @@ func (h *Handler) AdjustCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body adjustBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	operatorID := operatorIDFromSession(r)
@@ -234,8 +233,8 @@ func (h *Handler) ListChannels(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) CreateChannel(w http.ResponseWriter, r *http.Request) {
 	var body types.CreateProviderKeyInput
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	key, err := h.p.KeysSvc.CreateProviderKeyForPlatform(r.Context(), body)

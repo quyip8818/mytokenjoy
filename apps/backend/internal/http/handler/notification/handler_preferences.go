@@ -1,7 +1,6 @@
 package notification
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -56,8 +55,8 @@ func (h *Handler) UpdatePreferences(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req updatePreferencesRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "invalid request body")
+	if err := httputil.DecodeJSON(r, &req); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 

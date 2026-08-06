@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -123,7 +123,7 @@ func ScopePermissions(perms []string, companyType string, supportSaas bool) []st
 	}
 	out := make([]string, 0, len(perms))
 	for _, p := range perms {
-		if !permission.IsPlatformPermission(p) {
+		if !grants.IsPlatformPermission(p) {
 			out = append(out, p)
 		}
 	}

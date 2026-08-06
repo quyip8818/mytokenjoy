@@ -6,12 +6,12 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	domainbudget "github.com/tokenjoy/backend/internal/domain/budget"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 )
 
 type Handler struct {
@@ -305,7 +305,7 @@ func (h *Handler) UpdateSnapshotProject(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.BudgetRead)
+	read := httpmiddleware.ReadRoutes(r, h.Protected, grants.BudgetRead)
 	read.Get("/tree", h.Tree)
 	read.Get("/departments/{departmentId}/member-budgets", h.MemberBudgets)
 	read.Get("/members/{memberId}/summary", h.MemberSummary)
@@ -316,7 +316,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 
 	write := httpmiddleware.ReadRoutes(r, h.Protected)
 
-	allocateWrite := write.With(httpmiddleware.RequireAnyPermission(permission.BudgetManage))
+	allocateWrite := write.With(httpmiddleware.RequireAnyPermission(grants.BudgetManage))
 	allocateWrite.Put("/departments/{departmentId}", h.UpdateNode)
 	allocateWrite.Put("/members/{memberId}", h.UpdateMemberBudget)
 	allocateWrite.Post("/departments/{departmentId}/apply-average-budget", h.ApplyAverageBudget)
@@ -328,7 +328,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	allocateWrite.Put("/snapshot/{period}/members/{id}", h.UpdateSnapshotMember)
 	allocateWrite.Put("/snapshot/{period}/projects/{id}", h.UpdateSnapshotProject)
 
-	policyWrite := write.With(httpmiddleware.RequireAnyPermission(permission.BudgetAdmin))
+	policyWrite := write.With(httpmiddleware.RequireAnyPermission(grants.BudgetAdmin))
 	policyWrite.Put("/overrun-policy", h.OverrunPolicyUpdate)
 	policyWrite.Post("/alerts", h.AlertCreate)
 	policyWrite.Put("/alerts/{id}", h.AlertUpdate)

@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -94,7 +94,7 @@ func AssertUsageBucketCount(t *testing.T, st store.Store, want int) {
 
 func AdminDashboardScope() domainusage.SessionScope {
 	return domainusage.SessionScope{
-		MemberID: contract.IDMemberAdmin, Permissions: []string{permission.DashboardRead, "*"},
+		MemberID: contract.IDMemberAdmin, Permissions: []string{grants.DashboardRead, "*"},
 	}
 }
 

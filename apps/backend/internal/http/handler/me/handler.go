@@ -1,16 +1,17 @@
 package me
 
 import (
+	"net/http"
+
 	"github.com/go-chi/chi/v5"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	domainmemberanalytics "github.com/tokenjoy/backend/internal/domain/memberanalytics"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/identity/verifycode"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/store"
-	"net/http"
 )
 
 type Handler struct {
@@ -35,7 +36,7 @@ func NewHandler(p httpdeps.Protected, memberAnalytics domainmemberanalytics.Serv
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.SelfKeys)
+	read := httpmiddleware.ReadRoutes(r, h.Protected, grants.SelfKeys)
 	read.Get("/dashboard", h.GetDashboard)
 
 	session := httpmiddleware.SessionRoutes(r, h.Protected)

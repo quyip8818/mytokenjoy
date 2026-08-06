@@ -1,4 +1,4 @@
-package permission
+package grants
 
 import (
 	_ "embed"

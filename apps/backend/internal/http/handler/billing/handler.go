@@ -1,18 +1,17 @@
 package billing
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -30,10 +29,10 @@ func NewHandler(p httpdeps.Protected, billingSvc domainbilling.Service) *Handler
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.BillingRead)
+	read := httpmiddleware.ReadRoutes(r, h.Protected, grants.BillingRead)
 	read.Get("/billing/wallet", h.GetWallet)
 	read.Get("/billing/recharge-records", h.ListRechargeRecords)
-	write := httpmiddleware.ReadRoutes(r, h.Protected, permission.BillingManage)
+	write := httpmiddleware.ReadRoutes(r, h.Protected, grants.BillingManage)
 	write.Post("/billing/recharge", h.CreateRecharge)
 	write.Post("/billing/recharge/{id}/confirm", h.ConfirmRecharge)
 }
@@ -59,8 +58,8 @@ func (h *Handler) CreateRecharge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body rechargeBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	memberID := uuid.Nil

@@ -2,8 +2,8 @@ package snapshot
 
 import (
 	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/seed/contract"
 )
@@ -68,16 +68,16 @@ func buildRoles(members []types.Member) []types.Role {
 		{
 			ID:          contract.IDRoleBudgetApprover,
 			CompanyID:   contract.DefaultCompanyID,
-			Name:        permission.RoleBudgetApprover,
+			Name:        grants.RoleBudgetApprover,
 			Type:        "custom",
-			Permissions: mustRoleGrantIDs(types.Role{Type: "custom", Name: permission.RoleBudgetApprover, Permissions: []string{"p-6"}}),
-			MemberCount: org.CountMembersByRole(members, permission.RoleBudgetApprover),
+			Permissions: mustRoleGrantIDs(types.Role{Type: "custom", Name: grants.RoleBudgetApprover, Permissions: []string{"p-6"}}),
+			MemberCount: org.CountMembersByRole(members, grants.RoleBudgetApprover),
 		},
 	}
 }
 
 func mustRoleGrantIDs(role types.Role) []string {
-	ids, err := permission.RoleGrantIDs(role.Type, role.Name, role.Permissions)
+	ids, err := grants.RoleGrantIDs(role.Type, role.Name, role.Permissions)
 	if err != nil {
 		panic(err)
 	}

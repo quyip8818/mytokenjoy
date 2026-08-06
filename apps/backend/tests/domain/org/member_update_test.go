@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -75,7 +75,7 @@ func TestUpdateMemberRolesUpdatedWhenProvided(t *testing.T) {
 	svc := newTestOrgService(t)
 	ctx := testutil.Ctx()
 
-	newRoles := []string{permission.RoleMember}
+	newRoles := []string{grants.RoleMember}
 	updated, err := svc.UpdateMember(ctx, contract.IDMember1, types.UpdateMemberInput{
 		Roles: newRoles,
 	})

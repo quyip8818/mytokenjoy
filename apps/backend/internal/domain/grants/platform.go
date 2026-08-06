@@ -1,4 +1,4 @@
-package permission
+package grants
 
 // IsPlatformPermission returns true for any permission in the platform domain (platform:*).
 func IsPlatformPermission(p string) bool {

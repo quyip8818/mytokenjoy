@@ -2,7 +2,6 @@ package platform
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -129,8 +128,8 @@ func (h *Handler) ListModels(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) CreateModel(w http.ResponseWriter, r *http.Request) {
 	var body createModelBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	if body.Type == "" {
@@ -207,8 +206,8 @@ func (h *Handler) UpdateModel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body updateModelBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 
@@ -261,8 +260,8 @@ func (h *Handler) SetModelPricing(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body setPricingBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 

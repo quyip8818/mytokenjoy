@@ -5,12 +5,12 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	domainaudit "github.com/tokenjoy/backend/internal/domain/audit"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
@@ -98,7 +98,7 @@ func (h *Handler) CallsSummary(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.AuditRead)
+	read := httpmiddleware.ReadRoutes(r, h.Protected, grants.AuditRead)
 	read.Get("/settings", h.SettingsGet)
 	read.Get("/operations", h.OperationsList)
 	read.Get("/operations/timeline", h.OperationsTimeline)
@@ -106,7 +106,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	read.Get("/calls/summary", h.CallsSummary)
 
 	httpmiddleware.ReadRoutes(r, h.Protected).
-		With(httpmiddleware.RequireAnyPermission(permission.OrgAdmin)).
+		With(httpmiddleware.RequireAnyPermission(grants.OrgAdmin)).
 		Put("/settings", h.SettingsUpdate)
 }
 

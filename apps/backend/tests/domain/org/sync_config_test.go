@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/org/remote"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -23,7 +23,7 @@ func TestUpdateSyncConfigValidation(t *testing.T) {
 		nil, nil, nil,
 		common.NewDelayer(false),
 		slog.Default(),
-		permission.NewGrantNormalizer(),
+		grants.NewGrantNormalizer(),
 		nil, // clock — defaults to system via clock.OrDefault
 	)
 	svc := remote.New(deps, nil)

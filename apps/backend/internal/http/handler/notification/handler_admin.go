@@ -1,7 +1,6 @@
 package notification
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -106,8 +105,8 @@ type adminTestSendRequest struct {
 
 func (h *Handler) AdminTestSend(w http.ResponseWriter, r *http.Request) {
 	var req adminTestSendRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "invalid request body")
+	if err := httputil.DecodeJSON(r, &req); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 

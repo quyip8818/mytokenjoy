@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/infra/permission"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/saas"
 )
@@ -86,7 +86,7 @@ func TestAcceptInviteAssignsInviteRole(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&session); err != nil {
 		t.Fatal(err)
 	}
-	if len(session.Member.Roles) != 1 || session.Member.Roles[0] != permission.RoleSuperAdmin {
+	if len(session.Member.Roles) != 1 || session.Member.Roles[0] != grants.RoleSuperAdmin {
 		t.Fatalf("expected super admin role, got %v", session.Member.Roles)
 	}
 }

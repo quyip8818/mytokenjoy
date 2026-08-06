@@ -6,11 +6,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/devapi"
 )
 
@@ -38,7 +38,7 @@ func NewHandler(
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Get("/readiness", h.Readiness)
-	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.KeysAdmin)
+	read := httpmiddleware.ReadRoutes(r, h.Protected, grants.KeysAdmin)
 	read.Get("/platform-keys/{id}/bearer", h.PlatformKeyBearer)
 }
 

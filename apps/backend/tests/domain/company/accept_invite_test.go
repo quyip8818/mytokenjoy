@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/infra/permission"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -20,7 +20,7 @@ func TestAcceptInviteCreatesMembers(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{User: newapi.User{ID: 700, Quota: 0}}
-	svc := company.NewService(cfg, st, client, permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, client, grants.NewGrantNormalizer())
 	ctx := context.Background()
 
 	// Create a properly provisioned company.
@@ -67,7 +67,7 @@ func TestAcceptInviteIdempotent(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{User: newapi.User{ID: 701, Quota: 0}}
-	svc := company.NewService(cfg, st, client, permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, client, grants.NewGrantNormalizer())
 	ctx := context.Background()
 
 	// Create a provisioned company.
@@ -122,7 +122,7 @@ func TestAcceptInviteRejectsExpiredToken(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{User: newapi.User{ID: 703, Quota: 0}}
-	svc := company.NewService(cfg, st, client, permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, client, grants.NewGrantNormalizer())
 	ctx := context.Background()
 
 	created, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{
@@ -157,7 +157,7 @@ func TestAcceptInviteRejectsAlreadyAccepted(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t, testutil.WithNewAPIEnabled(true))
 	client := &mock.StubAdminClient{User: newapi.User{ID: 702, Quota: 0}}
-	svc := company.NewService(cfg, st, client, permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, client, grants.NewGrantNormalizer())
 	ctx := context.Background()
 
 	created, err := svc.CreateCompany(ctx, company.CreateCompanyRequest{
@@ -201,7 +201,7 @@ func TestAcceptInviteRejectsAlreadyAccepted(t *testing.T) {
 func TestAcceptInviteRejectsNilUserID(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
-	svc := company.NewService(cfg, st, nil, permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, nil, grants.NewGrantNormalizer())
 
 	_, err := svc.AcceptInvite(context.Background(), company.AcceptInviteRequest{
 		InviteCode: "any", Name: "Admin",
@@ -214,7 +214,7 @@ func TestAcceptInviteRejectsNilUserID(t *testing.T) {
 func TestAcceptInviteRejectsInvalidToken(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
-	svc := company.NewService(cfg, st, nil, permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, nil, grants.NewGrantNormalizer())
 
 	userID := uuid.Must(uuid.NewV7())
 	testutil.EnsureUser(t, st, userID)

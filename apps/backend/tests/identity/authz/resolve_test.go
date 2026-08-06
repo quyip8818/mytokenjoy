@@ -4,27 +4,27 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/identity/authz"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 )
 
 func TestResolveMemberPermissionsSuperAdmin(t *testing.T) {
 	t.Parallel()
 	member := types.Member{
-		ID: uuid.MustParse("00000000-0000-7000-0000-000000000e01"), Roles: []string{permission.RoleSuperAdmin},
+		ID: uuid.MustParse("00000000-0000-7000-0000-000000000e01"), Roles: []string{grants.RoleSuperAdmin},
 	}
 	roles := []types.Role{
-		{ID: uuid.MustParse("00000000-0000-7000-0000-00000000a101"), Name: permission.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}},
+		{ID: uuid.MustParse("00000000-0000-7000-0000-00000000a101"), Name: grants.RoleSuperAdmin, Type: "preset", Permissions: []string{"*"}},
 	}
 
 	perms := authz.ResolveMemberPermissions(member, roles)
 	// * expands to CompanyPermissions only — platform permissions are excluded.
-	if len(perms) != len(permission.CompanyPermissions) {
-		t.Fatalf("expected %d permissions (CompanyPermissions), got %d", len(permission.CompanyPermissions), len(perms))
+	if len(perms) != len(grants.CompanyPermissions) {
+		t.Fatalf("expected %d permissions (CompanyPermissions), got %d", len(grants.CompanyPermissions), len(perms))
 	}
 	for _, p := range perms {
-		if p == permission.PlatformManage || p == permission.PlatformRead {
+		if p == grants.PlatformManage || p == grants.PlatformRead {
 			t.Fatalf("super admin should NOT have platform permission %q", p)
 		}
 	}
@@ -33,8 +33,8 @@ func TestResolveMemberPermissionsSuperAdmin(t *testing.T) {
 func TestIsReadOnlySessionMember(t *testing.T) {
 	t.Parallel()
 	perms := authz.ResolveMemberPermissions(
-		types.Member{Roles: []string{permission.RoleMember}},
-		[]types.Role{{Name: permission.RoleMember, Type: "preset"}},
+		types.Member{Roles: []string{grants.RoleMember}},
+		[]types.Role{{Name: grants.RoleMember, Type: "preset"}},
 	)
 	if !authz.IsReadOnlySession(perms) {
 		t.Fatal("expected member session to be read-only")
@@ -44,8 +44,8 @@ func TestIsReadOnlySessionMember(t *testing.T) {
 func TestIsReadOnlySessionOrgAdmin(t *testing.T) {
 	t.Parallel()
 	perms := authz.ResolveMemberPermissions(
-		types.Member{Roles: []string{permission.RoleOrgAdmin}},
-		[]types.Role{{Name: permission.RoleOrgAdmin, Type: "preset"}},
+		types.Member{Roles: []string{grants.RoleOrgAdmin}},
+		[]types.Role{{Name: grants.RoleOrgAdmin, Type: "preset"}},
 	)
 	if authz.IsReadOnlySession(perms) {
 		t.Fatal("expected org admin session to have write access")
@@ -60,7 +60,7 @@ func TestCustomRoleBudgetManageIncludesBudgetRead(t *testing.T) {
 	)
 	foundRead := false
 	for _, p := range perms {
-		if p == permission.BudgetRead {
+		if p == grants.BudgetRead {
 			foundRead = true
 			break
 		}
@@ -72,9 +72,9 @@ func TestCustomRoleBudgetManageIncludesBudgetRead(t *testing.T) {
 
 func TestPlatformAdminRoleGetsPlatformPermissions(t *testing.T) {
 	t.Parallel()
-	member := types.Member{Roles: []string{permission.RolePlatformAdmin}}
+	member := types.Member{Roles: []string{grants.RolePlatformAdmin}}
 	roles := []types.Role{
-		{Name: permission.RolePlatformAdmin, Type: "preset"},
+		{Name: grants.RolePlatformAdmin, Type: "preset"},
 	}
 
 	perms := authz.ResolveMemberPermissions(member, roles)
@@ -82,22 +82,22 @@ func TestPlatformAdminRoleGetsPlatformPermissions(t *testing.T) {
 	for _, p := range perms {
 		found[p] = true
 	}
-	if !found[permission.PlatformManage] {
+	if !found[grants.PlatformManage] {
 		t.Fatal("platform admin should have platform:manage")
 	}
-	if !found[permission.PlatformRead] {
+	if !found[grants.PlatformRead] {
 		t.Fatal("platform admin should have platform:read")
 	}
-	if !found[permission.SelfKeys] {
+	if !found[grants.SelfKeys] {
 		t.Fatal("platform admin should have self:keys")
 	}
 }
 
 func TestPlatformReadRoleGetsPlatformRead(t *testing.T) {
 	t.Parallel()
-	member := types.Member{Roles: []string{permission.RolePlatformRead}}
+	member := types.Member{Roles: []string{grants.RolePlatformRead}}
 	roles := []types.Role{
-		{Name: permission.RolePlatformRead, Type: "preset"},
+		{Name: grants.RolePlatformRead, Type: "preset"},
 	}
 
 	perms := authz.ResolveMemberPermissions(member, roles)
@@ -105,10 +105,10 @@ func TestPlatformReadRoleGetsPlatformRead(t *testing.T) {
 	for _, p := range perms {
 		found[p] = true
 	}
-	if !found[permission.PlatformRead] {
+	if !found[grants.PlatformRead] {
 		t.Fatal("platform reader should have platform:read")
 	}
-	if found[permission.PlatformManage] {
+	if found[grants.PlatformManage] {
 		t.Fatal("platform reader should NOT have platform:manage")
 	}
 }
@@ -122,13 +122,13 @@ func TestCustomRoleWildcardCannotGetPlatformPermissions(t *testing.T) {
 
 	perms := authz.ResolveMemberPermissions(member, roles)
 	for _, p := range perms {
-		if p == permission.PlatformManage || p == permission.PlatformRead {
+		if p == grants.PlatformManage || p == grants.PlatformRead {
 			t.Fatalf("custom role with * should NOT get platform permission %q", p)
 		}
 	}
 	// Should still get all company permissions
-	if len(perms) != len(permission.CompanyPermissions) {
-		t.Fatalf("expected %d company permissions, got %d", len(permission.CompanyPermissions), len(perms))
+	if len(perms) != len(grants.CompanyPermissions) {
+		t.Fatalf("expected %d company permissions, got %d", len(grants.CompanyPermissions), len(perms))
 	}
 }
 
@@ -142,12 +142,12 @@ func TestCustomRoleDirectPlatformManageIgnored(t *testing.T) {
 
 	perms := authz.ResolveMemberPermissions(member, roles)
 	for _, p := range perms {
-		if p == permission.PlatformManage || p == permission.PlatformRead {
+		if p == grants.PlatformManage || p == grants.PlatformRead {
 			t.Fatalf("custom role should NOT resolve platform permission %q even when directly specified", p)
 		}
 	}
 	// Only self:keys should resolve (it's in CompanyPermissions)
-	if len(perms) != 1 || perms[0] != permission.SelfKeys {
+	if len(perms) != 1 || perms[0] != grants.SelfKeys {
 		t.Fatalf("expected only [self:keys], got %v", perms)
 	}
 }
@@ -156,7 +156,7 @@ func TestCustomRoleDirectPlatformManageIgnored(t *testing.T) {
 
 func TestScopePermissions_PlatformAdminCompanySaas_Preserves(t *testing.T) {
 	t.Parallel()
-	perms := []string{permission.PlatformManage, permission.PlatformRead, permission.SelfKeys}
+	perms := []string{grants.PlatformManage, grants.PlatformRead, grants.SelfKeys}
 	result := authz.ScopePermissions(perms, "platform", true)
 	if len(result) != 3 {
 		t.Fatalf("expected 3 permissions preserved, got %d: %v", len(result), result)
@@ -165,10 +165,10 @@ func TestScopePermissions_PlatformAdminCompanySaas_Preserves(t *testing.T) {
 
 func TestScopePermissions_TrialCompanySaas_FiltersPlatform(t *testing.T) {
 	t.Parallel()
-	perms := []string{permission.PlatformManage, permission.PlatformRead, permission.SelfKeys, permission.OrgRead}
+	perms := []string{grants.PlatformManage, grants.PlatformRead, grants.SelfKeys, grants.OrgRead}
 	result := authz.ScopePermissions(perms, "trial", true)
 	for _, p := range result {
-		if permission.IsPlatformPermission(p) {
+		if grants.IsPlatformPermission(p) {
 			t.Fatalf("trial company should not have platform permission %q", p)
 		}
 	}
@@ -179,9 +179,9 @@ func TestScopePermissions_TrialCompanySaas_FiltersPlatform(t *testing.T) {
 
 func TestScopePermissions_StandardCompanySaas_FiltersPlatform(t *testing.T) {
 	t.Parallel()
-	perms := []string{permission.PlatformManage, permission.SelfKeys}
+	perms := []string{grants.PlatformManage, grants.SelfKeys}
 	result := authz.ScopePermissions(perms, "standard", true)
-	if len(result) != 1 || result[0] != permission.SelfKeys {
+	if len(result) != 1 || result[0] != grants.SelfKeys {
 		t.Fatalf("expected [self:keys], got %v", result)
 	}
 }
@@ -189,14 +189,14 @@ func TestScopePermissions_StandardCompanySaas_FiltersPlatform(t *testing.T) {
 func TestScopePermissions_NonSaasMode_AlwaysFiltersPlatform(t *testing.T) {
 	t.Parallel()
 	// Even platform company type in non-SaaS mode should NOT get platform permissions.
-	perms := []string{permission.PlatformManage, permission.PlatformRead, permission.SelfKeys}
+	perms := []string{grants.PlatformManage, grants.PlatformRead, grants.SelfKeys}
 	result := authz.ScopePermissions(perms, "platform", false)
 	for _, p := range result {
-		if permission.IsPlatformPermission(p) {
+		if grants.IsPlatformPermission(p) {
 			t.Fatalf("non-SaaS mode should filter platform permission %q", p)
 		}
 	}
-	if len(result) != 1 || result[0] != permission.SelfKeys {
+	if len(result) != 1 || result[0] != grants.SelfKeys {
 		t.Fatalf("expected [self:keys], got %v", result)
 	}
 }
@@ -217,7 +217,7 @@ func TestIsPlatformPermission(t *testing.T) {
 		{"platform:", false}, // too short after prefix check
 	}
 	for _, tc := range cases {
-		if got := permission.IsPlatformPermission(tc.perm); got != tc.expected {
+		if got := grants.IsPlatformPermission(tc.perm); got != tc.expected {
 			t.Errorf("IsPlatformPermission(%q) = %v, want %v", tc.perm, got, tc.expected)
 		}
 	}
@@ -226,11 +226,11 @@ func TestIsPlatformPermission(t *testing.T) {
 func TestDirectPermissionsMergedIntoSession(t *testing.T) {
 	t.Parallel()
 	member := types.Member{
-		Roles:             []string{permission.RolePlatformAdmin},
-		DirectPermissions: []string{permission.PlatformAdmin},
+		Roles:             []string{grants.RolePlatformAdmin},
+		DirectPermissions: []string{grants.PlatformAdmin},
 	}
 	roles := []types.Role{
-		{Name: permission.RolePlatformAdmin, Type: "preset"},
+		{Name: grants.RolePlatformAdmin, Type: "preset"},
 	}
 
 	perms := authz.ResolveMemberPermissions(member, roles)
@@ -238,13 +238,13 @@ func TestDirectPermissionsMergedIntoSession(t *testing.T) {
 	for _, p := range perms {
 		found[p] = true
 	}
-	if !found[permission.PlatformAdmin] {
+	if !found[grants.PlatformAdmin] {
 		t.Fatal("expected platform:admin from DirectPermissions")
 	}
-	if !found[permission.PlatformManage] {
+	if !found[grants.PlatformManage] {
 		t.Fatal("expected platform:manage from role")
 	}
-	if !found[permission.PlatformRead] {
+	if !found[grants.PlatformRead] {
 		t.Fatal("expected platform:read from role")
 	}
 }
@@ -260,7 +260,7 @@ func TestDirectPermissionsNotInRoleSystem(t *testing.T) {
 
 	perms := authz.ResolveMemberPermissions(member, roles)
 	for _, p := range perms {
-		if p == permission.PlatformAdmin {
+		if p == grants.PlatformAdmin {
 			t.Fatal("platform:admin should NOT be resolvable through role system")
 		}
 	}
@@ -268,7 +268,7 @@ func TestDirectPermissionsNotInRoleSystem(t *testing.T) {
 
 func TestScopePermissions_PlatformAdminPermPreservedForPlatformCompany(t *testing.T) {
 	t.Parallel()
-	perms := []string{permission.PlatformAdmin, permission.PlatformManage, permission.SelfKeys}
+	perms := []string{grants.PlatformAdmin, grants.PlatformManage, grants.SelfKeys}
 	result := authz.ScopePermissions(perms, "platform", true)
 	if len(result) != 3 {
 		t.Fatalf("expected all 3 preserved for platform company, got %d: %v", len(result), result)
@@ -277,16 +277,16 @@ func TestScopePermissions_PlatformAdminPermPreservedForPlatformCompany(t *testin
 
 func TestScopePermissions_PlatformAdminPermFilteredForTrial(t *testing.T) {
 	t.Parallel()
-	perms := []string{permission.PlatformAdmin, permission.PlatformManage, permission.SelfKeys}
+	perms := []string{grants.PlatformAdmin, grants.PlatformManage, grants.SelfKeys}
 	result := authz.ScopePermissions(perms, "trial", true)
-	if len(result) != 1 || result[0] != permission.SelfKeys {
+	if len(result) != 1 || result[0] != grants.SelfKeys {
 		t.Fatalf("expected only [self:keys] for trial, got %v", result)
 	}
 }
 
 func TestNormalizeGrantIDsRejectsPlatformAdmin(t *testing.T) {
 	t.Parallel()
-	_, err := permission.NormalizeGrantIDs([]string{"platform:admin"})
+	_, err := grants.NormalizeGrantIDs([]string{"platform:admin"})
 	if err == nil {
 		t.Fatal("expected error when trying to normalize platform:admin in grant system")
 	}

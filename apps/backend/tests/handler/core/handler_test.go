@@ -11,8 +11,8 @@ import (
 	"github.com/google/uuid"
 	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
 )
@@ -142,7 +142,7 @@ func TestCoreHandler(t *testing.T) {
 			}
 			foundSuperAdmin := false
 			for _, r := range roles {
-				if r.Name == permission.RoleSuperAdmin {
+				if r.Name == grants.RoleSuperAdmin {
 					foundSuperAdmin = true
 					break
 				}

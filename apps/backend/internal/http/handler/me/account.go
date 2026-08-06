@@ -1,7 +1,6 @@
 package me
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -27,8 +26,8 @@ func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body changePasswordBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	if len(body.NewPassword) < 8 {
@@ -82,8 +81,8 @@ func (h *Handler) ChangePhone(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body changePhoneBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	if body.Phone == "" || body.Code == "" {
@@ -133,8 +132,8 @@ func (h *Handler) ChangeEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body changeEmailBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	if body.Email == "" || body.Code == "" {

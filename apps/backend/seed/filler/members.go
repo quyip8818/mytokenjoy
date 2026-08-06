@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 	"github.com/tokenjoy/backend/internal/pkg/org"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -31,57 +31,57 @@ func anchorMembers() []types.Member {
 		{
 			ID: contract.IDMemberAdmin, CompanyID: contract.DefaultCompanyID, Alias: "管理员", Phone: "13800000001", Email: "demo@tokenjoy.me",
 			DepartmentID: contract.IDDept1, DepartmentName: "总公司", Status: "active",
-			Roles: []string{permission.RoleSuperAdmin}, Source: "manual",
+			Roles: []string{grants.RoleSuperAdmin}, Source: "manual",
 		},
 		{
 			ID: contract.IDMember1, CompanyID: contract.DefaultCompanyID, Alias: "张三", Phone: "13812341234", Email: "zhangsan@example.com",
 			DepartmentID: contract.IDDept3, DepartmentName: "后端组", Status: "active",
-			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "imported",
+			Roles: []string{grants.RoleMember, grants.RoleAPICaller}, Source: "imported",
 		},
 		{
 			ID: contract.IDMember2, CompanyID: contract.DefaultCompanyID, Alias: "李四", Phone: "13912345678", Email: "lisi@example.com",
 			DepartmentID: contract.IDDept3, DepartmentName: "后端组", Status: "active",
-			Roles: []string{permission.RoleMember, permission.RoleOrgAdmin, permission.RoleBudgetApprover}, Source: "imported",
+			Roles: []string{grants.RoleMember, grants.RoleOrgAdmin, grants.RoleBudgetApprover}, Source: "imported",
 		},
 		{
 			ID: contract.IDMember3, CompanyID: contract.DefaultCompanyID, Alias: "王五", Phone: "", Email: "wangwu@example.com",
 			DepartmentID: contract.IDDept3, DepartmentName: "后端组", Status: "pending",
-			Roles: []string{permission.RoleMember}, Source: "invited",
+			Roles: []string{grants.RoleMember}, Source: "invited",
 		},
 		{
 			ID: contract.IDMember4, CompanyID: contract.DefaultCompanyID, Alias: "赵六", Phone: "13712349876", Email: "zhaoliu@example.com",
 			DepartmentID: contract.IDDept4, DepartmentName: "前端组", Status: "active",
-			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "manual",
+			Roles: []string{grants.RoleMember, grants.RoleAPICaller}, Source: "manual",
 		},
 		{
 			ID: contract.IDMember5, CompanyID: contract.DefaultCompanyID, Alias: "钱七", Phone: "13612340000", Email: "qianqi@example.com",
 			DepartmentID: contract.IDDept4, DepartmentName: "前端组", Status: "disabled",
-			Roles: []string{permission.RoleMember}, Source: "imported",
+			Roles: []string{grants.RoleMember}, Source: "imported",
 		},
 		{
 			ID: contract.IDMemberAuditor, CompanyID: contract.DefaultCompanyID, Alias: "孙审计", Phone: "13512345678", Email: "sunaudit@example.com",
 			DepartmentID: contract.IDDept8, DepartmentName: "行政部", Status: "active",
-			Roles: []string{permission.RoleMember, permission.RoleAuditor}, Source: "manual",
+			Roles: []string{grants.RoleMember, grants.RoleAuditor}, Source: "manual",
 		},
 		{
 			ID: contract.IDMemberPure, CompanyID: contract.DefaultCompanyID, Alias: "周八", Phone: "13412345678", Email: "zhouba@example.com",
 			DepartmentID: contract.IDDept3, DepartmentName: "后端组", Status: "active",
-			Roles: []string{permission.RoleMember}, Source: "manual",
+			Roles: []string{grants.RoleMember}, Source: "manual",
 		},
 		{
 			ID: contract.IDMember6, CompanyID: contract.DefaultCompanyID, Alias: "吴九", Phone: "13312345678", Email: "wujiu@example.com",
 			DepartmentID: contract.IDDept3, DepartmentName: "后端组", Status: "active",
-			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "imported",
+			Roles: []string{grants.RoleMember, grants.RoleAPICaller}, Source: "imported",
 		},
 		{
 			ID: contract.IDMember15, CompanyID: contract.DefaultCompanyID, Alias: "郑十五", Phone: "13212345615", Email: "zheng15@example.com",
 			DepartmentID: contract.IDDept5, DepartmentName: "测试组", Status: "active",
-			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "imported",
+			Roles: []string{grants.RoleMember, grants.RoleAPICaller}, Source: "imported",
 		},
 		{
 			ID: contract.IDMember16, CompanyID: contract.DefaultCompanyID, Alias: "冯十六", Phone: "13212345616", Email: "feng16@example.com",
 			DepartmentID: contract.IDDept5, DepartmentName: "测试组", Status: "active",
-			Roles: []string{permission.RoleMember, permission.RoleAPICaller}, Source: "imported",
+			Roles: []string{grants.RoleMember, grants.RoleAPICaller}, Source: "imported",
 		},
 	}
 }
@@ -132,7 +132,7 @@ func buildGeneratedMember(seq int, departmentID uuid.UUID, departmentName string
 	return types.Member{
 		ID: seedMemberID(seq), CompanyID: contract.DefaultCompanyID, Alias: name, Phone: phone, Email: buildEmail(seq),
 		DepartmentID: departmentID, DepartmentName: departmentName,
-		Status: pickStatus(seq), Roles: []string{permission.RoleMember}, Source: pickSource(seq),
+		Status: pickStatus(seq), Roles: []string{grants.RoleMember}, Source: pickSource(seq),
 	}
 }
 
@@ -183,16 +183,16 @@ func applyMemberPersonalBudgets(members []types.Member) {
 func assignSpecialRoles(members []types.Member) {
 	for i := range members {
 		if members[i].ID == seedMemberID(6) && members[i].DepartmentID == contract.IDDept3 {
-			if !org.ContainsRole(members[i].Roles, permission.RoleOrgAdmin) {
-				members[i].Roles = append(members[i].Roles, permission.RoleOrgAdmin)
+			if !org.ContainsRole(members[i].Roles, grants.RoleOrgAdmin) {
+				members[i].Roles = append(members[i].Roles, grants.RoleOrgAdmin)
 			}
 		}
 	}
 
 	for i := range members {
 		if members[i].DepartmentID == contract.IDDept6 && members[i].ID != contract.IDMember2 {
-			if !org.ContainsRole(members[i].Roles, permission.RoleBudgetApprover) {
-				members[i].Roles = append(members[i].Roles, permission.RoleBudgetApprover)
+			if !org.ContainsRole(members[i].Roles, grants.RoleBudgetApprover) {
+				members[i].Roles = append(members[i].Roles, grants.RoleBudgetApprover)
 				break
 			}
 		}
@@ -201,8 +201,8 @@ func assignSpecialRoles(members []types.Member) {
 	auditorCount := 0
 	for i := range members {
 		if members[i].DepartmentID == contract.IDDept8 && members[i].Status == "active" && auditorCount < 3 {
-			if !org.ContainsRole(members[i].Roles, permission.RoleAuditor) {
-				members[i].Roles = append(members[i].Roles, permission.RoleAuditor)
+			if !org.ContainsRole(members[i].Roles, grants.RoleAuditor) {
+				members[i].Roles = append(members[i].Roles, grants.RoleAuditor)
 			}
 			auditorCount++
 		}
@@ -210,9 +210,9 @@ func assignSpecialRoles(members []types.Member) {
 
 	apiCallerCount := 0
 	for i := range members {
-		if members[i].Status == "active" && !org.ContainsRole(members[i].Roles, permission.RoleSuperAdmin) && apiCallerCount < 50 {
-			if !org.ContainsRole(members[i].Roles, permission.RoleAPICaller) {
-				members[i].Roles = append(members[i].Roles, permission.RoleAPICaller)
+		if members[i].Status == "active" && !org.ContainsRole(members[i].Roles, grants.RoleSuperAdmin) && apiCallerCount < 50 {
+			if !org.ContainsRole(members[i].Roles, grants.RoleAPICaller) {
+				members[i].Roles = append(members[i].Roles, grants.RoleAPICaller)
 			}
 			apiCallerCount++
 		}

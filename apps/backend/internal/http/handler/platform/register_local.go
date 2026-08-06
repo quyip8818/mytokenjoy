@@ -52,8 +52,8 @@ func (h *Handler) RegisterLocal(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body registerLocalBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "invalid request body")
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	if body.Name == "" {

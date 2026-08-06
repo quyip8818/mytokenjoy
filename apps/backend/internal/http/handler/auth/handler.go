@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 	"net/http"
 	"time"
@@ -85,8 +84,8 @@ type loginBody struct {
 // Otherwise, routeByMembership: 1 company → auto-enter, N → select_company, 0 → create_company.
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var body loginBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	if body.Email == "" || body.Password == "" {
@@ -267,8 +266,8 @@ type acceptInviteBody struct {
 // The inviteCode is an encrypted token containing the raw invite code and delivery channel.
 func (h *Handler) AcceptInvite(w http.ResponseWriter, r *http.Request) {
 	var body acceptInviteBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	if body.InviteCode == "" {
@@ -403,8 +402,8 @@ func (h *Handler) SetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body setPasswordBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	if len(body.Password) < 8 {
@@ -437,8 +436,8 @@ type resetPasswordBody struct {
 // ResetPassword verifies a code (sent via SMS or Email) then sets a new password.
 func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var body resetPasswordBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	if body.Code == "" || len(body.NewPassword) < 8 {

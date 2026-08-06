@@ -12,12 +12,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	domainapproval "github.com/tokenjoy/backend/internal/domain/approval"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
@@ -37,7 +37,7 @@ func NewHandler(p httpdeps.Protected, engine *domainapproval.Engine, budgetRepo 
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	// Read: anyone with submit or resolve permission can view
-	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.SelfApproval, permission.BudgetApprove)
+	read := httpmiddleware.ReadRoutes(r, h.Protected, grants.SelfApproval, grants.BudgetApprove)
 	read.Get("/", h.List)
 	read.Get("/{id}", h.Get)
 	read.Get("/{id}/pre-check", h.PreCheck)
@@ -45,12 +45,12 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	write := httpmiddleware.ReadRoutes(r, h.Protected)
 
 	// Submit: self:approval permission
-	submitWrite := write.With(httpmiddleware.RequireAnyPermission(permission.SelfApproval))
+	submitWrite := write.With(httpmiddleware.RequireAnyPermission(grants.SelfApproval))
 	submitWrite.Post("/", h.Create)
 	submitWrite.Put("/{id}/cancel", h.Cancel)
 
 	// Resolve: budget:approve OR self:approval (project_member_budget approved by project owner)
-	resolveWrite := write.With(httpmiddleware.RequireAnyPermission(permission.BudgetApprove, permission.SelfApproval))
+	resolveWrite := write.With(httpmiddleware.RequireAnyPermission(grants.BudgetApprove, grants.SelfApproval))
 	resolveWrite.Put("/{id}/approve", h.Approve)
 	resolveWrite.Put("/{id}/reject", h.Reject)
 	resolveWrite.Put("/{id}/retry", h.Retry)
@@ -238,7 +238,7 @@ type approvalResponse struct {
 }
 
 func decorateCanResolve(items []types.ApprovalRequest, session types.SessionContext, projectOwners map[uuid.UUID]*uuid.UUID) []approvalResponse {
-	hasBudgetApprove := slices.Contains(session.Permissions, permission.BudgetApprove)
+	hasBudgetApprove := slices.Contains(session.Permissions, grants.BudgetApprove)
 	result := make([]approvalResponse, len(items))
 	for i, item := range items {
 		canResolve := false
@@ -259,7 +259,7 @@ func decorateCanResolve(items []types.ApprovalRequest, session types.SessionCont
 // --- authorization ---
 
 func (h *Handler) authorizeResolve(ctx context.Context, approvalID uuid.UUID, session types.SessionContext) error {
-	hasBudgetApprove := slices.Contains(session.Permissions, permission.BudgetApprove)
+	hasBudgetApprove := slices.Contains(session.Permissions, grants.BudgetApprove)
 
 	req, err := h.engine.Get(ctx, approvalID)
 	if err != nil {

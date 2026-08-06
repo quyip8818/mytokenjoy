@@ -1,7 +1,6 @@
 package platform
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -46,8 +45,8 @@ type setPricingInput struct {
 // SetGlobalPricing updates global price for a model (writes to NewAPI SOT).
 func (h *Handler) SetGlobalPricing(w http.ResponseWriter, r *http.Request) {
 	var body setPricingInput
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	if body.ModelType == "" {
@@ -106,8 +105,8 @@ func (h *Handler) SetCompanyDiscount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body setDiscountInput
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	if body.ModelType == "" {

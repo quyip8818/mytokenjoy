@@ -1,7 +1,6 @@
 package platform
 
 import (
-	"encoding/json"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -105,8 +104,8 @@ type createCurrencyBody struct {
 // POST /api/platform/currencies
 func (h *Handler) CreateCurrency(w http.ResponseWriter, r *http.Request) {
 	var body createCurrencyBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	if !currencyCodeRe.MatchString(body.Code) {
@@ -162,8 +161,8 @@ func (h *Handler) UpdateCurrency(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body updateCurrencyBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	if body.QuotaPerUnit <= 0 {
@@ -213,8 +212,8 @@ func (h *Handler) ToggleCurrencyStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body toggleCurrencyStatusBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 

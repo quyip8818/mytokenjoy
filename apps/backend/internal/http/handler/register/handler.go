@@ -1,7 +1,6 @@
 package register
 
 import (
-	"encoding/json"
 	"log/slog"
 	"net/http"
 	"time"
@@ -98,8 +97,8 @@ type initResponseLogin struct {
 
 func (h *Handler) Init(w http.ResponseWriter, r *http.Request) {
 	var body initBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	if body.Phone == "" && body.Email == "" {
@@ -247,8 +246,8 @@ type acceptResponse struct {
 
 func (h *Handler) Accept(w http.ResponseWriter, r *http.Request) {
 	var body acceptBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	if body.InviteCode == "" {
@@ -292,8 +291,8 @@ type companyBody struct {
 
 func (h *Handler) Company(w http.ResponseWriter, r *http.Request) {
 	var body companyBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, httputil.MsgBadBody)
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
 		return
 	}
 	if body.CompanyName == "" {

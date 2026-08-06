@@ -21,7 +21,7 @@ import (
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
-	"github.com/tokenjoy/backend/internal/infra/permission"
+
 	"github.com/tokenjoy/backend/internal/integration/datasource"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/pkg/invitetoken"
@@ -30,7 +30,7 @@ import (
 
 func dashboardScopeConfig() domainusage.DashboardScopeConfig {
 	return domainusage.DashboardScopeConfig{
-		OrgWidePermissions: []string{permission.DashboardRead},
+		OrgWidePermissions: []string{domaingrants.DashboardRead},
 	}
 }
 

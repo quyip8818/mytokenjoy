@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/tests/testutil"
 	"github.com/tokenjoy/backend/tests/testutil/mock"
@@ -46,7 +46,7 @@ func TestUpgradeToStandardChangesTypeAndInvalidatesCache(t *testing.T) {
 	// Wire service with spy cache invalidator.
 	spy := &spyCacheInvalidator{}
 	cfg := testutil.TestConfig()
-	svc := domaincompany.NewService(cfg, st, &mock.StubAdminClient{}, permission.NewGrantNormalizer(),
+	svc := domaincompany.NewService(cfg, st, &mock.StubAdminClient{}, grants.NewGrantNormalizer(),
 		domaincompany.WithCompanyCacheInvalidator(spy))
 
 	// Upgrade.
@@ -80,7 +80,7 @@ func TestUpgradeToStandardRejectsStandardCompany(t *testing.T) {
 	ctx := testutil.Ctx()
 
 	// Default seed company is standard — upgrade should fail.
-	svc := domaincompany.NewService(cfg, st, &mock.StubAdminClient{}, permission.NewGrantNormalizer())
+	svc := domaincompany.NewService(cfg, st, &mock.StubAdminClient{}, grants.NewGrantNormalizer())
 	err := svc.UpgradeToStandard(ctx, uuid.MustParse("00000000-0000-7000-8000-000000000001"))
 	if err == nil {
 		t.Fatal("expected error upgrading standard company")
@@ -106,7 +106,7 @@ func TestUpgradeToStandardFromDemo(t *testing.T) {
 	}
 
 	cfg := testutil.TestConfig()
-	svc := domaincompany.NewService(cfg, st, &mock.StubAdminClient{}, permission.NewGrantNormalizer())
+	svc := domaincompany.NewService(cfg, st, &mock.StubAdminClient{}, grants.NewGrantNormalizer())
 
 	if err := svc.UpgradeToStandard(ctx, companyID); err != nil {
 		t.Fatal(err)

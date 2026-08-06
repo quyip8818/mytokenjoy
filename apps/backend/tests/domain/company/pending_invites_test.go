@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/infra/permission"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -18,7 +18,7 @@ import (
 func TestPendingInvitesForUserByEmail(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
-	svc := company.NewService(cfg, st, nil, permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, nil, grants.NewGrantNormalizer())
 	ctx := context.Background()
 
 	now := time.Now().UTC()
@@ -59,7 +59,7 @@ func TestPendingInvitesForUserByEmail(t *testing.T) {
 func TestPendingInvitesForUserByPhone(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
-	svc := company.NewService(cfg, st, nil, permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, nil, grants.NewGrantNormalizer())
 	ctx := context.Background()
 
 	now := time.Now().UTC()
@@ -88,7 +88,7 @@ func TestPendingInvitesForUserByPhone(t *testing.T) {
 func TestPendingInvitesForUserExcludesExpired(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
-	svc := company.NewService(cfg, st, nil, permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, nil, grants.NewGrantNormalizer())
 	ctx := context.Background()
 
 	now := time.Now().UTC()
@@ -117,7 +117,7 @@ func TestPendingInvitesForUserExcludesExpired(t *testing.T) {
 func TestPendingInvitesForUserExcludesAccepted(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
-	svc := company.NewService(cfg, st, nil, permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, nil, grants.NewGrantNormalizer())
 	ctx := context.Background()
 
 	now := time.Now().UTC()
@@ -149,7 +149,7 @@ func TestPendingInvitesForUserExcludesAccepted(t *testing.T) {
 func TestPendingInvitesForUserEmptyReturnsNil(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
-	svc := company.NewService(cfg, st, nil, permission.NewGrantNormalizer())
+	svc := company.NewService(cfg, st, nil, grants.NewGrantNormalizer())
 
 	invites, err := svc.PendingInvitesForUser(context.Background(), company.PendingInvitesForUserRequest{
 		Email: "nobody@nowhere.example",

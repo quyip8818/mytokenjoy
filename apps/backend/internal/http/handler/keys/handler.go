@@ -6,13 +6,13 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/devapi"
 	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 	"github.com/tokenjoy/backend/internal/store"
@@ -33,19 +33,19 @@ func NewHandler(p httpdeps.Protected, service domainkeys.Service, bearerResolver
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	adminRead := httpmiddleware.ReadRoutes(r, h.Protected, permission.KeysRead)
+	adminRead := httpmiddleware.ReadRoutes(r, h.Protected, grants.KeysRead)
 	adminRead.Get("/provider", h.ProviderList)
 	adminRead.Get("/platform", h.PlatformList)
 
 	write := httpmiddleware.ReadRoutes(r, h.Protected)
 
-	providerWrite := write.With(httpmiddleware.RequireAnyPermission(permission.KeysManage))
+	providerWrite := write.With(httpmiddleware.RequireAnyPermission(grants.KeysManage))
 	providerWrite.Post("/provider", h.ProviderCreate)
 	providerWrite.Put("/provider/{id}/toggle", h.ProviderToggle)
 	providerWrite.Post("/provider/{id}/rotate", h.ProviderRotate)
 	providerWrite.Delete("/provider/{id}", h.ProviderDelete)
 
-	platformWrite := write.With(httpmiddleware.RequireAnyPermission(permission.KeysAdmin))
+	platformWrite := write.With(httpmiddleware.RequireAnyPermission(grants.KeysAdmin))
 	platformWrite.Post("/platform", h.PlatformCreate)
 	platformWrite.Put("/platform/{id}", h.PlatformUpdate)
 	platformWrite.Put("/platform/{id}/toggle", h.PlatformToggle)
@@ -53,7 +53,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	platformWrite.Delete("/platform/{id}", h.PlatformDelete)
 
 	// simulate-bearer: available for demo/trial/testing accounts only.
-	simulateRead := httpmiddleware.ReadRoutes(r, h.Protected, permission.KeysAdmin)
+	simulateRead := httpmiddleware.ReadRoutes(r, h.Protected, grants.KeysAdmin)
 	simulateRead.Get("/platform/{id}/simulate-bearer", h.SimulateBearer)
 }
 

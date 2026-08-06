@@ -1,14 +1,14 @@
-package permission_test
+package grants_test
 
 import (
 	"testing"
 
-	"github.com/tokenjoy/backend/internal/infra/permission"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 )
 
 func TestNormalizeGrantIDsWildcard(t *testing.T) {
 	t.Parallel()
-	ids, err := permission.NormalizeGrantIDs([]string{"*"})
+	ids, err := grants.NormalizeGrantIDs([]string{"*"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,7 +20,7 @@ func TestNormalizeGrantIDsWildcard(t *testing.T) {
 
 func TestNormalizeGrantIDsCapability(t *testing.T) {
 	t.Parallel()
-	ids, err := permission.NormalizeGrantIDs([]string{"audit:read"})
+	ids, err := grants.NormalizeGrantIDs([]string{"audit:read"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +31,7 @@ func TestNormalizeGrantIDsCapability(t *testing.T) {
 
 func TestPresetRolePermissionIDsMember(t *testing.T) {
 	t.Parallel()
-	ids, err := permission.PresetRolePermissionIDs(permission.RoleMember)
+	ids, err := grants.PresetRolePermissionIDs(grants.RoleMember)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func TestPresetRolePermissionIDsPlatformAdmin(t *testing.T) {
 	t.Parallel()
 	// Platform roles contain platform:* capabilities that have no ID mapping.
 	// PresetRolePermissionIDs should succeed, returning only the company-level IDs.
-	ids, err := permission.PresetRolePermissionIDs(permission.RolePlatformAdmin)
+	ids, err := grants.PresetRolePermissionIDs(grants.RolePlatformAdmin)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -57,7 +57,7 @@ func TestPresetRolePermissionIDsPlatformAdmin(t *testing.T) {
 
 func TestPresetRolePermissionIDsPlatformRead(t *testing.T) {
 	t.Parallel()
-	ids, err := permission.PresetRolePermissionIDs(permission.RolePlatformRead)
+	ids, err := grants.PresetRolePermissionIDs(grants.RolePlatformRead)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

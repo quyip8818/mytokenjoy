@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/tokenjoy/backend/internal/infra/permission"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 )
 
 func insertPermissions(ctx context.Context, exec TableWriter) error {
-	manifest := permission.MustManifest()
+	manifest := grants.MustManifest()
 	for id, meta := range manifest.PermissionNames {
 		if _, err := exec.Exec(ctx, `
 			INSERT INTO permissions (id, name, grp) VALUES ($1, $2, $3)

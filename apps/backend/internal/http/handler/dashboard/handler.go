@@ -7,13 +7,13 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	domaindashboard "github.com/tokenjoy/backend/internal/domain/dashboard"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	domainusage "github.com/tokenjoy/backend/internal/domain/usage"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/common"
 )
 
@@ -97,7 +97,7 @@ func (h *Handler) DepartmentUsage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.DashboardRead)
+	read := httpmiddleware.ReadRoutes(r, h.Protected, grants.DashboardRead)
 	read.Get("/cost/summary", h.CostSummary)
 	read.Get("/cost/departments", h.DepartmentCosts)
 	read.Get("/cost/departments/{deptId}/members", h.DepartmentMemberCosts)

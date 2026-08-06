@@ -3,11 +3,11 @@ package org
 import (
 	"github.com/go-chi/chi/v5"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 )
 
 type Handler struct {
@@ -25,7 +25,7 @@ func NewHandler(p httpdeps.Protected, service domainorg.Service, companySvc doma
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	read := httpmiddleware.ReadRoutes(r, h.Protected, permission.OrgRead)
+	read := httpmiddleware.ReadRoutes(r, h.Protected, grants.OrgRead)
 	read.Get("/data-source/status", h.DataSourceStatus)
 	read.Get("/data-source/search", h.DataSourceSearch)
 	read.Get("/data-source/field-mappings", h.FieldMappingsGet)
@@ -39,7 +39,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 
 	write := httpmiddleware.ReadRoutes(r, h.Protected)
 
-	adminWrite := write.With(httpmiddleware.RequireAnyPermission(permission.OrgAdmin))
+	adminWrite := write.With(httpmiddleware.RequireAnyPermission(grants.OrgAdmin))
 	adminWrite.Post("/data-source/test", h.DataSourceTest)
 	adminWrite.Put("/data-source", h.DataSourceUpdate)
 	adminWrite.Post("/data-source/import", h.DataSourceImport)
@@ -54,7 +54,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	adminWrite.Put("/departments/{id}", h.DepartmentUpdate)
 	adminWrite.Delete("/departments/{id}", h.DepartmentDelete)
 
-	manageWrite := write.With(httpmiddleware.RequireAnyPermission(permission.OrgManage))
+	manageWrite := write.With(httpmiddleware.RequireAnyPermission(grants.OrgManage))
 	manageWrite.Post("/members", h.MemberCreate)
 	manageWrite.Put("/members/{id}", h.MemberUpdate)
 	manageWrite.Put("/members/{id}/user", h.MemberUserUpdate)

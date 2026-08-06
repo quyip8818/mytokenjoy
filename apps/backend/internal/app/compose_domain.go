@@ -7,10 +7,10 @@ import (
 	"github.com/tokenjoy/backend/internal/adapter/enqueue"
 	"github.com/tokenjoy/backend/internal/config"
 	domaingateway "github.com/tokenjoy/backend/internal/domain/gateway"
+	"github.com/tokenjoy/backend/internal/domain/grants"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/infra/ingestmetrics"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/integration/newapisync"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/devapi"
 	"github.com/tokenjoy/backend/internal/pkg/clock"
@@ -33,8 +33,8 @@ func buildServiceRegistry(cfg config.Config, i infra, logger *slog.Logger, holde
 	reader := wireReader(i)
 	keysSvc := wireKeys(cfg, i, clk)
 	budgetSvc := wireBudget(cfg, i, holder, clk)
-	grants := permission.NewGrantNormalizer()
-	orgSvc := wireOrg(cfg, i, logger, grants, holder, orgAdmin, clk)
+	normalizer := grants.NewGrantNormalizer()
+	orgSvc := wireOrg(cfg, i, logger, normalizer, holder, orgAdmin, clk)
 
 	// --- Identity ---
 	authzSvc, credSvc, memberToken, err := wireIdentity(cfg, i.store)
@@ -79,7 +79,7 @@ func buildServiceRegistry(cfg config.Config, i infra, logger *slog.Logger, holde
 			IngestSvc:           wireIngestService(cfg, i, logger, holder, clk),
 			IngestEnqueuer:      holder,
 			IngestMetrics:       ingestMetricsRecorder(cfg),
-			CompanySvc:          wireCompany(cfg, i, grants),
+			CompanySvc:          wireCompany(cfg, i, normalizer),
 			BillingSvc:          wireBilling(i, reader),
 			MemberAnalyticsSvc:  wireMemberAnalytics(cfg, reader, budgetSvc, clk),
 			CompanyGate:         i.companyGate,

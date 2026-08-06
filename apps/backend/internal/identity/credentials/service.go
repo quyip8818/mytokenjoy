@@ -10,7 +10,6 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/infra/permission"
 	"github.com/tokenjoy/backend/internal/pkg/ctxcompany"
 	"github.com/tokenjoy/backend/internal/store"
 	"golang.org/x/crypto/bcrypt"
@@ -80,7 +79,7 @@ func (s *service) BootstrapPlatformIfNeeded(ctx context.Context) error {
 		Alias:             s.cfg.PlatformBootstrapEmail,
 		Status:            types.MemberStatusActive,
 		Roles:             []string{grants.RolePlatformAdmin},
-		DirectPermissions: []string{permission.PlatformAdmin},
+		DirectPermissions: []string{grants.PlatformAdmin},
 	}
 	if err := s.store.Org().SetMembers(companyCtx, []types.Member{member}); err != nil {
 		return fmt.Errorf("bootstrap platform: set members: %w", err)
