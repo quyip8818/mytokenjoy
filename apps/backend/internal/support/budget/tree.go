@@ -3,7 +3,6 @@ package budget
 import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/support/tree"
 )
 
 func SumChildrenBudget(node types.BudgetNode) float64 {
@@ -90,9 +89,14 @@ func UpdateBudgetNodeName(nodes []types.BudgetNode, id uuid.UUID, name string) b
 }
 
 func FlattenBudgetTree(nodes []types.BudgetNode) []types.BudgetNode {
-	return tree.Flatten(nodes, func(node types.BudgetNode) []types.BudgetNode {
-		return node.Children
-	}, func(node *types.BudgetNode) {
-		node.Children = nil
-	})
+	result := make([]types.BudgetNode, 0)
+	for _, node := range nodes {
+		flat := node
+		flat.Children = nil
+		result = append(result, flat)
+		if len(node.Children) > 0 {
+			result = append(result, FlattenBudgetTree(node.Children)...)
+		}
+	}
+	return result
 }
