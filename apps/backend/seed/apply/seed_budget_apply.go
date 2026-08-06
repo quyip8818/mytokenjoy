@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
 	"github.com/tokenjoy/backend/internal/store"
+	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
 )
 
 func insertSeedBudget(ctx context.Context, exec TableWriter, tid uuid.UUID, snap store.Snapshot) error {

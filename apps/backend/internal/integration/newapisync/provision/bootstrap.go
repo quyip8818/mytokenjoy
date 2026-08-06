@@ -8,13 +8,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/domain/identity/secrets"
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/platformkey"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/syncdeps"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/budget"
 	"github.com/tokenjoy/backend/internal/support/clock"
-	"github.com/tokenjoy/backend/internal/store"
 )
 
 // Bootstrap synchronously creates NewAPI tokens for demo seed platform keys

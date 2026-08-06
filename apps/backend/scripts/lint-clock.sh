@@ -18,7 +18,7 @@ while IFS= read -r hit; do
   fail "SnapshotKey must not use time.Now: $hit"
 done < <(rg -n --glob '*.go' 'SnapshotKey\([^)]*time\.Now' \
   internal/domain \
-  internal/pkg/budget \
+  internal/support/budget \
   internal/store \
   internal/infra/river \
   internal/infra/ingest \

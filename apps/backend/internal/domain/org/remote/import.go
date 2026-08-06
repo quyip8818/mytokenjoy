@@ -9,8 +9,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/integration/datasource"
-	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 	"github.com/tokenjoy/backend/internal/store"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 type importOptions struct {

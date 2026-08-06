@@ -7,9 +7,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/clock"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
-	"github.com/tokenjoy/backend/internal/store"
 )
 
 // ErrUncappedRemain means no management budget constraints apply; combined_key_remain must stay NULL.

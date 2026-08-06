@@ -13,8 +13,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/http/response"
-	"github.com/tokenjoy/backend/internal/support/tenant"
 	"github.com/tokenjoy/backend/internal/support/modelcatalog"
+	"github.com/tokenjoy/backend/internal/support/tenant"
 )
 
 // --- Catalog API (public, no auth) ---

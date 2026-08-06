@@ -6,10 +6,10 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/domain/identity/verifycode"
-	pkgtime "github.com/tokenjoy/backend/internal/support/clock"
+	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/store"
+	pkgtime "github.com/tokenjoy/backend/internal/support/clock"
 	"github.com/tokenjoy/backend/seed/contract"
 )
 

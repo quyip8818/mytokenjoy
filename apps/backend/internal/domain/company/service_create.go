@@ -11,10 +11,10 @@ import (
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/budget"
 	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/support/invitetoken"
-	"github.com/tokenjoy/backend/internal/store"
 )
 
 func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (CreateCompanyResult, error) {

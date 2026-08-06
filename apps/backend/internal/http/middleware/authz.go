@@ -3,8 +3,8 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/domain/identity/authz"
+	"github.com/tokenjoy/backend/internal/http/httputil"
 )
 
 func RequireAnyPermission(required ...string) func(http.Handler) http.Handler {

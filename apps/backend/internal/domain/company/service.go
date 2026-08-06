@@ -12,8 +12,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/support/invitetoken"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/support/invitetoken"
 )
 
 type Service interface {

@@ -16,9 +16,9 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/support/modelcatalog"
-	"github.com/tokenjoy/backend/internal/infra/ratelimit"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/support/modelcatalog"
+	"github.com/tokenjoy/backend/internal/support/ratelimit"
 )
 
 // Recorder records gateway metrics. Implementations live in infra/gatewaymetrics.

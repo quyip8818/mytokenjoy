@@ -9,8 +9,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/http/httpx"
+	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 )
 
 type Handler struct {

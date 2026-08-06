@@ -9,9 +9,9 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/common"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
-	"github.com/tokenjoy/backend/internal/store"
 )
 
 func (s *LocalService) GetDepartmentTree(ctx context.Context) ([]types.Department, error) {

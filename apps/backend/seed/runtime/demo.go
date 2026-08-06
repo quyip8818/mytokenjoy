@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/support/clock"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/support/clock"
 )
 
 func ApplyDemo(ctx context.Context, st store.Store, cfg config.Config, clk clock.Clock) error {

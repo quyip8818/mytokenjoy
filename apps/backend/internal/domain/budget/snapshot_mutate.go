@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
 	"github.com/tokenjoy/backend/internal/store"
+	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
 )
 
 // UpdateSnapshotNode modifies a department's budget/reservedPool in a future period snapshot.

@@ -23,9 +23,9 @@ import (
 	"github.com/tokenjoy/backend/internal/infra/jobs"
 
 	"github.com/tokenjoy/backend/internal/integration/datasource"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/clock"
 	"github.com/tokenjoy/backend/internal/support/invitetoken"
-	"github.com/tokenjoy/backend/internal/store"
 )
 
 func dashboardScopeConfig() domainusage.DashboardScopeConfig {

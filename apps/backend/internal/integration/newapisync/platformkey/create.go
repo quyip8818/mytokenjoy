@@ -14,9 +14,9 @@ import (
 	"github.com/tokenjoy/backend/internal/integration/newapisync/outbox"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/ports"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/syncdeps"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/common"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
-	"github.com/tokenjoy/backend/internal/store"
 )
 
 func upsertPendingPlatformKeyMapping(ctx context.Context, d syncdeps.Deps, key types.PlatformKey, departmentID uuid.UUID) error {

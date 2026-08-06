@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/support/modelcatalog"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/support/modelcatalog"
 )
 
 func (s *service) requireTenantModel(ctx context.Context, modelID uuid.UUID) (*types.ModelInfo, error) {

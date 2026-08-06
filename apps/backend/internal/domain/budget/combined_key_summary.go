@@ -5,9 +5,9 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/store"
 	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
 	"github.com/tokenjoy/backend/internal/support/clock"
-	"github.com/tokenjoy/backend/internal/store"
 )
 
 // SummaryStore is the narrow store surface for combined key summary computation.

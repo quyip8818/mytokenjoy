@@ -1,8 +1,8 @@
 package billing
 
 import (
-	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 // BuildLot creates a RechargeLot from an order with the given kind and paid amount.

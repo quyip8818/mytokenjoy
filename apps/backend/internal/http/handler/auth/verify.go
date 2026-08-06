@@ -6,11 +6,11 @@ import (
 
 	"github.com/google/uuid"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/domain/identity/registertoken"
+	"github.com/tokenjoy/backend/internal/domain/identity/verifycode"
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/http/httpx"
-	"github.com/tokenjoy/backend/internal/domain/identity/registertoken"
-	"github.com/tokenjoy/backend/internal/domain/identity/verifycode"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

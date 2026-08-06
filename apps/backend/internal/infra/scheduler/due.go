@@ -7,9 +7,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/company"
+	"github.com/tokenjoy/backend/internal/store"
 	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
 	"github.com/tokenjoy/backend/internal/support/clock"
-	"github.com/tokenjoy/backend/internal/store"
 )
 
 const reconcileStaleWindow = 7 * 24 * time.Hour

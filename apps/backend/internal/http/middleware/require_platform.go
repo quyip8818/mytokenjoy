@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/domain/identity/authz"
+	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/http/httpx"
 )
 

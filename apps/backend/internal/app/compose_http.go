@@ -14,8 +14,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/identity/sessiontoken"
 	"github.com/tokenjoy/backend/internal/infra/budgetcheck"
 	"github.com/tokenjoy/backend/internal/infra/gatewaymetrics"
-	"github.com/tokenjoy/backend/internal/support/clock"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/support/clock"
 )
 
 func wireIdentity(cfg config.Config, st store.Store) (authz.Service, credentials.Service, sessiontoken.Issuer, error) {

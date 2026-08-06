@@ -7,6 +7,7 @@ import (
 	"time"
 
 	goredis "github.com/redis/go-redis/v9"
+	rl "github.com/tokenjoy/backend/internal/support/ratelimit"
 )
 
 // RedisLimiter implements distributed rate limiting using Redis + Lua scripts.
@@ -52,7 +53,7 @@ func NewRedisLimiter(ctx context.Context, redisURL string, logger *slog.Logger) 
 	}, nil
 }
 
-func (l *RedisLimiter) AllowTokenBucket(ctx context.Context, key string, rate int, burst int) (Result, error) {
+func (l *RedisLimiter) AllowTokenBucket(ctx context.Context, key string, rate int, burst int) (rl.Result, error) {
 	now := time.Now().UnixMicro()
 	// refillInterval = 1_000_000 / rate (microseconds per token)
 	refillInterval := int64(1_000_000) / int64(rate)
@@ -64,14 +65,14 @@ func (l *RedisLimiter) AllowTokenBucket(ctx context.Context, key string, rate in
 		now,            // ARGV[4] now (microseconds)
 	).Int64Slice()
 	if err != nil {
-		return Result{}, err
+		return rl.Result{}, err
 	}
 
 	allowed := res[0] == 1
 	remaining := res[1]
 	resetAt := time.Now().Add(time.Duration(refillInterval) * time.Microsecond)
 
-	return Result{
+	return rl.Result{
 		Allowed:   allowed,
 		Remaining: remaining,
 		Limit:     int64(burst),
@@ -79,7 +80,7 @@ func (l *RedisLimiter) AllowTokenBucket(ctx context.Context, key string, rate in
 	}, nil
 }
 
-func (l *RedisLimiter) AllowSlidingWindow(ctx context.Context, key string, max int, windowSec int) (Result, error) {
+func (l *RedisLimiter) AllowSlidingWindow(ctx context.Context, key string, max int, windowSec int) (rl.Result, error) {
 	now := time.Now().Unix()
 
 	res, err := l.rdb.EvalSha(ctx, l.slidingWindowSHA, []string{key},
@@ -88,14 +89,14 @@ func (l *RedisLimiter) AllowSlidingWindow(ctx context.Context, key string, max i
 		now,       // ARGV[3] current timestamp
 	).Int64Slice()
 	if err != nil {
-		return Result{}, err
+		return rl.Result{}, err
 	}
 
 	allowed := res[0] == 1
 	remaining := res[1]
 	resetAt := time.Now().Add(time.Duration(windowSec) * time.Second)
 
-	return Result{
+	return rl.Result{
 		Allowed:   allowed,
 		Remaining: remaining,
 		Limit:     int64(max),
@@ -110,4 +111,4 @@ func (l *RedisLimiter) Close() error {
 	return l.rdb.Close()
 }
 
-var _ Limiter = (*RedisLimiter)(nil)
+var _ rl.Limiter = (*RedisLimiter)(nil)

@@ -5,12 +5,12 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/tokenjoy/backend/internal/domain/grants"
+	"github.com/tokenjoy/backend/internal/domain/identity/verifycode"
 	domainmemberanalytics "github.com/tokenjoy/backend/internal/domain/memberanalytics"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
-	"github.com/tokenjoy/backend/internal/domain/identity/verifycode"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

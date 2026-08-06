@@ -6,9 +6,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/store"
 	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
-	"github.com/tokenjoy/backend/internal/store"
 )
 
 func insertSeedOrgNodes(ctx context.Context, exec TableWriter, tid uuid.UUID, nodes []types.OrgNode) error {

@@ -5,8 +5,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 	"github.com/tokenjoy/backend/internal/store"
+	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 func LoadDepartments(ctx context.Context, orgNodes store.OrgNodeRepository) ([]types.Department, error) {

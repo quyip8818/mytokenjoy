@@ -6,9 +6,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/common"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
-	"github.com/tokenjoy/backend/internal/store"
 )
 
 var RootDepartmentID = uuid.MustParse("00000000-0000-7000-8000-000000000d01")

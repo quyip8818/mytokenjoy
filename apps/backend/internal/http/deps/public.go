@@ -5,9 +5,9 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	domaincompany "github.com/tokenjoy/backend/internal/domain/company"
-	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	"github.com/tokenjoy/backend/internal/domain/identity/credentials"
 	"github.com/tokenjoy/backend/internal/domain/identity/sessiontoken"
+	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

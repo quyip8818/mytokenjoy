@@ -7,9 +7,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/store"
 	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
 	"github.com/tokenjoy/backend/internal/support/common"
-	"github.com/tokenjoy/backend/internal/store"
 )
 
 // RotatePeriod performs the month rotation if needed: archive previous period,

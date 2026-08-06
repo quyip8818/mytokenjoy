@@ -2,8 +2,8 @@ package auth
 
 import (
 	"github.com/go-chi/chi/v5"
-	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/domain/identity/registertoken"
+	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/support/invitetoken"
 )
 

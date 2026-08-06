@@ -7,9 +7,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/clock"
 	"github.com/tokenjoy/backend/internal/support/common"
-	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed"
 )
 

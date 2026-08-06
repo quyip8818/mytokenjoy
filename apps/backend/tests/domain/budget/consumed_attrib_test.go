@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/budget"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
 	"github.com/tokenjoy/backend/internal/store"
+	pkgbudget "github.com/tokenjoy/backend/internal/support/budget"
 )
 
 func TestConsumptionDeltas_MemberScope(t *testing.T) {

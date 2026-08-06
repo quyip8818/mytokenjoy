@@ -15,8 +15,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/adminport"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	catalog "github.com/tokenjoy/backend/internal/integration/catalogsync"
-	"github.com/tokenjoy/backend/internal/support/modelcatalog"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/support/modelcatalog"
 )
 
 // Version keys in system_settings.

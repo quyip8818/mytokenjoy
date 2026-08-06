@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	"github.com/tokenjoy/backend/internal/http/response"
 	"github.com/tokenjoy/backend/internal/http/httpx"
+	"github.com/tokenjoy/backend/internal/http/response"
 	"github.com/tokenjoy/backend/internal/store"
 )
 

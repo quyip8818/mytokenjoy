@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	"github.com/tokenjoy/backend/internal/http/httputil"
-	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/http/httpx"
+	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 )
 
 type profileCompany struct {

@@ -14,11 +14,11 @@ import (
 	domainnotification "github.com/tokenjoy/backend/internal/domain/notification"
 	"github.com/tokenjoy/backend/internal/domain/org/core"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/common"
-	"github.com/tokenjoy/backend/internal/support/tenant"
 	"github.com/tokenjoy/backend/internal/support/invitetoken"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
-	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/support/tenant"
 )
 
 func (s *LocalService) CreateMember(ctx context.Context, input types.CreateMemberInput, callerMemberID uuid.UUID) (types.Member, error) {

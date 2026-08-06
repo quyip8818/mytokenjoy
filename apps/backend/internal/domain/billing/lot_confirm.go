@@ -9,8 +9,8 @@ import (
 	"github.com/tokenjoy/backend/internal/domain"
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
 	"github.com/tokenjoy/backend/internal/domain/company"
-	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 func (s *service) confirmGiftLot(ctx context.Context, amount float64, createdBy uuid.UUID) error {

@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/uuid"
 	billinglot "github.com/tokenjoy/backend/internal/domain/billing/lot"
-	"github.com/tokenjoy/backend/internal/support/common"
 	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/support/common"
 )
 
 // SeedTrialCredit creates a trial lot with simulated funds for a newly registered
