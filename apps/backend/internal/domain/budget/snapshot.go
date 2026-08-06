@@ -67,35 +67,6 @@ func (s *service) CopyPeriod(ctx context.Context, toPeriod string) error {
 	return nil
 }
 
-// ArchivePreviousPeriod snapshots the current live budget state as the previous month's archive.
-// Called on month transition (rebalance). Idempotent: skips if snapshot already exists.
-func (s *service) ArchivePreviousPeriod(ctx context.Context) error {
-	now := clock.NowUTC(s.clk)
-	prevMonth := now.AddDate(0, -1, 0)
-	prevPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, prevMonth)
-
-	exists, err := s.store.BudgetSnapshot().Exists(ctx, prevPeriod)
-	if err != nil {
-		return fmt.Errorf("check archive exists: %w", err)
-	}
-	if exists {
-		return nil // already archived
-	}
-
-	payload, err := s.buildCurrentSnapshot(ctx)
-	if err != nil {
-		return fmt.Errorf("build archive snapshot: %w", err)
-	}
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("marshal archive snapshot: %w", err)
-	}
-	if err := s.store.BudgetSnapshot().Upsert(ctx, prevPeriod, data); err != nil {
-		return fmt.Errorf("upsert archive snapshot: %w", err)
-	}
-	return nil
-}
-
 // GetTreeForPeriod returns the budget tree for a given period.
 // For the current month it returns live data (same as GetTree); for other months it reads from snapshot.
 // If no snapshot exists for a non-past period, falls back to live data (budget config carries over).

@@ -13,37 +13,54 @@ import (
 	"github.com/tokenjoy/backend/internal/store"
 )
 
+// RotatePeriod performs the month rotation if needed: archive previous period,
+// apply the current period's pre-configured snapshot, and mark rotation complete.
+// Unlike MaybeRotatePeriod, it does NOT enqueue a follow-up rebalance (caller is
+// expected to be in a rebalance context already). Returns nil if already rotated.
+func (s *service) RotatePeriod(ctx context.Context) error {
+	_, err := s.doRotate(ctx, false)
+	return err
+}
+
 // MaybeRotatePeriod checks if a period rotation is needed and executes it lazily.
 // Called at the beginning of GetTree to ensure the current period's snapshot is applied.
 // Returns true if rotation was performed.
 func (s *service) MaybeRotatePeriod(ctx context.Context) bool {
+	rotated, _ := s.doRotate(ctx, true)
+	return rotated
+}
+
+// doRotate is the shared rotation logic. If enqueueRebalance is true, a follow-up
+// company rebalance is enqueued on success (for the lazy/GetTree path).
+func (s *service) doRotate(ctx context.Context, enqueueRebalance bool) (bool, error) {
 	currentPeriod := pkgbudget.SnapshotKey(pkgbudget.PeriodMonthly, clock.NowUTC(s.clk))
 	companyID := store.CompanyID(ctx)
 
 	state, err := s.store.TenantBackgroundState().Get(ctx, companyID)
 	if err != nil {
 		s.logger.Warn("rotation: failed to get tenant state", "error", err)
-		return false
+		return false, fmt.Errorf("rotation: get tenant state: %w", err)
 	}
 	lastRotated := ""
 	if state != nil {
 		lastRotated = state.LastRebalancedPeriod
 	}
 	if lastRotated >= currentPeriod {
-		return false // already rotated for this period
+		return false, nil
 	}
 
-	// Perform rotation in a transaction
 	if err := s.store.WithTx(ctx, func(tx store.Store) error {
 		return s.rotatePeriod(ctx, tx, currentPeriod, lastRotated)
 	}); err != nil {
 		s.logger.Warn("rotation: failed", "period", currentPeriod, "error", err)
-		return false
+		return false, fmt.Errorf("rotation: %w", err)
 	}
 
-	s.enqueueCompanyRebalance(ctx, "budget.rotation")
-	s.logger.Info("budget period rotated", "period", currentPeriod)
-	return true
+	if enqueueRebalance {
+		s.enqueueCompanyRebalance(ctx, "budget.rotation")
+	}
+	s.logger.Info("budget period rotated", "period", currentPeriod, "company", companyID)
+	return true, nil
 }
 
 func (s *service) rotatePeriod(ctx context.Context, tx store.Store, currentPeriod, lastRotated string) error {

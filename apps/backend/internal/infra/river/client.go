@@ -81,7 +81,7 @@ func registerWorkers(deps Deps) *river.Workers {
 	river.AddWorker(workersBundle, workers.NewIngestWorker(deps.Ingest, deps.Logger))
 	river.AddWorker(workersBundle, workers.NewIngestReconcileWorker(deps.LogStore, deps.Ingest, deps.Enqueuer, deps.Cfg.ReconcileBatchSize(), deps.Cfg.ReconcileMaxRounds(), deps.Logger))
 
-	river.AddWorker(workersBundle, workers.NewRebalanceWorker(deps.Rebalance, deps.BudgetService, deps.Store, deps.Cfg, clock.System()))
+	river.AddWorker(workersBundle, workers.NewRebalanceWorker(deps.Rebalance, deps.BudgetService))
 	river.AddWorker(workersBundle, workers.NewOverrunWorker(deps.Overrun))
 	river.AddWorker(workersBundle, workers.NewNewAPISyncWorker(deps.NewAPISync))
 	river.AddWorker(workersBundle, workers.NewOrgSyncWorker(deps.OrgSync))
