@@ -8,7 +8,7 @@
 
 存在的结构性问题：
 1. ~~权限常量定义在 `infra/permission`，handler 层反向引用 infra~~ ✅ 已解决（阶段 1）
-2. ~~identity 模块与 domain 平级，auth handler 绕过 service 直接操作 repo~~ ✅ 路径已迁移（阶段 3），AuthService 抽取留后续增量
+2. ~~identity 模块与 domain 平级，auth handler 绕过 service 直接操作 repo~~ ✅ 路径已迁移（阶段 3），httpx 已抽离到 http 层，AuthService 抽取留后续增量
 3. ~~`internal/pkg/` 成为杂物间，包职责与 domain 层重叠~~ ✅ 已解决（阶段 2）
 4. ~~port 接口定义分散，无统一位置约定~~ ✅ 已解决（阶段 4）
 5. handler 基类模式不统一（三种风格共存）— 留后续增量
@@ -53,7 +53,13 @@ internal/
     ├── clock/        # Clock interface + System/Fixed
     ├── tenant/       # context key + Get/Set（原 ctxcompany）
     ├── tree/         # 通用树结构操作
-    └── quota/        # MoneyToQuota/QuotaToMoney（跨 5 个 domain 共用）
+    ├── budget/       # 预算计算 helper（跨 5 domain 共用）
+    ├── org/          # 组织树 helper（跨 domain 共用）
+    ├── common/       # MoneyToQuota、crypto、paginate 等（待后续细粒度拆分）
+    ├── ratelimit/    # Limiter interface + Result + HTTP response helpers
+    ├── invitetoken/  # 邀请 token 签发/解析
+    ├── baseurl/      # URL 派生
+    └── modelcatalog/ # 模型目录数据结构
 ```
 
 删除的目录：`internal/identity/`、`infra/permission/`、`domain/port/`。
@@ -96,8 +102,7 @@ domain/grants/
 **已实现**：`internal/identity/` 整体路径迁移到 `internal/domain/identity/`（authz, credentials, sessiontoken, verifycode, httpx, registertoken, secrets 全部保留原有子包结构）。
 
 **未完成（后续增量）**：
-- auth handler 提取 `AuthService` interface（暂不动，等功能改动时顺手做）
-- httpx 从 domain/identity 抽离到 http/httpx（等 AuthService 重构时一并处理）
+- auth handler 提取 `AuthService` interface（暂不动——handler 逻辑与 HTTP transport 高度耦合，强制抽取会增加 boilerplate 无实际收益。等功能需要修改时顺手做）
 
 ---
 
@@ -210,25 +215,28 @@ JSON decode 统一使用 `httputil.DecodeJSON`（有 1MB body size limit + 统�
 
 **阶段 3 完成**（2026-08-06）：
 - `internal/identity/` 整体移入 `internal/domain/identity/`（43 处 import 替换）
-- 包含：authz、credentials、sessiontoken、verifycode、httpx、registertoken、secrets
-- 注意：httpx 暂随 identity 移动到 domain 层（文档问题 1 中标注为已知妥协，auth handler 重构为 AuthService 时再抽离到 http/httpx）
+- 包含：authz、credentials、sessiontoken、verifycode、registertoken、secrets
+- `httpx` 已从 `domain/identity/httpx` 抽离到 `internal/http/httpx/`（domain 层不依赖 net/http）
+- `SessionFromContext`/`WithSessionContext` 核心实现移入 `domain/types/session.go`（纯 context 操作）
+- `http/httpx/context.go` 委托 `domain/types` 实现（保持向后兼容的 API）
+- `domain/budget/audit.go` 改为直接引用 `types.SessionFromContext`（不再依赖 httpx）
 
 ---
 
 ## 架构师自审：方案问题与风险
 
-### 问题 1：`domain/identity/httpx` 是否违反 domain 层纯净原则
+### 问题 1：`domain/identity/httpx` 是否违反 domain 层纯净原则 ✅ 已解决
 
 **问题**：`httpx` 包处理 HTTP cookie 和 token 解析，依赖 `net/http`。把它放在 domain 层意味着 domain 对 HTTP transport 有感知。
 
-**结论**：这是方案中最大的妥协。严格来说 httpx 应该留在 `http/` 层。但 httpx 的消费者是 middleware（属于 http 层）和 auth service（需要签发 cookie）。
+**已实现的修正**：
+- `httpx` 已从 `domain/identity/` 移到 `internal/http/httpx/`
+- `SessionFromContext`/`WithSessionContext` 核心（纯 context 操作）提取到 `domain/types/session.go`
+- `httpx/context.go` 委托 `types` 实现，API 不变
+- `domain/budget/audit.go` 改为直接 import `domain/types`（不再依赖 httpx）
+- domain 层零 `net/http` 依赖（除 `domain/gateway` 这个 transport-aware hybrid）
 
-**修正**：`domain/identity` 不应包含 `httpx`。正确做法：
-- `domain/identity.AuthService.Login()` 返回 `TokenPair{AccessToken, RefreshToken, Expiry}`
-- handler 层负责把 TokenPair 写入 cookie（调用 `http/httpx` 包）
-- `httpx` 保留在 `http/httpx/`（或 `http/middleware/` 内部）
-
-这样 domain/identity 完全不 import `net/http`。
+Auth handler → AuthService 提取有意跳过（handler 与 HTTP 高度耦合，强制抽取增加 boilerplate 无实际收益）。
 
 ### 问题 2：`domain/grants` 包含代码生成文件是否稳定
 
