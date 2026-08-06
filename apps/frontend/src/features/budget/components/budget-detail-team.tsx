@@ -37,7 +37,10 @@ interface BudgetDetailTeamProps {
     ownerDepartmentId: string
   }) => Promise<void>
   getMemberBudgets: (departmentId: string) => Promise<MemberBudget[]>
-  updateMemberBudget: (memberId: string, data: UpdateMemberBudgetInput) => Promise<Partial<MemberBudget>>
+  updateMemberBudget: (
+    memberId: string,
+    data: UpdateMemberBudgetInput,
+  ) => Promise<Partial<MemberBudget>>
   applyAverageBudget: (
     departmentId: string,
     data: { personalBudget: number; recursive: boolean },
