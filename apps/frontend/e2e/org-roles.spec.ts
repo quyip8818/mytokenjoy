@@ -843,13 +843,14 @@ test.describe('角色管理 - 权限表单与交互细节', () => {
 
     const dialog = page.getByRole('dialog')
     // Wait for permissions to load from API
-    await expect(dialog.getByRole('checkbox', { name: '组织架构管理' })).toBeVisible()
+    await expect(dialog.getByRole('checkbox', { name: '组织管理员' })).toBeVisible()
     // 组织分组下的权限
     await expect(dialog.getByRole('checkbox', { name: '成员管理' })).toBeVisible()
-    await expect(dialog.getByRole('checkbox', { name: '角色管理' })).toBeVisible()
-    // 资源管控分组
-    await expect(dialog.getByRole('checkbox', { name: '模型管理' })).toBeVisible()
-    await expect(dialog.getByRole('checkbox', { name: '预算分配' })).toBeVisible()
+    await expect(dialog.getByRole('checkbox', { name: '组织查看' })).toBeVisible()
+    // 模型分组
+    await expect(dialog.getByRole('checkbox', { name: '模型管理', exact: true })).toBeVisible()
+    // 预算分组
+    await expect(dialog.getByRole('checkbox', { name: '预算管理', exact: true })).toBeVisible()
 
     await page.keyboard.press('Escape')
   })
@@ -860,18 +861,18 @@ test.describe('角色管理 - 权限表单与交互细节', () => {
 
     const dialog = page.getByRole('dialog')
     // Wait for permissions to load
-    await expect(dialog.getByRole('checkbox', { name: '组织架构管理' })).toBeVisible()
+    await expect(dialog.getByRole('checkbox', { name: '组织管理员' })).toBeVisible()
     // 选择不同分组的权限
-    await dialog.getByRole('checkbox', { name: '组织架构管理' }).click()
-    await dialog.getByRole('checkbox', { name: '审计日志查看' }).click()
+    await dialog.getByRole('checkbox', { name: '组织管理员' }).click()
+    await dialog.getByRole('checkbox', { name: '审计日志' }).click()
     await dialog.getByRole('checkbox', { name: 'API 调用' }).click()
 
     // 验证已选中
-    await expect(dialog.getByRole('checkbox', { name: '组织架构管理' })).toBeChecked()
-    await expect(dialog.getByRole('checkbox', { name: '审计日志查看' })).toBeChecked()
+    await expect(dialog.getByRole('checkbox', { name: '组织管理员' })).toBeChecked()
+    await expect(dialog.getByRole('checkbox', { name: '审计日志' })).toBeChecked()
     await expect(dialog.getByRole('checkbox', { name: 'API 调用' })).toBeChecked()
     // 未选中的
-    await expect(dialog.getByRole('checkbox', { name: '预算分配' })).not.toBeChecked()
+    await expect(dialog.getByRole('checkbox', { name: '预算管理', exact: true })).not.toBeChecked()
 
     await page.keyboard.press('Escape')
   })
@@ -881,9 +882,9 @@ test.describe('角色管理 - 权限表单与交互细节', () => {
     await expect(page.getByRole('dialog')).toBeVisible()
 
     const dialog = page.getByRole('dialog')
-    await expect(dialog.getByRole('checkbox', { name: '组织架构管理' })).toBeVisible()
+    await expect(dialog.getByRole('checkbox', { name: '组织管理员' })).toBeVisible()
     await dialog.locator('input[name="name"]').fill('不应该被创建的角色')
-    await dialog.getByRole('checkbox', { name: '组织架构管理' }).click()
+    await dialog.getByRole('checkbox', { name: '组织管理员' }).click()
 
     // 点击取消
     await dialog.getByRole('button', { name: '取消' }).click()
@@ -906,14 +907,14 @@ test.describe('角色管理 - 权限表单与交互细节', () => {
 
     await page.getByRole('button', { name: '新建' }).click()
     const dialog = page.getByRole('dialog')
-    await expect(dialog.getByRole('checkbox', { name: '组织架构管理' })).toBeVisible()
+    await expect(dialog.getByRole('checkbox', { name: '组织管理员' })).toBeVisible()
     await dialog.locator('input[name="name"]').fill(roleName)
 
     // 选择跨组权限
-    await dialog.getByRole('checkbox', { name: '组织架构管理' }).click()
-    await dialog.getByRole('checkbox', { name: '审计日志查看' }).click()
+    await dialog.getByRole('checkbox', { name: '组织管理员' }).click()
+    await dialog.getByRole('checkbox', { name: '审计日志' }).click()
     await dialog.getByRole('checkbox', { name: 'API 调用' }).click()
-    await dialog.getByRole('checkbox', { name: '预算分配' }).click()
+    await dialog.getByRole('checkbox', { name: '预算管理', exact: true }).click()
 
     await dialog.getByRole('button', { name: '创建' }).click()
     await expect(page.getByRole('dialog')).toBeHidden({ timeout: 10_000 })

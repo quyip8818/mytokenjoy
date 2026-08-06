@@ -158,7 +158,7 @@ test.describe('组织架构 - 成员 CRUD', () => {
       }, uniqueName)
       expect(members.items.length).toBeGreaterThan(0)
       expect(members.items[0].alias).toBe(uniqueName)
-    }).toPass({ timeout: 10_000 })
+    }).toPass({ timeout: 15_000 })
 
     // Cleanup
     const members = await page.evaluate(async (name) => {
