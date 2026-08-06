@@ -26,8 +26,8 @@ func ingestMetricsRecorder(cfg config.Config) ingestmetrics.Recorder {
 // buildServiceRegistry constructs all domain services and wires them into the
 // ServiceRegistry (which embeds httpdeps.Deps for the HTTP layer and holds
 // worker-only fields separately).
-func buildServiceRegistry(cfg config.Config, i infra, logger *slog.Logger, holder *jobs.Holder, orgAdmin *enqueue.OrgRiverAdminHolder) ServiceRegistry {
-	clk := clock.System()
+func buildServiceRegistry(cfg config.Config, i infra, logger *slog.Logger, holder *jobs.Holder, orgAdmin *enqueue.OrgRiverAdminHolder, overrideClk clock.Clock) ServiceRegistry {
+	clk := clock.OrDefault(overrideClk)
 
 	// --- Domain services ---
 	reader := wireReader(i)

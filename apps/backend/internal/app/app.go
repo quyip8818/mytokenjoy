@@ -11,6 +11,7 @@ import (
 	domainorg "github.com/tokenjoy/backend/internal/domain/org"
 	httpapi "github.com/tokenjoy/backend/internal/http"
 	"github.com/tokenjoy/backend/internal/infra/jobs"
+	"github.com/tokenjoy/backend/internal/pkg/clock"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/store/postgres"
 )
@@ -31,6 +32,7 @@ type options struct {
 	skipWorker bool
 	adminPort  adminport.Port
 	orgSync    domainorg.SyncService
+	clk        clock.Clock
 }
 
 type Option func(*options)
@@ -50,6 +52,12 @@ func WithAdminPort(client adminport.Port) Option {
 func WithOrgSync(svc domainorg.SyncService) Option {
 	return func(o *options) {
 		o.orgSync = svc
+	}
+}
+
+func WithClock(clk clock.Clock) Option {
+	return func(o *options) {
+		o.clk = clk
 	}
 }
 

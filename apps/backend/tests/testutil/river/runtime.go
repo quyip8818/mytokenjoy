@@ -66,7 +66,7 @@ func newRuntime(t *testing.T, stub *mock.StubAdminClient, orgSync domainorg.Sync
 		testutil.WithNewAPIWebhookSecret("secret"),
 	)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	opts := []app.Option{app.WithAdminPort(stub)}
+	opts := []app.Option{app.WithAdminPort(stub), app.WithClock(testutil.TestClock())}
 	if orgSync != nil {
 		opts = append(opts, app.WithOrgSync(orgSync))
 	}
