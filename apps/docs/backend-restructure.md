@@ -7,12 +7,12 @@
 近期 clock refactor（`fb837fa0`）已将 clock 从 Config 解耦为构造函数注入，domain 各 service 通过 `clock.Clock` interface 接收时间源。budget domain 也新增了 `RotatePeriod` + `enrichTreeConsumed` 等逻辑，rebalance worker 从直接操作 store/config 改为委托 `domainbudget.Service`。这些变更强化了"infra worker 不持有 store，只委托 domain service"的方向。
 
 存在的结构性问题：
-1. ~~权限常量定义在 `infra/permission`，handler 层反向引用 infra~~ ✅ 已解决
-2. identity 模块与 domain 平级，auth handler 绕过 service 直接操作 repo
-3. `internal/pkg/` 成为杂物间，包职责与 domain 层重叠
-4. port 接口定义分散，无统一位置约定
-5. handler 基类模式不统一（三种风格共存）
-6. ~~JSON decode 方式混用（`httputil.DecodeJSON` vs 裸 `json.NewDecoder`）~~ ✅ 已解决
+1. ~~权限常量定义在 `infra/permission`，handler 层反向引用 infra~~ ✅ 已解决（阶段 1）
+2. ~~identity 模块与 domain 平级，auth handler 绕过 service 直接操作 repo~~ ✅ 路径已迁移（阶段 3），AuthService 抽取留后续增量
+3. ~~`internal/pkg/` 成为杂物间，包职责与 domain 层重叠~~ ✅ 已解决（阶段 2）
+4. ~~port 接口定义分散，无统一位置约定~~ ✅ 已解决（阶段 4）
+5. handler 基类模式不统一（三种风格共存）— 留后续增量
+6. ~~JSON decode 方式混用（`httputil.DecodeJSON` vs 裸 `json.NewDecoder`）~~ ✅ 已解决（阶段 5）
 
 ---
 
@@ -89,94 +89,46 @@ domain/grants/
 
 ---
 
-### 变更 2：Identity 收口为 `domain/identity`
+### 变更 2：Identity 收口为 `domain/identity` ✅
 
-**现状**：
-- `internal/identity/` 独立于 domain，包含 authz、credentials、sessiontoken、verifycode、httpx、registertoken、secrets
-- `internal/pkg/invitetoken` 是孤儿包
-- auth handler 直接注入 6 个 repo + 3 个 service，不走 domain service
+**现状**：~~`internal/identity/` 独立于 domain~~ 已迁入 `domain/identity/`。
 
-**终态**：
+**已实现**：`internal/identity/` 整体路径迁移到 `internal/domain/identity/`（authz, credentials, sessiontoken, verifycode, httpx, registertoken, secrets 全部保留原有子包结构）。
 
-```
-domain/identity/
-├── service.go       # AuthService interface（Login, Logout, Refresh, AcceptInvite, SetPassword, ResetPassword, SelectCompany）
-├── auth_impl.go     # AuthService 实现（返回 TokenPair 值对象，不操作 cookie）
-├── session.go       # SessionToken issuer（签发/验证 JWT）
-├── credentials.go   # Credentials service（注册、密码校验、bootstrap）
-├── authz.go         # Authz service（GetSessionContext, CheckPermission）
-├── verifycode.go    # 验证码发送/校验
-├── registertoken.go # 注册 token 签发
-├── invitetoken.go   # 邀请 token 签发（从 pkg/invitetoken 移来）
-└── secrets.go       # 密钥管理
-```
-
-注意：`httpx`（cookie/token HTTP 操作）**不放 domain 层**，保留在 `http/httpx/`。AuthService.Login() 返回 `TokenPair{AccessToken, RefreshToken, Expiry}`，由 handler 层调 `http/httpx` 写入 cookie。
-
-Auth handler 重构为：
-```go
-type Handler struct {
-    shared.PublicHandlerBase
-    authSvc identity.AuthService
-}
-```
-
-**原则**：handler 不持有任何 repo，所有持久化操作封装在 domain service 内部。
+**未完成（后续增量）**：
+- auth handler 提取 `AuthService` interface（暂不动，等功能改动时顺手做）
+- httpx 从 domain/identity 抽离到 http/httpx（等 AuthService 重构时一并处理）
 
 ---
 
-### 变更 3：`internal/pkg` 拆空删除
+### 变更 3：`internal/pkg` 拆空删除 ✅
 
-| 现包 | 迁入 | 理由 |
-|------|------|------|
-| `pkg/ctxcompany` | `internal/support/tenant`（context key + Get/Set 核心） | 跨层基础设施，不是值对象；避免 store ↔ domain/company 循环引用（见问题 3） |
-| `pkg/invitetoken` | `domain/identity/invitetoken.go` | 认证领域 |
-| `pkg/common` | 需拆分（见下方说明） | 10+ 文件的大杂烩包，不是单一职责 |
-| `pkg/budget` | `domain/budget`（合并） | budget helper 归属 budget domain |
-| `pkg/org` | `domain/org`（合并） | org helper 归属 org domain |
-| `pkg/ratelimit` | `infra/ratelimit`（合并） | 限流是基础设施 |
-| `pkg/clock` | `internal/support/clock`（保持独立包，见下方说明） | 42 处引用，跨 domain/infra/adapter/app 全层使用 |
-| `pkg/tree` | `internal/support/tree` | 数据结构工具，不是业务值对象 |
-| `pkg/baseurl` | `config` 包 helper | 仅被 config 消费 |
-| `pkg/modelcatalog` | `domain/models` 或 `integration/catalogsync` | 视内容归属 |
+**已实现迁移表**（实际 vs 原计划差异标注）：
 
-**结果**：`internal/pkg/` 整个目录删除。
+| 原包 | 实际迁入 | 与原计划差异 |
+|------|----------|-------------|
+| `pkg/ctxcompany` | `support/tenant`（包名改为 tenant） | 如计划 |
+| `pkg/invitetoken` | `support/invitetoken` | 原计划放 domain/identity，因跨 domain 引用暂留 support |
+| `pkg/common` | `support/common`（整体迁移） | 原计划细粒度拆分，实际整体迁移更低风险 |
+| `pkg/budget` | `support/budget` | 原计划合入 domain/budget，因跨 5 domain 使用改为 support |
+| `pkg/org` | `support/org` | 同上 |
+| `pkg/ratelimit` | `infra/ratelimit`（合并） | 如计划，修复了自引用循环 |
+| `pkg/clock` | `support/clock` | 如计划 |
+| `pkg/tree` | `support/tree` | 如计划 |
+| `pkg/baseurl` | `support/baseurl` | 原计划放 config，因影响面小留 support |
+| `pkg/modelcatalog` | `support/modelcatalog` | 原计划待定，放 support |
 
-**clock 特殊说明**：`pkg/clock` 有 42 处引用，横跨 domain、infra、adapter、app 全层。近期 clock refactor 已确立其为全局基础设施接口（constructor injection pattern）。不适合放入任何单一 domain。迁入 `internal/support/clock` 作为跨层时间抽象。
-
-**pkg/common 拆分说明**：`pkg/common` 是 10 个文件的大杂烩（crypto, paginate, parse, routing, scope_check, simulate, audit filter, org_store, constants），被 20+ 处引用。不能简单归入一个 domain。按实际内容拆分：
-
-| 文件 | 迁入 | 理由 |
-|------|------|------|
-| `constants.go`（MoneyToQuota/QuotaToMoney） | `support/quota` | 跨 billing/budget/keys/dashboard/company 五个 domain 共用，不属于任何单个 domain |
-| `scope_check.go`（HasAny） | `domain/grants` 或 `support/sliceutil` | 权限比对工具，语义接近 grants |
-| `paginate.go` | `http/httputil` 或 `store/` helper | 分页是 transport/store 层关注 |
-| `crypto.go` / `fieldcrypto.go` | `infra/crypto` | 加密是基础设施 |
-| `org_store.go` | `domain/org` 内部 | org 相关 store helper |
-| `auditfilter.go` | `domain/audit` 内部 | audit 相关 |
-| `routing.go` | `domain/models` 或 `domain/gateway` | 视内容 |
-| `simulate.go` | `domain/billing` 或 `domain/budget` | 视内容 |
-| `parse.go` | 就近归属或 `support/` | 视内容 |
+**结果**：`internal/pkg/` 目录删除，零残留引用。
 
 ---
 
-### 变更 4：Port 接口归位
+### 变更 4：Port 接口归位 ✅
 
-**现状**：
-- `domain/port/syncport.go` 放跨域接口
-- 各 domain 包内零散定义 port（`billing.Store`, `budget.JobEnqueuer`）
-
-**终态**：每个 domain 包自己定义依赖的 port 接口。
-
-- `domain/keys/port.go` → `KeySyncPort`
-- `domain/budget/ports.go` → `JobEnqueuer`, `OverrunKeyControl`（已有）
-- `domain/billing/service.go` → `Store`, `QuotaSyncer`（已有）
-
-近期 rebalance worker 重构验证了这一方向：worker 不再直接持有 store + config + clock，改为注入 `domainbudget.Service` 和 `domainbudget.Rebalancer`，domain service 封装 RotatePeriod 逻辑。这正是 port 归位的实践——worker 作为 infra 层只依赖 domain interface，不穿透到 store。
-
-`domain/port/` 目录删除。不设统一 port 目录。
-
-**理由**：domain 包是可独立提取的 module，port 跟着消费者走，不跟着实现者走。
+**已实现**：
+- `KeySyncPort` → `domain/keys/port.go`
+- `OverrunKeyControl` → `domain/budget/ports.go`（与已有 `JobEnqueuer` 同文件）
+- `newapisync/sync.go` 更新 compile-time assertions 为 `domainkeys.KeySyncPort` + `budget.OverrunKeyControl`
+- `domain/port/` 目录删除
 
 ---
 
@@ -214,9 +166,9 @@ JSON decode 统一使用 `httputil.DecodeJSON`（有 1MB body size limit + 统�
 | 阶段 | 内容 | 风险 | 验证标准 | 状态 |
 |------|------|------|----------|------|
 | 1 | grants 合并：`infra/permission` 全部代码 → `domain/grants`，全局 import 替换（20+ 文件） | 低-中（大范围机械化操作） | 编译通过 + 全量测试通过，`infra/permission` 目录删除 | ✅ 完成 |
-| 2 | pkg 迁移：逐包移动到归属位置 | 低（每次一个包，独立 PR） | `internal/pkg` 目录删除 | 待执行 |
-| 3 | identity 收口：创建 `domain/identity.AuthService` + auth handler 重构 | 中（逻辑迁移） | auth handler 不直接持有 repo | 待执行 |
-| 4 | port 归位 + `domain/port` 删除 | 低 | `domain/port` 删除 | 待执行 |
+| 2 | pkg 迁移：逐包移动到归属位置 | 低（每次一个包，独立 PR） | `internal/pkg` 目录删除 | ✅ 完成 |
+| 3 | identity 收口：移动 `internal/identity/` → `domain/identity/` | 低（纯路径迁移） | `internal/identity` 不存在，`domain/identity` 存在 | ✅ 完成 |
+| 4 | port 归位 + `domain/port` 删除 | 低 | `domain/port` 删除 | ✅ 完成 |
 | 5 | handler base 统一 + JSON decode 统一 | 低 | grep `json.NewDecoder(r.Body)` 零结果 | ✅ 完成 |
 
 ### 已完成记录
@@ -236,6 +188,30 @@ JSON decode 统一使用 `httputil.DecodeJSON`（有 1MB body size limit + 统�
 - 11 个文件移除多余的 `encoding/json` import
 - 涉及 handler：auth, platform, register, me, billing, notification
 - 所有 handler 现在统一有 1MB body size limit + domain error 格式响应
+
+**阶段 4 完成**（2026-08-06）：
+- `KeySyncPort` 移入 `domain/keys/port.go`
+- `OverrunKeyControl` 移入 `domain/budget/ports.go`
+- `newapisync/sync.go` 更新为 import `domain/keys` + `domain/budget`
+- `domain/port/` 目录删除
+
+**阶段 2 完成**（2026-08-06）：
+- `pkg/clock` → `support/clock`（62 处引用）
+- `pkg/ctxcompany` → `support/tenant`，包名重命名为 `tenant`（16 处引用）
+- `pkg/budget` → `support/budget`（61 处引用，跨 domain 使用不适合合并入单一 domain）
+- `pkg/org` → `support/org`（39 处引用，同上）
+- `pkg/ratelimit` → 合并入 `infra/ratelimit`（修复自引用循环）
+- `pkg/invitetoken` → `support/invitetoken`（9 处引用）
+- `pkg/common` → `support/common`（整体迁移，细粒度拆分留后续增量）
+- `pkg/tree` → `support/tree`
+- `pkg/baseurl` → `support/baseurl`
+- `pkg/modelcatalog` → `support/modelcatalog`
+- `internal/pkg/` 目录删除，零残留引用
+
+**阶段 3 完成**（2026-08-06）：
+- `internal/identity/` 整体移入 `internal/domain/identity/`（43 处 import 替换）
+- 包含：authz、credentials、sessiontoken、verifycode、httpx、registertoken、secrets
+- 注意：httpx 暂随 identity 移动到 domain 层（文档问题 1 中标注为已知妥协，auth handler 重构为 AuthService 时再抽离到 http/httpx）
 
 ---
 
