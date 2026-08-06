@@ -1,6 +1,6 @@
 package catalogsync
 
-// CatalogVersions holds the remote version of each sync partition.
+// CatalogVersions holds the remote version of each sync type.
 type CatalogVersions struct {
 	Models     int `json:"models"`
 	Pricing    int `json:"pricing"`
@@ -20,7 +20,7 @@ type CatalogModel struct {
 	MaxContext   int      `json:"maxContext,omitempty"`
 }
 
-// CatalogResponse is the generic wrapper for a partition catalog response.
+// CatalogResponse is the generic wrapper for a typed catalog response.
 type CatalogResponse[T any] struct {
 	Version int `json:"version"`
 	Data    []T `json:"data"`
