@@ -425,7 +425,9 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 }
 
 // syncCurrenciesFromSaaS fetches currencies from SaaS platform and writes them to local DB.
-// ponytail: currencies endpoint is public (no auth). Simple GET + INSERT.
+// ponytail: uses raw SQL (mirrors InsertCurrencyFromSync) because store.Store is not available
+// during setup. If InsertCurrencyFromSync SQL changes, this must be updated in sync.
+// Upgrade path: pass store.Store into RunSetupServer once compose allows it.
 func syncCurrenciesFromSaaS(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) error {
 	url := strings.TrimRight(cfg.SaasPlatformURL, "/") + "/api/platform/sync/catalog/currencies"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
