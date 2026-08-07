@@ -175,7 +175,7 @@ export function PlatformCompaniesPageShell(props: Props) {
 
   return (
     <PageShell>
-      <PageHeader title="企业管理" icon={Building2} />
+      <PageHeader testId="page-platform-companies" title="企业管理" icon={Building2} />
       <Card>
         <CardContent className="p-0">
           <DataSection
@@ -235,7 +235,7 @@ export function PlatformCompaniesPageShell(props: Props) {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => openGift(co)}>赠送</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openDiscount(co)}>
+                            <DropdownMenuItem data-testid={`platform-companies-discount-${co.id}`} onClick={() => openDiscount(co)}>
                               优惠
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleToggleStatus(co)}>

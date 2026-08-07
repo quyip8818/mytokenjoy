@@ -27,7 +27,7 @@ export function BillingPageShell({
 
   return (
     <PageShell>
-      <PageHeader title="钱包管理" description="账户余额与充值管理" />
+      <PageHeader testId="page-billing" title="钱包管理" description="账户余额与充值管理" />
 
       <BillingStats wallet={wallet} loading={loading} />
 

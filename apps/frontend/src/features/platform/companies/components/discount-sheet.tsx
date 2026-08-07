@@ -41,7 +41,7 @@ export function DiscountSheet({ target, discountState, onClose }: Props) {
 
   return (
     <Sheet open={!!target} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="sm:max-w-md overflow-y-auto">
+      <SheetContent data-testid="discount-sheet" className="sm:max-w-md overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{target?.name} — 模型优惠配置</SheetTitle>
         </SheetHeader>
@@ -123,7 +123,7 @@ export function DiscountSheet({ target, discountState, onClose }: Props) {
               />
             </label>
 
-            <Button className="w-full" disabled={submitting} onClick={handleSubmit}>
+            <Button data-testid="discount-submit" className="w-full" disabled={submitting} onClick={handleSubmit}>
               {submitting ? '保存中…' : '保存'}
             </Button>
           </div>

@@ -43,7 +43,7 @@ export function CallLogsPageShell({
 }: CallLogsPageShellProps) {
   return (
     <PageShell>
-      <PageHeader title="调用日志" />
+      <PageHeader testId="page-audit-calls" title="调用日志" />
 
       <AuditListToolbar
         datePreset={datePreset}

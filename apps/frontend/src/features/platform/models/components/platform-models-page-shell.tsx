@@ -26,6 +26,7 @@ export function PlatformModelsPageShell({
   return (
     <PageShell>
       <PageHeader
+        testId="page-platform-models"
         title="模型目录"
         description={`共 ${models.length} 个全局模型`}
         actions={

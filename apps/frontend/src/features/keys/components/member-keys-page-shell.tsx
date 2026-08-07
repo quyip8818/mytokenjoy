@@ -24,6 +24,7 @@ export function MemberKeysPageShell({
   return (
     <PageShell>
       <PageHeader
+        testId="page-me-keys"
         title="我的 Key"
         actions={
           <>

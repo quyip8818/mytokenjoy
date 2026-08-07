@@ -48,6 +48,7 @@ export function BudgetAlertsPageShell({
   return (
     <PageShell>
       <PageHeader
+        testId="page-budget-alerts"
         title="预警规则"
         description="设置预警阈值，在预算即将超支时及时通知相关负责人"
         actions={

@@ -45,7 +45,7 @@ export function DataSourcePageShell({
 }: DataSourcePageShellProps) {
   return (
     <PageShell>
-      <PageHeader title="数据源" />
+      <PageHeader testId="page-org-data-source" title="数据源" />
 
       <DataSection loading={loading} error={error} onRetry={() => void refresh()}>
         {phase === 'csv-import' ? (

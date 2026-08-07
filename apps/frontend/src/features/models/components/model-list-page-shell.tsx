@@ -76,7 +76,7 @@ export function ModelListPageShell({
   if (!isSelfHosted) {
     return (
       <PageShell>
-        <PageHeader title="模型列表" />
+        <PageHeader testId="page-models-list" title="模型列表" />
         <Card className="min-h-[360px] border-border shadow-xs">
           <CardContent className="px-5 pt-5 pb-4">{tableContent}</CardContent>
         </Card>
@@ -88,6 +88,7 @@ export function ModelListPageShell({
   return (
     <PageShell>
       <PageHeader
+        testId="page-models-list"
         title="模型列表"
         actions={
           <PermissionGate write permission={PERMISSION.MODEL_MANAGE}>

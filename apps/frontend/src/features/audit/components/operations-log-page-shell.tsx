@@ -42,7 +42,7 @@ export function OperationsLogPageShell({
 
   return (
     <PageShell>
-      <PageHeader title="操作审计" />
+      <PageHeader testId="page-audit-operations" title="操作审计" />
 
       <AuditListToolbar
         datePreset={datePreset}

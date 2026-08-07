@@ -25,7 +25,7 @@ export function DiscountSection({ discounts }: Props) {
   if (discounts.length === 0) return null
 
   return (
-    <div className="rounded-lg border border-border bg-card p-5">
+    <div data-testid="billing-discount-section" className="rounded-lg border border-border bg-card p-5">
       <h3 className="text-sm font-medium mb-3">当前优惠</h3>
       <Table>
         <TableHeader>

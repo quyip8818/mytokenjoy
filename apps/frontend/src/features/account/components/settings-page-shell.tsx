@@ -21,7 +21,7 @@ export function SettingsPageShell({
 }: SettingsPageState) {
   return (
     <PageShell>
-      <PageHeader title="设置" />
+      <PageHeader testId="page-me-settings" title="设置" />
 
       <nav className="flex gap-1 border-b border-border" aria-label="设置">
         {TABS.map((tab) => (

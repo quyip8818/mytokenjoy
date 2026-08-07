@@ -18,7 +18,7 @@ export function MyCallLogsPageShell({
 }: MyCallLogsPageShellProps) {
   return (
     <PageShell>
-      <PageHeader title="我的用量" />
+      <PageHeader testId="page-me-usage" title="我的用量" />
 
       <DataSection loading={loading} error={error} onRetry={() => void refresh()}>
         <CallLogsList

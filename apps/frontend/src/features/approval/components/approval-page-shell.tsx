@@ -25,7 +25,7 @@ export function ApprovalPageShell({
 }: ApprovalPageShellProps) {
   return (
     <PageShell>
-      <PageHeader title="审批中心" />
+      <PageHeader testId="page-approval" title="审批中心" />
 
       <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)}>
         <TabsList>

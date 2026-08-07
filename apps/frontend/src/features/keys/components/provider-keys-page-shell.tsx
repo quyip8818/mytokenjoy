@@ -25,6 +25,7 @@ export function ProviderKeysPageShell({
   return (
     <PageShell>
       <PageHeader
+        testId="page-keys-provider"
         title="供应商 Key"
         actions={
           <PermissionGate write permission={PERMISSION.KEYS_MANAGE}>

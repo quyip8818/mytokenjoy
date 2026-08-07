@@ -59,6 +59,7 @@ export function PlatformCurrenciesPageShell(props: Props) {
   return (
     <PageShell>
       <PageHeader
+        testId="page-platform-currencies"
         title="汇率管理"
         icon={Coins}
         actions={<Button onClick={openCreate}>+ 新增币种</Button>}
