@@ -1,5 +1,5 @@
 import { request } from './client'
-import type { RechargeInput, RechargeOrder, TopUpRecord, WalletView } from './types'
+import type { DiscountEntry, RechargeInput, RechargeOrder, TopUpRecord, WalletView } from './types'
 
 export const billingApi = {
   getWallet: () => request<WalletView>('/billing/wallet'),
@@ -11,4 +11,5 @@ export const billingApi = {
     }),
   confirmRecharge: (orderId: string) =>
     request<void>(`/billing/recharge/${orderId}/confirm`, { method: 'POST' }),
+  myDiscounts: () => request<DiscountEntry[]>('/billing/discounts'),
 }

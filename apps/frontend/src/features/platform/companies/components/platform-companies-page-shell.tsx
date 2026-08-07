@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import type { PlatformCompanyOverview } from '@/api/types'
 import type { usePlatformCompaniesPage } from '../hooks/use-platform-companies-page'
+import { useCompanyDiscounts } from '../hooks/use-company-discounts'
+import { DiscountSheet } from './discount-sheet'
 
 type Props = ReturnType<typeof usePlatformCompaniesPage>
 
@@ -162,7 +164,12 @@ export function PlatformCompaniesPageShell(props: Props) {
     closeGift,
     handleGift,
     handleToggleStatus,
+    discountTarget,
+    openDiscount,
+    closeDiscount,
   } = props
+
+  const discountState = useCompanyDiscounts(discountTarget?.id ?? null)
 
   const sorted = sortedByBalance(companies)
 
@@ -228,6 +235,9 @@ export function PlatformCompaniesPageShell(props: Props) {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => openGift(co)}>赠送</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openDiscount(co)}>
+                              优惠
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleToggleStatus(co)}>
                               {co.status === 'active' ? '停用' : '启用'}
                             </DropdownMenuItem>
@@ -263,6 +273,11 @@ export function PlatformCompaniesPageShell(props: Props) {
           onClose={closeGift}
         />
       )}
+      <DiscountSheet
+        target={discountTarget}
+        discountState={discountState}
+        onClose={closeDiscount}
+      />
     </PageShell>
   )
 }

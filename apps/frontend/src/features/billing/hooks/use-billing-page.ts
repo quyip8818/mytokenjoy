@@ -38,6 +38,12 @@ export function useBillingPage(injectedApis?: AppApis) {
     queryFn: (api) => api.billingApi.listRechargeRecords(),
   })
 
+  const { data: discounts = [] } = useInjectedQuery({
+    injectedApis,
+    queryKey: queryKeys.billing.discounts(),
+    queryFn: (api) => api.billingApi.myDiscounts(),
+  })
+
   const topUpRecords = (records ?? []).map(toTopUpRecordView)
 
   const handleRecharge = useCallback(
@@ -72,5 +78,6 @@ export function useBillingPage(injectedApis?: AppApis) {
     topUpRecords,
     rechargePending,
     handleRecharge,
+    discounts,
   }
 }

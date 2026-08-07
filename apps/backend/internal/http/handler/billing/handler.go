@@ -18,13 +18,15 @@ import (
 
 type Handler struct {
 	shared.ProtectedHandlerBase
-	billingSvc domainbilling.Service
+	billingSvc    domainbilling.Service
+	modelDiscount store.ModelDiscountRepository
 }
 
-func NewHandler(p httpdeps.Protected, billingSvc domainbilling.Service) *Handler {
+func NewHandler(p httpdeps.Protected, billingSvc domainbilling.Service, modelDiscount store.ModelDiscountRepository) *Handler {
 	return &Handler{
 		ProtectedHandlerBase: shared.NewProtectedHandlerBase(p),
 		billingSvc:           billingSvc,
+		modelDiscount:        modelDiscount,
 	}
 }
 
@@ -32,6 +34,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	read := httpmiddleware.ReadRoutes(r, h.Protected, grants.BillingRead)
 	read.Get("/billing/wallet", h.GetWallet)
 	read.Get("/billing/recharge-records", h.ListRechargeRecords)
+	read.Get("/billing/discounts", h.GetDiscounts)
 	write := httpmiddleware.ReadRoutes(r, h.Protected, grants.BillingManage)
 	write.Post("/billing/recharge", h.CreateRecharge)
 	write.Post("/billing/recharge/{id}/confirm", h.ConfirmRecharge)
@@ -90,8 +93,32 @@ func isTrialOrDemoCompany(r *http.Request) bool {
 	return ok && (info.Type == store.CompanyTypeTrial || info.Type == store.CompanyTypeDemo)
 }
 
+type discountDTO struct {
+	ModelType string  `json:"modelType"`
+	Discount  float64 `json:"discount"`
+	Note      string  `json:"note,omitempty"`
+}
+
+func (h *Handler) GetDiscounts(w http.ResponseWriter, r *http.Request) {
+	info, ok := tenant.From(r.Context())
+	if !ok {
+		httputil.WriteStatus(w, http.StatusUnauthorized, "missing tenant")
+		return
+	}
+	rows, err := h.modelDiscount.CurrentDiscounts(r.Context(), info.CompanyID)
+	if err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	out := make([]discountDTO, len(rows))
+	for i, row := range rows {
+		out[i] = discountDTO{ModelType: row.ModelType, Discount: row.Discount, Note: row.Note}
+	}
+	httputil.WriteJSON(w, http.StatusOK, out, nil)
+}
+
 // Mount registers the billing handler on the given router.
 func Mount(r chi.Router, d httpdeps.Deps) {
-	h := NewHandler(d.Protected(), d.BillingSvc)
+	h := NewHandler(d.Protected(), d.BillingSvc, d.Store.ModelDiscount())
 	h.RegisterRoutes(r)
 }

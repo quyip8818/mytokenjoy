@@ -302,6 +302,19 @@ func PlatformRechargeHTTP(t *testing.T, router http.Handler, platformCookie stri
 	}
 }
 
+func SetCompanyDiscountHTTP(t *testing.T, router http.Handler, platformCookie string, companyID uuid.UUID, modelType string, discount float64, note string) {
+	t.Helper()
+	body, _ := json.Marshal(map[string]any{"modelType": modelType, "discount": discount, "note": note})
+	url := fmt.Sprintf("/api/platform/companies/%s/discounts", companyID)
+	req := httptest.NewRequest(http.MethodPut, url, bytes.NewReader(body))
+	req.Header.Set("Cookie", platformCookie)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK && rec.Code != http.StatusNoContent {
+		t.Fatalf("set company discount: expected success, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func UpdateCompanyStatusHTTP(t *testing.T, router http.Handler, platformCookie string, companyID uuid.UUID, status string) {
 	t.Helper()
 	body, _ := json.Marshal(map[string]string{"status": status})

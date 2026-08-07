@@ -1,11 +1,13 @@
 import { request } from './client'
 import type {
+  DiscountEntry,
   PlatformCompanyOverview,
   PlatformCreateModelInput,
   PlatformCurrency,
   PlatformModel,
   PlatformSetPricingInput,
   PlatformUpdateModelInput,
+  SetDiscountInput,
 } from './types'
 
 export const platformApi = {
@@ -42,6 +44,15 @@ export const platformApi = {
 
   updateCompany: (id: string, patch: { status?: string }) =>
     request<void>(`/platform/companies/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+
+  listCompanyDiscounts: (companyId: string) =>
+    request<DiscountEntry[]>(`/platform/companies/${companyId}/discounts`),
+
+  setCompanyDiscount: (companyId: string, data: SetDiscountInput) =>
+    request<void>(`/platform/companies/${companyId}/discounts`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 
   // --- Currencies ---
   listCurrencies: () => request<PlatformCurrency[]>('/platform/currencies'),

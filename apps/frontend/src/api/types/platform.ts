@@ -66,3 +66,9 @@ export interface PlatformCurrency {
   updatedAt: string
   updatedByName: string | null
 }
+
+export interface SetDiscountInput {
+  modelType: string
+  discount: number
+  note?: string
+}

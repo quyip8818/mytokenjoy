@@ -125,7 +125,45 @@ consume log → TX: LockForUpdate(company)
 | 4 | Key active / 未过期                         |
 | 5 | 模型白名单                                  |
 
-### 4.4 Wallet 同步（NewAPI）
+### 4.4 Discount（模型折扣）
+
+平台管理员可为指定公司配置 per-model 折扣系数，影响 ingest 时的 quota 扣减量。
+
+**数据模型**：`model_discount` 表（append-only timeline）
+
+```
+(company_id, model_type, discount, effective_from, note)
+```
+
+**解析规则**（`domain/usage/discount.go` `resolveDiscount`）：
+1. 精确匹配 `model_type` → 返回对应 discount
+2. 通配 `*` → fallback
+3. 无配置 → 1.0（无折扣）
+
+**应用时机**：Ingest 入账时，在写 ledger 前对 `entry.QuotaAmount` 乘以 discount 系数：
+
+```
+entry.QuotaAmount = ceil(raw.Quota × discount)
+```
+
+例：`discount = 0.8` → 实际扣 quota = 原始的 80%（八折）。
+
+**SaaS → Local 同步**：Catalog Sync 的 `discounts` 通道（per-company version，见 `sync_versions` 表）。平台管理员在 SaaS 设置折扣后 bump version → Local 下次轮询检测到变化 → 拉取 → 写入本地 `model_discount` 表。
+
+**管理 UI**：
+- 平台侧：`/platform/companies` 页面 → DropdownMenu →「优惠」→ Sheet 面板配置
+- 企业侧：`/billing` 页面 → DiscountSection（只读，条件渲染：有数据才展示）
+
+**API**：
+| Method | Path | 权限 | 说明 |
+|--------|------|------|------|
+| GET | `/platform/companies/{id}/discounts` | `platform:manage` | 查看指定公司优惠 |
+| PUT | `/platform/companies/{id}/discounts` | `platform:manage` | 设置优惠 |
+| GET | `/api/billing/discounts` | `billing:read` | 企业查看自身优惠 |
+
+---
+
+### 4.5 Wallet 同步（NewAPI）
 
 TokenJoy `wallet_remain_quota` 是 SOT。NewAPI wallet 是实时镜像。
 
@@ -259,10 +297,13 @@ DefaultQuotaPerUnit = 10000
 | Lot 写入 | `domain/billing/lot/consume.go` | CreditFromLot / ConsumeLots |
 | 充值确认 | `domain/billing/lot_confirm.go` | confirmPaidRecharge / syncWalletBestEffort |
 | 钱包聚合 | `domain/billing/wallet_view.go` | AggregateWallet |
+| Discount | `domain/usage/discount.go` | ApplyDiscount / resolveDiscount |
+| Discount store | `store/model_discount.go` | ModelDiscountRepository (append-only) |
 | 入账 | `domain/usage/ingest.go` | IngestRaw（FIFO 消费 + post-commit sync） |
 | 预检 | `domain/gateway/evaluate.go` | wallet_remain_quota + combined_key_remain |
 | NewAPI 客户端 | `integration/newapi/user.go` | ManageUser (set_quota → override) |
 | Store | `store/postgres/company_repo.go` | ApplyWalletDelta / SetWalletRemainQuota |
+| Sync Versions | `store/sync_versions.go` | SyncVersionRepository (per-company + global) |
 | FE 换算 | `frontend/src/lib/quota-display.ts` | formatMoney / formatDisplayCurrency |
 
 ---

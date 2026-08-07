@@ -34,3 +34,9 @@ export interface RechargeInput {
 export interface RechargeOrder {
   id: string
 }
+
+export interface DiscountEntry {
+  modelType: string
+  discount: number
+  note?: string
+}

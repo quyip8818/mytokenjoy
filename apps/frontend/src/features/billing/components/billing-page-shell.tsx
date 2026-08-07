@@ -8,6 +8,7 @@ import { walletBillingCurrency } from '../lib/selectors'
 import { RechargePanel } from './recharge-panel'
 import { RechargeRecordsTable } from './recharge-records-table'
 import { BillingStats } from './billing-stats'
+import { DiscountSection } from './discount-section'
 
 type BillingPageShellProps = ReturnType<typeof useBillingPage>
 
@@ -19,6 +20,7 @@ export function BillingPageShell({
   topUpRecords,
   rechargePending,
   handleRecharge,
+  discounts,
 }: BillingPageShellProps) {
   const { companyType } = useSession()
   const canRecharge = companyType !== 'trial' && companyType !== 'demo'
@@ -28,6 +30,8 @@ export function BillingPageShell({
       <PageHeader title="钱包管理" description="账户余额与充值管理" />
 
       <BillingStats wallet={wallet} loading={loading} />
+
+      <DiscountSection discounts={discounts} />
 
       <DataSection loading={loading} error={error} onRetry={() => void refresh()}>
         <div className="space-y-6">

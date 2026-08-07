@@ -203,6 +203,7 @@ LRU cache key = `(companyID, memberID, revision)`。
 | 操作 | 权限 |
 |------|------|
 | GET 钱包/充值记录 | `billing:read` |
+| GET 当前公司优惠列表 | `billing:read` |
 | 充值/确认支付 | `billing:manage` |
 
 ### /api/dashboard

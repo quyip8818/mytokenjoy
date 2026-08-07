@@ -174,7 +174,7 @@ SyncVersions() SyncVersionRepository
 | `domain/billing/lot_confirm.go` `syncWalletBestEffort` | `s.store.SyncVersions().Increment(ctx, companyID, "wallet_lots")` |
 | `domain/usage/ingest.go` post-commit | `s.store.SyncVersions().Increment(ctx, companyID, "wallet_lots")` |
 
-> ponytail: `bumpPricingVersion` 被 `SetGlobalPricing`、`SetModelPricing`、`CreateModel`（有价格时）共 3 处调用，改 helper 一处即覆盖全部。currencies 有 3 处直接调用 `SystemSettings.Increment`，需逐个替换。
+> ponytail: `bumpPricingVersion` 被 `SetGlobalPricing`、`SetModelPricing`、`CreateModel`（有价格时）共 3 处调用，改 helper 一处即覆盖全部。`bumpModelsCatalogVersion` 被 `CreateModel`、`UpdateModel`、`PublishCatalog` 调用，同理。currencies 3 处已逐个替换。
 
 ### 4.2 读取侧（SaaS）—— CatalogVersions endpoint
 
@@ -343,7 +343,24 @@ SyncVersions store.SyncVersionRepository
 
 ## 7. system_settings 表处理
 
-迁移完成后 `system_settings` 不再存储任何 catalog version。表保留用于 Local 部署的 setup 配置（`platform_channel_id`、`saas_platform_key`、`catalog_sync_token`、`setup_company_id`、`setup_admin_email`）。
+迁移已完成。`system_settings` 不再存储任何 catalog version key。
+
+**已确认清理项**：
+- ✅ 旧常量 `catalogModelsVersionKey` / `catalogPricingVersionKey` / `catalogDiscountsVersionKey` / `catalogCurrenciesVersionKey` / `catalogWalletLotsVersionKey` — 已删除
+- ✅ `seed_core.go` `seedCatalogVersions` — 已改写为写入 `sync_versions` 表
+- ✅ `execute.go` 旧 `keyXxxVersion` 常量 — 已删除
+- ✅ domain 层 `SystemSettings().Increment("catalog.xxx")` — 已替换为 `SyncVersions().Increment`
+- ✅ 路由 `/sync/catalog/discounts` — 已注册
+- ✅ `/sync/versions` — 已移入 sync-token-required 组
+- ✅ `FetchVersions` client — 已带 auth
+
+`system_settings` 表保留用于 Local 部署的 setup 配置：
+- `catalog_sync_token`
+- `setup_company_id`
+- `setup_admin_email`
+- `platform_channel_id`
+- `saas_platform_key`
+- `setup_idempotency_key`
 
 ---
 

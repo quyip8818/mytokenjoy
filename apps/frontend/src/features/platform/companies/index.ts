@@ -1,3 +1,5 @@
 export { platformCompaniesKeys } from './query-keys'
 export { usePlatformCompaniesPage } from './hooks/use-platform-companies-page'
+export { useCompanyDiscounts } from './hooks/use-company-discounts'
 export { PlatformCompaniesPageShell } from './components/platform-companies-page-shell'
+export { DiscountSheet } from './components/discount-sheet'
