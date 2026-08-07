@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button'
-import type { WorkflowComponentProps } from '../../types'
-import { WorkflowPanelChrome } from '../../components/workflow-panel-chrome'
+import type { WorkflowComponentProps } from '@/features/workflow/types'
+import { WorkflowPanelChrome } from '@/features/workflow/components/workflow-panel-chrome'
 import { useLotAudit } from './use-lot-audit'
 import { LotRow } from './lot-row'
 

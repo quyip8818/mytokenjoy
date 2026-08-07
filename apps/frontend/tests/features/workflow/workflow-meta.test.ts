@@ -6,6 +6,7 @@ import { keysWorkflowDefinitions } from '@/features/workflow/definitions/keys'
 import { approvalWorkflowDefinitions } from '@/features/workflow/definitions/approval'
 import { modelsWorkflowDefinitions } from '@/features/workflow/definitions/models'
 import { sharedWorkflowDefinitions } from '@/features/workflow/definitions/shared'
+import { billingWorkflowDefinitions } from '@/features/workflow/definitions/billing'
 
 const workflowDefinitionsByDomain: Record<string, Record<string, WorkflowDefinition>> = {
   org: orgWorkflowDefinitions,
@@ -13,6 +14,7 @@ const workflowDefinitionsByDomain: Record<string, Record<string, WorkflowDefinit
   approval: approvalWorkflowDefinitions,
   models: modelsWorkflowDefinitions,
   shared: sharedWorkflowDefinitions,
+  billing: billingWorkflowDefinitions,
 }
 
 describe('WORKFLOW_META', () => {

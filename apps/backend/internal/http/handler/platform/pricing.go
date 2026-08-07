@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/http/response"
 	"github.com/tokenjoy/backend/internal/store"
@@ -156,37 +157,17 @@ func (h *Handler) BatchSetCompanyDiscounts(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := h.p.Store.WithTx(r.Context(), func(tx store.Store) error {
-		repo := tx.ModelDiscount()
-		for _, item := range body {
-			if item.ModelType == "" {
-				continue
-			}
-			if item.Discount <= 0 {
-				continue
-			}
-			if item.Discount == 1.0 {
-				if err := repo.DeleteByCompanyAndModel(r.Context(), companyID, item.ModelType); err != nil {
-					return err
-				}
-			} else {
-				row := store.ModelDiscountRow{
-					CompanyID: companyID,
-					ModelType: item.ModelType,
-					Discount:  item.Discount,
-					Note:      item.Note,
-				}
-				if err := repo.Insert(r.Context(), row); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}); err != nil {
+	entries := make([]domainbilling.DiscountSetEntry, 0, len(body))
+	for _, item := range body {
+		entries = append(entries, domainbilling.DiscountSetEntry{
+			ModelType: item.ModelType,
+			Discount:  item.Discount,
+			Note:      item.Note,
+		})
+	}
+	if err := h.p.BillingSvc.BatchSetDiscounts(r.Context(), companyID, entries); err != nil {
 		httputil.WriteError(w, err)
 		return
 	}
-
-	_, _ = h.p.SyncVersions.Increment(r.Context(), companyID, "discounts")
 	response.Void(w)
 }

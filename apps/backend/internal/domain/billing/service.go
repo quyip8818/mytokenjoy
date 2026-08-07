@@ -21,8 +21,16 @@ type Service interface {
 	PlatformGift(ctx context.Context, companyID uuid.UUID, amount float64, operatorID uuid.UUID) error
 	PlatformAdjust(ctx context.Context, companyID uuid.UUID, amount float64, paidAmount float64, operatorID uuid.UUID) error
 	PlatformRefund(ctx context.Context, companyID uuid.UUID, lotID uuid.UUID, amount float64, operatorID uuid.UUID) error
+	BatchSetDiscounts(ctx context.Context, companyID uuid.UUID, entries []DiscountSetEntry) error
 	CreateSelfRecharge(ctx context.Context, amount float64, idempotencyKey string, memberID uuid.UUID) (store.RechargeOrder, error)
 	ConfirmPayment(ctx context.Context, orderID uuid.UUID) error
+}
+
+// DiscountSetEntry represents a single discount set/delete request.
+type DiscountSetEntry struct {
+	ModelType string
+	Discount  float64
+	Note      string
 }
 
 // QuotaSyncer is the minimal interface for syncing quota to NewAPI.
@@ -35,6 +43,7 @@ type Store interface {
 	Billing() store.BillingRepository
 	Company() store.CompanyRepository
 	Models() store.ModelsRepository
+	ModelDiscount() store.ModelDiscountRepository
 	Audit() store.AuditRepository
 	SyncVersions() store.SyncVersionRepository
 	WithTx(ctx context.Context, fn func(store.Store) error) error
