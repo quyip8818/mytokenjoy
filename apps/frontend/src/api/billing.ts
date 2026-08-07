@@ -8,6 +8,12 @@ import type {
   WalletView,
 } from './types'
 
+export interface RedeemResult {
+  faceValue: number
+  currency: string
+  quotaGranted: number
+}
+
 export const billingApi = {
   getWallet: () => request<WalletView>('/billing/wallet'),
   listRechargeRecords: () => request<TopUpRecord[]>('/billing/recharge-records'),
@@ -18,6 +24,11 @@ export const billingApi = {
     }),
   confirmRecharge: (orderId: string) =>
     request<void>(`/billing/recharge/${orderId}/confirm`, { method: 'POST' }),
+  redeem: (code: string) =>
+    request<RedeemResult>('/billing/redeem', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
   myDiscounts: () => request<DiscountEntry[]>('/billing/discounts'),
   listLots: () => request<LotAuditEntry[]>('/billing/lots'),
 }

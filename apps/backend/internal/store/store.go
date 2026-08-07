@@ -64,6 +64,7 @@ type Store interface {
 	SyncVersions() SyncVersionRepository
 	PlatformQuery() PlatformQueryRepository
 	Logs() LogStore
+	Redemption() RedemptionRepository
 	WithTx(ctx context.Context, fn func(Store) error) error
 }
 

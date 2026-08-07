@@ -122,9 +122,41 @@ func (h *Handler) GetDiscounts(w http.ResponseWriter, r *http.Request) {
 func Mount(r chi.Router, d httpdeps.Deps) {
 	h := NewHandler(d.Protected(), d.BillingSvc, d.ModelDiscount())
 	h.RegisterRoutes(r)
+
+	// Redemption code endpoint — SaaS only (Local has no redemption_codes table).
+	if d.Config.SupportSaas {
+		write := httpmiddleware.ReadRoutes(r, d.Protected(), grants.BillingManage)
+		write.Post("/billing/redeem", h.Redeem)
+	}
 }
 
 func (h *Handler) ListLots(w http.ResponseWriter, r *http.Request) {
 	lots, err := h.billingSvc.ListLots(r.Context())
 	httputil.WriteJSON(w, http.StatusOK, lots, err)
+}
+
+type redeemBody struct {
+	Code string `json:"code"`
+}
+
+func (h *Handler) Redeem(w http.ResponseWriter, r *http.Request) {
+	if isTrialOrDemoCompany(r) {
+		httputil.WriteError(w, domain.ForbiddenCode("TRIAL_NO_TOPUP", "试用环境不支持兑换，升级后可使用"))
+		return
+	}
+	var body redeemBody
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	if body.Code == "" {
+		httputil.WriteStatus(w, http.StatusBadRequest, "code required")
+		return
+	}
+	memberID := uuid.Nil
+	if sessionCtx, ok := httpmiddleware.SessionFromContext(r.Context()); ok {
+		memberID = sessionCtx.Member.ID
+	}
+	result, err := h.billingSvc.RedeemCode(r.Context(), body.Code, memberID)
+	httputil.WriteJSON(w, http.StatusOK, result, err)
 }

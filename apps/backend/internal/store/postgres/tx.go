@@ -127,6 +127,10 @@ func (s *txStore) PlatformQuery() store.PlatformQueryRepository {
 	return newPlatformQueryRepo(s.parent.pool)
 }
 
+func (s *txStore) Redemption() store.RedemptionRepository {
+	return newRedemptionRepo(s.tx)
+}
+
 func (s *txStore) WithTx(ctx context.Context, fn func(store.Store) error) error {
 	return fn(s)
 }

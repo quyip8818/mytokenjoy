@@ -24,6 +24,7 @@ type Service interface {
 	BatchSetDiscounts(ctx context.Context, companyID uuid.UUID, entries []DiscountSetEntry) error
 	CreateSelfRecharge(ctx context.Context, amount float64, idempotencyKey string, memberID uuid.UUID) (store.RechargeOrder, error)
 	ConfirmPayment(ctx context.Context, orderID uuid.UUID) error
+	RedeemCode(ctx context.Context, rawCode string, memberID uuid.UUID) (RedeemResult, error)
 }
 
 // DiscountSetEntry represents a single discount set/delete request.

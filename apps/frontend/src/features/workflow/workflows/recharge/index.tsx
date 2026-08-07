@@ -5,20 +5,35 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from '@/lib/toast'
 import { useApis } from '@/api/use-apis'
+import { IS_SAAS } from '@/config/app'
+import { ApiError } from '@/api/client'
 import type { PaymentMethod } from '@/features/billing'
+import { billingKeys } from '@/features/billing'
 import type { WorkflowComponentProps } from '@/features/workflow/types'
 import { WorkflowPanelChrome, WorkflowPanelFooter } from '@/features/workflow/components/workflow-panel-chrome'
+import { useQueryClient } from '@tanstack/react-query'
 
 const PRESET_AMOUNTS = [10, 20, 50, 100, 200, 500]
+
+// ponytail: error code → user-friendly message mapping for redeem failures.
+const REDEEM_ERROR_MESSAGES: Record<string, string> = {
+  INVALID_REDEMPTION_CODE: '兑换码无效，请检查输入',
+  CODE_ALREADY_USED: '该兑换码已被使用',
+  CODE_EXPIRED: '该兑换码已过期',
+  CODE_DISABLED: '该兑换码已被禁用',
+  TRIAL_NO_TOPUP: '试用环境不支持兑换，升级后可使用',
+}
 
 export function RechargeWorkflow({ entry, onClose }: WorkflowComponentProps<'recharge'>) {
   const { currency, onSuccess } = entry.payload
   const apis = useApis()
+  const queryClient = useQueryClient()
 
   const [amount, setAmount] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('alipay')
   const [redemptionCode, setRedemptionCode] = useState('')
   const [pending, setPending] = useState(false)
+  const [redeeming, setRedeeming] = useState(false)
 
   const selectedAmount = amount ? Number(amount) : 0
 
@@ -40,6 +55,30 @@ export function RechargeWorkflow({ entry, onClose }: WorkflowComponentProps<'rec
       setPending(false)
     }
   }, [apis, selectedAmount, onSuccess, onClose])
+
+  const handleRedeem = useCallback(async () => {
+    const code = redemptionCode.trim()
+    if (!code) return
+    setRedeeming(true)
+    try {
+      const result = await apis.billingApi.redeem(code)
+      toast.success(`成功充值 ¥${result.faceValue.toFixed(2)}`)
+      setRedemptionCode('')
+      await queryClient.invalidateQueries({ queryKey: billingKeys.wallet() })
+      onSuccess?.()
+    } catch (err) {
+      const errorCode = err instanceof ApiError ? err.code : undefined
+      const msg = (errorCode && REDEEM_ERROR_MESSAGES[errorCode]) || '兑换失败，请重试'
+      toast.error(msg)
+    } finally {
+      setRedeeming(false)
+    }
+  }, [apis, redemptionCode, queryClient, onSuccess])
+
+  // Auto-uppercase + strip spaces on input change.
+  const handleRedemptionCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setRedemptionCode(e.target.value.toUpperCase().replace(/\s/g, ''))
+  }
 
   return (
     <WorkflowPanelChrome
@@ -124,24 +163,34 @@ export function RechargeWorkflow({ entry, onClose }: WorkflowComponentProps<'rec
           </div>
         </div>
 
-        {/* Redemption code */}
-        <div className="rounded-md border border-border p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <Gift className="size-4 text-muted-foreground" strokeWidth={1.5} />
-            <span className="text-sm font-medium">兑换码充值</span>
+        {/* Redemption code — SaaS only */}
+        {IS_SAAS && (
+          <div className="rounded-md border border-border p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <Gift className="size-4 text-muted-foreground" strokeWidth={1.5} />
+              <span className="text-sm font-medium">兑换码充值</span>
+            </div>
+            <div className="flex gap-2">
+              <Input
+                placeholder="TJ-XXXX-XXXX-XXXX"
+                value={redemptionCode}
+                onChange={handleRedemptionCodeChange}
+                className="max-w-sm font-mono"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !redeeming && redemptionCode.trim()) {
+                    void handleRedeem()
+                  }
+                }}
+              />
+              <Button
+                onClick={handleRedeem}
+                disabled={redeeming || !redemptionCode.trim()}
+              >
+                {redeeming ? '兑换中…' : '兑换额度'}
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Input
-              placeholder="请输入兑换码"
-              value={redemptionCode}
-              onChange={(e) => setRedemptionCode(e.target.value)}
-              className="max-w-sm"
-            />
-            <Button disabled disabledReason="兑换码能力即将上线">
-              兑换额度
-            </Button>
-          </div>
-        </div>
+        )}
       </div>
     </WorkflowPanelChrome>
   )

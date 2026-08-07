@@ -733,3 +733,27 @@ CREATE TABLE IF NOT EXISTS budget_snapshot (
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (company_id, period_key)
 );
+
+-- Redemption codes: SaaS-only feature. Table exists on all deployments (idempotent DDL) but
+-- routes are only registered when SUPPORT_SAAS=true. Local deploys have an empty, unused table.
+-- ponytail: single table, batch_name is a grouping tag. Upgrade path: split batches table if volume warrants.
+CREATE TABLE IF NOT EXISTS redemption_codes (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code                TEXT NOT NULL UNIQUE,
+    batch_name          TEXT NOT NULL DEFAULT '',
+    face_value          NUMERIC(12,2) NOT NULL CHECK (face_value > 0),
+    currency            TEXT NOT NULL DEFAULT 'CNY',
+    status              TEXT NOT NULL DEFAULT 'unused' CHECK (status IN ('unused', 'used', 'disabled')),
+    redeemed_by_company UUID,
+    redeemed_by_member  UUID,
+    redeemed_at         TIMESTAMPTZ,
+    recharge_order_id   UUID,
+    expires_at          TIMESTAMPTZ NOT NULL,
+    created_by          UUID NOT NULL,
+    note                TEXT NOT NULL DEFAULT '',
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_redemption_codes_code ON redemption_codes(code);
+CREATE INDEX IF NOT EXISTS idx_redemption_codes_batch ON redemption_codes(batch_name) WHERE batch_name != '';
+CREATE INDEX IF NOT EXISTS idx_redemption_codes_status ON redemption_codes(status) WHERE status = 'unused';
