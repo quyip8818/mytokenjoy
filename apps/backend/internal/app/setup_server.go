@@ -444,8 +444,11 @@ func syncCurrenciesFromSaaS(ctx context.Context, pool *pgxpool.Pool, cfg config.
 
 	var parsed struct {
 		Data []struct {
+			ID           string `json:"id"`
 			Code         string `json:"code"`
 			QuotaPerUnit int64  `json:"quotaPerUnit"`
+			Enabled      bool   `json:"enabled"`
+			UpdatedAt    int64  `json:"updatedAt"`
 		} `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
@@ -453,11 +456,22 @@ func syncCurrenciesFromSaaS(ctx context.Context, pool *pgxpool.Pool, cfg config.
 	}
 
 	for _, c := range parsed.Data {
+		id := c.ID
+		if id == "" {
+			id = uuid.Must(uuid.NewV7()).String()
+		}
+		updatedAt := time.Unix(c.UpdatedAt, 0)
+		if c.UpdatedAt == 0 {
+			updatedAt = time.Now()
+		}
 		if _, err := pool.Exec(ctx, `
-			INSERT INTO currencies (currency, quota_per_unit, enabled)
-			VALUES ($1, $2, TRUE)
-			ON CONFLICT (currency) DO UPDATE SET quota_per_unit = EXCLUDED.quota_per_unit, enabled = TRUE
-		`, c.Code, c.QuotaPerUnit); err != nil {
+			INSERT INTO currencies (id, currency, quota_per_unit, enabled, updated_at)
+			VALUES ($1, $2, $3, $4, $5)
+			ON CONFLICT (id) DO UPDATE SET
+				quota_per_unit = EXCLUDED.quota_per_unit,
+				enabled = EXCLUDED.enabled,
+				updated_at = EXCLUDED.updated_at
+		`, id, c.Code, c.QuotaPerUnit, c.Enabled, updatedAt); err != nil {
 			return fmt.Errorf("insert currency %s: %w", c.Code, err)
 		}
 	}
