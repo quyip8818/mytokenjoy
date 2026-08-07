@@ -4,7 +4,7 @@ test.describe('TokenJoy 模型列表 - SMS 同步数据展示', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/models/list')
     // Wait for the model list to load (scoped to main to avoid Header duplicate)
-    await expect(page.getByTestId('page-platform-models')).toBeVisible({
+    await expect(page.getByTestId('page-models-list')).toBeVisible({
       timeout: 10000,
     })
   })

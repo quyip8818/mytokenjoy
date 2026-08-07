@@ -52,7 +52,7 @@ export function BudgetPageShell({
         : undefined
 
   return (
-    <PageShell className="flex min-h-0 flex-1 flex-col">
+    <PageShell testId="page-budget" className="flex min-h-0 flex-1 flex-col">
       <DataSection
         loading={loading}
         error={error}

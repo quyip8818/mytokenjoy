@@ -45,7 +45,7 @@ export function RolesPageShell({
   searchMembers,
 }: RolesPageShellProps) {
   return (
-    <PageShell className="flex min-h-0 flex-1 flex-col">
+    <PageShell testId="page-org-roles" className="flex min-h-0 flex-1 flex-col">
       <SplitPanel
         master={
           <DataSection

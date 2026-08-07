@@ -17,7 +17,7 @@ export function CostDashboardLayoutPageShell({
   pageData,
 }: CostDashboardLayoutPageShellProps) {
   return (
-    <PageShell className="flex min-h-0 flex-1 flex-col">
+    <PageShell testId="page-dashboard-cost" className="flex min-h-0 flex-1 flex-col">
       <SplitPanel
         master={
           <OrgTreeSidebar
