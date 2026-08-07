@@ -24,7 +24,7 @@ test.describe('飞书数据导入', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(!isConnected, '数据源未连接，跳过飞书导入测试')
     await page.goto('/org/structure')
-    await expect(page.getByRole('banner').getByRole('heading', { name: '组织架构' })).toBeVisible()
+    await expect(page.getByTestId('page-org-structure')).toBeVisible()
   })
 
   test('飞书导入成员和部门结构', async ({ page }) => {

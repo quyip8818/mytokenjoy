@@ -13,6 +13,9 @@ import { expect, test } from '@playwright/test'
  * - 业务规则：普通成员不可移除、最后一个超管不可移除
  * - Toast 通知：操作成功/失败的用户反馈
  * - API 数据校验：接口返回结构完整性
+ *
+ * ponytail: `[class*="cursor-pointer"]` is a fragile class-based selector —
+ * needs data-testid on RoleList items. Kept as-is until component adds testid.
  */
 
 // ─── 页面渲染 ───────────────────────────────────────────────────────────
@@ -20,7 +23,7 @@ import { expect, test } from '@playwright/test'
 test.describe('角色管理 - 页面渲染', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/org/roles')
-    await expect(page.getByRole('heading', { name: '角色管理' })).toBeVisible()
+    await expect(page.getByTestId('page-org-roles')).toBeVisible()
   })
 
   test('左侧面板显示角色标题和新建按钮', async ({ page }) => {
@@ -81,7 +84,7 @@ test.describe('角色管理 - 页面渲染', () => {
 test.describe('角色管理 - 角色切换', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/org/roles')
-    await expect(page.getByRole('heading', { name: '角色管理' })).toBeVisible()
+    await expect(page.getByTestId('page-org-roles')).toBeVisible()
   })
 
   test('点击不同角色切换右侧成员列表', async ({ page }) => {
@@ -145,7 +148,7 @@ test.describe('角色管理 - 角色切换', () => {
 test.describe('角色管理 - 搜索过滤', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/org/roles')
-    await expect(page.getByRole('heading', { name: '角色管理' })).toBeVisible()
+    await expect(page.getByTestId('page-org-roles')).toBeVisible()
   })
 
   test('搜索角色关键词可过滤列表', async ({ page }) => {
@@ -190,7 +193,7 @@ test.describe('角色管理 - 搜索过滤', () => {
 test.describe('角色管理 - 角色 CRUD', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/org/roles')
-    await expect(page.getByRole('heading', { name: '角色管理' })).toBeVisible()
+    await expect(page.getByTestId('page-org-roles')).toBeVisible()
   })
 
   test('创建自定义角色 - 完整流程', async ({ page }) => {
@@ -319,7 +322,7 @@ test.describe('角色管理 - 角色 CRUD', () => {
     expect(createRes.status).toBe(200)
 
     await page.reload()
-    await expect(page.getByRole('heading', { name: '角色管理' })).toBeVisible()
+    await expect(page.getByTestId('page-org-roles')).toBeVisible()
     await expect(
       page.locator('[class*="cursor-pointer"]').filter({ hasText: roleName }),
     ).toBeVisible({ timeout: 10_000 })
@@ -377,7 +380,7 @@ test.describe('角色管理 - 角色 CRUD', () => {
     }
 
     await page.reload()
-    await expect(page.getByRole('heading', { name: '角色管理' })).toBeVisible()
+    await expect(page.getByTestId('page-org-roles')).toBeVisible()
     // Wait for role list to load
     await page.waitForTimeout(1000)
     const roleVisible = await page
@@ -468,7 +471,7 @@ test.describe('角色管理 - 预设角色保护', () => {
 test.describe('角色管理 - 成员管理', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/org/roles')
-    await expect(page.getByRole('heading', { name: '角色管理' })).toBeVisible()
+    await expect(page.getByTestId('page-org-roles')).toBeVisible()
   })
 
   test('成员表显示角色下的成员', async ({ page }) => {
@@ -819,7 +822,7 @@ test.describe('角色管理 - API 数据校验', () => {
 test.describe('角色管理 - 权限表单与交互细节', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/org/roles')
-    await expect(page.getByRole('heading', { name: '角色管理' })).toBeVisible()
+    await expect(page.getByTestId('page-org-roles')).toBeVisible()
   })
 
   test('创建角色表单显示权限分组', async ({ page }) => {

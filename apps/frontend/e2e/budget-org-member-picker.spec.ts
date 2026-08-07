@@ -7,7 +7,7 @@ import { expect, test } from '@playwright/test'
 test.describe('创建项目 - 组织树成员选择', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/budget')
-    await expect(page.getByRole('banner').getByRole('heading', { name: '预算管理' })).toBeVisible()
+    await expect(page.getByTestId('page-budget')).toBeVisible()
     await page.getByRole('treeitem', { name: /总公司/ }).click()
     const createBtn = page.getByRole('button', { name: '创建项目' })
     const visible = await createBtn.isVisible({ timeout: 3000 }).catch(() => false)

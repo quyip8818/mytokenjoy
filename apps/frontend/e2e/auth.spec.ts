@@ -10,7 +10,6 @@ test('redirects unauthenticated user to /login', async ({ page }) => {
 
 test('renders login form fields', async ({ page }) => {
   await page.goto('/login')
-  // Default step is email + password
   await expect(page.getByLabel('邮箱')).toBeVisible()
   await expect(page.getByLabel('密码')).toBeVisible()
   await expect(page.getByRole('button', { name: '登录' }).first()).toBeVisible()
@@ -18,7 +17,6 @@ test('renders login form fields', async ({ page }) => {
 
 test('login with valid credentials redirects to app', async ({ page }) => {
   await page.goto('/login')
-  // Default is already email login form
   await expect(page.getByLabel('邮箱')).toBeVisible()
   await page.getByLabel('邮箱').fill('demo@tokenjoy.me')
   await page.getByLabel('密码').fill('demo1234')
@@ -28,7 +26,6 @@ test('login with valid credentials redirects to app', async ({ page }) => {
 
 test('login with invalid credentials shows error', async ({ page }) => {
   await page.goto('/login')
-  await expect(page.getByLabel('邮箱')).toBeVisible()
   await page.getByLabel('邮箱').fill('demo@tokenjoy.me')
   await page.getByLabel('密码').fill('wrongpass')
   await page.locator('form button[type="submit"]').click()

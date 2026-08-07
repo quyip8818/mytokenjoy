@@ -13,7 +13,6 @@ test.describe('成员工作台', () => {
     }
     await page.goto('/')
     await expect(page).not.toHaveURL(/\/login/)
-    await expect(page.getByRole('banner').getByRole('heading').first()).toBeVisible()
   })
 
   test('member keys page loads', async ({ page }) => {
@@ -24,6 +23,6 @@ test.describe('成员工作台', () => {
       return
     }
     await page.goto('/me/keys')
-    await expect(page.getByRole('banner').getByRole('heading', { name: '我的 Key' })).toBeVisible()
+    await expect(page.getByTestId('page-me-keys')).toBeVisible()
   })
 })

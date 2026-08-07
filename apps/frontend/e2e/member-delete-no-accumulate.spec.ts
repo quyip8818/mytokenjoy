@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 test.describe('成员删除 - 请求不累积', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/org/structure')
-    await expect(page.getByRole('banner').getByRole('heading', { name: '组织架构' })).toBeVisible()
+    await expect(page.getByTestId('page-org-structure')).toBeVisible()
     // Select a department with multiple members
     await page.getByRole('treeitem', { name: /总公司/ }).click()
     await expect(page.getByRole('heading', { level: 3, name: '总公司' })).toBeVisible()

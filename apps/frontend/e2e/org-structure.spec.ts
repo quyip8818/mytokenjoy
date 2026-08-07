@@ -7,7 +7,7 @@ import { expect, test } from '@playwright/test'
 test.describe('组织架构 - 页面渲染与数据', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/org/structure')
-    await expect(page.getByRole('banner').getByRole('heading', { name: '组织架构' })).toBeVisible()
+    await expect(page.getByTestId('page-org-structure')).toBeVisible()
   })
 
   test('部门树正确渲染根节点和子部门', async ({ page }) => {
@@ -53,7 +53,7 @@ test.describe('组织架构 - 页面渲染与数据', () => {
 test.describe('组织架构 - 部门选择与过滤', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/org/structure')
-    await expect(page.getByRole('banner').getByRole('heading', { name: '组织架构' })).toBeVisible()
+    await expect(page.getByTestId('page-org-structure')).toBeVisible()
   })
 
   test('点击部门过滤成员列表', async ({ page }) => {
@@ -82,7 +82,7 @@ test.describe('组织架构 - 部门选择与过滤', () => {
 test.describe('组织架构 - 成员搜索', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/org/structure')
-    await expect(page.getByRole('banner').getByRole('heading', { name: '组织架构' })).toBeVisible()
+    await expect(page.getByTestId('page-org-structure')).toBeVisible()
   })
 
   test('输入关键字过滤成员', async ({ page }) => {
@@ -122,7 +122,7 @@ test.describe('组织架构 - 成员 CRUD', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/org/structure')
-    await expect(page.getByRole('banner').getByRole('heading', { name: '组织架构' })).toBeVisible()
+    await expect(page.getByTestId('page-org-structure')).toBeVisible()
     await page.getByRole('treeitem', { name: /总公司/ }).click()
     await expect(page.getByRole('heading', { level: 3, name: '总公司' })).toBeVisible()
   })
@@ -217,7 +217,7 @@ test.describe('组织架构 - 成员 CRUD', () => {
 
     // Verify in UI
     await page.reload()
-    await expect(page.getByRole('banner').getByRole('heading', { name: '组织架构' })).toBeVisible()
+    await expect(page.getByTestId('page-org-structure')).toBeVisible()
     await page.getByRole('treeitem', { name: /总公司/ }).click()
     await expect(page.getByRole('cell', { name: newName })).toBeVisible({ timeout: 5_000 })
   })
@@ -248,7 +248,7 @@ test.describe('组织架构 - 批量操作', () => {
   test.describe.configure({ mode: 'serial' })
   test.beforeEach(async ({ page }) => {
     await page.goto('/org/structure')
-    await expect(page.getByRole('banner').getByRole('heading', { name: '组织架构' })).toBeVisible()
+    await expect(page.getByTestId('page-org-structure')).toBeVisible()
   })
 
   test('选中成员后显示批量操作工具栏', async ({ page }) => {
@@ -369,7 +369,7 @@ test.describe('组织架构 - API 数据校验', () => {
 
   test('删除成员 API 返回 200 且成员从列表消失', async ({ page }) => {
     await page.goto('/org/structure')
-    await expect(page.getByRole('banner').getByRole('heading', { name: '组织架构' })).toBeVisible()
+    await expect(page.getByTestId('page-org-structure')).toBeVisible()
     await page.waitForTimeout(500)
 
     const membersResponse = await page.evaluate(async () => {
@@ -441,7 +441,7 @@ test.describe('组织架构 - API 数据校验', () => {
 test.describe('组织架构 - 激活邀请 Banner', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/org/structure')
-    await expect(page.getByRole('banner').getByRole('heading', { name: '组织架构' })).toBeVisible()
+    await expect(page.getByTestId('page-org-structure')).toBeVisible()
   })
 
   test('有 pending 成员时 banner 可见，点击发送后进入倒计时', async ({ page }) => {

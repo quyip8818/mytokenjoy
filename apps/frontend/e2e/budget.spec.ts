@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 test.describe('预算管理', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/budget')
-    await expect(page.getByRole('banner').getByRole('heading', { name: '预算管理' })).toBeVisible()
+    await expect(page.getByTestId('page-budget')).toBeVisible()
   })
 
   test('displays budget tree', async ({ page }) => {
@@ -22,7 +22,7 @@ test.describe('预算管理', () => {
 test.describe('预警规则', () => {
   test('loads alerts page with rule list', async ({ page }) => {
     await page.goto('/budget/alerts')
-    await expect(page.getByRole('banner').getByRole('heading', { name: '预警规则' })).toBeVisible()
+    await expect(page.getByTestId('page-budget-alerts')).toBeVisible()
     await expect(page.getByRole('button', { name: /新建规则|添加|创建/ })).toBeVisible()
   })
 })

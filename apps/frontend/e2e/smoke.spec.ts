@@ -1,27 +1,27 @@
 import { expect, test } from '@playwright/test'
 
 const routes = [
-  { path: '/org/data-source', heading: '数据源' },
-  { path: '/org/structure', heading: '组织架构' },
-  { path: '/org/roles', heading: '角色管理' },
-  { path: '/budget', heading: '预算管理' },
-  { path: '/budget/alerts', heading: '预警规则' },
-  { path: '/models/list', heading: '模型列表' },
-  { path: '/models/routing', heading: '模型配置' },
-  { path: '/me/keys', heading: '我的 Key' },
-  { path: '/approvals', heading: '审批中心' },
-  { path: '/keys/platform', heading: 'Key 管理' },
-  { path: '/keys/provider', heading: '供应商 Key' },
-  { path: '/dashboard/cost', heading: '成本看板' },
-  { path: '/dashboard/usage', heading: '用量分析' },
-  { path: '/billing', heading: '钱包管理' },
-  { path: '/audit/operations', heading: '操作审计' },
-  { path: '/audit/calls', heading: '调用日志' },
+  { path: '/org/data-source', testId: 'page-org-data-source' },
+  { path: '/org/structure', testId: 'page-org-structure' },
+  { path: '/org/roles', testId: 'page-org-roles' },
+  { path: '/budget', testId: 'page-budget' },
+  { path: '/budget/alerts', testId: 'page-budget-alerts' },
+  { path: '/models/list', testId: 'page-models-list' },
+  { path: '/models/routing', testId: 'page-models-routing' },
+  { path: '/me/keys', testId: 'page-me-keys' },
+  { path: '/approvals', testId: 'page-approval' },
+  { path: '/keys/platform', testId: 'page-keys-platform' },
+  { path: '/keys/provider', testId: 'page-keys-provider' },
+  { path: '/dashboard/cost', testId: 'page-dashboard-cost' },
+  { path: '/dashboard/usage', testId: 'page-dashboard-usage' },
+  { path: '/billing', testId: 'page-billing' },
+  { path: '/audit/operations', testId: 'page-audit-operations' },
+  { path: '/audit/calls', testId: 'page-audit-calls' },
 ]
 
-for (const { path, heading } of routes) {
-  test(`${path} renders heading "${heading}"`, async ({ page }) => {
+for (const { path, testId } of routes) {
+  test(`${path} renders page`, async ({ page }) => {
     await page.goto(path)
-    await expect(page.getByRole('banner').getByRole('heading', { name: heading })).toBeVisible()
+    await expect(page.getByTestId(testId)).toBeVisible()
   })
 }
