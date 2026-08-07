@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { PageLoading } from '@/components/ui/page-loading'
 import {
   WORKFLOW_ANIMATION_MS,
   WORKFLOW_LAYER_MAX_WIDTH,
@@ -8,13 +7,7 @@ import {
   WORKFLOW_MAX_DEPTH,
   WORKFLOW_PEEK_WIDTH_PX,
 } from '../constants'
-import type {
-  WorkflowDefinition,
-  WorkflowId,
-  WorkflowLayer,
-  WorkflowPayload,
-  WorkflowStackEntry,
-} from '../types'
+import type { WorkflowDefinition, WorkflowId, WorkflowLayer, WorkflowPayload, WorkflowStackEntry } from '../types'
 import { getWorkflowDefinition } from '../definitions'
 
 interface WorkflowPanelLayerProps {
@@ -46,7 +39,6 @@ export function WorkflowPanelLayer({
   const [definition, setDefinition] = useState<WorkflowDefinition | null>(null)
   const isTop = index === total - 1
   const depthFromTop = total - 1 - index
-  // ponytail: layer 由 stack position 自动推导，不再依赖 entry 存储
   const layer = Math.min(index + 1, WORKFLOW_MAX_DEPTH) as WorkflowLayer
   const styles = LAYER_STYLES[layer]
 
@@ -55,9 +47,7 @@ export function WorkflowPanelLayer({
     void getWorkflowDefinition(entry.id).then((def) => {
       if (!cancelled) setDefinition(def)
     })
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [entry.id])
 
   useEffect(() => {
@@ -70,10 +60,6 @@ export function WorkflowPanelLayer({
       if (index === 0) onClose()
       else onPop()
     }
-  }
-
-  const handleBack = () => {
-    onPop()
   }
 
   const Component = definition?.component
@@ -97,19 +83,16 @@ export function WorkflowPanelLayer({
       }}
     >
       {depthFromTop > 0 && (
-        <div
-          className="absolute left-0 top-0 bottom-0 w-3 bg-muted border-r border-border/60"
-          aria-hidden
-        />
+        <div className="absolute left-0 top-0 bottom-0 w-3 bg-muted border-r border-border/60" aria-hidden />
       )}
       <div className="flex h-full flex-col pl-0">
         {!Component ? (
-          <PageLoading />
+          <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">加载中…</div>
         ) : (
           <Component
             entry={entry}
             onClose={handleClose}
-            onPop={handleBack}
+            onPop={onPop}
             onPush={onPush}
             onSetDirty={onSetDirty}
           />

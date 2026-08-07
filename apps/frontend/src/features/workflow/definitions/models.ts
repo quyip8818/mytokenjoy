@@ -6,20 +6,21 @@ import {
   PlatformModelCreateWorkflow,
   PlatformModelEditWorkflow,
 } from '../workflows/platform-model-form'
+import { DiscountConfigWorkflow } from '../workflows/discount-config'
 
 export const modelsWorkflowDefinitions = {
-  'model-create': defineWorkflow(ModelCreateWorkflow, { defaultLayer: 1, title: '添加自定义模型' }),
-  'model-edit': defineWorkflow(ModelEditWorkflow, { defaultLayer: 1, title: '编辑自定义模型' }),
+  'model-create': defineWorkflow(ModelCreateWorkflow, { title: '添加自定义模型' }),
+  'model-edit': defineWorkflow(ModelEditWorkflow, { title: '编辑自定义模型' }),
   'whitelist-config': defineWorkflow(WhitelistConfigWorkflow, {
-    defaultLayer: 1,
     title: '配置部门白名单',
   }),
   'platform-model-create': defineWorkflow(PlatformModelCreateWorkflow, {
-    defaultLayer: 1,
     title: '添加平台模型',
   }),
   'platform-model-edit': defineWorkflow(PlatformModelEditWorkflow, {
-    defaultLayer: 1,
     title: '编辑平台模型',
+  }),
+  'discount-config': defineWorkflow(DiscountConfigWorkflow, {
+    title: '模型优惠配置',
   }),
 }

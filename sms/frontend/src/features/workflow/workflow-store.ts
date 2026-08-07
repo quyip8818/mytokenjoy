@@ -1,7 +1,7 @@
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import { WORKFLOW_MAX_DEPTH } from './constants'
 import type { WorkflowId, WorkflowPayloadMap, WorkflowStackEntry } from './types'
-import { getWorkflowMeta } from './definitions'
+import { WORKFLOW_META } from './definitions/workflow-meta'
 
 export interface WorkflowStoreState {
   stack: WorkflowStackEntry[]
@@ -18,10 +18,9 @@ function createEntry<T extends WorkflowId>(
   payload: WorkflowPayloadMap[T] = {} as WorkflowPayloadMap[T],
   title?: string,
 ): WorkflowStackEntry<T> {
-  const meta = getWorkflowMeta(id)
   return {
     id,
-    title: title ?? meta.title,
+    title: title ?? WORKFLOW_META[id].title,
     payload,
     dirty: false,
   }

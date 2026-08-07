@@ -25,4 +25,9 @@ export interface ModelsWorkflowPayloads {
     model: PlatformModel
     onSuccess?: () => void
   }
+  'discount-config': {
+    companyId: string
+    companyName: string
+    onSuccess?: () => void
+  }
 }

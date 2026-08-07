@@ -97,15 +97,6 @@ export function usePlatformCompaniesPage() {
     [apis, refresh],
   )
 
-  // --- Discount sheet ---
-  const [discountTarget, setDiscountTarget] = useState<PlatformCompanyOverview | null>(null)
-
-  const openDiscount = useCallback((co: PlatformCompanyOverview) => {
-    setDiscountTarget(co)
-  }, [])
-
-  const closeDiscount = useCallback(() => setDiscountTarget(null), [])
-
   return {
     companies,
     loading,
@@ -129,9 +120,5 @@ export function usePlatformCompaniesPage() {
     handleGift,
     // status
     handleToggleStatus,
-    // discount
-    discountTarget,
-    openDiscount,
-    closeDiscount,
   }
 }

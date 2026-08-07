@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import type { WorkflowPayloadMap } from './workflow-payloads'
+import type { WorkflowPayloadMap } from './payloads'
 
 export type WorkflowId = keyof WorkflowPayloadMap
 
@@ -7,7 +7,7 @@ export type WorkflowId = keyof WorkflowPayloadMap
 // 升级路径：如需 4+ 层，改 WORKFLOW_MAX_DEPTH 和 LAYER_STYLES 即可。
 export type WorkflowLayer = 1 | 2 | 3
 
-export type { WorkflowPayloadMap, WorkflowPayload } from './workflow-payloads'
+export type { WorkflowPayloadMap, WorkflowPayload } from './payloads'
 
 export interface WorkflowStackEntry<T extends WorkflowId = WorkflowId> {
   id: T

@@ -1,16 +1,16 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, Upload, Download, FileText } from 'lucide-react'
+import { Plus, Pencil, Trash2, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import { useFilteredQuery, useInjectedMutation, queryKeys } from '@/features/query'
 import { useSession } from '@/features/session'
 import { useSupplierOptions } from '@/features/suppliers'
+import { useWorkflow } from '@/features/workflow'
 import { useApis } from '@/api/use-apis'
 import { CONTRACT_STATUS } from '@/config/enums'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { StatusBadge } from '@/components/ui/badge'
 import { Pagination } from '@/components/ui/pagination'
 import {
@@ -28,19 +28,19 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { ConfirmActionDialog, type ConfirmActionState } from '@/components/ui/confirm-action-dialog'
 import { NativeSelect } from '@/components/ui/native-select'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
 import { daysUntil, formatAmount } from '@/lib/utils'
-import type { Contract, ContractDetail, ContractAttachment } from '@/api/contracts'
+import type { Contract } from '@/api/contracts'
 
 export function ContractsPage() {
   const { user } = useSession()
   const canEdit = user?.role === 'admin' || user?.role === 'buyer'
   const apis = useApis()
   const suppliers = useSupplierOptions()
+  const { open } = useWorkflow()
 
   const { data, loading, filter, setFilter, search } = useFilteredQuery({
     initialFilter: { page: 1, pageSize: 10, keyword: '', supplierId: '', status: '' },
@@ -62,9 +62,6 @@ export function ContractsPage() {
     remarks: '',
   })
   const [saving, setSaving] = useState(false)
-
-  const [detailOpen, setDetailOpen] = useState(false)
-  const [detail, setDetail] = useState<ContractDetail | null>(null)
   const [confirmState, setConfirmState] = useState<ConfirmActionState | null>(null)
 
   const deleteMut = useInjectedMutation<void, string>({
@@ -152,41 +149,7 @@ export function ContractsPage() {
 
   const openDetail = async (row: Contract) => {
     const d = await apis.contractsApi.detail(row.id)
-    setDetail(d)
-    setDetailOpen(true)
-  }
-
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !detail) return
-    try {
-      await apis.contractsApi.uploadAttachment(detail.id, file)
-      toast.success('上传成功')
-      const d = await apis.contractsApi.detail(detail.id)
-      setDetail(d)
-      search({})
-    } catch (err: any) {
-      toast.error(err.message)
-    }
-    e.target.value = ''
-  }
-
-  const handleDeleteAttachment = (att: ContractAttachment) => {
-    if (!detail) return
-    setConfirmState({
-      open: true,
-      title: '确认删除',
-      desc: `确定删除附件「${att.fileName}」吗？`,
-      variant: 'danger',
-      confirmLabel: '删除',
-      onConfirm: async () => {
-        await apis.contractsApi.deleteAttachment(detail!.id, att.id)
-        toast.success('删除成功')
-        const d = await apis.contractsApi.detail(detail!.id)
-        setDetail(d)
-        setConfirmState(null)
-      },
-    })
+    open('contract-detail', { contract: d, canEdit, onRefresh: () => search({}) })
   }
 
   const totalPages = Math.ceil((data?.total ?? 0) / filter.pageSize)
@@ -432,107 +395,6 @@ export function ContractsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* 详情侧抽屉 */}
-      <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
-        <SheetContent className="w-full max-w-lg overflow-auto sm:max-w-lg">
-          {detail && (
-            <>
-              <SheetHeader>
-                <SheetTitle>{detail.title}</SheetTitle>
-              </SheetHeader>
-              <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="text-muted-foreground">编号：</span>
-                  {detail.contractNo}
-                </div>
-                <div>
-                  <span className="text-muted-foreground">供应商：</span>
-                  {detail.supplierName}
-                </div>
-                <div>
-                  <span className="text-muted-foreground">金额：</span>
-                  {formatAmount(detail.amount)}
-                </div>
-                <div>
-                  <span className="text-muted-foreground">状态：</span>
-                  {CONTRACT_STATUS[detail.status]?.label}
-                </div>
-                <div>
-                  <span className="text-muted-foreground">签订：</span>
-                  {detail.signDate ?? '-'}
-                </div>
-                <div>
-                  <span className="text-muted-foreground">生效：</span>
-                  {detail.startDate ?? '-'}
-                </div>
-                <div>
-                  <span className="text-muted-foreground">到期：</span>
-                  {detail.endDate ?? '-'}
-                </div>
-                <div>
-                  <span className="text-muted-foreground">备注：</span>
-                  {detail.remarks ?? '-'}
-                </div>
-              </div>
-
-              <Card className="mt-6">
-                <CardHeader className="flex-row items-center justify-between pb-3">
-                  <CardTitle className="text-sm">附件 ({detail.attachments.length})</CardTitle>
-                  {canEdit && (
-                    <Button size="sm" asChild>
-                      <label className="cursor-pointer">
-                        <Upload className="h-3.5 w-3.5" /> 上传
-                        <input type="file" className="hidden" onChange={handleUpload} />
-                      </label>
-                    </Button>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  {detail.attachments.length === 0 ? (
-                    <div className="py-8 text-center text-sm text-muted-foreground">暂无附件</div>
-                  ) : (
-                    <div className="space-y-2">
-                      {detail.attachments.map((att) => (
-                        <div
-                          key={att.id}
-                          className="flex items-center justify-between rounded border p-2.5"
-                        >
-                          <div className="flex min-w-0 items-center gap-2">
-                            <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                            <div className="truncate text-sm">{att.fileName}</div>
-                            <span className="text-xs text-muted-foreground">
-                              {(att.fileSize / 1024).toFixed(0)} KB
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon-sm" asChild>
-                              <a
-                                href={`/api/contracts/${detail.id}/attachments/${att.id}/download`}
-                              >
-                                <Download className="h-3.5 w-3.5" />
-                              </a>
-                            </Button>
-                            {canEdit && (
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                onClick={() => handleDeleteAttachment(att)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
 
       <ConfirmActionDialog
         state={confirmState}

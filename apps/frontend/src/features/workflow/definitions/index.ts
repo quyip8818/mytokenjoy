@@ -39,7 +39,3 @@ export async function getWorkflowDefinition(id: WorkflowId): Promise<WorkflowDef
   definitionCache.set(id, definition)
   return definition
 }
-
-export function getWorkflowDefinitionSync(id: WorkflowId): WorkflowDefinition | undefined {
-  return definitionCache.get(id)
-}

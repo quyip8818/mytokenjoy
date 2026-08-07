@@ -22,7 +22,6 @@ describe('WORKFLOW_META', () => {
       const definition = workflowDefinitionsByDomain[domain][id]
       expect(definition, `missing definition for ${id}`).toBeDefined()
       expect(definition?.title).toBe(meta.title)
-      expect(definition?.defaultLayer).toBe(meta.defaultLayer)
     }
   })
 })
