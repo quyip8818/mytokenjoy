@@ -1,13 +1,20 @@
 import { useCallback, useRef, useState } from 'react'
-import type { ModelInfo } from '@/api/types'
+import type { DiscountEntry, ModelInfo } from '@/api/types'
 import { isCustomModel } from '../lib/model-kind'
 import { ModelTable } from './model-table'
 import { Badge } from '@/components/ui/badge'
 import { Pencil, Power } from 'lucide-react'
 
+function formatDiscount(d: number): string {
+  if (d === 1) return '—'
+  if (d < 1) return `${(d * 10).toFixed(1).replace(/\.0$/, '')}折`
+  return `加价${Math.round((d - 1) * 100)}%`
+}
+
 interface ModelListTableProps {
   models: ModelInfo[]
   canManage: boolean
+  discountMap: Map<string, DiscountEntry>
   rowClass: (id: string) => string | undefined
   onToggle: (model: ModelInfo) => void | Promise<void>
   onEdit: (model: ModelInfo) => void
@@ -16,6 +23,7 @@ interface ModelListTableProps {
 export function ModelListTable({
   models,
   canManage,
+  discountMap,
   rowClass,
   onToggle,
   onEdit,
@@ -41,6 +49,9 @@ export function ModelListTable({
   // ponytail: only custom models can be toggled — global models are read-only on SaaS
   const canToggle = (model: ModelInfo) => isCustomModel(model)
 
+  // ponytail: hasAnyDiscount gates column render — no discount data = no column
+  const hasAnyDiscount = discountMap.size > 0
+
   return (
     <ModelTable
       models={models}
@@ -53,6 +64,18 @@ export function ModelListTable({
             </Badge>
           ),
         },
+        ...(hasAnyDiscount
+          ? [
+              {
+                header: '折扣',
+                render: (model: ModelInfo) => {
+                  const entry = discountMap.get(model.type) ?? discountMap.get('*')
+                  if (!entry || entry.discount === 1) return <span className="text-muted-foreground">—</span>
+                  return <span className="text-xs tabular-nums">{formatDiscount(entry.discount)}</span>
+                },
+              },
+            ]
+          : []),
       ]}
       rowClass={(model) => rowClass(model.modelId)}
       renderActions={

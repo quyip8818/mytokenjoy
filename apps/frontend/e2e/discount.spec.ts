@@ -1,13 +1,6 @@
 import { expect, test } from '@playwright/test'
 
 test.describe('优惠折扣', () => {
-  test('billing page hides discount section when no discounts', async ({ page }) => {
-    await page.goto('/billing')
-    await expect(page.getByTestId('page-billing')).toBeVisible()
-    // No discount configured → section should not exist
-    await expect(page.getByTestId('billing-discount-section')).not.toBeVisible()
-  })
-
   test('platform companies page shows discount menu item', async ({ page }) => {
     await page.goto('/platform/companies')
     // Platform page requires platform:manage — skip if no access

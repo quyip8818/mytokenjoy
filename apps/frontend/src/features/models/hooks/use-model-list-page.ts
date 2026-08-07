@@ -3,7 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import { toast } from '@/lib/toast'
 import type { AppApis } from '@/api/app-apis'
 import { useInjectedApis } from '@/api/use-apis'
-import type { ModelInfo } from '@/api/types'
+import type { DiscountEntry, ModelInfo } from '@/api/types'
 import { apiErrorMessage } from '@/lib/api-error-toast'
 import { queryKeys, useInjectedQuery } from '@/features/query'
 import { useCtaHighlight } from '@/hooks/use-cta-highlight'
@@ -36,6 +36,19 @@ export function useModelListPage(injectedApis?: AppApis) {
     queryKey: queryKeys.models.list(),
     queryFn: (a) => a.modelsApi.list(),
   })
+
+  const { data: discounts = [] } = useInjectedQuery({
+    injectedApis,
+    queryKey: queryKeys.billing.discounts(),
+    queryFn: (a) => a.billingApi.myDiscounts(),
+  })
+
+  // ponytail: build a lookup map for O(1) discount per model; '*' = fallback
+  const discountMap = useMemo(() => {
+    const map = new Map<string, DiscountEntry>()
+    for (const d of discounts) map.set(d.modelType, d)
+    return map
+  }, [discounts])
 
   const { openWithRefresh } = useWorkflowRefresh({
     refresh,
@@ -102,5 +115,6 @@ export function useModelListPage(injectedApis?: AppApis) {
     mutating: toggleMutation.isPending,
     openCreate,
     openEdit,
+    discountMap,
   }
 }

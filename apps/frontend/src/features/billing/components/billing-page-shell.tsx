@@ -10,7 +10,6 @@ import { walletBillingCurrency } from '../lib/selectors'
 import { RechargePanel } from './recharge-panel'
 import { RechargeRecordsTable } from './recharge-records-table'
 import { BillingStats } from './billing-stats'
-import { DiscountSection } from './discount-section'
 
 type BillingPageShellProps = ReturnType<typeof useBillingPage>
 
@@ -22,7 +21,6 @@ export function BillingPageShell({
   topUpRecords,
   rechargePending,
   handleRecharge,
-  discounts,
 }: BillingPageShellProps) {
   const { companyId, companyName, companyType } = useSession()
   const { open } = useWorkflow()
@@ -49,8 +47,6 @@ export function BillingPageShell({
           查看批次明细
         </Button>
       </div>
-
-      <DiscountSection discounts={discounts} />
 
       <DataSection loading={loading} error={error} onRetry={() => void refresh()}>
         <div className="space-y-6">

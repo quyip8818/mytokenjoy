@@ -45,6 +45,7 @@ export function ModelListPageShell({
   handleToggle,
   openCreate,
   openEdit,
+  discountMap,
 }: ModelListPageShellProps) {
   const { companyType } = useSession()
   const isSelfHosted = companyType === 'selfhosted'
@@ -65,6 +66,7 @@ export function ModelListPageShell({
       <ModelListTable
         models={models}
         canManage={canManage}
+        discountMap={discountMap}
         rowClass={rowClass}
         onToggle={handleToggle}
         onEdit={openEdit}

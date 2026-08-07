@@ -55,4 +55,36 @@ describe('useModelListPage', () => {
 
     expect(result.current.models).toEqual(mockModels)
   })
+
+  it('builds discountMap from billing discounts', async () => {
+    const discounts = [
+      { modelType: 'deepseek-v4-flash', discount: 0.9, note: '限时优惠' },
+      { modelType: '*', discount: 0.95 },
+    ]
+    const apis = createMockApis({
+      modelsApi: { list: vi.fn().mockResolvedValue(mockModels) },
+      billingApi: { myDiscounts: vi.fn().mockResolvedValue(discounts) },
+    })
+
+    const { result } = renderHookWithProviders(() => useModelListPage(apis), { apis })
+
+    await waitForLoaded(result, 'loading')
+
+    expect(result.current.discountMap.size).toBe(2)
+    expect(result.current.discountMap.get('deepseek-v4-flash')?.discount).toBe(0.9)
+    expect(result.current.discountMap.get('*')?.discount).toBe(0.95)
+  })
+
+  it('returns empty discountMap when no discounts configured', async () => {
+    const apis = createMockApis({
+      modelsApi: { list: vi.fn().mockResolvedValue(mockModels) },
+      billingApi: { myDiscounts: vi.fn().mockResolvedValue([]) },
+    })
+
+    const { result } = renderHookWithProviders(() => useModelListPage(apis), { apis })
+
+    await waitForLoaded(result, 'loading')
+
+    expect(result.current.discountMap.size).toBe(0)
+  })
 })
