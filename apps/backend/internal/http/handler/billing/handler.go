@@ -119,6 +119,6 @@ func (h *Handler) GetDiscounts(w http.ResponseWriter, r *http.Request) {
 
 // Mount registers the billing handler on the given router.
 func Mount(r chi.Router, d httpdeps.Deps) {
-	h := NewHandler(d.Protected(), d.BillingSvc, d.Store.ModelDiscount())
+	h := NewHandler(d.Protected(), d.BillingSvc, d.ModelDiscount())
 	h.RegisterRoutes(r)
 }

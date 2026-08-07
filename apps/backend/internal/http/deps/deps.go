@@ -74,3 +74,6 @@ func (d Deps) Notifications() store.NotificationRepository {
 func (d Deps) NotificationPreferences() store.NotificationPreferenceRepository {
 	return d.Store.NotificationPreference()
 }
+func (d Deps) ModelDiscount() store.ModelDiscountRepository {
+	return d.Store.ModelDiscount()
+}

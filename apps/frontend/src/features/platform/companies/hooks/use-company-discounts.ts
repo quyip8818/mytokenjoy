@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { toast } from '@/lib/toast'
 import { useInjectedApis } from '@/api/use-apis'
 import { useInjectedQuery } from '@/features/query/use-injected-query'
-import type { DiscountEntry, SetDiscountInput } from '@/api/types'
+import type { SetDiscountInput } from '@/api/types'
 import { platformCompaniesKeys } from '../query-keys'
 
 function discountKeys(companyId: string) {

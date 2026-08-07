@@ -5,25 +5,33 @@ package postgres_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/store"
 )
 
+func createDiscountTestCompany(t *testing.T, st store.Store) uuid.UUID {
+	t.Helper()
+	id := uuid.Must(uuid.NewV7())
+	ctx := context.Background()
+	err := st.Company().Create(ctx, store.Company{
+		ID:     id,
+		Name:   "discount-test-" + id.String()[:8],
+		Type:   store.CompanyTypeStandard,
+		Status: store.CompanyStatusActive,
+	})
+	if err != nil {
+		t.Fatalf("create test company: %v", err)
+	}
+	return id
+}
+
 func TestModelDiscountInsertAndQuery(t *testing.T) {
 	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := context.Background()
-
-	companyID := store.CompanyID(ctx)
-	if companyID == uuid.Nil {
-		// Use the first seeded company
-		co, err := st.Company().List(ctx)
-		if err != nil || len(co) == 0 {
-			t.Fatal("no companies in test db")
-		}
-		companyID = co[0].ID
-	}
+	companyID := createDiscountTestCompany(t, st)
 
 	// Insert two discounts for different models
 	err := st.ModelDiscount().Insert(ctx, store.ModelDiscountRow{
@@ -51,8 +59,8 @@ func TestModelDiscountInsertAndQuery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CurrentDiscounts: %v", err)
 	}
-	if len(rows) < 2 {
-		t.Fatalf("expected at least 2 discount rows, got %d", len(rows))
+	if len(rows) != 2 {
+		t.Fatalf("expected 2 discount rows, got %d", len(rows))
 	}
 
 	// Verify values
@@ -72,25 +80,24 @@ func TestModelDiscountAppendOnlyLatestWins(t *testing.T) {
 	t.Parallel()
 	st := testPostgresStore(t)
 	ctx := context.Background()
+	companyID := createDiscountTestCompany(t, st)
 
-	co, err := st.Company().List(ctx)
-	if err != nil || len(co) == 0 {
-		t.Fatal("no companies in test db")
-	}
-	companyID := co[0].ID
+	now := time.Now()
 
-	// Insert first discount
+	// Insert first discount (older)
 	_ = st.ModelDiscount().Insert(ctx, store.ModelDiscountRow{
-		CompanyID: companyID,
-		ModelType: "deepseek-chat",
-		Discount:  0.7,
+		CompanyID:     companyID,
+		ModelType:     "deepseek-chat",
+		Discount:      0.7,
+		EffectiveFrom: now.Add(-time.Minute),
 	})
 
-	// Insert newer discount for same model (append-only, later effective_from)
+	// Insert newer discount for same model
 	_ = st.ModelDiscount().Insert(ctx, store.ModelDiscountRow{
-		CompanyID: companyID,
-		ModelType: "deepseek-chat",
-		Discount:  0.85,
+		CompanyID:     companyID,
+		ModelType:     "deepseek-chat",
+		Discount:      0.85,
+		EffectiveFrom: now,
 	})
 
 	// Query should return latest only
