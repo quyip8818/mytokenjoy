@@ -17,7 +17,7 @@ vi.mock('@/config/app', async (importOriginal) => {
 
 const baseProps = {
   wallet: {
-    companyId: 1,
+    companyId: '00000000-0000-7000-8000-000000000002',
     billingCurrency: 'CNY',
     balances: [{ currency: 'CNY', balance: 50, totalTopup: 100, totalConsumed: 50 }],
     walletRemainQuota: 50000,
