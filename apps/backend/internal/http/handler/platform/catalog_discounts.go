@@ -25,7 +25,7 @@ func (h *Handler) CatalogDiscounts(w http.ResponseWriter, r *http.Request) {
 
 	data := make([]discountDTO, len(rows))
 	for i, row := range rows {
-		data[i] = discountDTO{ModelType: row.ModelType, Discount: row.Discount}
+		data[i] = discountDTO{ID: row.ID.String(), ModelType: row.ModelType, Discount: row.Discount}
 	}
 
 	v, _ := h.p.SyncVersions.Get(r.Context(), companyID, "discounts")

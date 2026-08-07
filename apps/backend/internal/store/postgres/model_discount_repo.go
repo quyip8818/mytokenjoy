@@ -55,6 +55,21 @@ func (r *modelDiscountRepo) DeleteByCompanyAndModel(ctx context.Context, company
 	return err
 }
 
+func (r *modelDiscountRepo) InsertFromSync(ctx context.Context, row store.ModelDiscountRow) error {
+	if row.EffectiveFrom.IsZero() {
+		row.EffectiveFrom = time.Now()
+	}
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO model_discount (id, company_id, model_type, discount, effective_from, note)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (id) DO UPDATE SET
+			discount = EXCLUDED.discount,
+			effective_from = EXCLUDED.effective_from,
+			note = EXCLUDED.note
+	`, row.ID, row.CompanyID, row.ModelType, row.Discount, row.EffectiveFrom, row.Note)
+	return err
+}
+
 func (r *modelDiscountRepo) DeleteAllByCompany(ctx context.Context, companyID uuid.UUID) error {
 	_, err := r.db.Exec(ctx, `DELETE FROM model_discount WHERE company_id = $1`, companyID)
 	return err

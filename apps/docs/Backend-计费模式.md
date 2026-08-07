@@ -39,7 +39,7 @@ Usage tokens ──→ Quota (int64) ──→ Wallet 展示币（lot 冻结）
 
 | 位置                             | 作用                                              |
 | -------------------------------- | ------------------------------------------------- |
-| `currencies.quota_per_unit`      | QPU 表级 SSOT                                     |
+| `currencies` 最新行 `.quota_per_unit` | QPU 表级 SSOT（append-only，取 `updated_at` 最大行） |
 | `companies.billing_currency`     | 公司当前计费币（只影响**新**充值 / overdraft）     |
 | Session `quotaPerUnit`           | FE 写边界注入（`ResolveCompanyChargeRate`）        |
 

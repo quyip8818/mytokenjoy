@@ -27,6 +27,9 @@ type ModelDiscountRepository interface {
 	// Insert appends a new discount row.
 	Insert(ctx context.Context, row ModelDiscountRow) error
 
+	// InsertFromSync inserts a discount row from CatalogSync (with known ID). Skips if ID exists.
+	InsertFromSync(ctx context.Context, row ModelDiscountRow) error
+
 	// DeleteByCompanyAndModel removes all discount rows for a specific company+model_type.
 	DeleteByCompanyAndModel(ctx context.Context, companyID uuid.UUID, modelType string) error
 

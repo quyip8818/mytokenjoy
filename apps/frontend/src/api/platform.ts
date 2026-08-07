@@ -74,4 +74,9 @@ export const platformApi = {
       method: 'PATCH',
       body: JSON.stringify({ enabled }),
     }),
+
+  listCurrencyHistory: (code: string, limit = 50, offset = 0) =>
+    request<PlatformCurrency[]>(
+      `/platform/currencies/${code}/history?limit=${limit}&offset=${offset}`,
+    ),
 }

@@ -5,13 +5,17 @@ RETURNS TEXT[] LANGUAGE sql IMMUTABLE AS $$
 $$;
 
 CREATE TABLE IF NOT EXISTS currencies (
-    currency              CHAR(3) PRIMARY KEY,
+    id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    currency              CHAR(3) NOT NULL,
     quota_per_unit        BIGINT NOT NULL CHECK (quota_per_unit > 0),
     enabled               BOOLEAN NOT NULL DEFAULT TRUE,
     updated_by_user_id    UUID,
     created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Append-only: same currency code has multiple rows; latest by updated_at is "current".
+CREATE INDEX IF NOT EXISTS idx_currencies_code_time ON currencies(currency, updated_at DESC);
 
 -- Global: companies
 CREATE TABLE IF NOT EXISTS companies (
@@ -26,7 +30,7 @@ CREATE TABLE IF NOT EXISTS companies (
     newapi_wallet_company_id  BIGINT,
     authz_revision            BIGINT NOT NULL DEFAULT 0,
     -- Default must match common.DefaultBillingCurrency.
-    billing_currency          CHAR(3) NOT NULL DEFAULT 'CNY' REFERENCES currencies (currency),
+    billing_currency          CHAR(3) NOT NULL DEFAULT 'CNY',
     fifo_head_lot_id          UUID,
     wallet_remain_quota       BIGINT NOT NULL DEFAULT 0,
     sync_token_hash           CHAR(64),

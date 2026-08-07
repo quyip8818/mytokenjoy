@@ -280,8 +280,9 @@ Local 实例 (catalogsync worker, 定时轮询)
 ### 同步保证
 
 - **最终一致**：Local catalogsync worker 按配置间隔轮询，非实时
-- **幂等写入**：append-only，`CurrentDiscounts` 总取 `effective_from DESC` 最新行
+- **幂等写入**：SaaS 下发每条 discount 的 UUID id，Local 用 `INSERT ... ON CONFLICT (id) DO NOTHING` 实现幂等。重复 sync 不会产生冗余行
 - **单向**：SaaS → Local，Local 不回写 discount（只读消费）
+- **统一模式**：与 currencies / lots / orders sync 统一使用 id 幂等模式
 
 ---
 

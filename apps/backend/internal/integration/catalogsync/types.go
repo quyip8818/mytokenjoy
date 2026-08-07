@@ -36,14 +36,18 @@ type CatalogPricing struct {
 
 // CatalogDiscount represents a per-company discount entry from the platform sync API.
 type CatalogDiscount struct {
+	ID        string  `json:"id"`
 	ModelType string  `json:"modelType"` // exact model type
 	Discount  float64 `json:"discount"`  // multiplier: 0.8 = 20% off
 }
 
 // CatalogCurrency represents a currency entry from the platform sync API.
 type CatalogCurrency struct {
+	ID           string `json:"id"`
 	Code         string `json:"code"`
 	QuotaPerUnit int64  `json:"quotaPerUnit"`
+	Enabled      bool   `json:"enabled"`
+	UpdatedAt    int64  `json:"updatedAt"` // unix timestamp
 }
 
 // CatalogLot represents a lot entry from the platform sync API.

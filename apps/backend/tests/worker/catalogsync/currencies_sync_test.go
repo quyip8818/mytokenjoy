@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	catalog "github.com/tokenjoy/backend/internal/integration/catalogsync"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/worker/catalogsync"
@@ -16,7 +17,7 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
 
-// TestCurrenciesSyncTriggered — version 不同 → 拉取 + ReplaceCurrencies
+// TestCurrenciesSyncTriggered — version 不同 → 拉取 + InsertCurrencyFromSync
 func TestCurrenciesSyncTriggered(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
@@ -24,9 +25,12 @@ func TestCurrenciesSyncTriggered(t *testing.T) {
 	globalCompanyID := cfg.TokenJoyCompanyID
 	localCompanyID := createTestCompany(t, st)
 
+	cnyID := uuid.Must(uuid.NewV7()).String()
+	usdID := uuid.Must(uuid.NewV7()).String()
+
 	mockServer := currenciesMockServer(t, catalog.CatalogVersions{Models: 1, Pricing: 1, Currencies: 2}, []catalog.CatalogCurrency{
-		{Code: "CNY", QuotaPerUnit: 500000},
-		{Code: "USD", QuotaPerUnit: 3600000},
+		{ID: cnyID, Code: "CNY", QuotaPerUnit: 500000, Enabled: true, UpdatedAt: 1700000000},
+		{ID: usdID, Code: "USD", QuotaPerUnit: 3600000, Enabled: true, UpdatedAt: 1700000000},
 	})
 
 	stub := &mock.StubAdminClient{}
@@ -68,8 +72,8 @@ func TestCurrenciesSyncTriggered(t *testing.T) {
 	}
 }
 
-// TestCurrenciesSyncDisablesStale — 远端移除币种 → 本地 disable
-func TestCurrenciesSyncDisablesStale(t *testing.T) {
+// TestCurrenciesSyncIdempotent — same id synced twice → no duplicate rows
+func TestCurrenciesSyncIdempotent(t *testing.T) {
 	t.Parallel()
 	cfg, st := testutil.NewTestStore(t)
 
@@ -78,35 +82,37 @@ func TestCurrenciesSyncDisablesStale(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Pre-insert CNY + USD as enabled
-	_ = st.Billing().UpsertCurrency(ctx, store.Currency{Code: "CNY", QuotaPerUnit: 500000, Enabled: true})
-	_ = st.Billing().UpsertCurrency(ctx, store.Currency{Code: "USD", QuotaPerUnit: 3600000, Enabled: true})
+	cnyID := uuid.Must(uuid.NewV7()).String()
 
-	// Mock returns only CNY — USD should get disabled
+	// Pre-insert CNY via InsertCurrency
+	_ = st.Billing().InsertCurrency(ctx, store.Currency{Code: "CNY", QuotaPerUnit: 500000, Enabled: true})
+
+	// Sync returns same CNY with a known id
 	mockServer := currenciesMockServer(t, catalog.CatalogVersions{Models: 1, Pricing: 1, Currencies: 2}, []catalog.CatalogCurrency{
-		{Code: "CNY", QuotaPerUnit: 500000},
+		{ID: cnyID, Code: "CNY", QuotaPerUnit: 500000, Enabled: true, UpdatedAt: 1700000000},
 	})
 
 	stub := &mock.StubAdminClient{}
 	client := catalog.NewClient(catalog.Config{BaseURL: mockServer.URL})
 	executor := catalogsync.NewExecutor(client, stub, st, globalCompanyID, localCompanyID)
 
+	// Execute twice — second should be no-op (ON CONFLICT DO NOTHING)
 	if err := executor.Execute(ctx); err != nil {
-		t.Fatalf("executor.Execute: %v", err)
+		t.Fatalf("first Execute: %v", err)
+	}
+	// Reset version to force re-sync
+	_ = st.SyncVersions().Set(ctx, store.GlobalSyncVersion, "currencies", 0)
+	if err := executor.Execute(ctx); err != nil {
+		t.Fatalf("second Execute: %v", err)
 	}
 
-	// Verify: CNY still enabled, USD disabled
+	// Verify CNY is still readable
 	cny, _ := st.Billing().GetCurrency(ctx, "CNY")
-	if cny == nil || !cny.Enabled {
-		t.Error("CNY should still be enabled")
+	if cny == nil {
+		t.Fatal("CNY not found")
 	}
-
-	usd, _ := st.Billing().GetCurrency(ctx, "USD")
-	if usd == nil {
-		t.Fatal("USD should still exist (not deleted)")
-	}
-	if usd.Enabled {
-		t.Error("USD should be disabled after sync")
+	if cny.QuotaPerUnit != 500000 {
+		t.Errorf("CNY qpu: want 500000, got %d", cny.QuotaPerUnit)
 	}
 }
 

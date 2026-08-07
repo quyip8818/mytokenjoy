@@ -205,12 +205,12 @@ Catalog Sync Worker（每 5min，River PeriodicJob）:
 
   4. 比较本地 sync_versions (GlobalSyncVersion, "currencies") vs 远端
      → 不同 → GET /api/platform/sync/catalog/currencies
-     → 更新本地 currencies 表
+     → 遍历返回的 rows，逐条 INSERT ON CONFLICT (id) DO NOTHING（id 幂等）
      → Set 本地 version
 
   5. 比较本地 sync_versions (GlobalSyncVersion, "discounts") vs 远端
      → 不同 → GET /api/platform/sync/catalog/discounts （需要 sync token）
-     → 写入本地 model_discount 表
+     → 遍历返回的 rows，逐条 INSERT ON CONFLICT (id) DO NOTHING（id 幂等）
      → Set 本地 version
 
   6. 比较本地 sync_versions (GlobalSyncVersion, "wallet_lots") vs 远端

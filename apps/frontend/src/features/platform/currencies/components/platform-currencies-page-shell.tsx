@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { CurrencyHistoryDialog } from './currency-history-dialog'
 import type { usePlatformCurrenciesPage } from '../hooks/use-platform-currencies-page'
 
 type Props = ReturnType<typeof usePlatformCurrenciesPage>
@@ -62,7 +63,12 @@ export function PlatformCurrenciesPageShell(props: Props) {
         testId="page-platform-currencies"
         title="汇率管理"
         icon={Coins}
-        actions={<Button onClick={openCreate}>+ 新增币种</Button>}
+        actions={
+          <div className="flex items-center gap-2">
+            <CurrencyHistoryDialog currencies={currencies} />
+            <Button onClick={openCreate}>+ 新增币种</Button>
+          </div>
+        }
       />
       <Card>
         <CardContent className="p-0">

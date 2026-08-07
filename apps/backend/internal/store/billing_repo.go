@@ -88,6 +88,7 @@ type WalletAggregate struct {
 }
 
 type Currency struct {
+	ID              uuid.UUID
 	Code            string
 	QuotaPerUnit    int64
 	Enabled         bool
@@ -109,12 +110,13 @@ type BillingRepository interface {
 	SumActiveLotsRemaining(ctx context.Context, companyID uuid.UUID) (int64, error)
 	AggregateWallet(ctx context.Context, companyID uuid.UUID) (WalletAggregate, error)
 	GetCurrency(ctx context.Context, code string) (*Currency, error)
-	// Currency CRUD + sync
+	// Currency CRUD + sync (append-only: all writes are INSERTs)
 	ListEnabledCurrencies(ctx context.Context) ([]Currency, error)
 	ListAllCurrencies(ctx context.Context) ([]Currency, error)
-	UpsertCurrency(ctx context.Context, c Currency) error
+	InsertCurrency(ctx context.Context, c Currency) error
 	SetCurrencyEnabled(ctx context.Context, code string, enabled bool, actorUserID *uuid.UUID) error
-	ReplaceCurrencies(ctx context.Context, currencies []Currency) error
+	ListCurrencyHistory(ctx context.Context, code string, limit, offset int) ([]Currency, error)
+	InsertCurrencyFromSync(ctx context.Context, c Currency) error
 	IsCurrencyReferenced(ctx context.Context, code string) (bool, error)
 	// Lot sync (for selfhosted catalog sync from SaaS)
 	UpsertOrderFromSync(ctx context.Context, order RechargeOrder) error

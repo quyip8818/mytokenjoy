@@ -60,6 +60,7 @@ export interface PlatformSetPricingInput {
 }
 
 export interface PlatformCurrency {
+  id: string
   code: string
   quotaPerUnit: number
   enabled: boolean

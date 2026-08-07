@@ -68,6 +68,7 @@ func (h *Handler) SetGlobalPricing(w http.ResponseWriter, r *http.Request) {
 // --- Platform Admin: Discounts ---
 
 type discountDTO struct {
+	ID        string  `json:"id"`
 	ModelType string  `json:"modelType"`
 	Discount  float64 `json:"discount"`
 }
@@ -86,7 +87,7 @@ func (h *Handler) ListCompanyDiscounts(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]discountDTO, len(rows))
 	for i, row := range rows {
-		out[i] = discountDTO{ModelType: row.ModelType, Discount: row.Discount}
+		out[i] = discountDTO{ID: row.ID.String(), ModelType: row.ModelType, Discount: row.Discount}
 	}
 	response.JSON(w, http.StatusOK, out)
 }

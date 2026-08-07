@@ -167,56 +167,56 @@ func (e *Executor) syncPricing(ctx context.Context, remoteVersion int) error {
 	return e.store.SyncVersions().Set(ctx, store.GlobalSyncVersion, "pricing", remoteVersion)
 }
 
-// syncDiscounts fetches per-company discount coefficients and replaces local data atomically.
+// syncDiscounts fetches per-company discount coefficients and inserts new rows (id-idempotent).
 func (e *Executor) syncDiscounts(ctx context.Context, remoteVersion int) error {
 	resp, err := e.client.FetchDiscounts(ctx)
 	if err != nil {
 		return fmt.Errorf("catalogsync fetch discounts: %w", err)
 	}
 
-	if err := e.store.WithTx(ctx, func(tx store.Store) error {
-		if err := tx.ModelDiscount().DeleteAllByCompany(ctx, e.localCompanyID); err != nil {
-			return err
+	for _, d := range resp.Data {
+		id, err := uuid.Parse(d.ID)
+		if err != nil {
+			slog.Warn("catalogsync: skip discount with invalid ID", "id", d.ID)
+			continue
 		}
-		for _, d := range resp.Data {
-			row := store.ModelDiscountRow{
-				CompanyID: e.localCompanyID,
-				ModelType: d.ModelType,
-				Discount:  d.Discount,
-			}
-			if err := tx.ModelDiscount().Insert(ctx, row); err != nil {
-				return err
-			}
+		row := store.ModelDiscountRow{
+			ID:        id,
+			CompanyID: e.localCompanyID,
+			ModelType: d.ModelType,
+			Discount:  d.Discount,
 		}
-		return nil
-	}); err != nil {
-		return fmt.Errorf("catalogsync replace discounts: %w", err)
+		if err := e.store.ModelDiscount().InsertFromSync(ctx, row); err != nil {
+			slog.Warn("catalogsync: discount insert failed", "modelType", d.ModelType, "error", err)
+		}
 	}
 
 	return e.store.SyncVersions().Set(ctx, store.GlobalSyncVersion, "discounts", remoteVersion)
 }
 
-// syncCurrencies fetches currencies from the platform and replaces local data.
+// syncCurrencies fetches currencies from the platform and inserts new rows (append-only, id-idempotent).
 func (e *Executor) syncCurrencies(ctx context.Context) error {
 	resp, err := e.client.FetchCurrencies(ctx)
 	if err != nil {
 		return fmt.Errorf("catalogsync fetch currencies: %w", err)
 	}
 
-	currencies := make([]store.Currency, 0, len(resp.Data))
 	for _, c := range resp.Data {
-		currencies = append(currencies, store.Currency{
+		id, err := uuid.Parse(c.ID)
+		if err != nil {
+			slog.Warn("catalogsync: skip currency with invalid ID", "id", c.ID)
+			continue
+		}
+		row := store.Currency{
+			ID:           id,
 			Code:         c.Code,
 			QuotaPerUnit: c.QuotaPerUnit,
-			Enabled:      true,
-		})
-	}
-
-	// Wrap in tx for atomicity (upsert + disable stale).
-	if err := e.store.WithTx(ctx, func(tx store.Store) error {
-		return tx.Billing().ReplaceCurrencies(ctx, currencies)
-	}); err != nil {
-		return fmt.Errorf("catalogsync replace currencies: %w", err)
+			Enabled:      c.Enabled,
+			UpdatedAt:    time.Unix(c.UpdatedAt, 0),
+		}
+		if err := e.store.Billing().InsertCurrencyFromSync(ctx, row); err != nil {
+			slog.Warn("catalogsync: currency insert failed", "code", c.Code, "error", err)
+		}
 	}
 
 	// Use resp.Version (actual data version) rather than remote.Currencies.

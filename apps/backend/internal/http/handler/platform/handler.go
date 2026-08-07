@@ -71,6 +71,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Post("/currencies", h.CreateCurrency)
 		r.Put("/currencies/{code}", h.UpdateCurrency)
 		r.Patch("/currencies/{code}/status", h.ToggleCurrencyStatus)
+		r.Get("/currencies/{code}/history", h.ListCurrencyHistory)
 	})
 }
 

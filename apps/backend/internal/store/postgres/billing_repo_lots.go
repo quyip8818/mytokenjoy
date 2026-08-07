@@ -140,12 +140,16 @@ func (r *billingRepo) SumActiveLotsRemaining(ctx context.Context, companyID uuid
 	return total, err
 }
 
-// UpsertOrderFromSync inserts a recharge order from platform sync or skips if it already exists.
+// UpsertOrderFromSync inserts a recharge order from platform sync or updates if it already exists.
 func (r *billingRepo) UpsertOrderFromSync(ctx context.Context, order store.RechargeOrder) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO company_recharge_orders (id, company_id, amount, currency, quota_per_unit, quota_granted, source, lot_kind, status, display_order_id, payment_method, created_by, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13)
-		ON CONFLICT (id) DO NOTHING
+		ON CONFLICT (id) DO UPDATE SET
+			amount = EXCLUDED.amount,
+			status = EXCLUDED.status,
+			quota_granted = EXCLUDED.quota_granted,
+			updated_at = NOW()
 	`, order.ID, order.CompanyID, order.Amount, order.Currency,
 		order.QuotaPerUnit, order.QuotaGranted, order.Source, order.LotKind,
 		order.Status, order.DisplayOrderID, order.PaymentMethod, uuid.Nil, order.CreatedAt)
