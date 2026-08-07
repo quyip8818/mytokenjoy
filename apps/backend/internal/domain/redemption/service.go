@@ -16,13 +16,13 @@ type Service interface {
 }
 
 type GenerateInput struct {
-	BatchName    string
-	FaceValue    float64
-	Currency     string
-	Quantity     int
+	BatchName     string
+	FaceValue     float64
+	Currency      string
+	Quantity      int
 	ExpiresInDays int
-	Note         string
-	CreatedBy    uuid.UUID
+	Note          string
+	CreatedBy     uuid.UUID
 }
 
 type GenerateResult struct {

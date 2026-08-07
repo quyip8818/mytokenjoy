@@ -77,7 +77,7 @@ func TestNormalizeCode(t *testing.T) {
 		{"TJA3B4C5D6E7F8", "TJ-A3B4-C5D6-E7F8"},
 		{"  tj a3b4 c5d6 e7f8  ", "TJ-A3B4-C5D6-E7F8"},
 		{"A3B4C5D6E7F8", "TJ-A3B4-C5D6-E7F8"}, // no prefix
-		{"too-short", "too-short"},               // can't normalize, pass through
+		{"too-short", "too-short"},            // can't normalize, pass through
 	}
 	for _, tt := range tests {
 		got := redemption.NormalizeCode(tt.input)
