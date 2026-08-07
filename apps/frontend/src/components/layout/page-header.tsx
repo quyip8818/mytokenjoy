@@ -6,11 +6,12 @@ export interface PageHeaderProps {
   description?: string
   icon?: LucideIcon
   actions?: ReactNode
+  testId?: string
 }
 
-export function PageHeader({ title, description, icon: Icon, actions }: PageHeaderProps) {
+export function PageHeader({ title, description, icon: Icon, actions, testId }: PageHeaderProps) {
   return (
-    <div className="flex items-start justify-between gap-4">
+    <div className="flex items-start justify-between gap-4" data-testid={testId}>
       <div>
         <div className="flex items-center gap-2">
           {Icon && <Icon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />}

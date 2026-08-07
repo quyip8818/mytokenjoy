@@ -90,6 +90,7 @@ function SidebarNavItem({ item, sidebarCollapsed, badge, pathname }: SidebarNavI
           <Link
             to={item.path}
             aria-label={item.label}
+            data-testid={`nav-${item.path.replace(/\//g, '-').slice(1)}`}
             className={cn(
               'group/nav relative flex items-center justify-center rounded-lg p-1.5 transition-all duration-150',
               isActive
@@ -114,6 +115,7 @@ function SidebarNavItem({ item, sidebarCollapsed, badge, pathname }: SidebarNavI
   return (
     <Link
       to={item.path}
+      data-testid={`nav-${item.path.replace(/\//g, '-').slice(1)}`}
       className={cn(
         'group/nav relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-150',
         isActive
@@ -175,6 +177,7 @@ function SidebarGroup({
       <button
         type="button"
         onClick={onToggleGroup}
+        data-testid={`nav-group-${group.group}`}
         className="group/header mb-1 flex w-full items-center gap-1.5 rounded-md px-3 py-1.5 text-base font-semibold text-muted-foreground/80 transition-colors hover:text-foreground"
         aria-expanded={!groupCollapsed}
       >
