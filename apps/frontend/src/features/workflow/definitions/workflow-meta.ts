@@ -21,7 +21,7 @@ export const WORKFLOW_META: Record<WorkflowId, WorkflowMeta> = {
   'platform-model-edit': { title: '编辑平台模型' },
   'discount-config': { title: '模型优惠配置' },
   'lot-audit': { title: 'Lot 审计' },
-  'recharge': { title: '账户充值' },
+  recharge: { title: '账户充值' },
 }
 
 const WORKFLOW_DOMAIN: Record<
@@ -46,7 +46,7 @@ const WORKFLOW_DOMAIN: Record<
   'platform-model-edit': 'models',
   'discount-config': 'models',
   'lot-audit': 'billing',
-  'recharge': 'billing',
+  recharge: 'billing',
 }
 
 export function getWorkflowMeta(id: WorkflowId): WorkflowMeta {

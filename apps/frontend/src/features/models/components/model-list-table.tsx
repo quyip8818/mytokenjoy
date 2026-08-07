@@ -70,8 +70,11 @@ export function ModelListTable({
                 header: '折扣',
                 render: (model: ModelInfo) => {
                   const entry = discountMap.get(model.type) ?? discountMap.get('*')
-                  if (!entry || entry.discount === 1) return <span className="text-muted-foreground">—</span>
-                  return <span className="text-xs tabular-nums">{formatDiscount(entry.discount)}</span>
+                  if (!entry || entry.discount === 1)
+                    return <span className="text-muted-foreground">—</span>
+                  return (
+                    <span className="text-xs tabular-nums">{formatDiscount(entry.discount)}</span>
+                  )
                 },
               },
             ]

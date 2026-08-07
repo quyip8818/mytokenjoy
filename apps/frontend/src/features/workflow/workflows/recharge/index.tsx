@@ -10,7 +10,10 @@ import { ApiError } from '@/api/client'
 import type { PaymentMethod } from '@/features/billing'
 import { billingKeys } from '@/features/billing'
 import type { WorkflowComponentProps } from '@/features/workflow/types'
-import { WorkflowPanelChrome, WorkflowPanelFooter } from '@/features/workflow/components/workflow-panel-chrome'
+import {
+  WorkflowPanelChrome,
+  WorkflowPanelFooter,
+} from '@/features/workflow/components/workflow-panel-chrome'
 import { useQueryClient } from '@tanstack/react-query'
 
 const PRESET_AMOUNTS = [10, 20, 50, 100, 200, 500]
@@ -182,10 +185,7 @@ export function RechargeWorkflow({ entry, onClose }: WorkflowComponentProps<'rec
                   }
                 }}
               />
-              <Button
-                onClick={handleRedeem}
-                disabled={redeeming || !redemptionCode.trim()}
-              >
+              <Button onClick={handleRedeem} disabled={redeeming || !redemptionCode.trim()}>
                 {redeeming ? '兑换中…' : '兑换额度'}
               </Button>
             </div>
