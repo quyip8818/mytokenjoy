@@ -5,4 +5,8 @@ export interface BillingWorkflowPayloads {
     readonly: boolean
     onSuccess?: () => void
   }
+  'recharge': {
+    currency: string
+    onSuccess?: () => void
+  }
 }

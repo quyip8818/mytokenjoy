@@ -1,47 +1,73 @@
-import { useState } from 'react'
-import { Gift, Receipt, ShoppingCart } from 'lucide-react'
+import { useState, useCallback } from 'react'
+import { Gift } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { toast } from '@/lib/toast'
+import { useApis } from '@/api/use-apis'
 import type { PaymentMethod } from '@/features/billing'
+import type { WorkflowComponentProps } from '@/features/workflow/types'
+import { WorkflowPanelChrome, WorkflowPanelFooter } from '@/features/workflow/components/workflow-panel-chrome'
 
 const PRESET_AMOUNTS = [10, 20, 50, 100, 200, 500]
 
-interface RechargePanelProps {
-  currency: string
-  rechargePending: boolean
-  onRecharge: (amount: number) => void
-}
+export function RechargeWorkflow({ entry, onClose }: WorkflowComponentProps<'recharge'>) {
+  const { currency, onSuccess } = entry.payload
+  const apis = useApis()
 
-export function RechargePanel({ currency, rechargePending, onRecharge }: RechargePanelProps) {
   const [amount, setAmount] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('alipay')
   const [redemptionCode, setRedemptionCode] = useState('')
+  const [pending, setPending] = useState(false)
+
   const selectedAmount = amount ? Number(amount) : 0
 
+  const handleRecharge = useCallback(async () => {
+    if (selectedAmount <= 0) return
+    setPending(true)
+    try {
+      const order = await apis.billingApi.recharge({
+        amount: selectedAmount,
+        idempotencyKey: crypto.randomUUID(),
+      })
+      await apis.billingApi.confirmRecharge(order.id)
+      toast.success('充值成功')
+      onSuccess?.()
+      onClose()
+    } catch {
+      toast.error('充值失败，请重试')
+    } finally {
+      setPending(false)
+    }
+  }, [apis, selectedAmount, onSuccess, onClose])
+
   return (
-    <div className="rounded-lg border border-border bg-card shadow-xs">
-      <div className="flex items-center justify-between border-b border-border px-5 py-3">
-        <div className="flex items-center gap-2">
-          <ShoppingCart className="size-4 text-muted-foreground" strokeWidth={1.5} />
-          <h2 className="text-sm font-semibold">账户充值</h2>
-        </div>
-        <Button variant="ghost" className="gap-1.5 text-xs">
-          <Receipt className="size-3.5" />
-          账单
-        </Button>
-      </div>
-      <div className="space-y-5 p-5">
-        <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-5 space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">充值数量</label>
+    <WorkflowPanelChrome
+      title="账户充值"
+      onClose={onClose}
+      footer={
+        <WorkflowPanelFooter
+          onCancel={onClose}
+          primaryLabel={pending ? '充值中…' : '确认充值'}
+          onPrimary={handleRecharge}
+          primaryDisabled={pending || selectedAmount <= 0}
+          primaryDisabledReason={
+            pending ? '充值中，请稍候' : selectedAmount <= 0 ? '请选择充值金额' : undefined
+          }
+        />
+      }
+    >
+      <div className="space-y-6">
+        {/* Amount + payment method */}
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-muted-foreground">充值数量</label>
             <Input
               type="number"
               min="0"
               placeholder="充值数量，最低 ¥0"
               value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              className="h-9"
+              onChange={(e) => setAmount(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
               实付金额：
@@ -50,12 +76,12 @@ export function RechargePanel({ currency, rechargePending, onRecharge }: Recharg
               </span>
             </p>
           </div>
-          <div className="col-span-7 space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">选择支付方式</label>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-muted-foreground">选择支付方式</label>
             <div className="flex gap-2">
               <Button
                 variant={paymentMethod === 'alipay' ? 'default' : 'outline'}
-
                 onClick={() => setPaymentMethod('alipay')}
                 className="gap-1.5"
               >
@@ -63,7 +89,6 @@ export function RechargePanel({ currency, rechargePending, onRecharge }: Recharg
               </Button>
               <Button
                 variant={paymentMethod === 'wechat' ? 'default' : 'outline'}
-
                 onClick={() => setPaymentMethod('wechat')}
                 className="gap-1.5"
               >
@@ -73,12 +98,13 @@ export function RechargePanel({ currency, rechargePending, onRecharge }: Recharg
           </div>
         </div>
 
+        {/* Preset amounts */}
         <div className="rounded-md border border-border p-4">
           <div className="mb-3 flex items-center gap-2">
-            <span className="text-xs font-medium">选择充值额度</span>
+            <span className="text-sm font-medium">选择充值额度</span>
             <span className="text-xs text-muted-foreground">如需开发票，请联系客服</span>
           </div>
-          <div className="grid grid-cols-6 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {PRESET_AMOUNTS.map((preset) => (
               <button
                 key={preset}
@@ -96,34 +122,20 @@ export function RechargePanel({ currency, rechargePending, onRecharge }: Recharg
               </button>
             ))}
           </div>
-          <div className="mt-4 flex justify-end">
-            <Button
-              disabled={rechargePending || selectedAmount <= 0}
-              disabledReason={
-                rechargePending
-                  ? '充值中，请稍候'
-                  : selectedAmount <= 0
-                    ? '请选择充值金额'
-                    : undefined
-              }
-              onClick={() => void onRecharge(selectedAmount)}
-            >
-              {rechargePending ? '充值中…' : '确认充值'}
-            </Button>
-          </div>
         </div>
 
+        {/* Redemption code */}
         <div className="rounded-md border border-border p-4">
           <div className="mb-3 flex items-center gap-2">
             <Gift className="size-4 text-muted-foreground" strokeWidth={1.5} />
-            <span className="text-xs font-medium">兑换码充值</span>
+            <span className="text-sm font-medium">兑换码充值</span>
           </div>
           <div className="flex gap-2">
             <Input
               placeholder="请输入兑换码"
               value={redemptionCode}
-              onChange={(event) => setRedemptionCode(event.target.value)}
-              className="h-9 max-w-sm"
+              onChange={(e) => setRedemptionCode(e.target.value)}
+              className="max-w-sm"
             />
             <Button disabled disabledReason="兑换码能力即将上线">
               兑换额度
@@ -131,6 +143,6 @@ export function RechargePanel({ currency, rechargePending, onRecharge }: Recharg
           </div>
         </div>
       </div>
-    </div>
+    </WorkflowPanelChrome>
   )
 }
