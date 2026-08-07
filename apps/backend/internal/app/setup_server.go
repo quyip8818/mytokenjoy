@@ -20,6 +20,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/grants"
+	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/store"
+	"github.com/tokenjoy/backend/internal/store/postgres"
 	"github.com/tokenjoy/backend/seed/bootstrap"
 	"github.com/tokenjoy/backend/seed/contract"
 	"golang.org/x/crypto/bcrypt"
@@ -172,8 +175,11 @@ func handleSetupInit(
 		}
 		companyID := reg.CompanyID
 
-		// 2b. Sync currencies from SaaS (companies.billing_currency FK requires it).
-		if err := syncCurrenciesFromSaaS(ctx, pool, cfg); err != nil {
+		// 2b. Sync currencies from SaaS (companies.billing_currency requires it).
+		st := postgres.NewFromPool(pool, postgres.Options{
+			TokenJoyCompanyID: cfg.TokenJoyCompanyID,
+		})
+		if err := syncCurrenciesFromSaaS(ctx, st, cfg); err != nil {
 			logger.Error("sync currencies from SaaS", "error", err)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 			return
@@ -242,15 +248,16 @@ func handleSetupInit(
 			}
 		}
 
-		// Create local admin user (for Local login — SaaS has its own copy).
-		if err := createAdminUserTx(ctx, tx, req, companyID); err != nil {
-			logger.Error("create admin user", "error", err)
+		if err := tx.Commit(ctx); err != nil {
+			logger.Error("commit setup tx", "error", err)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 			return
 		}
 
-		if err := tx.Commit(ctx); err != nil {
-			logger.Error("commit setup tx", "error", err)
+		// Create local admin user (for Local login — SaaS has its own copy).
+		// Uses store.WithTx internally — called after settings tx commits.
+		if err := createAdminUser(ctx, st, req, companyID); err != nil {
+			logger.Error("create admin user", "error", err)
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 			return
 		}
@@ -353,11 +360,11 @@ func registerCompany(ctx context.Context, cfg config.Config, req setupInitReques
 	}, nil
 }
 
-// createAdminUserTx creates the full admin identity in local DB:
+// createAdminUser creates the full admin identity in local DB via store repo:
 // user row + member row + super_admin role assignment.
 // ponytail: setup 只在空库首次运行，不会有冲突。直接 INSERT。
 // Prerequisites: bootstrap must have run first (currencies, companies, roles, org_nodes exist).
-func createAdminUserTx(ctx context.Context, tx pgx.Tx, req setupInitRequest, companyID uuid.UUID) error {
+func createAdminUser(ctx context.Context, st store.Store, req setupInitRequest, companyID uuid.UUID) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.AdminPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("hash password: %w", err)
@@ -373,31 +380,37 @@ func createAdminUserTx(ctx context.Context, tx pgx.Tx, req setupInitRequest, com
 	rootDeptID := contract.IDDept1
 	now := time.Now().UTC()
 
-	// 1. User (auth identity).
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO users (id, email, password_hash, name, status, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, 'active', $5, $5)
-	`, userID, email, string(hash), name, now); err != nil {
-		return fmt.Errorf("insert admin user: %w", err)
-	}
+	return st.WithTx(ctx, func(tx store.Store) error {
+		if err := tx.User().Create(ctx, store.User{
+			ID:           userID,
+			Email:        email,
+			PasswordHash: string(hash),
+			Name:         name,
+			Status:       "active",
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		}); err != nil {
+			return fmt.Errorf("create admin user: %w", err)
+		}
 
-	// 2. Member (company-scoped identity).
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO members (id, company_id, user_id, alias, department_id, status, source, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, 'active', 'setup', $6, $6)
-	`, memberID, companyID, userID, name, rootDeptID, now); err != nil {
-		return fmt.Errorf("insert admin member: %w", err)
-	}
+		if err := tx.Org().CreateMember(ctx, types.Member{
+			ID:           memberID,
+			CompanyID:    companyID,
+			UserID:       userID,
+			Alias:        name,
+			DepartmentID: rootDeptID,
+			Status:       "active",
+			Source:       "setup",
+		}); err != nil {
+			return fmt.Errorf("create admin member: %w", err)
+		}
 
-	// 3. Super admin role.
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO member_roles (company_id, member_id, role_id)
-		VALUES ($1, $2, $3)
-	`, companyID, memberID, grants.IDSuperAdmin); err != nil {
-		return fmt.Errorf("insert admin member_role: %w", err)
-	}
+		if err := tx.Org().AssignMemberRole(ctx, companyID, memberID, grants.IDSuperAdmin); err != nil {
+			return fmt.Errorf("assign admin role: %w", err)
+		}
 
-	return nil
+		return nil
+	})
 }
 
 // setSystemSettingTx upserts a key-value pair into system_settings within a transaction.
@@ -424,11 +437,8 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-// syncCurrenciesFromSaaS fetches currencies from SaaS platform and writes them to local DB.
-// ponytail: uses raw SQL (mirrors InsertCurrencyFromSync) because store.Store is not available
-// during setup. If InsertCurrencyFromSync SQL changes, this must be updated in sync.
-// Upgrade path: pass store.Store into RunSetupServer once compose allows it.
-func syncCurrenciesFromSaaS(ctx context.Context, pool *pgxpool.Pool, cfg config.Config) error {
+// syncCurrenciesFromSaaS fetches currencies from SaaS platform and writes them via store repo.
+func syncCurrenciesFromSaaS(ctx context.Context, st store.Store, cfg config.Config) error {
 	url := strings.TrimRight(cfg.SaasPlatformURL, "/") + "/api/platform/sync/catalog/currencies"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -458,22 +468,22 @@ func syncCurrenciesFromSaaS(ctx context.Context, pool *pgxpool.Pool, cfg config.
 	}
 
 	for _, c := range parsed.Data {
-		id := c.ID
-		if id == "" {
-			id = uuid.Must(uuid.NewV7()).String()
+		id, err := uuid.Parse(c.ID)
+		if err != nil {
+			id = uuid.Must(uuid.NewV7())
 		}
 		updatedAt := time.Unix(c.UpdatedAt, 0)
 		if c.UpdatedAt == 0 {
 			updatedAt = time.Now()
 		}
-		if _, err := pool.Exec(ctx, `
-			INSERT INTO currencies (id, currency, quota_per_unit, enabled, updated_at)
-			VALUES ($1, $2, $3, $4, $5)
-			ON CONFLICT (id) DO UPDATE SET
-				quota_per_unit = EXCLUDED.quota_per_unit,
-				enabled = EXCLUDED.enabled,
-				updated_at = EXCLUDED.updated_at
-		`, id, c.Code, c.QuotaPerUnit, c.Enabled, updatedAt); err != nil {
+		row := store.Currency{
+			ID:           id,
+			Code:         c.Code,
+			QuotaPerUnit: c.QuotaPerUnit,
+			Enabled:      c.Enabled,
+			UpdatedAt:    updatedAt,
+		}
+		if err := st.Billing().InsertCurrencyFromSync(ctx, row); err != nil {
 			return fmt.Errorf("insert currency %s: %w", c.Code, err)
 		}
 	}

@@ -15,10 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  ConfirmActionDialog,
-  type ConfirmActionState,
-} from '@/components/ui/confirm-action-dialog'
+import { ConfirmActionDialog, type ConfirmActionState } from '@/components/ui/confirm-action-dialog'
 import { workflowErrorMessage } from '../lib/error-message'
 import { platformKeys } from '@/features/platform/models/query-keys'
 
@@ -35,10 +32,7 @@ export function DiscountConfigWorkflow({
     queryFn: (a) => a.platformApi.listModels(),
   })
 
-  const {
-    data: discounts = [],
-    loading: discountsLoading,
-  } = useInjectedQuery({
+  const { data: discounts = [], loading: discountsLoading } = useInjectedQuery({
     queryKey: ['platform', 'discounts', companyId],
     queryFn: (a) => a.platformApi.listCompanyDiscounts(companyId),
   })
@@ -132,9 +126,7 @@ export function DiscountConfigWorkflow({
   const handleSubmit = () => {
     if (!canSubmit) return
     if (extremeItems.length > 0) {
-      const lines = extremeItems.map(
-        (i) => `${i.modelType}: ${Math.round(i.discount * 100)}%`,
-      )
+      const lines = extremeItems.map((i) => `${i.modelType}: ${Math.round(i.discount * 100)}%`)
       setConfirmState({
         open: true,
         title: '折扣幅度较大',

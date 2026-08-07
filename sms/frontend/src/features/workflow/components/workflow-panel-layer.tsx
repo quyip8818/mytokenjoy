@@ -7,7 +7,13 @@ import {
   WORKFLOW_MAX_DEPTH,
   WORKFLOW_PEEK_WIDTH_PX,
 } from '../constants'
-import type { WorkflowDefinition, WorkflowId, WorkflowLayer, WorkflowPayload, WorkflowStackEntry } from '../types'
+import type {
+  WorkflowDefinition,
+  WorkflowId,
+  WorkflowLayer,
+  WorkflowPayload,
+  WorkflowStackEntry,
+} from '../types'
 import { getWorkflowDefinition } from '../definitions'
 
 interface WorkflowPanelLayerProps {
@@ -47,7 +53,9 @@ export function WorkflowPanelLayer({
     void getWorkflowDefinition(entry.id).then((def) => {
       if (!cancelled) setDefinition(def)
     })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [entry.id])
 
   useEffect(() => {
@@ -83,11 +91,16 @@ export function WorkflowPanelLayer({
       }}
     >
       {depthFromTop > 0 && (
-        <div className="absolute left-0 top-0 bottom-0 w-3 bg-muted border-r border-border/60" aria-hidden />
+        <div
+          className="absolute left-0 top-0 bottom-0 w-3 bg-muted border-r border-border/60"
+          aria-hidden
+        />
       )}
       <div className="flex h-full flex-col pl-0">
         {!Component ? (
-          <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">加载中…</div>
+          <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+            加载中…
+          </div>
         ) : (
           <Component
             entry={entry}

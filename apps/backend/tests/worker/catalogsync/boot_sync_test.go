@@ -35,7 +35,7 @@ func TestBootSyncAllChannels(t *testing.T) {
 		{ModelType: "gpt-4o", InputPrice: 2.5, OutputPrice: 10.0},
 	}
 	currencies := []catalog.CatalogCurrency{
-		{ID: uuid.Must(uuid.NewV7()).String(), Code: "CNY", QuotaPerUnit: 500000, Enabled: true, UpdatedAt: 1700000000},
+		{ID: uuid.Must(uuid.NewV7()).String(), Code: "CNY", QuotaPerUnit: 500000, Enabled: true, UpdatedAt: 4102444800},
 	}
 
 	mockServer := fullCatalogMockServer(t, catalog.CatalogVersions{Models: 2, Pricing: 2, Currencies: 2}, models, pricing, currencies)

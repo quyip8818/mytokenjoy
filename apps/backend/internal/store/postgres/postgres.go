@@ -34,6 +34,30 @@ type domainRepos struct {
 	audit  store.AuditRepository
 }
 
+// Options configures a lightweight Store constructed via NewFromPool.
+type Options struct {
+	TokenJoyCompanyID uuid.UUID
+	CredentialKey     []byte // empty = no encryption (acceptable for setup/test)
+}
+
+// NewFromPool constructs a Store from an existing pool. Pure value operation — no schema,
+// no seed, no side effects. Use for setup-time or test scenarios where the full Boot is not needed.
+func NewFromPool(pool *pgxpool.Pool, opts Options) *Store {
+	s := &Store{
+		pool:              pool,
+		logs:              store.NoopLogStore(),
+		tokenJoyCompanyID: opts.TokenJoyCompanyID,
+		credentialKey:     opts.CredentialKey,
+	}
+	s.mappings = newPlatformKeyMappingRepo(pool)
+	s.gatewayPrecheck = newGatewayPrecheckRepo(pool)
+	s.combinedKeySummaries = newCombinedKeySummaryRepo(pool)
+	s.domain = newDomainRepoSet(pool, s.tokenJoyCompanyID, s.credentialKey)
+	return s
+}
+
+// New constructs a fully-initialized Store: connects pool, applies schema, runs seed,
+// and optionally connects log pool. This is the standard entry point for application boot.
 func New(ctx context.Context, cfg config.Config, clk ...clock.Clock) (store.Store, error) {
 	poolCfg, err := pgxpool.ParseConfig(cfg.DatabaseURL)
 	if err != nil {
@@ -108,6 +132,7 @@ func New(ctx context.Context, cfg config.Config, clk ...clock.Clock) (store.Stor
 			return nil, err
 		}
 	}
+	// Initialize repos (same as NewFromPool)
 	s.mappings = newPlatformKeyMappingRepo(pool)
 	s.gatewayPrecheck = newGatewayPrecheckRepo(pool)
 	s.combinedKeySummaries = newCombinedKeySummaryRepo(pool)

@@ -328,3 +328,27 @@ func (r *pgOrgRepo) SetMemberPasswordHash(ctx context.Context, memberID, passwor
 	}
 	return nil
 }
+
+// CreateMember inserts a single member row. Does not manage roles (use AssignMemberRole separately).
+func (r *pgOrgRepo) CreateMember(ctx context.Context, member types.Member) error {
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO members (id, company_id, user_id, alias, department_id, status, source, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+	`, member.ID, member.CompanyID, member.UserID, member.Alias, member.DepartmentID, member.Status, member.Source)
+	if err != nil {
+		return fmt.Errorf("create member: %w", err)
+	}
+	return nil
+}
+
+// AssignMemberRole inserts a single member-role assignment.
+func (r *pgOrgRepo) AssignMemberRole(ctx context.Context, companyID, memberID, roleID uuid.UUID) error {
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO member_roles (company_id, member_id, role_id)
+		VALUES ($1, $2, $3)
+	`, companyID, memberID, roleID)
+	if err != nil {
+		return fmt.Errorf("assign member role: %w", err)
+	}
+	return nil
+}
