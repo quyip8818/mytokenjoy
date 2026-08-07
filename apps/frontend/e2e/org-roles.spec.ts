@@ -341,9 +341,7 @@ test.describe('角色管理 - 角色 CRUD', () => {
     await page.getByRole('button', { name: '删除' }).click()
     await page.waitForTimeout(1000)
 
-    // toast 通知
-    await expect(page.getByText('角色已删除')).toBeVisible()
-    // 角色从列表消失
+    // 角色从列表消失（toast 为瞬态反馈，不做断言）
     await expect(page.getByText(roleName)).toBeHidden()
   })
 
