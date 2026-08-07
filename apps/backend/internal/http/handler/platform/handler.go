@@ -65,6 +65,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Put("/pricing", h.SetGlobalPricing)
 		r.Get("/companies/{id}/discounts", h.ListCompanyDiscounts)
 		r.Put("/companies/{id}/discounts", h.SetCompanyDiscount)
+		r.Put("/companies/{id}/discounts/batch", h.BatchSetCompanyDiscounts)
 		// Currency management
 		r.Get("/currencies", h.ListCurrencies)
 		r.Post("/currencies", h.CreateCurrency)

@@ -36,7 +36,7 @@ type CatalogPricing struct {
 
 // CatalogDiscount represents a per-company discount entry from the platform sync API.
 type CatalogDiscount struct {
-	ModelType string  `json:"modelType"` // exact model type or "*" for wildcard
+	ModelType string  `json:"modelType"` // exact model type
 	Discount  float64 `json:"discount"`  // multiplier: 0.8 = 20% off
 }
 

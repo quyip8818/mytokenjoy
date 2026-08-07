@@ -167,20 +167,30 @@ func (e *Executor) syncPricing(ctx context.Context, remoteVersion int) error {
 	return e.store.SyncVersions().Set(ctx, store.GlobalSyncVersion, "pricing", remoteVersion)
 }
 
-// syncDiscounts fetches per-company discount coefficients and writes to model_discount.
+// syncDiscounts fetches per-company discount coefficients and replaces local data atomically.
 func (e *Executor) syncDiscounts(ctx context.Context, remoteVersion int) error {
 	resp, err := e.client.FetchDiscounts(ctx)
 	if err != nil {
 		return fmt.Errorf("catalogsync fetch discounts: %w", err)
 	}
 
-	for _, d := range resp.Data {
-		row := store.ModelDiscountRow{
-			CompanyID: e.localCompanyID,
-			ModelType: d.ModelType,
-			Discount:  d.Discount,
+	if err := e.store.WithTx(ctx, func(tx store.Store) error {
+		if err := tx.ModelDiscount().DeleteAllByCompany(ctx, e.localCompanyID); err != nil {
+			return err
 		}
-		_ = e.store.ModelDiscount().Insert(ctx, row)
+		for _, d := range resp.Data {
+			row := store.ModelDiscountRow{
+				CompanyID: e.localCompanyID,
+				ModelType: d.ModelType,
+				Discount:  d.Discount,
+			}
+			if err := tx.ModelDiscount().Insert(ctx, row); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return fmt.Errorf("catalogsync replace discounts: %w", err)
 	}
 
 	return e.store.SyncVersions().Set(ctx, store.GlobalSyncVersion, "discounts", remoteVersion)

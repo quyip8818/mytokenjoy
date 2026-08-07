@@ -1,5 +1,6 @@
 import { request } from './client'
 import type {
+  BatchSetDiscountInput,
   DiscountEntry,
   PlatformCompanyOverview,
   PlatformCreateModelInput,
@@ -7,7 +8,6 @@ import type {
   PlatformModel,
   PlatformSetPricingInput,
   PlatformUpdateModelInput,
-  SetDiscountInput,
 } from './types'
 
 export const platformApi = {
@@ -48,8 +48,8 @@ export const platformApi = {
   listCompanyDiscounts: (companyId: string) =>
     request<DiscountEntry[]>(`/platform/companies/${companyId}/discounts`),
 
-  setCompanyDiscount: (companyId: string, data: SetDiscountInput) =>
-    request<void>(`/platform/companies/${companyId}/discounts`, {
+  batchSetCompanyDiscounts: (companyId: string, data: BatchSetDiscountInput) =>
+    request<void>(`/platform/companies/${companyId}/discounts/batch`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),

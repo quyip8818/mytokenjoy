@@ -116,3 +116,65 @@ func TestModelDiscountAppendOnlyLatestWins(t *testing.T) {
 		t.Errorf("deepseek-chat discount = %f, want 0.85 (latest)", dsDiscount)
 	}
 }
+
+func TestModelDiscountDeleteByCompanyAndModel(t *testing.T) {
+	t.Parallel()
+	st := testPostgresStore(t)
+	ctx := context.Background()
+	companyID := createDiscountTestCompany(t, st)
+
+	// Insert discounts for two models
+	_ = st.ModelDiscount().Insert(ctx, store.ModelDiscountRow{
+		CompanyID: companyID, ModelType: "gpt-4o", Discount: 0.8,
+	})
+	_ = st.ModelDiscount().Insert(ctx, store.ModelDiscountRow{
+		CompanyID: companyID, ModelType: "claude-3", Discount: 0.9,
+	})
+
+	// Delete only gpt-4o
+	if err := st.ModelDiscount().DeleteByCompanyAndModel(ctx, companyID, "gpt-4o"); err != nil {
+		t.Fatalf("DeleteByCompanyAndModel: %v", err)
+	}
+
+	rows, err := st.ModelDiscount().CurrentDiscounts(ctx, companyID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("expected 1 row remaining, got %d", len(rows))
+	}
+	if rows[0].ModelType != "claude-3" {
+		t.Errorf("expected claude-3 remaining, got %s", rows[0].ModelType)
+	}
+}
+
+func TestModelDiscountDeleteAllByCompany(t *testing.T) {
+	t.Parallel()
+	st := testPostgresStore(t)
+	ctx := context.Background()
+	companyID := createDiscountTestCompany(t, st)
+
+	// Insert several discounts
+	_ = st.ModelDiscount().Insert(ctx, store.ModelDiscountRow{
+		CompanyID: companyID, ModelType: "gpt-4o", Discount: 0.7,
+	})
+	_ = st.ModelDiscount().Insert(ctx, store.ModelDiscountRow{
+		CompanyID: companyID, ModelType: "claude-3", Discount: 0.85,
+	})
+	_ = st.ModelDiscount().Insert(ctx, store.ModelDiscountRow{
+		CompanyID: companyID, ModelType: "deepseek-chat", Discount: 1.2,
+	})
+
+	// Delete all
+	if err := st.ModelDiscount().DeleteAllByCompany(ctx, companyID); err != nil {
+		t.Fatalf("DeleteAllByCompany: %v", err)
+	}
+
+	rows, err := st.ModelDiscount().CurrentDiscounts(ctx, companyID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 0 {
+		t.Fatalf("expected 0 rows after DeleteAll, got %d", len(rows))
+	}
+}

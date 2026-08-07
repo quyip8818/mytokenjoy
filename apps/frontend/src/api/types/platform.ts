@@ -72,3 +72,5 @@ export interface SetDiscountInput {
   discount: number
   note?: string
 }
+
+export type BatchSetDiscountInput = SetDiscountInput[]

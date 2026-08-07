@@ -7,11 +7,11 @@ import (
 	"github.com/google/uuid"
 )
 
-// ModelDiscountRow represents a single discount entry in the append-only timeline.
+// ModelDiscountRow represents a single discount entry.
 type ModelDiscountRow struct {
 	ID            uuid.UUID
 	CompanyID     uuid.UUID
-	ModelType     string  // exact model type or "*" for wildcard
+	ModelType     string  // exact model type
 	Discount      float64 // multiplier: 0.8 = 20% off, 1.2 = 20% markup
 	EffectiveFrom time.Time
 	Note          string
@@ -26,4 +26,10 @@ type ModelDiscountRepository interface {
 
 	// Insert appends a new discount row.
 	Insert(ctx context.Context, row ModelDiscountRow) error
+
+	// DeleteByCompanyAndModel removes all discount rows for a specific company+model_type.
+	DeleteByCompanyAndModel(ctx context.Context, companyID uuid.UUID, modelType string) error
+
+	// DeleteAllByCompany removes all discount rows for a company.
+	DeleteAllByCompany(ctx context.Context, companyID uuid.UUID) error
 }

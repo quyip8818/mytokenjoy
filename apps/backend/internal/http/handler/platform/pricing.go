@@ -98,6 +98,7 @@ type setDiscountInput struct {
 }
 
 // SetCompanyDiscount sets a discount coefficient for a company+model.
+// If discount == 1.0, the entry is deleted (100% = no discount).
 func (h *Handler) SetCompanyDiscount(w http.ResponseWriter, r *http.Request) {
 	companyID, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
@@ -117,16 +118,74 @@ func (h *Handler) SetCompanyDiscount(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "discount must be positive")
 		return
 	}
-	row := store.ModelDiscountRow{
-		CompanyID: companyID,
-		ModelType: body.ModelType,
-		Discount:  body.Discount,
-		Note:      body.Note,
+
+	if body.Discount == 1.0 {
+		// ponytail: 100% means no discount — remove from DB rather than storing a no-op row
+		if err := h.p.ModelDiscount.DeleteByCompanyAndModel(r.Context(), companyID, body.ModelType); err != nil {
+			httputil.WriteError(w, err)
+			return
+		}
+	} else {
+		row := store.ModelDiscountRow{
+			CompanyID: companyID,
+			ModelType: body.ModelType,
+			Discount:  body.Discount,
+			Note:      body.Note,
+		}
+		if err := h.p.ModelDiscount.Insert(r.Context(), row); err != nil {
+			httputil.WriteError(w, err)
+			return
+		}
 	}
-	if err := h.p.ModelDiscount.Insert(r.Context(), row); err != nil {
+	_, _ = h.p.SyncVersions.Increment(r.Context(), companyID, "discounts")
+	response.Void(w)
+}
+
+// BatchSetCompanyDiscounts replaces discount entries for a company atomically.
+// Each entry with discount == 1.0 is treated as deletion.
+func (h *Handler) BatchSetCompanyDiscounts(w http.ResponseWriter, r *http.Request) {
+	companyID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+		return
+	}
+	var body []setDiscountInput
+	if err := httputil.DecodeJSON(r, &body); err != nil {
 		httputil.WriteError(w, err)
 		return
 	}
+
+	if err := h.p.Store.WithTx(r.Context(), func(tx store.Store) error {
+		repo := tx.ModelDiscount()
+		for _, item := range body {
+			if item.ModelType == "" {
+				continue
+			}
+			if item.Discount <= 0 {
+				continue
+			}
+			if item.Discount == 1.0 {
+				if err := repo.DeleteByCompanyAndModel(r.Context(), companyID, item.ModelType); err != nil {
+					return err
+				}
+			} else {
+				row := store.ModelDiscountRow{
+					CompanyID: companyID,
+					ModelType: item.ModelType,
+					Discount:  item.Discount,
+					Note:      item.Note,
+				}
+				if err := repo.Insert(r.Context(), row); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}); err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+
 	_, _ = h.p.SyncVersions.Increment(r.Context(), companyID, "discounts")
 	response.Void(w)
 }

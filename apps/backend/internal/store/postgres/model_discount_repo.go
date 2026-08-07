@@ -49,3 +49,13 @@ func (r *modelDiscountRepo) Insert(ctx context.Context, row store.ModelDiscountR
 	`, row.ID, row.CompanyID, row.ModelType, row.Discount, row.EffectiveFrom, row.Note)
 	return err
 }
+
+func (r *modelDiscountRepo) DeleteByCompanyAndModel(ctx context.Context, companyID uuid.UUID, modelType string) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM model_discount WHERE company_id = $1 AND model_type = $2`, companyID, modelType)
+	return err
+}
+
+func (r *modelDiscountRepo) DeleteAllByCompany(ctx context.Context, companyID uuid.UUID) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM model_discount WHERE company_id = $1`, companyID)
+	return err
+}
