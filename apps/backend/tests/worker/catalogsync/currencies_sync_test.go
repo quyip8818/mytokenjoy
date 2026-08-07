@@ -29,8 +29,8 @@ func TestCurrenciesSyncTriggered(t *testing.T) {
 	usdID := uuid.Must(uuid.NewV7()).String()
 
 	mockServer := currenciesMockServer(t, catalog.CatalogVersions{Models: 1, Pricing: 1, Currencies: 2}, []catalog.CatalogCurrency{
-		{ID: cnyID, Code: "CNY", QuotaPerUnit: 500000, Enabled: true, UpdatedAt: 4102444800},
-		{ID: usdID, Code: "USD", QuotaPerUnit: 3600000, Enabled: true, UpdatedAt: 4102444800},
+		{ID: cnyID, Code: "CNY", QuotaPerUnit: 500000, Enabled: true, UpdatedAt: 1785974400},
+		{ID: usdID, Code: "USD", QuotaPerUnit: 3600000, Enabled: true, UpdatedAt: 1785974400},
 	})
 
 	stub := &mock.StubAdminClient{}
@@ -89,7 +89,7 @@ func TestCurrenciesSyncIdempotent(t *testing.T) {
 
 	// Sync returns same CNY with a known id
 	mockServer := currenciesMockServer(t, catalog.CatalogVersions{Models: 1, Pricing: 1, Currencies: 2}, []catalog.CatalogCurrency{
-		{ID: cnyID, Code: "CNY", QuotaPerUnit: 500000, Enabled: true, UpdatedAt: 4102444800},
+		{ID: cnyID, Code: "CNY", QuotaPerUnit: 500000, Enabled: true, UpdatedAt: 1785974400},
 	})
 
 	stub := &mock.StubAdminClient{}

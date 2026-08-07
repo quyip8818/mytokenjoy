@@ -15,6 +15,7 @@
     "lint": "pnpm -F @tokenjoy/frontend lint && pnpm -F @tokenjoy/backend lint && pnpm -F @tokenjoy/web lint && pnpm -F @sms/frontend lint && pnpm -F @sms/backend lint",
     "format": "prettier --write \"**/*.{ts,tsx}\" && pnpm -F @tokenjoy/backend format && pnpm -F @sms/backend format",
     "test": "bash scripts/dev.sh test",
+    "test:all": "bash scripts/dev.sh test:all",
     "test:integration": "bash scripts/dev.sh test:integration",
     "test:e2e": "bash scripts/dev.sh test:e2e",
     "start:web": "pnpm -F @tokenjoy/web start",

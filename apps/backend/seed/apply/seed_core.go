@@ -13,9 +13,10 @@ import (
 
 func insertSeedCurrencies(ctx context.Context, exec TableWriter) error {
 	// Append-only: just INSERT a new row. No conflict handling needed (no unique on currency).
+	// ponytail: pin updated_at to a fixed time so test sync with later timestamps always wins.
 	if _, err := exec.Exec(ctx, `
-		INSERT INTO currencies (currency, quota_per_unit, enabled)
-		VALUES ($1, $2, TRUE)
+		INSERT INTO currencies (currency, quota_per_unit, enabled, updated_at)
+		VALUES ($1, $2, TRUE, '2026-06-01T00:00:00Z')
 	`, quota.DefaultBillingCurrency, quota.DefaultQuotaPerUnit); err != nil {
 		return fmt.Errorf("seed currencies: %w", err)
 	}

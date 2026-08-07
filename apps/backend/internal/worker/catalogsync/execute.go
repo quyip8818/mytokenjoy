@@ -138,7 +138,8 @@ func (e *Executor) syncPricing(ctx context.Context, remoteVersion int) error {
 		return fmt.Errorf("catalogsync fetch pricing: %w", err)
 	}
 	if len(resp.Data) == 0 {
-		return fmt.Errorf("catalogsync pricing: empty response, skipping")
+		// No pricing data from remote — skip gracefully (e.g. fresh SaaS with no models priced yet).
+		return e.store.SyncVersions().Set(ctx, store.GlobalSyncVersion, "pricing", remoteVersion)
 	}
 
 	mrMap := make(map[string]float64, len(resp.Data))
