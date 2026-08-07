@@ -243,6 +243,18 @@ export function PlatformCompaniesPageShell(props: Props) {
                             >
                               优惠
                             </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                open('lot-audit', {
+                                  companyId: co.id,
+                                  companyName: co.name,
+                                  readonly: false,
+                                  onSuccess: refresh,
+                                })
+                              }
+                            >
+                              审计
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleToggleStatus(co)}>
                               {co.status === 'active' ? '停用' : '启用'}
                             </DropdownMenuItem>

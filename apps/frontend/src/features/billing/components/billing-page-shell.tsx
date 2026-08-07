@@ -1,8 +1,10 @@
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
+import { Button } from '@/components/ui/button'
 import type { useBillingPage } from '@/features/billing'
 import { PermissionGate, useSession } from '@/features/session'
+import { useWorkflow } from '@/features/workflow'
 import { PERMISSION } from '@/lib/permissions'
 import { walletBillingCurrency } from '../lib/selectors'
 import { RechargePanel } from './recharge-panel'
@@ -22,7 +24,8 @@ export function BillingPageShell({
   handleRecharge,
   discounts,
 }: BillingPageShellProps) {
-  const { companyType } = useSession()
+  const { companyId, companyName, companyType } = useSession()
+  const { open } = useWorkflow()
   const canRecharge = companyType !== 'trial' && companyType !== 'demo'
 
   return (
@@ -30,6 +33,22 @@ export function BillingPageShell({
       <PageHeader testId="page-billing" title="钱包管理" description="账户余额与充值管理" />
 
       <BillingStats wallet={wallet} loading={loading} />
+
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            open('lot-audit', {
+              companyId,
+              companyName,
+              readonly: true,
+            })
+          }
+        >
+          查看批次明细
+        </Button>
+      </div>
 
       <DiscountSection discounts={discounts} />
 

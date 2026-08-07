@@ -175,3 +175,74 @@ func (r *billingRepo) UpsertLotFromSync(ctx context.Context, lot store.RechargeL
 	}
 	return nil
 }
+
+// ListAllLots returns all lots for a company (active + exhausted), ordered by created_at DESC.
+func (r *billingRepo) ListAllLots(ctx context.Context, companyID uuid.UUID) ([]store.RechargeLot, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT id, company_id, recharge_order_id, billing_currency, lot_kind,
+			paid_amount, quota_per_unit, quota_granted, quota_remaining,
+			status, created_at, updated_at
+		FROM company_recharge_lots
+		WHERE company_id = $1
+		ORDER BY created_at DESC
+	`, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanRechargeLots(rows)
+}
+
+// ListLotTransactions returns all lot transactions for a company, ordered by created_at DESC.
+func (r *billingRepo) ListLotTransactions(ctx context.Context, companyID uuid.UUID) ([]store.LotTransaction, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT id, company_id, lot_id, action, quota_delta, quota_per_unit,
+			money_amount, billing_currency, remaining_after, source, lot_kind,
+			operator_id, note, created_at
+		FROM lot_transactions
+		WHERE company_id = $1
+		ORDER BY created_at DESC
+	`, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var txs []store.LotTransaction
+	for rows.Next() {
+		var t store.LotTransaction
+		if err := rows.Scan(
+			&t.ID, &t.CompanyID, &t.LotID, &t.Action, &t.QuotaDelta, &t.QuotaPerUnit,
+			&t.MoneyAmount, &t.BillingCurrency, &t.RemainingAfter, &t.Source, &t.LotKind,
+			&t.OperatorID, &t.Note, &t.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		txs = append(txs, t)
+	}
+	return txs, rows.Err()
+}
+
+// InsertLotTransaction inserts a new lot transaction record.
+func (r *billingRepo) InsertLotTransaction(ctx context.Context, tx store.LotTransaction) error {
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO lot_transactions (id, company_id, lot_id, action, quota_delta, quota_per_unit,
+			money_amount, billing_currency, remaining_after, source, lot_kind, operator_id, note, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+	`, tx.ID, tx.CompanyID, tx.LotID, tx.Action, tx.QuotaDelta, tx.QuotaPerUnit,
+		tx.MoneyAmount, tx.BillingCurrency, tx.RemainingAfter, tx.Source, tx.LotKind,
+		tx.OperatorID, tx.Note, tx.CreatedAt)
+	return err
+}
+
+// UpsertLotTransactionFromSync inserts a lot transaction from sync, skipping if already exists (UUID idempotent).
+func (r *billingRepo) UpsertLotTransactionFromSync(ctx context.Context, tx store.LotTransaction) error {
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO lot_transactions (id, company_id, lot_id, action, quota_delta, quota_per_unit,
+			money_amount, billing_currency, remaining_after, source, lot_kind, operator_id, note, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+		ON CONFLICT (id) DO NOTHING
+	`, tx.ID, tx.CompanyID, tx.LotID, tx.Action, tx.QuotaDelta, tx.QuotaPerUnit,
+		tx.MoneyAmount, tx.BillingCurrency, tx.RemainingAfter, tx.Source, tx.LotKind,
+		tx.OperatorID, tx.Note, tx.CreatedAt)
+	return err
+}

@@ -35,6 +35,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	read.Get("/billing/wallet", h.GetWallet)
 	read.Get("/billing/recharge-records", h.ListRechargeRecords)
 	read.Get("/billing/discounts", h.GetDiscounts)
+	read.Get("/billing/lots", h.ListLots)
 	write := httpmiddleware.ReadRoutes(r, h.Protected, grants.BillingManage)
 	write.Post("/billing/recharge", h.CreateRecharge)
 	write.Post("/billing/recharge/{id}/confirm", h.ConfirmRecharge)
@@ -121,4 +122,9 @@ func (h *Handler) GetDiscounts(w http.ResponseWriter, r *http.Request) {
 func Mount(r chi.Router, d httpdeps.Deps) {
 	h := NewHandler(d.Protected(), d.BillingSvc, d.ModelDiscount())
 	h.RegisterRoutes(r)
+}
+
+func (h *Handler) ListLots(w http.ResponseWriter, r *http.Request) {
+	lots, err := h.billingSvc.ListLots(r.Context())
+	httputil.WriteJSON(w, http.StatusOK, lots, err)
 }

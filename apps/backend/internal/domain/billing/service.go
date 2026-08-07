@@ -15,9 +15,12 @@ import (
 type Service interface {
 	GetWallet(ctx context.Context) (WalletView, error)
 	ListRechargeRecords(ctx context.Context) ([]RechargeRecord, error)
+	ListLots(ctx context.Context) ([]LotAuditEntry, error)
+	PlatformListLots(ctx context.Context, companyID uuid.UUID) ([]LotAuditEntry, error)
 	PlatformRecharge(ctx context.Context, companyID uuid.UUID, amount float64, operatorID uuid.UUID) error
 	PlatformGift(ctx context.Context, companyID uuid.UUID, amount float64, operatorID uuid.UUID) error
 	PlatformAdjust(ctx context.Context, companyID uuid.UUID, amount float64, paidAmount float64, operatorID uuid.UUID) error
+	PlatformRefund(ctx context.Context, companyID uuid.UUID, lotID uuid.UUID, amount float64, operatorID uuid.UUID) error
 	CreateSelfRecharge(ctx context.Context, amount float64, idempotencyKey string, memberID uuid.UUID) (store.RechargeOrder, error)
 	ConfirmPayment(ctx context.Context, orderID uuid.UUID) error
 }

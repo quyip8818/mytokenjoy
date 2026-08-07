@@ -140,6 +140,28 @@ CREATE INDEX IF NOT EXISTS idx_company_recharge_orders_company ON company_rechar
 CREATE UNIQUE INDEX IF NOT EXISTS idx_company_recharge_orders_idempotency
     ON company_recharge_orders (company_id, idempotency_key) WHERE idempotency_key IS NOT NULL;
 
+CREATE TABLE IF NOT EXISTS lot_transactions (
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id       UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+    lot_id           UUID NOT NULL REFERENCES company_recharge_lots (id),
+    action           TEXT NOT NULL,
+    quota_delta      BIGINT NOT NULL,
+    quota_per_unit   BIGINT NOT NULL,
+    money_amount     NUMERIC(18, 6) NOT NULL,
+    billing_currency CHAR(3) NOT NULL,
+    remaining_after  BIGINT NOT NULL,
+    source           TEXT NOT NULL,
+    lot_kind         TEXT NOT NULL,
+    operator_id      UUID,
+    note             TEXT NOT NULL DEFAULT '',
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CHECK (action IN ('credit', 'refund')),
+    CHECK ((action = 'credit' AND quota_delta > 0) OR (action = 'refund' AND quota_delta < 0))
+);
+
+CREATE INDEX IF NOT EXISTS idx_lot_transactions_company ON lot_transactions (company_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_lot_transactions_lot ON lot_transactions (lot_id, created_at DESC);
+
 -- Org domain
 CREATE TABLE IF NOT EXISTS permissions (
     id    TEXT PRIMARY KEY,

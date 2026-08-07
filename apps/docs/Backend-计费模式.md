@@ -239,6 +239,7 @@ currencies ──1:N──→ companies (billing_currency)
 companies  ──1:N──→ company_recharge_orders
 company_recharge_orders ──1:1──→ company_recharge_lots
 company_recharge_lots ──1:N──→ usage_ledger (debit segments)
+company_recharge_lots ──1:N──→ lot_transactions (credit/refund 变动记录)
 ```
 
 ### 5.2 展示币闭合
@@ -296,6 +297,8 @@ DefaultQuotaPerUnit = 10000
 | 币种解析 | `domain/billing/currency.go` | ResolveCompanyChargeRate |
 | Lot 写入 | `domain/billing/lot/consume.go` | CreditFromLot / ConsumeLots |
 | 充值确认 | `domain/billing/lot_confirm.go` | confirmPaidRecharge / syncWalletBestEffort |
+| 退费 | `domain/billing/refund.go` | PlatformRefund（事务内锁 → 减 lot → 减 wallet → 记 lot_transactions） |
+| Lot 审计 | `domain/billing/lot_audit.go` | ListLots / PlatformListLots / recordCreditTransaction |
 | 钱包聚合 | `domain/billing/wallet_view.go` | AggregateWallet |
 | Discount | `domain/usage/discount.go` | ApplyDiscount / resolveDiscount |
 | Discount store | `store/model_discount.go` | ModelDiscountRepository (append-only) |
@@ -303,6 +306,7 @@ DefaultQuotaPerUnit = 10000
 | 预检 | `domain/gateway/evaluate.go` | wallet_remain_quota + combined_key_remain |
 | NewAPI 客户端 | `integration/newapi/user.go` | ManageUser (set_quota → override) |
 | Store | `store/postgres/company_repo.go` | ApplyWalletDelta / SetWalletRemainQuota |
+| Store | `store/postgres/billing_repo_lots.go` | ListAllLots / lot_transactions CRUD |
 | Sync Versions | `store/sync_versions.go` | SyncVersionRepository (per-company + global) |
 | FE 换算 | `frontend/src/lib/quota-display.ts` | formatMoney / formatDisplayCurrency |
 
@@ -348,7 +352,7 @@ FE 用 `quotaToDisplay` / `displayToQuota` 做表单换算。
 | 预检不足 | 拒绝，不 proxy |
 | lot 不足 | 扩展 overdraft |
 | 改币种   | 旧 lot/CallLog 不变；新充值用新币 |
-| 退款     | **未实现** → [plan/Backend-退款与冲正.md](./plan/Backend-退款与冲正.md) |
+| 退费     | platform 管理员选定 lot → 扣减 `quota_remaining`（不删除 lot） → 减 `wallet_remain_quota` → 插 `lot_transactions` 记录 → bump version + sync |
 
 ---
 
@@ -368,7 +372,6 @@ FE 用 `quotaToDisplay` / `displayToQuota` 做表单换算。
 | 优先级 | 项 |
 |--------|-----|
 | P1 | overdraft 告警/打点 |
-| P2 | 退款/冲正 |
 | P2 | gift/adjust 运营 UI |
 | P3 | 多币种 / 改币种流程 / lot 归档 |
 

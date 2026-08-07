@@ -81,7 +81,25 @@ type CatalogOrder struct {
 
 // CatalogLotsResponse is the response from the wallet_lots sync endpoint.
 type CatalogLotsResponse struct {
-	Data              []CatalogLot   `json:"data"`
-	Orders            []CatalogOrder `json:"orders"`
-	WalletRemainQuota int64          `json:"walletRemainQuota"`
+	Data              []CatalogLot            `json:"data"`
+	Orders            []CatalogOrder          `json:"orders"`
+	Transactions      []CatalogLotTransaction `json:"transactions"`
+	WalletRemainQuota int64                   `json:"walletRemainQuota"`
+}
+
+// CatalogLotTransaction represents a lot transaction entry from the platform sync API.
+type CatalogLotTransaction struct {
+	ID              string  `json:"id"`
+	LotID           string  `json:"lotId"`
+	Action          string  `json:"action"`
+	QuotaDelta      int64   `json:"quotaDelta"`
+	QuotaPerUnit    int64   `json:"quotaPerUnit"`
+	MoneyAmount     float64 `json:"moneyAmount"`
+	BillingCurrency string  `json:"billingCurrency"`
+	RemainingAfter  int64   `json:"remainingAfter"`
+	Source          string  `json:"source"`
+	LotKind         string  `json:"lotKind"`
+	OperatorID      *string `json:"operatorId,omitempty"`
+	Note            string  `json:"note"`
+	CreatedAt       int64   `json:"createdAt"`
 }

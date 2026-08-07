@@ -66,6 +66,9 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Get("/companies/{id}/discounts", h.ListCompanyDiscounts)
 		r.Put("/companies/{id}/discounts", h.SetCompanyDiscount)
 		r.Put("/companies/{id}/discounts/batch", h.BatchSetCompanyDiscounts)
+		// Lot audit + refund
+		r.Get("/companies/{id}/lots", h.ListCompanyLots)
+		r.Post("/companies/{id}/refund", h.RefundCompany)
 		// Currency management
 		r.Get("/currencies", h.ListCurrencies)
 		r.Post("/currencies", h.CreateCurrency)
@@ -226,6 +229,54 @@ func (h *Handler) AdjustCompany(w http.ResponseWriter, r *http.Request) {
 	}
 	operatorID := operatorIDFromSession(r)
 	err = h.p.BillingSvc.PlatformAdjust(r.Context(), id, body.Amount, body.PaidAmount, operatorID)
+	httputil.WriteVoid(w, err)
+}
+
+func (h *Handler) ListCompanyLots(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+		return
+	}
+	lots, err := h.p.BillingSvc.PlatformListLots(r.Context(), id)
+	if err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	co, _ := h.p.Companies.GetByID(r.Context(), id)
+	var walletRemain int64
+	if co != nil {
+		walletRemain = co.WalletRemainQuota
+	}
+	httputil.WriteJSON(w, http.StatusOK, map[string]any{
+		"lots":              lots,
+		"walletRemainQuota": walletRemain,
+	}, nil)
+}
+
+type refundBody struct {
+	LotID  string  `json:"lotId"`
+	Amount float64 `json:"amount"`
+}
+
+func (h *Handler) RefundCompany(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+		return
+	}
+	var body refundBody
+	if err := httputil.DecodeJSON(r, &body); err != nil {
+		httputil.WriteError(w, err)
+		return
+	}
+	lotID, err := uuid.Parse(body.LotID)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid lotId")
+		return
+	}
+	operatorID := operatorIDFromSession(r)
+	err = h.p.BillingSvc.PlatformRefund(r.Context(), id, lotID, body.Amount, operatorID)
 	httputil.WriteVoid(w, err)
 }
 

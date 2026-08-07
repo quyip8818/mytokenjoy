@@ -34,6 +34,7 @@ func (s *service) confirmGiftLot(ctx context.Context, amount float64, createdBy 
 	if err != nil {
 		return err
 	}
+	s.recordCreditTransaction(ctx, companyID, lot, "platform", createdBy)
 	s.syncWalletBestEffort(ctx, companyID, newRemain)
 	return nil
 }
@@ -59,6 +60,7 @@ func (s *service) confirmAdjustLot(ctx context.Context, amount, paidAmount float
 	if err != nil {
 		return err
 	}
+	s.recordCreditTransaction(ctx, companyID, lot, "platform", createdBy)
 	s.syncWalletBestEffort(ctx, companyID, newRemain)
 	return nil
 }
@@ -95,6 +97,7 @@ func (s *service) finishPendingOrder(ctx context.Context, order store.RechargeOr
 	if err != nil {
 		return err
 	}
+	s.recordCreditTransaction(ctx, order.CompanyID, lot, "self", order.CreatedBy)
 	s.syncWalletBestEffort(ctx, order.CompanyID, newRemain)
 	return nil
 }
@@ -123,6 +126,12 @@ func (s *service) confirmPaidRecharge(ctx context.Context, amount float64, sourc
 	if err != nil {
 		return err
 	}
+	// Determine source for transaction record.
+	txSource := "platform"
+	if source == store.RechargeSourceSelf {
+		txSource = "self"
+	}
+	s.recordCreditTransaction(ctx, companyID, lot, txSource, createdBy)
 	s.syncWalletBestEffort(ctx, companyID, newRemain)
 	return nil
 }

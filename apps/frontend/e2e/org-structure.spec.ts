@@ -144,7 +144,14 @@ test.describe('组织架构 - 成员 CRUD', () => {
     // Select department via combobox
     await dialog.getByRole('combobox').click()
     await page.getByRole('option', { name: /总公司/ }).click()
-    await page.getByRole('button', { name: '添加' }).click()
+
+    // Submit form — wait for API response to confirm creation succeeded.
+    const createPromise = page.waitForResponse(
+      (res) => res.url().includes('/api/org/members') && res.request().method() === 'POST',
+    )
+    await dialog.getByRole('button', { name: '添加' }).click()
+    const createRes = await createPromise
+    expect(createRes.status()).toBe(200)
 
     await expect(page.getByRole('dialog')).toBeHidden({ timeout: 10_000 })
     // Verify through API with retry — backend may still be writing
@@ -157,7 +164,8 @@ test.describe('组织架构 - 成员 CRUD', () => {
         return res.json()
       }, uniqueName)
       expect(members.items.length).toBeGreaterThan(0)
-      expect(members.items[0].alias).toBe(uniqueName)
+      // Match on user name (form field "姓名"), not alias (optional "昵称").
+      expect(members.items[0].name).toBe(uniqueName)
     }).toPass({ timeout: 15_000 })
 
     // Cleanup

@@ -37,7 +37,24 @@ type catalogOrderDTO struct {
 	CreatedAt      int64   `json:"createdAt"` // unix seconds
 }
 
-// CatalogWalletLots returns active lots + wallet balance for the authenticated sync company.
+// catalogLotTransactionDTO is a lot transaction entry in the sync response.
+type catalogLotTransactionDTO struct {
+	ID              string  `json:"id"`
+	LotID           string  `json:"lotId"`
+	Action          string  `json:"action"`
+	QuotaDelta      int64   `json:"quotaDelta"`
+	QuotaPerUnit    int64   `json:"quotaPerUnit"`
+	MoneyAmount     float64 `json:"moneyAmount"`
+	BillingCurrency string  `json:"billingCurrency"`
+	RemainingAfter  int64   `json:"remainingAfter"`
+	Source          string  `json:"source"`
+	LotKind         string  `json:"lotKind"`
+	OperatorID      *string `json:"operatorId,omitempty"`
+	Note            string  `json:"note"`
+	CreatedAt       int64   `json:"createdAt"` // unix seconds
+}
+
+// CatalogWalletLots returns all lots + transactions + wallet balance for the authenticated sync company.
 // GET /api/platform/sync/catalog/wallet_lots (requires sync token)
 func (h *Handler) CatalogWalletLots(w http.ResponseWriter, r *http.Request) {
 	companyID, ok := httpmiddleware.SyncCompanyIDFromContext(r.Context())
@@ -54,8 +71,8 @@ func (h *Handler) CatalogWalletLots(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// List all active lots (FIFO order).
-	lots, err := h.p.Billing.ListActiveLotsFIFO(ctx, companyID, co.FIFOHeadLotID)
+	// List ALL lots (active + exhausted) for full sync.
+	lots, err := h.p.Billing.ListAllLots(ctx, companyID)
 	if err != nil {
 		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
 		return
@@ -100,8 +117,8 @@ func (h *Handler) CatalogWalletLots(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// Only include orders that have active lots (avoid sending historical exhausted orders).
-	activeOrders := make([]catalogOrderDTO, 0, len(lots))
+	// Include all orders referenced by any lot.
+	referencedOrders := make([]catalogOrderDTO, 0, len(lots))
 	seen := make(map[string]bool)
 	for _, lot := range lots {
 		oid := lot.RechargeOrderID.String()
@@ -110,8 +127,37 @@ func (h *Handler) CatalogWalletLots(w http.ResponseWriter, r *http.Request) {
 		}
 		seen[oid] = true
 		if o, ok := orderMap[oid]; ok {
-			activeOrders = append(activeOrders, o)
+			referencedOrders = append(referencedOrders, o)
 		}
+	}
+
+	// Lot transactions for sync.
+	txs, err := h.p.Billing.ListLotTransactions(ctx, companyID)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return
+	}
+	txDTOs := make([]catalogLotTransactionDTO, 0, len(txs))
+	for _, t := range txs {
+		dto := catalogLotTransactionDTO{
+			ID:              t.ID.String(),
+			LotID:           t.LotID.String(),
+			Action:          t.Action,
+			QuotaDelta:      t.QuotaDelta,
+			QuotaPerUnit:    t.QuotaPerUnit,
+			MoneyAmount:     t.MoneyAmount,
+			BillingCurrency: t.BillingCurrency,
+			RemainingAfter:  t.RemainingAfter,
+			Source:          t.Source,
+			LotKind:         t.LotKind,
+			Note:            t.Note,
+			CreatedAt:       t.CreatedAt.Unix(),
+		}
+		if t.OperatorID != nil {
+			s := t.OperatorID.String()
+			dto.OperatorID = &s
+		}
+		txDTOs = append(txDTOs, dto)
 	}
 
 	v, _ := h.p.SyncVersions.Get(ctx, companyID, "wallet_lots")
@@ -119,7 +165,8 @@ func (h *Handler) CatalogWalletLots(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, map[string]any{
 		"version":           v,
 		"data":              data,
-		"orders":            activeOrders,
+		"orders":            referencedOrders,
+		"transactions":      txDTOs,
 		"walletRemainQuota": co.WalletRemainQuota,
 	})
 }

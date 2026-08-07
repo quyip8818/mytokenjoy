@@ -294,6 +294,41 @@ func (e *Executor) syncWalletLots(ctx context.Context) error {
 		return fmt.Errorf("catalogsync set wallet: %w", err)
 	}
 
-	slog.Info("catalogsync: wallet_lots synced", "lots", len(resp.Data), "orders", len(resp.Orders), "walletRemainQuota", resp.WalletRemainQuota)
+	// Upsert lot transactions (UUID-idempotent, append-only).
+	for _, remoteTx := range resp.Transactions {
+		txID, err := uuid.Parse(remoteTx.ID)
+		if err != nil {
+			slog.Warn("catalogsync: skip transaction with invalid ID", "id", remoteTx.ID)
+			continue
+		}
+		lotID, _ := uuid.Parse(remoteTx.LotID)
+		var operatorID *uuid.UUID
+		if remoteTx.OperatorID != nil {
+			if parsed, err := uuid.Parse(*remoteTx.OperatorID); err == nil {
+				operatorID = &parsed
+			}
+		}
+		tx := store.LotTransaction{
+			ID:              txID,
+			CompanyID:       companyID,
+			LotID:           lotID,
+			Action:          remoteTx.Action,
+			QuotaDelta:      remoteTx.QuotaDelta,
+			QuotaPerUnit:    remoteTx.QuotaPerUnit,
+			MoneyAmount:     remoteTx.MoneyAmount,
+			BillingCurrency: remoteTx.BillingCurrency,
+			RemainingAfter:  remoteTx.RemainingAfter,
+			Source:          remoteTx.Source,
+			LotKind:         remoteTx.LotKind,
+			OperatorID:      operatorID,
+			Note:            remoteTx.Note,
+			CreatedAt:       time.Unix(remoteTx.CreatedAt, 0),
+		}
+		if err := e.store.Billing().UpsertLotTransactionFromSync(ctx, tx); err != nil {
+			slog.Warn("catalogsync: lot transaction upsert failed", "txId", txID, "error", err)
+		}
+	}
+
+	slog.Info("catalogsync: wallet_lots synced", "lots", len(resp.Data), "orders", len(resp.Orders), "transactions", len(resp.Transactions), "walletRemainQuota", resp.WalletRemainQuota)
 	return nil
 }

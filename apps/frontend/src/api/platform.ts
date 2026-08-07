@@ -2,6 +2,7 @@ import { request } from './client'
 import type {
   BatchSetDiscountInput,
   DiscountEntry,
+  LotAuditResponse,
   PlatformCompanyOverview,
   PlatformCreateModelInput,
   PlatformCurrency,
@@ -44,6 +45,14 @@ export const platformApi = {
 
   updateCompany: (id: string, patch: { status?: string }) =>
     request<void>(`/platform/companies/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+
+  listCompanyLots: (id: string) => request<LotAuditResponse>(`/platform/companies/${id}/lots`),
+
+  refundCompany: (id: string, lotId: string, amount: number) =>
+    request<void>(`/platform/companies/${id}/refund`, {
+      method: 'POST',
+      body: JSON.stringify({ lotId, amount }),
+    }),
 
   listCompanyDiscounts: (companyId: string) =>
     request<DiscountEntry[]>(`/platform/companies/${companyId}/discounts`),

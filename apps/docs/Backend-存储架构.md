@@ -1,6 +1,6 @@
 # Backend 存储架构
 
-Postgres 双库：主库 **38** 张业务表 + **5** 张 River 表 + 日志库 **3** 张表。`company_id` 租户隔离，管理面配置 + 运行面入账投影。
+Postgres 双库：主库 **39** 张业务表 + **5** 张 River 表 + 日志库 **3** 张表。`company_id` 租户隔离，管理面配置 + 运行面入账投影。
 
 **本文定位：** 表结构、域关系、Store 映射与 ID 约定。请求链路见 [Backend-架构.md](./Backend-架构.md)；Ingest / Rebalance / Overrun 算法见 [Backend-预算.md](./Backend-预算.md)；计费模式见 [Backend-计费模式.md](./Backend-计费模式.md)。
 
@@ -17,7 +17,7 @@ Postgres 双库：主库 **38** 张业务表 + **5** 张 River 表 + 日志库 *
 
 ```mermaid
 flowchart LR
-  subgraph main [主库 · 38 业务表 + 5 River 表]
+  subgraph main [主库 · 39 业务表 + 5 River 表]
     MGMT[管理面]
     RUN[运行面]
     RJ[river_job 等]
@@ -87,7 +87,7 @@ flowchart TB
 | `PlatformKeyMappings()`                               | `platform_key_mappings`                                                  |
 | `RiverJob()`                                          | `river_job` 只读辅助查询（如 `HasActiveOrgSync`）；写入统一经 `river.Client` |
 | `Audit()`                                             | `audit_settings`, `operation_logs`                                       |
-| `Company()` / `User()` / `Invite()` / `Billing()`     | 租户与充值                                                               |
+| `Company()` / `User()` / `Invite()` / `Billing()`     | 租户与充值；`lot_transactions` 变更记录                  |
 | `PlatformQuery()`                                     | 平台面跨租户只读查询                                                     |
 | `Approval()`                                          | `approval_requests`                                                      |
 | `SystemSettings()` / `ModelDiscount()`                | `system_settings`, `model_discount`                                      |

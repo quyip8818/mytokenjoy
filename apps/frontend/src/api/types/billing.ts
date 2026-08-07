@@ -40,3 +40,34 @@ export interface DiscountEntry {
   discount: number
   note?: string
 }
+
+export interface LotTransaction {
+  id: string
+  action: 'credit' | 'refund'
+  quotaDelta: number
+  moneyAmount: number
+  remainingAfter: number
+  source: string
+  operatorId?: string
+  note: string
+  createdAt: string
+}
+
+export interface LotAuditEntry {
+  id: string
+  orderId: string
+  lotKind: 'paid' | 'gift' | 'adjust' | 'overdraft' | 'mock'
+  billingCurrency: string
+  quotaPerUnit: number
+  quotaGranted: number
+  quotaRemaining: number
+  paidAmount: number
+  status: 'active' | 'exhausted'
+  createdAt: string
+  transactions: LotTransaction[]
+}
+
+export interface LotAuditResponse {
+  lots: LotAuditEntry[]
+  walletRemainQuota: number
+}

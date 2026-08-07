@@ -215,9 +215,10 @@ Catalog Sync Worker（每 5min，River PeriodicJob）:
 
   6. 比较本地 sync_versions (GlobalSyncVersion, "wallet_lots") vs 远端
      → 不同 → GET /api/platform/sync/catalog/wallet_lots （需要 sync token）
-     → 返回 { data: [...lots], orders: [...orders], walletRemainQuota: N }
+     → 返回 { data: [...lots], orders: [...orders], transactions: [...lot_transactions], walletRemainQuota: N }
      → Upsert orders 到本地 company_recharge_orders 表
-     → Upsert lots 到本地 company_recharge_lots 表（保留原始 kind）
+     → Upsert lots 到本地 company_recharge_lots 表（含 exhausted，保留原始 kind）
+     → Upsert lot_transactions 到本地（UUID 幂等，ON CONFLICT DO NOTHING）
      → 覆盖写入 companies.wallet_remain_quota（对账修正）
      → Set 本地 version
 ```
@@ -226,9 +227,9 @@ Catalog Sync Worker（每 5min，River PeriodicJob）:
 |------|------|
 | 频率 | 默认 5min（`CATALOG_SYNC_INTERVAL_SEC`） |
 | 余额对账 | wallet_lots 通道：SaaS 真实余额覆盖 Local wallet |
-| lot 同步 | 直接镜像 SaaS 的 lot + order 列表（paid/gift/adjust），保留原始 kind |
+| lot 同步 | 直接镜像 SaaS 的 lot + order + transaction 列表（含 exhausted），保留原始 kind |
 | version 门控 | 各通道独立版本号（`sync_versions` 表），无变化时跳过（避免无谓 IO） |
-| version bump | SaaS 侧：充值/Ingest 后 per-company bump `wallet_lots`；折扣变更 per-company bump `discounts`；全局操作 bump `models`/`pricing`/`currencies` |
+| version bump | SaaS 侧：充值/退费/Ingest 后 per-company bump `wallet_lots`；折扣变更 per-company bump `discounts`；全局操作 bump `models`/`pricing`/`currencies` |
 | 失败处理 | 保留上次数据继续用；SaaS Gateway 兜底 |
 | 认证 | /sync/versions + pricing + discounts + wallet_lots 需要 sync token（cst_ 前缀） |
 

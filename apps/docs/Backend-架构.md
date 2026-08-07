@@ -622,7 +622,7 @@ billing 域没有独立入队端口——充值只走 post-commit `QuotaSyncer.M
 | 名称              | 路径                                                      |
 | ----------------- | --------------------------------------------------------- |
 | **Lot 写 SSOT**   | `domain/billing/lot/`（FIFO 消费、`wallet_remain_quota`） |
-| **Billing 域**    | `domain/billing/`（充值、展示；wallet override 为 post-commit 实时 HTTP，非异步 job） |
+| **Billing 域**    | `domain/billing/`（充值、退费、展示；wallet override 为 post-commit 实时 HTTP，非异步 job） |
 | **WalletService** | `domain/company/`（NewAPI quota 读；依赖 `QuotaReader`）  |
 | **Usage 聚合**    | `store/postgres/usage_aggregate.go` → `UsageRepository`   |
 

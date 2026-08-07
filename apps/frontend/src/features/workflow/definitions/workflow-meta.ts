@@ -20,9 +20,13 @@ export const WORKFLOW_META: Record<WorkflowId, WorkflowMeta> = {
   'platform-model-create': { title: '添加平台模型' },
   'platform-model-edit': { title: '编辑平台模型' },
   'discount-config': { title: '模型优惠配置' },
+  'lot-audit': { title: 'Lot 审计' },
 }
 
-const WORKFLOW_DOMAIN: Record<WorkflowId, 'org' | 'keys' | 'models' | 'shared' | 'approval'> = {
+const WORKFLOW_DOMAIN: Record<
+  WorkflowId,
+  'org' | 'keys' | 'models' | 'shared' | 'approval' | 'billing'
+> = {
   'member-search': 'org',
   'key-create': 'keys',
   'key-edit': 'keys',
@@ -40,6 +44,7 @@ const WORKFLOW_DOMAIN: Record<WorkflowId, 'org' | 'keys' | 'models' | 'shared' |
   'platform-model-create': 'models',
   'platform-model-edit': 'models',
   'discount-config': 'models',
+  'lot-audit': 'billing',
 }
 
 export function getWorkflowMeta(id: WorkflowId): WorkflowMeta {
@@ -52,6 +57,6 @@ export function getWorkflowMeta(id: WorkflowId): WorkflowMeta {
 
 export function getWorkflowDomain(
   id: WorkflowId,
-): 'org' | 'keys' | 'models' | 'shared' | 'approval' {
+): 'org' | 'keys' | 'models' | 'shared' | 'approval' | 'billing' {
   return WORKFLOW_DOMAIN[id]
 }

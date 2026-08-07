@@ -11,6 +11,7 @@ const DOMAIN_LOADERS = {
   approval: () => import('./approval').then((m) => m.approvalWorkflowDefinitions),
   models: () => import('./models').then((m) => m.modelsWorkflowDefinitions),
   shared: () => import('./shared').then((m) => m.sharedWorkflowDefinitions),
+  billing: () => import('./billing').then((m) => m.billingWorkflowDefinitions),
 } as const
 
 const domainCache = new Map<keyof typeof DOMAIN_LOADERS, DomainDefinitions>()

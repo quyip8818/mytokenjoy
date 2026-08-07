@@ -121,4 +121,26 @@ type BillingRepository interface {
 	// Lot sync (for selfhosted catalog sync from SaaS)
 	UpsertOrderFromSync(ctx context.Context, order RechargeOrder) error
 	UpsertLotFromSync(ctx context.Context, lot RechargeLot) error
+	// Lot audit
+	ListAllLots(ctx context.Context, companyID uuid.UUID) ([]RechargeLot, error)
+	ListLotTransactions(ctx context.Context, companyID uuid.UUID) ([]LotTransaction, error)
+	InsertLotTransaction(ctx context.Context, tx LotTransaction) error
+	UpsertLotTransactionFromSync(ctx context.Context, tx LotTransaction) error
+}
+
+type LotTransaction struct {
+	ID              uuid.UUID
+	CompanyID       uuid.UUID
+	LotID           uuid.UUID
+	Action          string // "credit" | "refund"
+	QuotaDelta      int64
+	QuotaPerUnit    int64
+	MoneyAmount     float64
+	BillingCurrency string
+	RemainingAfter  int64
+	Source          string // "platform" | "self" | "system"
+	LotKind         string
+	OperatorID      *uuid.UUID
+	Note            string
+	CreatedAt       time.Time
 }
