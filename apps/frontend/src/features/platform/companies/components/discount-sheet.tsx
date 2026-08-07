@@ -123,7 +123,12 @@ export function DiscountSheet({ target, discountState, onClose }: Props) {
               />
             </label>
 
-            <Button data-testid="discount-submit" className="w-full" disabled={submitting} onClick={handleSubmit}>
+            <Button
+              data-testid="discount-submit"
+              className="w-full"
+              disabled={submitting}
+              onClick={handleSubmit}
+            >
               {submitting ? '保存中…' : '保存'}
             </Button>
           </div>

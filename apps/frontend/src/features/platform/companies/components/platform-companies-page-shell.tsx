@@ -235,7 +235,10 @@ export function PlatformCompaniesPageShell(props: Props) {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => openGift(co)}>赠送</DropdownMenuItem>
-                            <DropdownMenuItem data-testid={`platform-companies-discount-${co.id}`} onClick={() => openDiscount(co)}>
+                            <DropdownMenuItem
+                              data-testid={`platform-companies-discount-${co.id}`}
+                              onClick={() => openDiscount(co)}
+                            >
                               优惠
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleToggleStatus(co)}>

@@ -8,5 +8,9 @@ export interface PageShellProps {
 }
 
 export function PageShell({ children, className, testId }: PageShellProps) {
-  return <div className={cn('space-y-6', className)} data-testid={testId}>{children}</div>
+  return (
+    <div className={cn('space-y-6', className)} data-testid={testId}>
+      {children}
+    </div>
+  )
 }
