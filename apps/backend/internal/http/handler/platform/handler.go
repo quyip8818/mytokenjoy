@@ -150,9 +150,8 @@ type updateCompanyBody struct {
 }
 
 func (h *Handler) UpdateCompany(w http.ResponseWriter, r *http.Request) {
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	id, ok := h.requireCompany(w, r)
+	if !ok {
 		return
 	}
 	var body updateCompanyBody
@@ -161,11 +160,13 @@ func (h *Handler) UpdateCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if body.Status != nil {
-		err = h.p.CompanySvc.UpdateCompany(r.Context(), id, domaincompany.UpdateCompanyPatch{
+		err := h.p.CompanySvc.UpdateCompany(r.Context(), id, domaincompany.UpdateCompanyPatch{
 			Status: body.Status,
 		})
+		httputil.WriteVoid(w, err)
+		return
 	}
-	httputil.WriteVoid(w, err)
+	httputil.WriteVoid(w, nil)
 }
 
 func operatorIDFromSession(r *http.Request) uuid.UUID {
@@ -176,14 +177,33 @@ func operatorIDFromSession(r *http.Request) uuid.UUID {
 	return session.Member.ID
 }
 
+// requireCompany parses the {id} URL param, verifies the company exists, and returns
+// its UUID. On error it writes the response and returns uuid.Nil, false.
+func (h *Handler) requireCompany(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "invalid company id")
+		return uuid.Nil, false
+	}
+	co, err := h.p.Companies.GetByID(r.Context(), id)
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return uuid.Nil, false
+	}
+	if co == nil {
+		httputil.WriteStatus(w, http.StatusNotFound, "company not found")
+		return uuid.Nil, false
+	}
+	return id, true
+}
+
 type rechargeBody struct {
 	Amount float64 `json:"amount"`
 }
 
 func (h *Handler) RechargeCompany(w http.ResponseWriter, r *http.Request) {
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	id, ok := h.requireCompany(w, r)
+	if !ok {
 		return
 	}
 	var body rechargeBody
@@ -192,7 +212,7 @@ func (h *Handler) RechargeCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	operatorID := operatorIDFromSession(r)
-	err = h.p.BillingSvc.PlatformRecharge(r.Context(), id, body.Amount, operatorID)
+	err := h.p.BillingSvc.PlatformRecharge(r.Context(), id, body.Amount, operatorID)
 	httputil.WriteVoid(w, err)
 }
 
@@ -201,9 +221,8 @@ type giftBody struct {
 }
 
 func (h *Handler) GiftCompany(w http.ResponseWriter, r *http.Request) {
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	id, ok := h.requireCompany(w, r)
+	if !ok {
 		return
 	}
 	var body giftBody
@@ -212,7 +231,7 @@ func (h *Handler) GiftCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	operatorID := operatorIDFromSession(r)
-	err = h.p.BillingSvc.PlatformGift(r.Context(), id, body.Amount, operatorID)
+	err := h.p.BillingSvc.PlatformGift(r.Context(), id, body.Amount, operatorID)
 	httputil.WriteVoid(w, err)
 }
 
@@ -222,9 +241,8 @@ type adjustBody struct {
 }
 
 func (h *Handler) AdjustCompany(w http.ResponseWriter, r *http.Request) {
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	id, ok := h.requireCompany(w, r)
+	if !ok {
 		return
 	}
 	var body adjustBody
@@ -233,14 +251,13 @@ func (h *Handler) AdjustCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	operatorID := operatorIDFromSession(r)
-	err = h.p.BillingSvc.PlatformAdjust(r.Context(), id, body.Amount, body.PaidAmount, operatorID)
+	err := h.p.BillingSvc.PlatformAdjust(r.Context(), id, body.Amount, body.PaidAmount, operatorID)
 	httputil.WriteVoid(w, err)
 }
 
 func (h *Handler) ListCompanyLots(w http.ResponseWriter, r *http.Request) {
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	id, ok := h.requireCompany(w, r)
+	if !ok {
 		return
 	}
 	lots, err := h.p.BillingSvc.PlatformListLots(r.Context(), id)
@@ -265,9 +282,8 @@ type refundBody struct {
 }
 
 func (h *Handler) RefundCompany(w http.ResponseWriter, r *http.Request) {
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	id, ok := h.requireCompany(w, r)
+	if !ok {
 		return
 	}
 	var body refundBody

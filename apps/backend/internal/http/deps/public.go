@@ -8,6 +8,7 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/identity/credentials"
 	"github.com/tokenjoy/backend/internal/domain/identity/sessiontoken"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
+	domainplatform "github.com/tokenjoy/backend/internal/domain/platform"
 	domainredemption "github.com/tokenjoy/backend/internal/domain/redemption"
 	"github.com/tokenjoy/backend/internal/store"
 )
@@ -25,6 +26,7 @@ type Platform struct {
 	CompanySvc     domaincompany.Service
 	BillingSvc     domainbilling.Service
 	KeysSvc        domainkeys.Service
+	PlatformSvc    domainplatform.Service
 	AdminPort      adminport.Port
 	RedemptionSvc  domainredemption.Service
 	Models         store.ModelsRepository
@@ -54,6 +56,7 @@ func (d Deps) Platform() Platform {
 		CompanySvc:     d.CompanySvc,
 		BillingSvc:     d.BillingSvc,
 		KeysSvc:        d.KeysSvc,
+		PlatformSvc:    domainplatform.NewService(d.Store, d.AdminPort, d.Config.TokenJoyCompanyID),
 		AdminPort:      d.AdminPort,
 		RedemptionSvc:  domainredemption.NewService(d.Store),
 		Models:         d.Store.Models(),

@@ -169,12 +169,14 @@ func (e *Executor) syncPricing(ctx context.Context, remoteVersion int) error {
 }
 
 // syncDiscounts fetches per-company discount coefficients and inserts new rows (id-idempotent).
+// Version is only bumped when all rows succeed — partial failure triggers full retry next cycle.
 func (e *Executor) syncDiscounts(ctx context.Context, remoteVersion int) error {
 	resp, err := e.client.FetchDiscounts(ctx)
 	if err != nil {
 		return fmt.Errorf("catalogsync fetch discounts: %w", err)
 	}
 
+	var hasError bool
 	for _, d := range resp.Data {
 		id, err := uuid.Parse(d.ID)
 		if err != nil {
@@ -189,19 +191,25 @@ func (e *Executor) syncDiscounts(ctx context.Context, remoteVersion int) error {
 		}
 		if err := e.store.ModelDiscount().InsertFromSync(ctx, row); err != nil {
 			slog.Warn("catalogsync: discount insert failed", "modelType", d.ModelType, "error", err)
+			hasError = true
 		}
 	}
 
+	if hasError {
+		return fmt.Errorf("catalogsync: some discounts failed, version not bumped for retry")
+	}
 	return e.store.SyncVersions().Set(ctx, store.GlobalSyncVersion, "discounts", remoteVersion)
 }
 
 // syncCurrencies fetches currencies from the platform and inserts new rows (append-only, id-idempotent).
+// Version is only bumped when all rows succeed — partial failure triggers full retry next cycle.
 func (e *Executor) syncCurrencies(ctx context.Context) error {
 	resp, err := e.client.FetchCurrencies(ctx)
 	if err != nil {
 		return fmt.Errorf("catalogsync fetch currencies: %w", err)
 	}
 
+	var hasError bool
 	for _, c := range resp.Data {
 		id, err := uuid.Parse(c.ID)
 		if err != nil {
@@ -217,9 +225,13 @@ func (e *Executor) syncCurrencies(ctx context.Context) error {
 		}
 		if err := e.store.Billing().InsertCurrencyFromSync(ctx, row); err != nil {
 			slog.Warn("catalogsync: currency insert failed", "code", c.Code, "error", err)
+			hasError = true
 		}
 	}
 
+	if hasError {
+		return fmt.Errorf("catalogsync: some currencies failed, version not bumped for retry")
+	}
 	// Use resp.Version (actual data version) rather than remote.Currencies.
 	return e.store.SyncVersions().Set(ctx, store.GlobalSyncVersion, "currencies", resp.Version)
 }
@@ -227,6 +239,7 @@ func (e *Executor) syncCurrencies(ctx context.Context) error {
 // syncWalletLots fetches active lots + wallet balance from SaaS and mirrors them locally.
 // ponytail: version-gated. Only fetched when SaaS wallet_lots_version changes (recharge or ingest).
 // This ensures the Local FIFO chain matches SaaS, so Local Ingest can consume lots identically.
+// All writes are wrapped in a single transaction to prevent partial state on failure.
 func (e *Executor) syncWalletLots(ctx context.Context) error {
 	resp, err := e.client.FetchWalletLots(ctx)
 	if err != nil {
@@ -235,99 +248,105 @@ func (e *Executor) syncWalletLots(ctx context.Context) error {
 
 	companyID := e.localCompanyID
 
-	// Upsert orders first (lots have FK to orders).
-	for _, remoteOrder := range resp.Orders {
-		orderID, err := uuid.Parse(remoteOrder.ID)
-		if err != nil {
-			slog.Warn("catalogsync: skip order with invalid ID", "id", remoteOrder.ID)
-			continue
-		}
-		order := store.RechargeOrder{
-			ID:             orderID,
-			CompanyID:      companyID,
-			Amount:         remoteOrder.Amount,
-			Currency:       remoteOrder.Currency,
-			QuotaPerUnit:   remoteOrder.QuotaPerUnit,
-			QuotaGranted:   remoteOrder.QuotaGranted,
-			Source:         remoteOrder.Source,
-			LotKind:        remoteOrder.LotKind,
-			Status:         remoteOrder.Status,
-			DisplayOrderID: remoteOrder.DisplayOrderID,
-			PaymentMethod:  remoteOrder.PaymentMethod,
-			CreatedAt:      time.Unix(remoteOrder.CreatedAt, 0),
-		}
-		if err := e.store.Billing().UpsertOrderFromSync(ctx, order); err != nil {
-			slog.Warn("catalogsync: order upsert failed", "orderId", orderID, "error", err)
-		}
-	}
-
-	// Upsert lots (referencing the synced orders).
-	for _, remoteLot := range resp.Data {
-		lotID, err := uuid.Parse(remoteLot.ID)
-		if err != nil {
-			slog.Warn("catalogsync: skip lot with invalid ID", "id", remoteLot.ID)
-			continue
-		}
-		orderID, _ := uuid.Parse(remoteLot.OrderID)
-		if orderID == uuid.Nil {
-			orderID = lotID // fallback: use lot ID (backward compat)
-		}
-		lot := store.RechargeLot{
-			ID:              lotID,
-			CompanyID:       companyID,
-			RechargeOrderID: orderID,
-			BillingCurrency: remoteLot.BillingCurrency,
-			LotKind:         remoteLot.LotKind,
-			PaidAmount:      remoteLot.PaidAmount,
-			QuotaPerUnit:    remoteLot.QuotaPerUnit,
-			QuotaGranted:    remoteLot.QuotaGranted,
-			QuotaRemaining:  remoteLot.QuotaRemaining,
-			Status:          remoteLot.Status,
-			CreatedAt:       time.Unix(remoteLot.CreatedAt, 0),
-		}
-		if err := e.store.Billing().UpsertLotFromSync(ctx, lot); err != nil {
-			slog.Warn("catalogsync: lot upsert failed", "lotId", lotID, "error", err)
-		}
-	}
-
-	// Overwrite wallet_remain_quota with SaaS authoritative value.
-	if err := e.store.Company().SetWalletRemainQuota(ctx, companyID, resp.WalletRemainQuota, nil); err != nil {
-		return fmt.Errorf("catalogsync set wallet: %w", err)
-	}
-
-	// Upsert lot transactions (UUID-idempotent, append-only).
-	for _, remoteTx := range resp.Transactions {
-		txID, err := uuid.Parse(remoteTx.ID)
-		if err != nil {
-			slog.Warn("catalogsync: skip transaction with invalid ID", "id", remoteTx.ID)
-			continue
-		}
-		lotID, _ := uuid.Parse(remoteTx.LotID)
-		var operatorID *uuid.UUID
-		if remoteTx.OperatorID != nil {
-			if parsed, err := uuid.Parse(*remoteTx.OperatorID); err == nil {
-				operatorID = &parsed
+	if err := e.store.WithTx(ctx, func(tx store.Store) error {
+		// Upsert orders first (lots have FK to orders).
+		for _, remoteOrder := range resp.Orders {
+			orderID, err := uuid.Parse(remoteOrder.ID)
+			if err != nil {
+				slog.Warn("catalogsync: skip order with invalid ID", "id", remoteOrder.ID)
+				continue
+			}
+			order := store.RechargeOrder{
+				ID:             orderID,
+				CompanyID:      companyID,
+				Amount:         remoteOrder.Amount,
+				Currency:       remoteOrder.Currency,
+				QuotaPerUnit:   remoteOrder.QuotaPerUnit,
+				QuotaGranted:   remoteOrder.QuotaGranted,
+				Source:         remoteOrder.Source,
+				LotKind:        remoteOrder.LotKind,
+				Status:         remoteOrder.Status,
+				DisplayOrderID: remoteOrder.DisplayOrderID,
+				PaymentMethod:  remoteOrder.PaymentMethod,
+				CreatedAt:      time.Unix(remoteOrder.CreatedAt, 0),
+			}
+			if err := tx.Billing().UpsertOrderFromSync(ctx, order); err != nil {
+				return fmt.Errorf("upsert order %s: %w", orderID, err)
 			}
 		}
-		tx := store.LotTransaction{
-			ID:              txID,
-			CompanyID:       companyID,
-			LotID:           lotID,
-			Action:          remoteTx.Action,
-			QuotaDelta:      remoteTx.QuotaDelta,
-			QuotaPerUnit:    remoteTx.QuotaPerUnit,
-			MoneyAmount:     remoteTx.MoneyAmount,
-			BillingCurrency: remoteTx.BillingCurrency,
-			RemainingAfter:  remoteTx.RemainingAfter,
-			Source:          remoteTx.Source,
-			LotKind:         remoteTx.LotKind,
-			OperatorID:      operatorID,
-			Note:            remoteTx.Note,
-			CreatedAt:       time.Unix(remoteTx.CreatedAt, 0),
+
+		// Upsert lots (referencing the synced orders).
+		for _, remoteLot := range resp.Data {
+			lotID, err := uuid.Parse(remoteLot.ID)
+			if err != nil {
+				slog.Warn("catalogsync: skip lot with invalid ID", "id", remoteLot.ID)
+				continue
+			}
+			orderID, _ := uuid.Parse(remoteLot.OrderID)
+			if orderID == uuid.Nil {
+				orderID = lotID // fallback: use lot ID (backward compat)
+			}
+			lot := store.RechargeLot{
+				ID:              lotID,
+				CompanyID:       companyID,
+				RechargeOrderID: orderID,
+				BillingCurrency: remoteLot.BillingCurrency,
+				LotKind:         remoteLot.LotKind,
+				PaidAmount:      remoteLot.PaidAmount,
+				QuotaPerUnit:    remoteLot.QuotaPerUnit,
+				QuotaGranted:    remoteLot.QuotaGranted,
+				QuotaRemaining:  remoteLot.QuotaRemaining,
+				Status:          remoteLot.Status,
+				CreatedAt:       time.Unix(remoteLot.CreatedAt, 0),
+			}
+			if err := tx.Billing().UpsertLotFromSync(ctx, lot); err != nil {
+				return fmt.Errorf("upsert lot %s: %w", lotID, err)
+			}
 		}
-		if err := e.store.Billing().UpsertLotTransactionFromSync(ctx, tx); err != nil {
-			slog.Warn("catalogsync: lot transaction upsert failed", "txId", txID, "error", err)
+
+		// Overwrite wallet_remain_quota with SaaS authoritative value.
+		if err := tx.Company().SetWalletRemainQuota(ctx, companyID, resp.WalletRemainQuota, nil); err != nil {
+			return fmt.Errorf("set wallet: %w", err)
 		}
+
+		// Upsert lot transactions (UUID-idempotent, append-only).
+		for _, remoteTx := range resp.Transactions {
+			txID, err := uuid.Parse(remoteTx.ID)
+			if err != nil {
+				slog.Warn("catalogsync: skip transaction with invalid ID", "id", remoteTx.ID)
+				continue
+			}
+			lotID, _ := uuid.Parse(remoteTx.LotID)
+			var operatorID *uuid.UUID
+			if remoteTx.OperatorID != nil {
+				if parsed, err := uuid.Parse(*remoteTx.OperatorID); err == nil {
+					operatorID = &parsed
+				}
+			}
+			ltx := store.LotTransaction{
+				ID:              txID,
+				CompanyID:       companyID,
+				LotID:           lotID,
+				Action:          remoteTx.Action,
+				QuotaDelta:      remoteTx.QuotaDelta,
+				QuotaPerUnit:    remoteTx.QuotaPerUnit,
+				MoneyAmount:     remoteTx.MoneyAmount,
+				BillingCurrency: remoteTx.BillingCurrency,
+				RemainingAfter:  remoteTx.RemainingAfter,
+				Source:          remoteTx.Source,
+				LotKind:         remoteTx.LotKind,
+				OperatorID:      operatorID,
+				Note:            remoteTx.Note,
+				CreatedAt:       time.Unix(remoteTx.CreatedAt, 0),
+			}
+			if err := tx.Billing().UpsertLotTransactionFromSync(ctx, ltx); err != nil {
+				return fmt.Errorf("upsert lot transaction %s: %w", txID, err)
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("catalogsync wallet_lots tx: %w", err)
 	}
 
 	slog.Info("catalogsync: wallet_lots synced", "lots", len(resp.Data), "orders", len(resp.Orders), "transactions", len(resp.Transactions), "walletRemainQuota", resp.WalletRemainQuota)

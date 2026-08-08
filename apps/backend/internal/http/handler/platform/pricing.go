@@ -3,37 +3,23 @@ package platform
 import (
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
+	domainplatform "github.com/tokenjoy/backend/internal/domain/platform"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/http/response"
 	"github.com/tokenjoy/backend/internal/store"
-	"github.com/tokenjoy/backend/internal/support/modelcatalog"
 )
 
 // --- Platform Admin: Global Pricing ---
 
-type pricingDTO struct {
-	ModelType       string  `json:"modelType"`
-	InputPrice      float64 `json:"inputPrice"`
-	OutputPrice     float64 `json:"outputPrice"`
-	CacheInputPrice float64 `json:"cacheInputPrice"`
-}
-
 // ListGlobalPricing returns all current global prices from NewAPI (SOT).
 func (h *Handler) ListGlobalPricing(w http.ResponseWriter, r *http.Request) {
-	ratios, err := h.p.AdminPort.ListModelPricing(r.Context())
+	entries, err := h.p.PlatformSvc.ListGlobalPricing(r.Context())
 	if err != nil {
 		httputil.WriteError(w, err)
 		return
 	}
-	out := make([]pricingDTO, 0, len(ratios))
-	for _, r := range ratios {
-		inputPrice, outputPrice, cacheInputPrice := modelcatalog.PriceFromRatio(r.ModelRatio, r.CompletionRatio, r.CacheRatio)
-		out = append(out, pricingDTO{ModelType: r.ModelName, InputPrice: inputPrice, OutputPrice: outputPrice, CacheInputPrice: cacheInputPrice})
-	}
-	response.JSON(w, http.StatusOK, out)
+	response.JSON(w, http.StatusOK, entries)
 }
 
 type setPricingInput struct {
@@ -58,11 +44,12 @@ func (h *Handler) SetGlobalPricing(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteStatus(w, http.StatusBadRequest, "prices must be non-negative")
 		return
 	}
-	if err := h.p.AdminPort.UpsertModelRatio(r.Context(), body.ModelType, body.InputPrice, body.OutputPrice, body.CacheInputPrice); err != nil {
+	if err := h.p.PlatformSvc.SetGlobalPricing(r.Context(), body.ModelType, domainplatform.PricingInput{
+		InputPrice: body.InputPrice, OutputPrice: body.OutputPrice, CacheInputPrice: body.CacheInputPrice,
+	}); err != nil {
 		httputil.WriteError(w, err)
 		return
 	}
-	h.bumpPricingVersion(r.Context())
 	response.Void(w)
 }
 
@@ -76,9 +63,8 @@ type discountDTO struct {
 
 // ListCompanyDiscounts returns current discount coefficients for a company.
 func (h *Handler) ListCompanyDiscounts(w http.ResponseWriter, r *http.Request) {
-	companyID, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	companyID, ok := h.requireCompany(w, r)
+	if !ok {
 		return
 	}
 	rows, err := h.p.ModelDiscount.CurrentDiscounts(r.Context(), companyID)
@@ -102,9 +88,8 @@ type setDiscountInput struct {
 // SetCompanyDiscount sets a discount coefficient for a company+model.
 // If discount == 1.0, the entry is deleted (100% = no discount).
 func (h *Handler) SetCompanyDiscount(w http.ResponseWriter, r *http.Request) {
-	companyID, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	companyID, ok := h.requireCompany(w, r)
+	if !ok {
 		return
 	}
 	var body setDiscountInput
@@ -146,9 +131,8 @@ func (h *Handler) SetCompanyDiscount(w http.ResponseWriter, r *http.Request) {
 // BatchSetCompanyDiscounts replaces discount entries for a company atomically.
 // Each entry with discount == 1.0 is treated as deletion.
 func (h *Handler) BatchSetCompanyDiscounts(w http.ResponseWriter, r *http.Request) {
-	companyID, err := uuid.Parse(chi.URLParam(r, "id"))
-	if err != nil {
-		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+	companyID, ok := h.requireCompany(w, r)
+	if !ok {
 		return
 	}
 	var body []setDiscountInput

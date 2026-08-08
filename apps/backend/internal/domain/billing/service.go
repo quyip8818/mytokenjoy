@@ -16,15 +16,24 @@ type Service interface {
 	GetWallet(ctx context.Context) (WalletView, error)
 	ListRechargeRecords(ctx context.Context) ([]RechargeRecord, error)
 	ListLots(ctx context.Context) ([]LotAuditEntry, error)
+	CreateSelfRecharge(ctx context.Context, amount float64, idempotencyKey string, memberID uuid.UUID) (store.RechargeOrder, error)
+	ConfirmPayment(ctx context.Context, orderID uuid.UUID) error
+	RedeemCode(ctx context.Context, rawCode string, memberID uuid.UUID) (RedeemResult, error)
+	// PlatformOps is embedded for backward compatibility — callers that only need
+	// tenant-facing methods should depend on Service; platform handlers should depend
+	// on PlatformOps. Once all callers are migrated, remove this embedding.
+	PlatformOps
+}
+
+// PlatformOps groups platform-admin billing operations.
+// Platform handlers should depend on this interface rather than Service.
+type PlatformOps interface {
 	PlatformListLots(ctx context.Context, companyID uuid.UUID) ([]LotAuditEntry, error)
 	PlatformRecharge(ctx context.Context, companyID uuid.UUID, amount float64, operatorID uuid.UUID) error
 	PlatformGift(ctx context.Context, companyID uuid.UUID, amount float64, operatorID uuid.UUID) error
 	PlatformAdjust(ctx context.Context, companyID uuid.UUID, amount float64, paidAmount float64, operatorID uuid.UUID) error
 	PlatformRefund(ctx context.Context, companyID uuid.UUID, lotID uuid.UUID, amount float64, operatorID uuid.UUID) error
 	BatchSetDiscounts(ctx context.Context, companyID uuid.UUID, entries []DiscountSetEntry) error
-	CreateSelfRecharge(ctx context.Context, amount float64, idempotencyKey string, memberID uuid.UUID) (store.RechargeOrder, error)
-	ConfirmPayment(ctx context.Context, orderID uuid.UUID) error
-	RedeemCode(ctx context.Context, rawCode string, memberID uuid.UUID) (RedeemResult, error)
 }
 
 // DiscountSetEntry represents a single discount set/delete request.
