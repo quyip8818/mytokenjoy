@@ -25,14 +25,12 @@ export function WorkflowPanelChrome({
 }: WorkflowPanelChromeProps) {
   return (
     <div className="flex h-full flex-col bg-card">
-      <header className="flex shrink-0 items-center gap-3 border-b border-border px-5 py-4">
+      <header className="flex shrink-0 items-center gap-3 border-b border-border px-6 py-5">
         {showBack && onBack ? (
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-        ) : (
-          <div className="w-8" />
-        )}
+        ) : null}
         <h2 className="flex-1 text-base font-semibold text-foreground">{title}</h2>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
           <X className="h-4 w-4" />

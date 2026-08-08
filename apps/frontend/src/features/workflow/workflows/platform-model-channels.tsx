@@ -11,9 +11,11 @@ import {
 import { useInjectedApis } from '@/api/use-apis'
 import type { ChannelSummary } from '@/api/types'
 import type { WorkflowComponentProps } from '../types'
+import { WorkflowPanelChrome } from '../components/workflow-panel-chrome'
 
 export function PlatformModelChannelsWorkflow({
   entry,
+  onClose,
 }: WorkflowComponentProps<'platform-model-channels'>) {
   const { model } = entry.payload
   const apis = useInjectedApis()
@@ -40,55 +42,54 @@ export function PlatformModelChannelsWorkflow({
   }, [apis, model.modelId])
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <div>
-        <h3 className="text-sm font-medium text-foreground">{model.name}</h3>
+    <WorkflowPanelChrome title={`${model.name} — 渠道`} onClose={onClose}>
+      <div className="space-y-4">
         <p className="text-xs text-muted-foreground font-mono">{model.type}</p>
-      </div>
 
-      {loading && <p className="text-sm text-muted-foreground">加载中...</p>}
-      {error && <p className="text-sm text-destructive">{error}</p>}
+        {loading && <p className="text-sm text-muted-foreground">加载中...</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
 
-      {!loading && !error && channels.length === 0 && (
-        <p className="text-sm text-muted-foreground">该模型没有关联的渠道</p>
-      )}
+        {!loading && !error && channels.length === 0 && (
+          <p className="text-sm text-muted-foreground">该模型没有关联的渠道</p>
+        )}
 
-      {!loading && channels.length > 0 && (
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent border-border/60">
-              <TableHead className="text-xs font-medium text-muted-foreground">渠道名</TableHead>
-              <TableHead className="text-xs font-medium text-muted-foreground">Group</TableHead>
-              <TableHead className="text-xs font-medium text-muted-foreground text-right">
-                优先级
-              </TableHead>
-              <TableHead className="text-xs font-medium text-muted-foreground text-right">
-                权重
-              </TableHead>
-              <TableHead className="text-xs font-medium text-muted-foreground">状态</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {channels.map((ch) => (
-              <TableRow key={ch.name} className="hover:bg-muted/30">
-                <TableCell className="text-sm font-medium">{ch.name}</TableCell>
-                <TableCell className="text-sm text-muted-foreground font-mono">
-                  {ch.group || '(全局)'}
-                </TableCell>
-                <TableCell className="text-sm text-right tabular-nums">{ch.priority}</TableCell>
-                <TableCell className="text-sm text-right tabular-nums">{ch.weight}</TableCell>
-                <TableCell>
-                  {ch.status === 1 ? (
-                    <Badge variant="default">启用</Badge>
-                  ) : (
-                    <Badge variant="outline">禁用</Badge>
-                  )}
-                </TableCell>
+        {!loading && channels.length > 0 && (
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent border-border/60">
+                <TableHead className="text-xs font-medium text-muted-foreground">渠道名</TableHead>
+                <TableHead className="text-xs font-medium text-muted-foreground">Group</TableHead>
+                <TableHead className="text-xs font-medium text-muted-foreground text-right">
+                  优先级
+                </TableHead>
+                <TableHead className="text-xs font-medium text-muted-foreground text-right">
+                  权重
+                </TableHead>
+                <TableHead className="text-xs font-medium text-muted-foreground">状态</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-    </div>
+            </TableHeader>
+            <TableBody>
+              {channels.map((ch) => (
+                <TableRow key={ch.name} className="hover:bg-muted/30">
+                  <TableCell className="text-sm font-medium">{ch.name}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground font-mono">
+                    {ch.group || '(全局)'}
+                  </TableCell>
+                  <TableCell className="text-sm text-right tabular-nums">{ch.priority}</TableCell>
+                  <TableCell className="text-sm text-right tabular-nums">{ch.weight}</TableCell>
+                  <TableCell>
+                    {ch.status === 1 ? (
+                      <Badge variant="default">启用</Badge>
+                    ) : (
+                      <Badge variant="outline">禁用</Badge>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
+    </WorkflowPanelChrome>
   )
 }

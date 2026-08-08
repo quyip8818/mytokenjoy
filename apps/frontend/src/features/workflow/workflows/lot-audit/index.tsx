@@ -28,7 +28,7 @@ export function LotAuditWorkflow({ entry, onClose }: WorkflowComponentProps<'lot
 
   return (
     <WorkflowPanelChrome title={`Lot 审计 — ${companyName}`} onClose={onClose}>
-      <div className="space-y-4 p-4">
+      <div className="space-y-4">
         {/* Summary */}
         <div className="flex gap-4 text-sm rounded-lg border border-border/60 bg-muted/50 p-4">
           <div>

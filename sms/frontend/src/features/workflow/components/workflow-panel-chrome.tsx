@@ -17,7 +17,7 @@ export function WorkflowPanelChrome({
 }: WorkflowPanelChromeProps) {
   return (
     <div className="flex h-full flex-col bg-card">
-      <header className="flex shrink-0 items-center gap-3 border-b border-border px-5 py-4">
+      <header className="flex shrink-0 items-center gap-3 border-b border-border px-6 py-5">
         <h2 className="flex-1 text-base font-semibold text-foreground">{title}</h2>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
           <X className="h-4 w-4" />
@@ -29,7 +29,7 @@ export function WorkflowPanelChrome({
       </div>
 
       {footer && (
-        <footer className="flex shrink-0 items-center justify-end gap-3 border-t border-border px-5 py-5">
+        <footer className="flex shrink-0 items-center justify-end gap-3 border-t border-border px-5 py-5 [&_button]:h-11 [&_button]:px-6 [&_button]:text-base">
           {footer}
         </footer>
       )}
