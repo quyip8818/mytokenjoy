@@ -5,7 +5,7 @@ RUN corepack enable pnpm
 ENV npm_config_registry=https://registry.npmmirror.com
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY sms/frontend/package.json sms/frontend/
 COPY packages/ packages/
 RUN pnpm install --frozen-lockfile --filter @sms/frontend...
