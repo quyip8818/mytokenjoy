@@ -146,6 +146,35 @@ func NowUTC(clk Clock) time.Time
 
 ---
 
+## 5.1 公司类型（CompanyType）
+
+数据库 `companies.type`，由 `store` 包定义常量：
+
+| 类型 | 值 | `IsTestingAccount` | 语义 |
+|------|-----|:---:|------|
+| `CompanyTypeSaas` | `"saas"` | false | SaaS 正式付费客户（trial 升级后） |
+| `CompanyTypeSelfhosted` | `"selfhosted"` | false | 私有化部署客户 |
+| `CompanyTypeTrial` | `"trial"` | true | SaaS 试用 |
+| `CompanyTypeDemo` | `"demo"` | true | SaaS 演示 |
+| `CompanyTypeTesting` | `"testing"` | true | 纯测试（跳过定时批处理） |
+| `CompanyTypePlatform` | `"platform"` | false | TokenJoy 内部 |
+
+### 判断收口
+
+- **`domain/company.IsTestingAccount(type)`**：demo/trial/testing → true。用于 test-model 准入、模拟消费准入、充值禁止、创建时赠送 mock 额度。
+- **不适用 IsTestingAccount 的判断**：Upgrade（仅 trial/demo）、iterate 跳过（仅 testing）、成员上限（仅 trial）、平台权限（仅 platform）、wallet skip（部署模式）。
+
+### 部署模式 vs 公司类型
+
+| 决策 | 依据 | 实现 |
+|------|------|------|
+| 跳过钱包检查 | 部署模式 | `PrecheckService.skipWalletGlobal = !cfg.SupportSaas` |
+| 显示自定义模型 tab | 部署模式 | 前端 `!IS_SAAS` |
+| 允许 test-model 调用 | 公司类型 | `company.IsTestingAccount(type)` |
+| 允许模拟消费 | 公司类型 | `company.IsTestingAccount(type)` |
+
+---
+
 ## 6. HTTP 与安全
 
 - Cookie：`SecureCookie: d.Config.SecureCookie`（`http/deps/public.go`）。

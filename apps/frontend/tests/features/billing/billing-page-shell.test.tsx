@@ -38,7 +38,7 @@ describe('BillingPageShell recharge button', () => {
 
     renderWithProviders(<BillingPageShell {...baseProps} />, {
       apis,
-      companyType: 'standard',
+      companyType: 'saas',
     })
 
     const btn = screen.getByRole('button', { name: '充值' })
