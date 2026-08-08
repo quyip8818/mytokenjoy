@@ -131,6 +131,7 @@ export function PlatformCurrenciesPageShell(props: Props) {
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8"
+                          aria-label="编辑 Quota"
                           title="编辑 Quota"
                           onClick={() => openEdit(c)}
                         >
@@ -140,6 +141,7 @@ export function PlatformCurrenciesPageShell(props: Props) {
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8"
+                          aria-label={c.enabled ? '禁用' : '启用'}
                           title={c.enabled ? '禁用' : '启用'}
                           onClick={() => handleToggleStatus(c)}
                         >
