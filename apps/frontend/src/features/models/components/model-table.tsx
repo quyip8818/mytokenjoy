@@ -64,7 +64,7 @@ export function ModelTable<T extends ModelTableRow>({
             </TableHead>
           ))}
           {renderActions && (
-            <TableHead className="w-[140px] text-right text-xs font-medium text-muted-foreground">
+            <TableHead className="w-[140px] text-center text-xs font-medium text-muted-foreground">
               操作
             </TableHead>
           )}
@@ -94,7 +94,7 @@ export function ModelTable<T extends ModelTableRow>({
             {extraColumns?.map((col) => (
               <TableCell key={col.header}>{col.render(model)}</TableCell>
             ))}
-            {renderActions && <TableCell className="text-right">{renderActions(model)}</TableCell>}
+            {renderActions && <TableCell className="text-center">{renderActions(model)}</TableCell>}
           </TableRow>
         ))}
       </TableBody>

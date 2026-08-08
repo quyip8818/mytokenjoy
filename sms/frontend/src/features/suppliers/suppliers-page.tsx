@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { StatusBadge } from '@/components/ui/badge'
+import { ActionIcon, actionIconClass } from '@/components/ui/action-icon'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Pagination } from '@/components/ui/pagination'
 import {
   Table,
@@ -176,7 +178,7 @@ export function SuppliersPage() {
               <TableHead>分类</TableHead>
               <TableHead>状态</TableHead>
               <TableHead>官网</TableHead>
-              <TableHead className="text-right">操作</TableHead>
+              <TableHead className="text-center">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -199,22 +201,31 @@ export function SuppliersPage() {
                 <TableCell className="max-w-[180px] truncate text-muted-foreground">
                   {s.website ?? '-'}
                 </TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="icon-sm" asChild>
-                    <Link to="/suppliers/$id" params={{ id: s.id }}>
-                      <Eye className="h-3.5 w-3.5" />
-                    </Link>
-                  </Button>
-                  {canEdit && (
-                    <>
-                      <Button variant="ghost" size="icon-sm" onClick={() => openEdit(s)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(s)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </>
-                  )}
+                <TableCell className="text-center">
+                  <div className="inline-flex items-center gap-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          to="/suppliers/$id"
+                          params={{ id: s.id }}
+                          className={actionIconClass}
+                        >
+                          <Eye className="h-5 w-5" />
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent>查看详情</TooltipContent>
+                    </Tooltip>
+                    {canEdit && (
+                      <>
+                        <ActionIcon hint="编辑" onClick={() => openEdit(s)}>
+                          <Pencil className="h-5 w-5" />
+                        </ActionIcon>
+                        <ActionIcon hint="删除" onClick={() => handleDelete(s)}>
+                          <Trash2 className="h-5 w-5" />
+                        </ActionIcon>
+                      </>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

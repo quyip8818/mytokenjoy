@@ -3,6 +3,7 @@ import type { DiscountEntry, ModelInfo } from '@/api/types'
 import { isCustomModel } from '../lib/model-kind'
 import { ModelTable } from './model-table'
 import { Badge } from '@/components/ui/badge'
+import { ActionIcon } from '@/components/ui/action-icon'
 import { Pencil, Power } from 'lucide-react'
 
 function formatDiscount(d: number): string {
@@ -84,25 +85,21 @@ export function ModelListTable({
       renderActions={
         canManage && models.some(isCustomModel)
           ? (model) => (
-              <div className="inline-flex items-center gap-1">
+              <div className="inline-flex items-center gap-1.5">
                 {isCustomModel(model) && (
-                  <button
-                    onClick={() => onEdit(model)}
-                    className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                    title="编辑"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
+                  <ActionIcon hint="编辑" onClick={() => onEdit(model)}>
+                    <Pencil className="h-5 w-5" />
+                  </ActionIcon>
                 )}
                 {canToggle(model) && (
-                  <button
+                  <ActionIcon
+                    hint={model.deprecated ? '恢复' : '下线'}
                     onClick={() => void handleToggle(model)}
                     disabled={togglingIds.has(model.modelId)}
-                    className={`rounded p-1.5 hover:bg-muted ${model.deprecated ? 'text-green-500' : 'text-amber-500'}`}
-                    title={model.deprecated ? '恢复' : '下线'}
+                    className={model.deprecated ? 'text-green-500' : 'text-amber-500'}
                   >
-                    <Power className="h-3.5 w-3.5" />
-                  </button>
+                    <Power className="h-5 w-5" />
+                  </ActionIcon>
                 )}
               </div>
             )

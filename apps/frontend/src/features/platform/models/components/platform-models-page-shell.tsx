@@ -2,6 +2,7 @@ import { Power, Upload, Pencil, Plus, RefreshCw, Layers } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { ActionIcon } from '@/components/ui/action-icon'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
@@ -64,28 +65,20 @@ export function PlatformModelsPageShell({
                 },
               ]}
               renderActions={(m) => (
-                <div className="inline-flex items-center gap-1">
-                  <button
-                    onClick={() => openChannels(m)}
-                    className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                    title="查看渠道"
-                  >
-                    <Layers className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={() => openEdit(m)}
-                    className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                    title="编辑模型"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                  <button
+                <div className="inline-flex items-center gap-1.5">
+                  <ActionIcon hint="查看渠道" onClick={() => openChannels(m)}>
+                    <Layers className="h-5 w-5" />
+                  </ActionIcon>
+                  <ActionIcon hint="编辑模型" onClick={() => openEdit(m)}>
+                    <Pencil className="h-5 w-5" />
+                  </ActionIcon>
+                  <ActionIcon
+                    hint={m.deprecated ? '恢复' : '下线'}
                     onClick={() => handleToggle(m)}
-                    className={`rounded p-1.5 hover:bg-muted ${m.deprecated ? 'text-green-500' : 'text-amber-500'}`}
-                    title={m.deprecated ? '恢复' : '下线'}
+                    className={m.deprecated ? 'text-green-500' : 'text-amber-500'}
                   >
-                    <Power className="h-3.5 w-3.5" />
-                  </button>
+                    <Power className="h-5 w-5" />
+                  </ActionIcon>
                 </div>
               )}
             />
