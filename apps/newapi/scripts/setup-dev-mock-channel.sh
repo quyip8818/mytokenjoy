@@ -9,7 +9,7 @@ verify_load_backend_dotenv
 
 MODEL="${DEV_MOCK_MODEL:-test-model}"
 BASE_URL="$(verify_http_origin "${DEV_MOCK_BASE_URL:-http://host.docker.internal:8765}")"
-GROUP="${DEV_MOCK_CHANNEL_GROUP:-platform_shared}"
+GROUP="${DEV_MOCK_CHANNEL_GROUP:-}"
 NAME="${DEV_MOCK_CHANNEL_NAME:-test-model}"
 CHANNEL_KEY="${DEV_MOCK_CHANNEL_KEY:-sk-local-test}"
 
@@ -38,7 +38,6 @@ fi
 
 verify_wait_newapi
 
-verify_ensure_newapi_group "${GROUP}" "后端组"
 verify_ensure_local_test_model_pricing "${MODEL}"
 
 list_resp="$(mktemp)"
@@ -124,7 +123,7 @@ fi
 DS_CHANNEL_NAME="Deepseek"
 DS_CHANNEL_TYPE=43  # DeepSeek official
 DS_CHANNEL_MODELS="deepseek-v4-flash,deepseek-v4-pro"
-DS_CHANNEL_GROUP="default"
+DS_CHANNEL_GROUP=""
 DS_CHANNEL_KEY="${DEEPSEEK_API_KEY:-sk-f0463e3791b741aca89144cf78106da4}"
 
 verify_info "DeepSeek channel → models=${DS_CHANNEL_MODELS} (group=${DS_CHANNEL_GROUP})"
