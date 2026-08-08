@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 
 /** ponytail: shared class for action icon styling — reuse on non-button elements (e.g. Link) */
 export const actionIconClass =
-  'cursor-pointer rounded p-1.5 text-muted-foreground transition-transform hover:scale-110 hover:bg-muted hover:text-foreground'
+  'cursor-pointer rounded p-1.5 text-muted-foreground transition-transform hover:scale-110 active:scale-95 hover:bg-muted hover:text-foreground'
 
 interface ActionIconProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** Tooltip hint text */

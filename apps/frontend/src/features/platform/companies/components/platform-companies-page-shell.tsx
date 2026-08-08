@@ -2,6 +2,14 @@ import { Building2, MoreHorizontal } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
@@ -53,17 +61,13 @@ function RechargeDialog({
   onClose: () => void
 }) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="text-base font-semibold">充值</h3>
-        <p className="mt-1 text-sm text-muted-foreground">{target.name}</p>
-        <label className="mt-4 block text-sm">
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>充值</DialogTitle>
+          <DialogDescription>{target.name}</DialogDescription>
+        </DialogHeader>
+        <label className="block text-sm">
           <span className="text-muted-foreground">金额 (元)</span>
           <input
             type="number"
@@ -74,16 +78,16 @@ function RechargeDialog({
             autoFocus
           />
         </label>
-        <div className="mt-5 flex justify-end gap-2">
+        <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             取消
           </Button>
           <Button disabled={loading} onClick={onConfirm}>
             {loading ? '处理中…' : '确认充值'}
           </Button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -103,17 +107,13 @@ function GiftDialog({
   onClose: () => void
 }) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="text-base font-semibold">赠送额度</h3>
-        <p className="mt-1 text-sm text-muted-foreground">{target.name}</p>
-        <label className="mt-4 block text-sm">
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>赠送额度</DialogTitle>
+          <DialogDescription>{target.name}</DialogDescription>
+        </DialogHeader>
+        <label className="block text-sm">
           <span className="text-muted-foreground">赠送金额 (元)</span>
           <input
             type="number"
@@ -124,16 +124,16 @@ function GiftDialog({
             autoFocus
           />
         </label>
-        <div className="mt-5 flex justify-end gap-2">
+        <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             取消
           </Button>
           <Button disabled={loading} onClick={onConfirm}>
             {loading ? '处理中…' : '确认赠送'}
           </Button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

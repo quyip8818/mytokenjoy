@@ -1,7 +1,15 @@
-import { Coins, Pencil, Power } from 'lucide-react'
+import { Coins, Pencil, Plus, Power } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { DataSection } from '@/components/layout/data-section'
 import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
@@ -66,7 +74,10 @@ export function PlatformCurrenciesPageShell(props: Props) {
         actions={
           <div className="flex items-center gap-2">
             <CurrencyHistoryDialog currencies={currencies} />
-            <Button onClick={openCreate}>+ 新增币种</Button>
+            <Button onClick={openCreate}>
+              <Plus className="mr-1.5 h-4 w-4" />
+              新增币种
+            </Button>
           </div>
         }
       />
@@ -148,85 +159,73 @@ export function PlatformCurrenciesPageShell(props: Props) {
       </Card>
 
       {/* Create dialog */}
-      {showCreate && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={closeCreate}
-        >
-          <div
-            className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-base font-semibold">新增币种</h3>
-            <label className="mt-4 block text-sm">
-              <span className="text-muted-foreground">币种代码（3 位大写字母）</span>
-              <input
-                type="text"
-                className="mt-1 w-full rounded-md border px-3 py-2 text-sm uppercase"
-                placeholder="USD"
-                maxLength={3}
-                value={createCode}
-                onChange={(e) => setCreateCode(e.target.value.toUpperCase())}
-                autoFocus
-              />
-            </label>
-            <label className="mt-3 block text-sm">
-              <span className="text-muted-foreground">Quota/单位</span>
-              <input
-                type="number"
-                className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-                placeholder="500000"
-                value={createQpu}
-                onChange={(e) => setCreateQpu(e.target.value)}
-              />
-            </label>
-            <div className="mt-5 flex justify-end gap-2">
-              <Button variant="outline" onClick={closeCreate}>
-                取消
-              </Button>
-              <Button disabled={creating} onClick={handleCreate}>
-                {creating ? '创建中…' : '确认创建'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={showCreate} onOpenChange={(open) => !open && closeCreate()}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>新增币种</DialogTitle>
+          </DialogHeader>
+          <label className="block text-sm">
+            <span className="text-muted-foreground">币种代码（3 位大写字母）</span>
+            <input
+              type="text"
+              className="mt-1 w-full rounded-md border px-3 py-2 text-sm uppercase"
+              placeholder="USD"
+              maxLength={3}
+              value={createCode}
+              onChange={(e) => setCreateCode(e.target.value.toUpperCase())}
+              autoFocus
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="text-muted-foreground">Quota/单位</span>
+            <input
+              type="number"
+              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              placeholder="500000"
+              value={createQpu}
+              onChange={(e) => setCreateQpu(e.target.value)}
+            />
+          </label>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeCreate}>
+              取消
+            </Button>
+            <Button disabled={creating} onClick={handleCreate}>
+              {creating ? '创建中…' : '确认创建'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit QPU dialog */}
-      {editTarget && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={closeEdit}
-        >
-          <div
-            className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-base font-semibold">编辑 {editTarget.code}</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
+      <Dialog open={!!editTarget} onOpenChange={(open) => !open && closeEdit()}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>编辑 {editTarget?.code}</DialogTitle>
+            <DialogDescription>
               修改 quota_per_unit 将影响所有后续充值的额度换算。已有充值（lot）不受影响。
-            </p>
-            <label className="mt-4 block text-sm">
-              <span className="text-muted-foreground">Quota/单位</span>
-              <input
-                type="number"
-                className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-                value={editQpu}
-                onChange={(e) => setEditQpu(e.target.value)}
-                autoFocus
-              />
-            </label>
-            <div className="mt-5 flex justify-end gap-2">
-              <Button variant="outline" onClick={closeEdit}>
-                取消
-              </Button>
-              <Button disabled={editing} onClick={handleEdit}>
-                {editing ? '更新中…' : '确认修改'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+            </DialogDescription>
+          </DialogHeader>
+          <label className="block text-sm">
+            <span className="text-muted-foreground">Quota/单位</span>
+            <input
+              type="number"
+              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              value={editQpu}
+              onChange={(e) => setEditQpu(e.target.value)}
+              autoFocus
+            />
+          </label>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeEdit}>
+              取消
+            </Button>
+            <Button disabled={editing} onClick={handleEdit}>
+              {editing ? '更新中…' : '确认修改'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   )
 }

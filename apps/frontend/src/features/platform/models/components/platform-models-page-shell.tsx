@@ -34,7 +34,7 @@ export function PlatformModelsPageShell({
         actions={
           <div className="flex items-center gap-2">
             <Button variant="outline" disabled={syncing} onClick={handleSync}>
-              <RefreshCw className={`mr-1.5 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`mr-1.5 h-4 w-4 ${syncing ? 'animate-spin motion-reduce:animate-none' : ''}`} />
               {syncing ? '同步中...' : '同步模型'}
             </Button>
             <Button onClick={openCreate}>
@@ -67,17 +67,17 @@ export function PlatformModelsPageShell({
               renderActions={(m) => (
                 <div className="inline-flex items-center gap-1.5">
                   <ActionIcon hint="查看渠道" onClick={() => openChannels(m)}>
-                    <Layers className="h-5 w-5" />
+                    <Layers className="h-4 w-4" />
                   </ActionIcon>
                   <ActionIcon hint="编辑模型" onClick={() => openEdit(m)}>
-                    <Pencil className="h-5 w-5" />
+                    <Pencil className="h-4 w-4" />
                   </ActionIcon>
                   <ActionIcon
                     hint={m.deprecated ? '恢复' : '下线'}
                     onClick={() => handleToggle(m)}
                     className={m.deprecated ? 'text-green-500' : 'text-amber-500'}
                   >
-                    <Power className="h-5 w-5" />
+                    <Power className="h-4 w-4" />
                   </ActionIcon>
                 </div>
               )}
