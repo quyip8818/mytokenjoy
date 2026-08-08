@@ -5,17 +5,12 @@ RETURNS TEXT[] LANGUAGE sql IMMUTABLE AS $$
 $$;
 
 CREATE TABLE IF NOT EXISTS currencies (
-    id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    currency              CHAR(3) NOT NULL,
-    quota_per_unit        BIGINT NOT NULL CHECK (quota_per_unit > 0),
-    enabled               BOOLEAN NOT NULL DEFAULT TRUE,
-    updated_by_user_id    UUID,
-    created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    currency         CHAR(3) PRIMARY KEY,
+    quota_per_unit   BIGINT NOT NULL CHECK (quota_per_unit > 0),
+    enabled          BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
--- Append-only: same currency code has multiple rows; latest by updated_at is "current".
-CREATE INDEX IF NOT EXISTS idx_currencies_code_time ON currencies(currency, updated_at DESC);
 
 -- Global: companies
 CREATE TABLE IF NOT EXISTS companies (
@@ -23,14 +18,14 @@ CREATE TABLE IF NOT EXISTS companies (
     name                      TEXT NOT NULL,
     industry                  TEXT NOT NULL DEFAULT '',
     size                      TEXT NOT NULL DEFAULT '',
-    type                      TEXT NOT NULL DEFAULT 'saas'
-                              CHECK (type IN ('saas', 'trial', 'demo', 'selfhosted', 'testing', 'platform')),
+    type                      TEXT NOT NULL DEFAULT 'standard'
+                              CHECK (type IN ('standard', 'trial', 'demo', 'selfhosted', 'testing', 'platform')),
     status                    TEXT NOT NULL DEFAULT 'active',
     root_dept_id              UUID,
     newapi_wallet_company_id  BIGINT,
     authz_revision            BIGINT NOT NULL DEFAULT 0,
     -- Default must match common.DefaultBillingCurrency.
-    billing_currency          CHAR(3) NOT NULL DEFAULT 'CNY',
+    billing_currency          CHAR(3) NOT NULL DEFAULT 'CNY' REFERENCES currencies (currency),
     fifo_head_lot_id          UUID,
     wallet_remain_quota       BIGINT NOT NULL DEFAULT 0,
     sync_token_hash           CHAR(64),
@@ -42,9 +37,6 @@ CREATE TABLE IF NOT EXISTS companies (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_companies_sync_token_hash
   ON companies (sync_token_hash) WHERE sync_token_hash IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_companies_name
-  ON companies (name) WHERE type NOT IN ('platform', 'testing');
-
 CREATE TABLE IF NOT EXISTS company_invites (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     company_id      UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
@@ -54,7 +46,6 @@ CREATE TABLE IF NOT EXISTS company_invites (
     user_id         UUID,
     role            TEXT NOT NULL DEFAULT 'super_admin',
     invite_code     TEXT NOT NULL UNIQUE,
-    invited_by      UUID,
     expires_at      TIMESTAMPTZ NOT NULL,
     accepted_at     TIMESTAMPTZ,
     accepted_meta   JSONB,
@@ -139,28 +130,6 @@ CREATE INDEX IF NOT EXISTS idx_recharge_lots_fifo
 CREATE INDEX IF NOT EXISTS idx_company_recharge_orders_company ON company_recharge_orders (company_id, created_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_company_recharge_orders_idempotency
     ON company_recharge_orders (company_id, idempotency_key) WHERE idempotency_key IS NOT NULL;
-
-CREATE TABLE IF NOT EXISTS lot_transactions (
-    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id       UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
-    lot_id           UUID NOT NULL REFERENCES company_recharge_lots (id),
-    action           TEXT NOT NULL,
-    quota_delta      BIGINT NOT NULL,
-    quota_per_unit   BIGINT NOT NULL,
-    money_amount     NUMERIC(18, 6) NOT NULL,
-    billing_currency CHAR(3) NOT NULL,
-    remaining_after  BIGINT NOT NULL,
-    source           TEXT NOT NULL,
-    lot_kind         TEXT NOT NULL,
-    operator_id      UUID,
-    note             TEXT NOT NULL DEFAULT '',
-    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CHECK (action IN ('credit', 'refund')),
-    CHECK ((action = 'credit' AND quota_delta > 0) OR (action = 'refund' AND quota_delta < 0))
-);
-
-CREATE INDEX IF NOT EXISTS idx_lot_transactions_company ON lot_transactions (company_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_lot_transactions_lot ON lot_transactions (lot_id, created_at DESC);
 
 -- Org domain
 CREATE TABLE IF NOT EXISTS permissions (
@@ -694,20 +663,10 @@ CREATE INDEX IF NOT EXISTS idx_approval_company_status ON approval_requests(comp
 CREATE INDEX IF NOT EXISTS idx_approval_applicant      ON approval_requests(company_id, applicant_id);
 CREATE INDEX IF NOT EXISTS idx_approval_created_at     ON approval_requests(company_id, created_at DESC);
 
--- Global: system-level key-value settings (setup config, feature flags, etc.)
+-- Global: system-level key-value settings (sync versions, feature flags, etc.)
 CREATE TABLE IF NOT EXISTS system_settings (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
-);
-
--- Sync versions: unified version tracking for catalog sync.
--- company_id = '00000000-0000-0000-0000-000000000000' (uuid.Nil) = global version.
--- Real company UUIDs = per-company version.
-CREATE TABLE IF NOT EXISTS sync_versions (
-    company_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
-    type       TEXT NOT NULL,
-    version    INT  NOT NULL DEFAULT 0,
-    PRIMARY KEY (company_id, type)
 );
 
 -- Model discount: append-only per-company discount coefficients.
@@ -723,37 +682,3 @@ CREATE TABLE IF NOT EXISTS model_discount (
 
 CREATE INDEX IF NOT EXISTS idx_model_discount_current
     ON model_discount (company_id, model_type, effective_from DESC);
-
--- Budget period snapshots: stores full budget configuration per month (history + future pre-config).
-CREATE TABLE IF NOT EXISTS budget_snapshot (
-    company_id  UUID NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
-    period_key  TEXT NOT NULL,
-    snapshot    JSONB NOT NULL,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (company_id, period_key)
-);
-
--- Redemption codes: SaaS-only feature. Table exists on all deployments (idempotent DDL) but
--- routes are only registered when SUPPORT_SAAS=true. Local deploys have an empty, unused table.
--- ponytail: single table, batch_name is a grouping tag. Upgrade path: split batches table if volume warrants.
-CREATE TABLE IF NOT EXISTS redemption_codes (
-    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    code                TEXT NOT NULL UNIQUE,
-    batch_name          TEXT NOT NULL DEFAULT '',
-    face_value          NUMERIC(12,2) NOT NULL CHECK (face_value > 0),
-    currency            TEXT NOT NULL DEFAULT 'CNY',
-    status              TEXT NOT NULL DEFAULT 'unused' CHECK (status IN ('unused', 'used', 'disabled')),
-    redeemed_by_company UUID,
-    redeemed_by_member  UUID,
-    redeemed_at         TIMESTAMPTZ,
-    recharge_order_id   UUID,
-    expires_at          TIMESTAMPTZ NOT NULL,
-    created_by          UUID NOT NULL,
-    note                TEXT NOT NULL DEFAULT '',
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_redemption_codes_code ON redemption_codes(code);
-CREATE INDEX IF NOT EXISTS idx_redemption_codes_batch ON redemption_codes(batch_name) WHERE batch_name != '';
-CREATE INDEX IF NOT EXISTS idx_redemption_codes_status ON redemption_codes(status) WHERE status = 'unused';

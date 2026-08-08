@@ -11,11 +11,11 @@ import (
 )
 
 func insertCompanies(ctx context.Context, exec TableWriter, appCfg config.Config, bsCfg Config, tokenJoyID, companyID uuid.UUID) error {
-	// TokenJoy internal company (always testing type).
+	// TokenJoy internal company — platform type enables platform:* permissions.
 	if _, err := exec.Exec(ctx, `
 		INSERT INTO companies (id, name, type, status)
 		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (id) DO NOTHING
+		ON CONFLICT (id) DO UPDATE SET type = EXCLUDED.type
 	`, tokenJoyID, "TokenJoy", store.CompanyTypePlatform, store.CompanyStatusActive); err != nil {
 		return fmt.Errorf("insert tokenjoy company: %w", err)
 	}
