@@ -336,12 +336,13 @@ func (h *Handler) SyncModelsFromNewAPI(w http.ResponseWriter, r *http.Request) {
 		infos = append(infos, pricingModelToModelInfo(pm))
 	}
 
-	if err := h.p.Models.SyncFromPlatform(ctx, h.p.Cfg.TokenJoyCompanyID, infos); err != nil {
+	result, err := h.p.Models.SyncFromPlatform(ctx, h.p.Cfg.TokenJoyCompanyID, infos)
+	if err != nil {
 		httputil.WriteError(w, fmt.Errorf("sync models from newapi: %w", err))
 		return
 	}
 	h.bumpModelsCatalogVersion(ctx)
-	response.JSON(w, http.StatusOK, map[string]int{"synced": len(infos)})
+	response.JSON(w, http.StatusOK, result)
 }
 
 // pricingModelToModelInfo converts a NewAPI PricingModel to a TokenJoy ModelInfo.

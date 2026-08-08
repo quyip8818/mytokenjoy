@@ -151,25 +151,23 @@ func (r *pgModelsRepo) UpdateModel(ctx context.Context, model types.ModelInfo) e
 
 var _ store.ModelsRepository = (*pgModelsRepo)(nil)
 
-func (r *pgModelsRepo) SyncFromPlatform(ctx context.Context, companyID uuid.UUID, models []types.ModelInfo) error {
-	// ponytail: grab a batch timestamp once, use it for all upserts.
-	// Step 2 deactivates anything with an older timestamp.
-	// Using a SELECT NOW() ensures all upserts share the exact same value,
-	// making the stale-detection deterministic regardless of execution speed.
+func (r *pgModelsRepo) SyncFromPlatform(ctx context.Context, companyID uuid.UUID, models []types.ModelInfo) (store.SyncResult, error) {
+	var result store.SyncResult
 
 	// Step 0: Get a single batch timestamp from the DB.
 	var batchTS time.Time
 	if err := r.db.QueryRow(ctx, `SELECT NOW()`).Scan(&batchTS); err != nil {
-		return fmt.Errorf("sync platform batch ts: %w", err)
+		return result, fmt.Errorf("sync platform batch ts: %w", err)
 	}
 
-	// Step 1: Upsert all models from platform — mark active, update metadata, bump catalog_synced_at.
+	// Step 1: Upsert all models — use xmax to distinguish insert vs update.
 	for _, m := range models {
 		caps := m.Capabilities
 		if caps == nil {
 			caps = []string{}
 		}
-		_, err := r.db.Exec(ctx, `
+		var xmax uint32
+		err := r.db.QueryRow(ctx, `
 			INSERT INTO models (company_id, provider, type, name, source, deprecated, capabilities, max_context, catalog_synced_at, updated_at)
 			VALUES ($1, $2, $3, $4, 'platform', FALSE, $5, $6, $7, $7)
 			ON CONFLICT (company_id, provider, type) DO UPDATE SET
@@ -180,20 +178,56 @@ func (r *pgModelsRepo) SyncFromPlatform(ctx context.Context, companyID uuid.UUID
 				max_context = EXCLUDED.max_context,
 				catalog_synced_at = $7,
 				updated_at = $7
-		`, companyID, m.Provider, m.Type, m.Name, caps, m.MaxContext, batchTS)
+			RETURNING xmax
+		`, companyID, m.Provider, m.Type, m.Name, caps, m.MaxContext, batchTS).Scan(&xmax)
 		if err != nil {
-			return fmt.Errorf("upsert platform model %s: %w", m.Type, err)
+			return result, fmt.Errorf("upsert platform model %s: %w", m.Type, err)
+		}
+		if xmax == 0 {
+			result.Added++
+		} else {
+			result.Updated++
 		}
 	}
 
-	// Step 2: Deactivate stale platform models — those not touched by this batch.
-	_, err := r.db.Exec(ctx, `
-		UPDATE models SET deprecated = TRUE, updated_at = $2
-		WHERE company_id = $1 AND source = 'platform' AND deprecated = FALSE
+	// Step 2: Hard-delete stale platform models not in this batch.
+	// First clean FK references, then delete.
+	_, _ = r.db.Exec(ctx, `
+		DELETE FROM model_allowlist
+		WHERE model_id IN (
+			SELECT model_id FROM models
+			WHERE company_id = $1 AND source = 'platform'
+				AND (catalog_synced_at IS NULL OR catalog_synced_at < $2)
+		)
+	`, companyID, batchTS)
+
+	_, _ = r.db.Exec(ctx, `
+		UPDATE org_nodes SET default_model_id = NULL
+		WHERE default_model_id IN (
+			SELECT model_id FROM models
+			WHERE company_id = $1 AND source = 'platform'
+				AND (catalog_synced_at IS NULL OR catalog_synced_at < $2)
+		)
+	`, companyID, batchTS)
+
+	_, _ = r.db.Exec(ctx, `
+		UPDATE org_nodes SET fallback_model_id = NULL
+		WHERE fallback_model_id IN (
+			SELECT model_id FROM models
+			WHERE company_id = $1 AND source = 'platform'
+				AND (catalog_synced_at IS NULL OR catalog_synced_at < $2)
+		)
+	`, companyID, batchTS)
+
+	tag, err := r.db.Exec(ctx, `
+		DELETE FROM models
+		WHERE company_id = $1 AND source = 'platform'
 			AND (catalog_synced_at IS NULL OR catalog_synced_at < $2)
 	`, companyID, batchTS)
 	if err != nil {
-		return fmt.Errorf("deactivate stale platform models: %w", err)
+		return result, fmt.Errorf("delete stale platform models: %w", err)
 	}
-	return nil
+	result.Removed = int(tag.RowsAffected())
+
+	return result, nil
 }

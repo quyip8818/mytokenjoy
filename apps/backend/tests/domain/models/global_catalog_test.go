@@ -25,7 +25,7 @@ func TestSyncFromPlatform_DeactivatesStaleModels(t *testing.T) {
 	globalID := cfg.TokenJoyCompanyID
 
 	// Sync 3 models.
-	err := repo.SyncFromPlatform(ctx, globalID, []types.ModelInfo{
+	_, err := repo.SyncFromPlatform(ctx, globalID, []types.ModelInfo{
 		{Provider: "openai", Type: "gpt-4o", Name: "GPT-4o"},
 		{Provider: "openai", Type: "gpt-4o-mini", Name: "GPT-4o Mini"},
 		{Provider: "anthropic", Type: "claude-sonnet", Name: "Claude Sonnet"},
@@ -50,7 +50,7 @@ func TestSyncFromPlatform_DeactivatesStaleModels(t *testing.T) {
 	}
 
 	// Sync again with only 2 models (claude-sonnet removed).
-	err = repo.SyncFromPlatform(ctx, globalID, []types.ModelInfo{
+	_, err = repo.SyncFromPlatform(ctx, globalID, []types.ModelInfo{
 		{Provider: "openai", Type: "gpt-4o", Name: "GPT-4o"},
 		{Provider: "openai", Type: "gpt-4o-mini", Name: "GPT-4o Mini"},
 	})
@@ -58,28 +58,23 @@ func TestSyncFromPlatform_DeactivatesStaleModels(t *testing.T) {
 		t.Fatalf("second sync: %v", err)
 	}
 
-	// Now only 2 should be active; claude-sonnet should be inactive.
+	// Now only 2 should remain; claude-sonnet should be hard-deleted.
 	all, err = repo.Models(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	activeCount := 0
-	var inactiveModel *types.ModelInfo
-	for i, m := range all {
+	for _, m := range all {
 		if m.Source != "platform" {
 			continue
 		}
-		if !m.Deprecated {
-			activeCount++
-		} else {
-			inactiveModel = &all[i]
+		if m.Type == "claude-sonnet" {
+			t.Fatal("expected claude-sonnet to be deleted after second sync")
 		}
+		activeCount++
 	}
 	if activeCount != 2 {
 		t.Fatalf("expected 2 active platform models after second sync, got %d", activeCount)
-	}
-	if inactiveModel == nil || inactiveModel.Type != "claude-sonnet" {
-		t.Fatalf("expected claude-sonnet to be inactive, got %+v", inactiveModel)
 	}
 }
 
@@ -93,27 +88,18 @@ func TestToggleModel_RejectsEnablingGloballyInactiveModel(t *testing.T) {
 
 	globalID := cfg.TokenJoyCompanyID
 
-	// Insert a global platform model, then deactivate it (simulating platform delist).
-	err := st.Models().SyncFromPlatform(ctx, globalID, []types.ModelInfo{
+	// Insert a global platform model.
+	_, err := st.Models().SyncFromPlatform(ctx, globalID, []types.ModelInfo{
 		{Provider: "openai", Type: "toggle-reject-test", Name: "Toggle Reject"},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Sync with empty list → deactivates it.
-	err = st.Models().SyncFromPlatform(ctx, globalID, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Find the model via repo (it's inactive but still exists).
+	// Find the model via repo.
 	model, err := st.Models().GlobalModelByProviderType(ctx, "openai", "toggle-reject-test")
 	if err != nil || model == nil {
 		t.Fatalf("expected to find global model: err=%v model=%v", err, model)
-	}
-	if !model.Deprecated {
-		t.Fatal("expected model to be inactive after empty sync")
 	}
 
 	// UpdateModel on a platform model should be rejected (requireTenantModel).

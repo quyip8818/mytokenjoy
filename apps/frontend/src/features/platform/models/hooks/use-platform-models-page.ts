@@ -50,7 +50,7 @@ export function usePlatformModelsPage() {
     setSyncing(true)
     try {
       const result = await apis.platformApi.syncModels()
-      toast.success(`同步完成，共 ${result.synced} 个模型`)
+      toast.success(`同步完成：新增 ${result.added}，更新 ${result.updated}，移除 ${result.removed}`)
       void refresh()
     } catch (e: unknown) {
       toast.error(`同步失败：${e instanceof Error ? e.message : '未知错误'}`)

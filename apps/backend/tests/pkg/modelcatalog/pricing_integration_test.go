@@ -86,8 +86,8 @@ func (r *inMemModelsRepo) UpdateModel(_ context.Context, m types.ModelInfo) erro
 	}
 	return nil
 }
-func (r *inMemModelsRepo) SyncFromPlatform(context.Context, uuid.UUID, []types.ModelInfo) error {
-	return nil
+func (r *inMemModelsRepo) SyncFromPlatform(context.Context, uuid.UUID, []types.ModelInfo) (store.SyncResult, error) {
+	return store.SyncResult{}, nil
 }
 func (r *inMemModelsRepo) Allowlist() store.ModelAllowlistRepository { return nil }
 

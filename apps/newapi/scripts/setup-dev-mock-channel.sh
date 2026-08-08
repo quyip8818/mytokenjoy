@@ -199,6 +199,90 @@ else
   verify_info "created channel ${DS_CHANNEL_NAME}"
 fi
 
+# ─── SiliconFlow channel ─────────────────────────────────────────────────────
+
+SF_CHANNEL_NAME="siliconFlow"
+SF_CHANNEL_TYPE=40  # SiliconFlow
+SF_CHANNEL_MODELS="zai-org/GLM-5.2,moonshotai/Kimi-K2.7-Code"
+SF_CHANNEL_GROUP="default"
+SF_CHANNEL_KEY="${SILICONFLOW_API_KEY:-}"
+
+if [[ -z "${SF_CHANNEL_KEY}" ]]; then
+  verify_info "SKIP: SILICONFLOW_API_KEY unset — SiliconFlow channel not created"
+else
+  verify_info "SiliconFlow channel → models=${SF_CHANNEL_MODELS} (group=${SF_CHANNEL_GROUP})"
+
+  # Pricing: GLM-5.2 $1.302/$4.092, Kimi-K2.7-Code $0.85916/$3.80 per 1M tokens
+  verify_ensure_local_test_model_pricing "zai-org/GLM-5.2" "0.651" "3.143"
+  verify_ensure_local_test_model_pricing "moonshotai/Kimi-K2.7-Code" "0.42958" "4.423"
+
+  sf_existing_id=$(python3 - "${list_resp}" "${SF_CHANNEL_NAME}" "zai-org/GLM-5.2" <<'PY'
+import json
+import sys
+
+path, name, model_prefix = sys.argv[1], sys.argv[2], sys.argv[3]
+data = json.load(open(path, encoding="utf-8"))
+items = data.get("data", {}).get("items") or data.get("data") or []
+if isinstance(items, dict):
+    items = items.get("items") or []
+for item in items:
+    if item.get("name") == name and model_prefix in (item.get("models") or ""):
+        print(item.get("id") or "")
+        break
+PY
+  )
+
+  sf_channel_payload() {
+    local mode="$1"
+    python3 - "${mode}" "${sf_existing_id:-}" "${SF_CHANNEL_NAME}" "${SF_CHANNEL_KEY}" "" "${SF_CHANNEL_MODELS}" "${SF_CHANNEL_GROUP}" "${SF_CHANNEL_TYPE}" <<'PY'
+import json
+import sys
+
+mode, existing_id, name, key, base_url, models, group, ch_type = sys.argv[1:9]
+channel = {
+    "type": int(ch_type),
+    "name": name,
+    "key": key,
+    "base_url": base_url,
+    "models": models,
+    "group": group,
+    "weight": 1,
+    "priority": 0,
+}
+if mode == "update":
+    channel["id"] = int(existing_id)
+    print(json.dumps(channel))
+else:
+    channel["status"] = 1
+    print(json.dumps({"mode": "single", "channel": channel}))
+PY
+  }
+
+  if [[ -n "${sf_existing_id}" ]]; then
+    code=$(curl -s -o "${resp}" -w "%{http_code}" \
+      -X PUT "${NEWAPI_URL}/api/channel/" \
+      -H "Authorization: Bearer ${NEW_API_ADMIN_TOKEN}" \
+      -H "New-Api-User: ${NEW_API_ADMIN_USER_ID:-1}" \
+      -H "Content-Type: application/json" \
+      -d "$(sf_channel_payload update)")
+    if [[ "${code}" != "200" ]] || [[ "$(verify_json_success "${resp}")" != "yes" ]]; then
+      verify_fail "update SiliconFlow channel HTTP ${code}: $(cat "${resp}")"
+    fi
+    verify_info "updated channel ${SF_CHANNEL_NAME} (id=${sf_existing_id})"
+  else
+    code=$(curl -s -o "${resp}" -w "%{http_code}" \
+      -X POST "${NEWAPI_URL}/api/channel/" \
+      -H "Authorization: Bearer ${NEW_API_ADMIN_TOKEN}" \
+      -H "New-Api-User: ${NEW_API_ADMIN_USER_ID:-1}" \
+      -H "Content-Type: application/json" \
+      -d "$(sf_channel_payload create)")
+    if [[ "${code}" != "200" ]] || [[ "$(verify_json_success "${resp}")" != "yes" ]]; then
+      verify_fail "create SiliconFlow channel HTTP ${code}: $(cat "${resp}")"
+    fi
+    verify_info "created channel ${SF_CHANNEL_NAME}"
+  fi
+fi
+
 # ─── Sync abilities ───────────────────────────────────────────────────────────
 
 sync_code=$(curl -s -o /dev/null -w "%{http_code}" \

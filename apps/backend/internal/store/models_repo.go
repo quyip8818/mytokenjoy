@@ -7,6 +7,13 @@ import (
 	"github.com/tokenjoy/backend/internal/domain/types"
 )
 
+// SyncResult reports what changed during a platform model sync.
+type SyncResult struct {
+	Added   int `json:"added"`
+	Updated int `json:"updated"`
+	Removed int `json:"removed"`
+}
+
 type ModelsRepository interface {
 	Models(ctx context.Context) ([]types.ModelInfo, error)
 	ModelByType(ctx context.Context, modelType string) (*types.ModelInfo, error)
@@ -16,7 +23,8 @@ type ModelsRepository interface {
 	ModelByIDs(ctx context.Context, modelIDs []int64) ([]types.ModelInfo, error)
 	InsertModel(ctx context.Context, model types.ModelInfo) (types.ModelInfo, error)
 	UpdateModel(ctx context.Context, model types.ModelInfo) error
-	// SyncFromPlatform atomically upserts source='platform' models and disables stale ones for a company.
-	SyncFromPlatform(ctx context.Context, companyID uuid.UUID, models []types.ModelInfo) error
+	// SyncFromPlatform atomically upserts source='platform' models, hard-deletes stale ones,
+	// and returns a summary of what changed.
+	SyncFromPlatform(ctx context.Context, companyID uuid.UUID, models []types.ModelInfo) (SyncResult, error)
 	Allowlist() ModelAllowlistRepository
 }

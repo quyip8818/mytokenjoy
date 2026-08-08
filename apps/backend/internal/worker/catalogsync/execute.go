@@ -141,7 +141,8 @@ func (e *Executor) syncModels(ctx context.Context, models []catalog.CatalogModel
 			MaxContext:   m.MaxContext,
 		})
 	}
-	return e.store.Models().SyncFromPlatform(ctx, e.globalCompanyID, infos)
+	_, err := e.store.Models().SyncFromPlatform(ctx, e.globalCompanyID, infos)
+	return err
 }
 
 // syncPricing fetches global pricing and replaces local NewAPI ratio maps.

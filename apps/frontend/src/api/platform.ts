@@ -12,7 +12,8 @@ export const platformApi = {
   // --- Models ---
   listModels: () => request<PlatformModel[]>('/platform/models'),
 
-  syncModels: () => request<{ synced: number }>('/platform/models/sync', { method: 'POST' }),
+  syncModels: () =>
+    request<{ added: number; updated: number; removed: number }>('/platform/models/sync', { method: 'POST' }),
 
   createModel: (data: PlatformCreateModelInput) =>
     request<PlatformModel>('/platform/models', { method: 'POST', body: JSON.stringify(data) }),

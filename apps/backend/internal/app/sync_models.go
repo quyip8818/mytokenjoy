@@ -29,11 +29,12 @@ func syncModelsFromNewAPIOnBoot(ctx context.Context, cfg config.Config, st store
 		infos = append(infos, pricingModelToInfo(pm))
 	}
 
-	if err := st.Models().SyncFromPlatform(ctx, cfg.TokenJoyCompanyID, infos); err != nil {
+	if result, err := st.Models().SyncFromPlatform(ctx, cfg.TokenJoyCompanyID, infos); err != nil {
 		slog.Warn("sync models from newapi on boot: store failed", "error", err)
 		return
+	} else {
+		slog.Info("sync models from newapi on boot completed", "added", result.Added, "updated", result.Updated, "removed", result.Removed)
 	}
-	slog.Info("sync models from newapi on boot completed", "count", len(infos))
 }
 
 // pricingModelToInfo converts a NewAPI PricingModel to a TokenJoy ModelInfo.
