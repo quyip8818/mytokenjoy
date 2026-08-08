@@ -16,7 +16,8 @@ export interface NotificationSSEEvent {
   payload?: Record<string, unknown>
 }
 
-// ponytail: track recent groupKeys to deduplicate rapid SSE pushes (防刷屏)
+// ponytail: 模块级去重 map，防 SSE 快速推送刷屏
+// 天花板：内存上限 50 条；升级路径：改用 LRU
 const recentGroupKeys = new Map<string, number>()
 const DEDUP_WINDOW_MS = 10_000
 
@@ -26,7 +27,6 @@ function shouldShowToast(event: NotificationSSEEvent): boolean {
   const lastSeen = recentGroupKeys.get(event.groupKey)
   if (lastSeen && now - lastSeen < DEDUP_WINDOW_MS) return false
   recentGroupKeys.set(event.groupKey, now)
-  // Cleanup old entries
   if (recentGroupKeys.size > 50) {
     for (const [key, ts] of recentGroupKeys) {
       if (now - ts > DEDUP_WINDOW_MS) recentGroupKeys.delete(key)
@@ -35,67 +35,90 @@ function shouldShowToast(event: NotificationSSEEvent): boolean {
   return true
 }
 
+// ponytail: 指数退避重连，防后端不可达时刷屏
+// 天花板：固定 5 次上限；升级路径：可配置 + jitter
+const MAX_RETRIES = 5
+const BASE_DELAY_MS = 2000
+
 /**
  * Manages the SSE connection to /api/notifications/stream.
- * Pushes incoming notifications to the TanStack Query cache and shows toast.
+ * Pushes incoming notifications into TanStack Query cache and shows toast.
  */
 export function useNotificationConnection() {
   const [isConnected, setIsConnected] = useState(false)
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const navigateRef = useRef(navigate)
-  useEffect(() => {
-    navigateRef.current = navigate
-  })
+  useEffect(() => { navigateRef.current = navigate })
   const eventSourceRef = useRef<EventSource | null>(null)
 
   useEffect(() => {
-    const url = `${API_BASE_PATH}/notifications/stream`
-    const eventSource = new EventSource(url, { withCredentials: true })
-    eventSourceRef.current = eventSource
+    let retryCount = 0
+    let retryTimer: ReturnType<typeof setTimeout> | null = null
+    let disposed = false
 
-    eventSource.addEventListener('connected', () => {
-      setIsConnected(true)
-    })
-
-    eventSource.addEventListener('notification', (e) => {
+    function handleNotification(e: MessageEvent) {
       try {
-        const notification: NotificationSSEEvent = JSON.parse(e.data)
-        // Invalidate notification queries to refetch
+        const n: NotificationSSEEvent = JSON.parse(e.data)
         queryClient.invalidateQueries({ queryKey: ['notifications'] })
+        if (!shouldShowToast(n)) return
 
-        // Show toast with dedup + clickable action
-        if (shouldShowToast(notification)) {
-          // Compute action URL from SSE event payload
-          const actionUrl = getActionUrl({
-            id: notification.id,
-            eventType: notification.eventType,
-            payload: notification.payload ?? {},
-          } as NotificationItem)
+        const actionUrl = getActionUrl({
+          id: n.id,
+          eventType: n.eventType,
+          payload: n.payload ?? {},
+        } as NotificationItem)
 
-          toast.info(notification.title, {
-            description: notification.body || undefined,
-            duration: 5000,
-            ...(actionUrl && {
-              action: {
-                label: '查看',
-                onClick: () => navigateRef.current({ to: actionUrl }),
-              },
-            }),
-          })
-        }
-      } catch {
-        // Ignore malformed events
-      }
-    })
-
-    eventSource.onerror = () => {
-      setIsConnected(false)
+        toast.info(n.title, {
+          description: n.body || undefined,
+          duration: 5000,
+          ...(actionUrl && {
+            action: { label: '查看', onClick: () => navigateRef.current({ to: actionUrl }) },
+          }),
+        })
+      } catch { /* malformed event — skip */ }
     }
 
+    function connect() {
+      if (disposed) return
+      const es = new EventSource(`${API_BASE_PATH}/notifications/stream`, { withCredentials: true })
+      eventSourceRef.current = es
+
+      es.addEventListener('connected', () => {
+        retryCount = 0
+        setIsConnected(true)
+      })
+      es.addEventListener('notification', handleNotification)
+
+      es.onerror = () => {
+        setIsConnected(false)
+        es.close()
+        eventSourceRef.current = null
+        if (disposed || retryCount >= MAX_RETRIES) return
+        const delay = BASE_DELAY_MS * 2 ** retryCount
+        retryCount++
+        retryTimer = setTimeout(connect, delay)
+      }
+    }
+
+    function handleVisibility() {
+      if (document.visibilityState !== 'visible' || disposed) return
+      if (eventSourceRef.current) return // 已连接，不重复
+      // 清掉可能 pending 的 retry timer 防止双重连接
+      if (retryTimer) { clearTimeout(retryTimer); retryTimer = null }
+      retryCount = 0
+      connect()
+    }
+
+    connect()
+    document.addEventListener('visibilitychange', handleVisibility)
+
     return () => {
-      eventSource.close()
+      disposed = true
+      if (retryTimer) clearTimeout(retryTimer)
+      eventSourceRef.current?.close()
       eventSourceRef.current = null
+      document.removeEventListener('visibilitychange', handleVisibility)
       setIsConnected(false)
     }
   }, [queryClient])
