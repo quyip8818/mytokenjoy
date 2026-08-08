@@ -133,7 +133,15 @@ func (c *Client) ListChannels(ctx context.Context) ([]adminport.ChannelInfo, err
 			return nil, fmt.Errorf("list channels page %d: %w", page, err)
 		}
 		for _, ch := range list.Items {
-			all = append(all, adminport.ChannelInfo{ID: ch.ID, Name: ch.Name})
+			all = append(all, adminport.ChannelInfo{
+				ID:       ch.ID,
+				Name:     ch.Name,
+				Models:   ch.Models,
+				Group:    ch.Group,
+				Priority: ch.Priority,
+				Weight:   ch.Weight,
+				Status:   ch.Status,
+			})
 		}
 		if !listHasMore(list, page, channelListFirstPage) {
 			break

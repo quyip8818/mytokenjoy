@@ -18,10 +18,13 @@ type Token struct {
 
 // Channel is the JSON response from NewAPI channel endpoints.
 type Channel struct {
-	ID     int    `json:"id"`
-	Type   int    `json:"type"`
-	Name   string `json:"name"`
-	Key    string `json:"key"`
-	Status int    `json:"status"`
-	Group  string `json:"group"`
+	ID       int    `json:"id"`
+	Type     int    `json:"type"`
+	Name     string `json:"name"`
+	Key      string `json:"key"`
+	Status   int    `json:"status"`
+	Group    string `json:"group"`
+	Models   string `json:"models"`
+	Priority int    `json:"priority"`
+	Weight   int    `json:"weight"`
 }

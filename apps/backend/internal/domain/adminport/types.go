@@ -51,10 +51,15 @@ type ChannelResult struct {
 	ID int
 }
 
-// ChannelInfo is a summary returned by ListChannels (used by SMS sync diff-delete).
+// ChannelInfo is a summary returned by ListChannels.
 type ChannelInfo struct {
-	ID   int
-	Name string
+	ID       int
+	Name     string
+	Models   string // comma-separated model types this channel serves
+	Group    string
+	Priority int
+	Weight   int
+	Status   int
 }
 
 // --- User provisioning (used by company creation, bootstrap) ---

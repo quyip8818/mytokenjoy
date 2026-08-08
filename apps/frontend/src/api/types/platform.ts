@@ -33,6 +33,14 @@ export interface PlatformModel {
   source: string
 }
 
+export interface ChannelSummary {
+  name: string
+  group: string
+  priority: number
+  weight: number
+  status: number // 1=enabled, 2=disabled
+}
+
 export interface PlatformCreateModelInput {
   type: string
   name: string

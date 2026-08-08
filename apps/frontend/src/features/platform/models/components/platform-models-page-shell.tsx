@@ -1,4 +1,4 @@
-import { Power, Upload, Pencil, Plus, RefreshCw } from 'lucide-react'
+import { Power, Upload, Pencil, Plus, RefreshCw, Layers } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -22,6 +22,7 @@ export function PlatformModelsPageShell({
   handleToggle,
   openCreate,
   openEdit,
+  openChannels,
 }: Props) {
   return (
     <PageShell>
@@ -64,6 +65,13 @@ export function PlatformModelsPageShell({
               ]}
               renderActions={(m) => (
                 <div className="inline-flex items-center gap-1">
+                  <button
+                    onClick={() => openChannels(m)}
+                    className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    title="查看渠道"
+                  >
+                    <Layers className="h-3.5 w-3.5" />
+                  </button>
                   <button
                     onClick={() => openEdit(m)}
                     className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"

@@ -271,6 +271,59 @@ func (h *Handler) SetModelPricing(w http.ResponseWriter, r *http.Request) {
 	response.Void(w)
 }
 
+// --- Platform Admin: Model Channels ---
+
+// channelSummaryDTO is the response item for ListModelChannels.
+type channelSummaryDTO struct {
+	Name     string `json:"name"`
+	Group    string `json:"group"`
+	Priority int    `json:"priority"`
+	Weight   int    `json:"weight"`
+	Status   int    `json:"status"` // 1=enabled, 2=disabled
+}
+
+// ListModelChannels returns the NewAPI channels that serve a given model.
+func (h *Handler) ListModelChannels(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusBadRequest, "Bad request")
+		return
+	}
+
+	model, err := h.p.Models.ModelByID(r.Context(), id)
+	if err != nil || model == nil {
+		httputil.WriteStatus(w, http.StatusNotFound, "Not found")
+		return
+	}
+
+	channels, err := h.p.AdminPort.ListChannels(r.Context())
+	if err != nil {
+		httputil.WriteStatus(w, http.StatusInternalServerError, httputil.MsgInternal)
+		return
+	}
+
+	// Filter channels whose models field contains this model's type.
+	var result []channelSummaryDTO
+	for _, ch := range channels {
+		if ch.Models == "" {
+			continue
+		}
+		for _, m := range strings.Split(ch.Models, ",") {
+			if strings.TrimSpace(m) == model.Type {
+				result = append(result, channelSummaryDTO{
+					Name:     ch.Name,
+					Group:    ch.Group,
+					Priority: ch.Priority,
+					Weight:   ch.Weight,
+					Status:   ch.Status,
+				})
+				break
+			}
+		}
+	}
+	response.JSON(w, http.StatusOK, result)
+}
+
 // --- Platform Admin: Publish ---
 
 // PublishCatalog forces a version bump (useful for manual re-sync trigger).

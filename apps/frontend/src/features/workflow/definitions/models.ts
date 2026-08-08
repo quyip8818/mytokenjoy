@@ -6,6 +6,7 @@ import {
   PlatformModelCreateWorkflow,
   PlatformModelEditWorkflow,
 } from '../workflows/platform-model-form'
+import { PlatformModelChannelsWorkflow } from '../workflows/platform-model-channels'
 import { DiscountConfigWorkflow } from '../workflows/discount-config'
 
 export const modelsWorkflowDefinitions = {
@@ -19,6 +20,9 @@ export const modelsWorkflowDefinitions = {
   }),
   'platform-model-edit': defineWorkflow(PlatformModelEditWorkflow, {
     title: '编辑平台模型',
+  }),
+  'platform-model-channels': defineWorkflow(PlatformModelChannelsWorkflow, {
+    title: '模型渠道',
   }),
   'discount-config': defineWorkflow(DiscountConfigWorkflow, {
     title: '模型优惠配置',

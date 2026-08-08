@@ -60,6 +60,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Post("/models/sync", h.SyncModelsFromNewAPI)
 		r.Put("/models/{id}", h.UpdateModel)
 		r.Put("/models/{id}/pricing", h.SetModelPricing)
+		r.Get("/models/{id}/channels", h.ListModelChannels)
 		r.Post("/catalog/publish", h.PublishCatalog)
 		// Pricing management
 		r.Get("/pricing", h.ListGlobalPricing)

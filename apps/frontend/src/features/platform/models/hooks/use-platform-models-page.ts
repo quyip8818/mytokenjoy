@@ -72,6 +72,13 @@ export function usePlatformModelsPage() {
     [apis, refresh],
   )
 
+  const openChannels = useCallback(
+    (model: PlatformModel) => {
+      openWorkflow('platform-model-channels', { model })
+    },
+    [openWorkflow],
+  )
+
   return {
     models,
     loading,
@@ -84,5 +91,6 @@ export function usePlatformModelsPage() {
     handleToggle,
     openCreate,
     openEdit,
+    openChannels,
   }
 }

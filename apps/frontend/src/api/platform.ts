@@ -1,6 +1,7 @@
 import { request } from './client'
 import type {
   BatchSetDiscountInput,
+  ChannelSummary,
   DiscountEntry,
   LotAuditResponse,
   PlatformCompanyOverview,
@@ -14,6 +15,9 @@ import type {
 export const platformApi = {
   // --- Models ---
   listModels: () => request<PlatformModel[]>('/platform/models'),
+
+  listModelChannels: (modelId: string) =>
+    request<ChannelSummary[]>(`/platform/models/${modelId}/channels`),
 
   syncModels: () => request<{ synced: number }>('/platform/models/sync', { method: 'POST' }),
 
