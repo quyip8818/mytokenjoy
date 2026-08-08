@@ -120,6 +120,7 @@ export function SetupForm({ submitting, error, onSubmit }: SetupFormProps) {
         <Input
           id="admin-email"
           type="email"
+          autoComplete="username"
           placeholder="admin@company.com"
           className="h-11"
           value={adminEmail}
@@ -136,6 +137,7 @@ export function SetupForm({ submitting, error, onSubmit }: SetupFormProps) {
         <Input
           id="admin-name"
           type="text"
+          autoComplete="name"
           placeholder="您的姓名"
           className="h-11"
           value={adminName}
