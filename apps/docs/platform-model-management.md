@@ -211,7 +211,7 @@ token_issued_at  TIMESTAMPTZ  -- 签发时间，60s 防重窗口判断
 
 ```env
 CATALOG_SYNC_URL=https://app.tokenjoy.me
-CATALOG_SYNC_INTERVAL_SEC=300
+CATALOG_SYNC_INTERVAL_SEC=600
 ```
 
 SaaS 模式下 CatalogSync 自动跳过。Local 模式默认启用，URL 优先读 `CATALOG_SYNC_URL`，未配则 fallback 到 `SAAS_PLATFORM_URL`。

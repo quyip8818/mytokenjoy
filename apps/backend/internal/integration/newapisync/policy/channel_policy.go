@@ -5,48 +5,34 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
+	"github.com/tokenjoy/backend/internal/domain/company"
 )
 
+// ChannelPolicy resolves the NewAPI group for platform key tokens and provider channels.
+// ponytail: company-level grouping — no department isolation. Model visibility is
+// controlled by TokenJoy Gateway precheck routing whitelist, not NewAPI groups.
 type ChannelPolicy interface {
 	ResolveNewAPIGroup(ctx context.Context, departmentID uuid.UUID) string
 }
 
-type LocalChannelPolicy struct{}
+// CompanyChannelPolicy returns companyID as the group for all tokens and custom channels.
+// Platform (tokenjoy) channels use group="" so all tokens can access them.
+type CompanyChannelPolicy struct{}
 
-func NewLocalChannelPolicy() ChannelPolicy {
-	return LocalChannelPolicy{}
+func NewCompanyChannelPolicy() ChannelPolicy {
+	return CompanyChannelPolicy{}
 }
 
-func (LocalChannelPolicy) ResolveNewAPIGroup(_ context.Context, departmentID uuid.UUID) string {
-	return newapi.NewAPIGroupForDepartment(departmentID)
+func (CompanyChannelPolicy) ResolveNewAPIGroup(ctx context.Context, _ uuid.UUID) string {
+	return company.CompanyID(ctx).String()
 }
 
-type SaaSSharedChannelPolicy struct {
-	group string
+func NewChannelPolicy(_ config.Config) ChannelPolicy {
+	return NewCompanyChannelPolicy()
 }
 
-func NewSaaSSharedChannelPolicy(group string) ChannelPolicy {
-	return SaaSSharedChannelPolicy{group: group}
-}
-
-func (p SaaSSharedChannelPolicy) ResolveNewAPIGroup(_ context.Context, _ uuid.UUID) string {
-	return p.group
-}
-
-func NewChannelPolicy(cfg config.Config) ChannelPolicy {
-	if cfg.SupportSaas {
-		return NewSaaSSharedChannelPolicy(cfg.PlatformSharedNewAPIGroup)
-	}
-	return NewLocalChannelPolicy()
-}
-
-// ResolveProviderChannelGroup picks the NewAPI group for the provider channel.
-// In local (non-SaaS) mode, returns empty so all department tokens can access the shared channel.
-// In SaaS mode, returns the platform-wide shared group.
-func ResolveProviderChannelGroup(cfg config.Config) string {
-	if cfg.SupportSaas {
-		return cfg.PlatformSharedNewAPIGroup
-	}
-	return ""
+// ResolveProviderChannelGroup returns the group for provider (custom) channels.
+// Uses companyID so all company tokens (same group) can access the custom channels.
+func ResolveProviderChannelGroup(ctx context.Context) string {
+	return company.CompanyID(ctx).String()
 }

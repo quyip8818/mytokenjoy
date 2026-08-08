@@ -834,7 +834,7 @@ HTTP 非 2xx 时，body 应包含：
 | POST  | `/platform/companies/:id/gift`     | `{ amount }`                    | `void`               | 平台赠送（display 金额）        |
 | POST  | `/platform/companies/:id/adjust`   | `{ amount, amountDisplay }`     | `void`               | 平台调账（display 金额）        |
 | GET   | `/platform/channels`               | —                               | `ProviderKey[]`      | 全局上游 Channel 列表           |
-| POST  | `/platform/channels`               | 同企业面 `provider-keys` 创建体 | `ProviderKey`        | 同步到 NewAPI `platform_shared` |
+| POST  | `/platform/channels`               | 同企业面 `provider-keys` 创建体 | `ProviderKey`        | 同步到 NewAPI（group={companyId}）|
 
 **`Company`**
 
@@ -860,7 +860,7 @@ HTTP 非 2xx 时，body 应包含：
 | ------------------------------ | --------------- | ------------------------------------------------------------------ |
 | `GET /session`                 | `companyId = 1` | `companyId` = 成员所属企业                                         |
 | `provider-keys` 写             | 允许            | **403**                                                            |
-| `POST /keys/platform`          | 不变            | 不变；后端 Token 绑 `newapi_wallet_company_id` + `platform_shared` |
+| `POST /keys/platform`          | 不变            | 不变；后端 Token 绑 `newapi_wallet_company_id` + company group     |
 | 组织 / 预算 / 密钥读写在企业面 | 单企业          | 按 Session `companyId` 隔离                                        |
 | 成员邀请（企业内）             | 支持            | `POST /org/members/invite`                                         |
 

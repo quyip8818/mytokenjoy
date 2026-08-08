@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -162,7 +161,7 @@ func applyGatewayKeyMapping(t *testing.T, st store.Store, opts GatewayScenarioOp
 		MemberID:      &memberID,
 		DepartmentID:  opts.DepartmentID,
 		SyncStatus:    store.MappingSyncStatusSynced,
-		NewAPIGroup:   newapi.NewAPIGroupForDepartment(opts.DepartmentID),
+		NewAPIGroup:   opts.CompanyID.String(),
 	}); err != nil {
 		t.Fatal(err)
 	}

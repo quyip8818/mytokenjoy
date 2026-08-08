@@ -90,19 +90,18 @@ type WatchdogConfig struct {
 
 // PlatformConfig holds multi-tenant platform and company settings.
 type PlatformConfig struct {
-	SupportSaas               bool      `env:"SUPPORT_SAAS" envDefault:"false"`
-	CompanyName               string    `env:"COMPANY_NAME"`
-	TokenJoyCompanyID         uuid.UUID `env:"TOKENJOY_COMPANY_ID" envDefault:"00000000-0000-7000-8000-000000000001"`
-	CompanyID                 uuid.UUID // 运行时赋值，不从 env 读取。SaaS=DemoCompanyID; Local=setup 产出的 ID。
-	PlatformSharedNewAPIGroup string    `env:"PLATFORM_SHARED_NEW_API_GROUP" envDefault:"platform_shared"`
-	CompanyWalletCacheTTLSec  int       `env:"COMPANY_WALLET_CACHE_TTL_SEC" envDefault:"30"`
+	SupportSaas              bool      `env:"SUPPORT_SAAS" envDefault:"false"`
+	CompanyName              string    `env:"COMPANY_NAME"`
+	TokenJoyCompanyID        uuid.UUID `env:"TOKENJOY_COMPANY_ID" envDefault:"00000000-0000-7000-8000-000000000001"`
+	CompanyID                uuid.UUID // 运行时赋值，不从 env 读取。SaaS=DemoCompanyID; Local=setup 产出的 ID。
+	CompanyWalletCacheTTLSec int       `env:"COMPANY_WALLET_CACHE_TTL_SEC" envDefault:"30"`
 
 	PlatformBootstrapEmail    string `env:"PLATFORM_BOOTSTRAP_EMAIL"`
 	PlatformBootstrapPassword string `env:"PLATFORM_BOOTSTRAP_PASSWORD"`
 
 	// Catalog sync (pull model/pricing from SaaS platform — local mode only)
 	CatalogSyncURL         string `env:"CATALOG_SYNC_URL"`
-	CatalogSyncIntervalSec int    `env:"CATALOG_SYNC_INTERVAL_SEC" envDefault:"300"`
+	CatalogSyncIntervalSec int    `env:"CATALOG_SYNC_INTERVAL_SEC" envDefault:"600"`
 
 	// Setup / registration (local only)
 	SaasPlatformURL        string `env:"SAAS_PLATFORM_URL"`

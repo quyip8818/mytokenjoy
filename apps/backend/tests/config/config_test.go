@@ -3,6 +3,7 @@ package config_test
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -259,5 +260,21 @@ func TestProductionRejectsSimulateDelay(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "SIMULATE_DELAY") {
 		t.Fatalf("expected SIMULATE_DELAY error, got %v", err)
+	}
+}
+
+func TestCatalogSyncIntervalDefaultsTo10MinWhenZero(t *testing.T) {
+	cfg := config.Config{}
+	cfg.CatalogSyncIntervalSec = 0
+	if got, want := cfg.CatalogSyncInterval(), 10*time.Minute; got != want {
+		t.Fatalf("expected %v fallback for zero interval, got %v", want, got)
+	}
+}
+
+func TestCatalogSyncIntervalUsesConfiguredValue(t *testing.T) {
+	cfg := config.Config{}
+	cfg.CatalogSyncIntervalSec = 600
+	if got, want := cfg.CatalogSyncInterval(), 600*time.Second; got != want {
+		t.Fatalf("expected %v, got %v", want, got)
 	}
 }

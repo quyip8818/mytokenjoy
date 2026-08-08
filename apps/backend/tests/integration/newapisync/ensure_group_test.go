@@ -15,12 +15,11 @@ import (
 func TestTrySyncCreateEnsuresGroupBeforeCreateToken(t *testing.T) {
 	testutil.SkipUnlessLocal(t)
 	t.Parallel()
-	var ensuredGroup, ensuredDisplay string
+	var ensuredGroup string
 	stub := &mock.StubAdminClient{
 		Token: newapi.Token{ID: 991, Key: "sk-test-key", RemainQuota: 1000},
-		EnsureGroupFn: func(_ context.Context, group, displayName string) error {
+		EnsureGroupFn: func(_ context.Context, group, _ string) error {
 			ensuredGroup = group
-			ensuredDisplay = displayName
 			return nil
 		},
 	}
@@ -47,15 +46,12 @@ func TestTrySyncCreateEnsuresGroupBeforeCreateToken(t *testing.T) {
 	if _, err := sync.TrySyncCreate(ctx, plkEnsureGroup); err != nil {
 		t.Fatal(err)
 	}
-	wantGroup := newapi.NewAPIGroupForDepartment(contract.IDDept3)
+	wantGroup := contract.DefaultCompanyID.String() // company-level group, not per-department
 	if stub.EnsureGroupCalls != 1 {
 		t.Fatalf("expected one EnsureGroup call, got %d", stub.EnsureGroupCalls)
 	}
 	if ensuredGroup != wantGroup {
 		t.Fatalf("expected group %q, got %q", wantGroup, ensuredGroup)
-	}
-	if ensuredDisplay != "后端组" {
-		t.Fatalf("expected display %q, got %q", "后端组", ensuredDisplay)
 	}
 	if stub.CreateTokenCalls != 1 {
 		t.Fatalf("expected one CreateToken call, got %d", stub.CreateTokenCalls)

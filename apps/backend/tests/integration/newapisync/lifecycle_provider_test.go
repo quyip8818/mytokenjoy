@@ -42,9 +42,10 @@ func TestSyncUpsertProviderKeyEnsuresPrivateGroup(t *testing.T) {
 	if err := sync.SyncUpsertProviderKey(ctx, pk.ID); err != nil {
 		t.Fatal(err)
 	}
-	// In non-SaaS mode, provider channel group is empty (no group restriction).
-	if ensuredGroup != "" {
-		t.Fatalf("expected ensured group %q, got %q", "", ensuredGroup)
+	// Company-level group: provider channel group = companyID.
+	wantGroup := "00000000-0000-7000-8000-000000000002" // contract.DefaultCompanyID
+	if ensuredGroup != wantGroup {
+		t.Fatalf("expected ensured group %q, got %q", wantGroup, ensuredGroup)
 	}
 	if stub.EnsureGroupCalls != 1 || stub.UpsertChannelCalls != 1 {
 		t.Fatalf("expected one EnsureGroup and one UpsertChannel, got ensure=%d upsert=%d", stub.EnsureGroupCalls, stub.UpsertChannelCalls)
@@ -53,16 +54,17 @@ func TestSyncUpsertProviderKeyEnsuresPrivateGroup(t *testing.T) {
 
 func TestSyncUpsertProviderKeyEnsuresSaaSGroup(t *testing.T) {
 	t.Parallel()
+	wantGroup := "00000000-0000-7000-8000-000000000002" // contract.DefaultCompanyID
 	stub := &mock.StubAdminClient{
 		EnsureGroupFn: func(_ context.Context, group, _ string) error {
-			if group != "platform_shared" {
-				t.Fatalf("expected platform_shared, got %q", group)
+			if group != wantGroup {
+				t.Fatalf("expected %q, got %q", wantGroup, group)
 			}
 			return nil
 		},
 		UpsertChannelFn: func(_ context.Context, req adminport.UpsertChannelInput) (adminport.ChannelResult, error) {
-			if req.Group != "platform_shared" {
-				t.Fatalf("expected platform_shared group, got %q", req.Group)
+			if req.Group != wantGroup {
+				t.Fatalf("expected %q group, got %q", wantGroup, req.Group)
 			}
 			return adminport.ChannelResult{ID: 8}, nil
 		},

@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/types"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/quota"
 	"github.com/tokenjoy/backend/seed/contract"
@@ -74,7 +73,7 @@ func seedDefaultMapping(t *testing.T, st store.Store) {
 		MemberID:      &memberID,
 		DepartmentID:  deptID,
 		SyncStatus:    store.MappingSyncStatusSynced,
-		NewAPIGroup:   newapi.NewAPIGroupForDepartment(deptID),
+		NewAPIGroup:   contract.DefaultCompanyID.String(),
 	}); err != nil {
 		t.Fatal(err)
 	}

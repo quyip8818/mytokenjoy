@@ -3,13 +3,11 @@ package postgres
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tokenjoy/backend/internal/store"
-	pkgorg "github.com/tokenjoy/backend/internal/support/org"
 )
 
 type platformKeyMappingRepo struct {
@@ -49,12 +47,6 @@ func scanMapping(row pgx.Row) (store.PlatformKeyMapping, error) {
 	m.MemberID = memberID
 	if departmentID != nil {
 		m.DepartmentID = *departmentID
-	}
-	if m.DepartmentID == uuid.Nil && strings.HasPrefix(m.NewAPIGroup, pkgorg.NewAPIGroupPrefix) {
-		parsed, parseErr := uuid.Parse(strings.TrimPrefix(m.NewAPIGroup, pkgorg.NewAPIGroupPrefix))
-		if parseErr == nil {
-			m.DepartmentID = parsed
-		}
 	}
 	m.ProjectID = projectID
 	m.SyncedAt = syncedAt

@@ -8,23 +8,24 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
-
+	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/types"
+	"github.com/tokenjoy/backend/internal/support/modelcatalog"
 	"github.com/tokenjoy/backend/seed/contract"
+	testhttp "github.com/tokenjoy/backend/tests/testutil/http"
 )
 
-func TestModelsEndpoints(t *testing.T) {
-	t.Parallel()
-	router := testhttp.NewRouter(t)
-	adminCookie := testhttp.AdminCookie(t)
+func TestModelsLocal(t *testing.T) {
+	localApp := testhttp.NewApp(t, func(cfg *config.Config) { cfg.SupportSaas = false })
+	router := localApp.Router
+	cookie := testhttp.AdminCookie(t)
 
 	t.Run("RoutingUpdate", func(t *testing.T) {
 		t.Parallel()
 		body := []byte(fmt.Sprintf(`{"allowedModelIds":["%s"]}`, contract.IDModel1))
 		req := httptest.NewRequest(http.MethodPut, "/api/models/routing/"+contract.IDDept3.String(), bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Cookie", adminCookie)
+		req.Header.Set("Cookie", cookie)
 		rec := httptest.NewRecorder()
 		router.ServeHTTP(rec, req)
 		if rec.Code != http.StatusOK {
@@ -44,7 +45,7 @@ func TestModelsEndpoints(t *testing.T) {
 		body := []byte(`{"type":"custom-model","name":"Custom","baseUrl":"http://llm.test","apiKey":"secret","inputPrice":1,"outputPrice":2}`)
 		req := httptest.NewRequest(http.MethodPost, "/api/models", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Cookie", adminCookie)
+		req.Header.Set("Cookie", cookie)
 		rec := httptest.NewRecorder()
 		router.ServeHTTP(rec, req)
 		if rec.Code != http.StatusOK {
@@ -65,7 +66,7 @@ func TestModelsEndpoints(t *testing.T) {
 	t.Run("ModelList", func(t *testing.T) {
 		t.Parallel()
 		req := httptest.NewRequest(http.MethodGet, "/api/models", nil)
-		req.Header.Set("Cookie", adminCookie)
+		req.Header.Set("Cookie", cookie)
 		rec := httptest.NewRecorder()
 		router.ServeHTTP(rec, req)
 		if rec.Code != http.StatusOK {
@@ -78,16 +79,6 @@ func TestModelsEndpoints(t *testing.T) {
 		if len(models) == 0 {
 			t.Fatal("expected seeded models")
 		}
-		found := false
-		for _, model := range models {
-			if model.Provider != "" && model.Type != "" {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Fatalf("expected models with type and provider, got %+v", models[0])
-		}
 	})
 
 	t.Run("ModelUpdate", func(t *testing.T) {
@@ -95,7 +86,7 @@ func TestModelsEndpoints(t *testing.T) {
 		createBody := []byte(`{"type":"edit-model","name":"Edit","baseUrl":"http://llm.old","apiKey":"secret","inputPrice":1,"outputPrice":2}`)
 		createReq := httptest.NewRequest(http.MethodPost, "/api/models", bytes.NewReader(createBody))
 		createReq.Header.Set("Content-Type", "application/json")
-		createReq.Header.Set("Cookie", adminCookie)
+		createReq.Header.Set("Cookie", cookie)
 		createRec := httptest.NewRecorder()
 		router.ServeHTTP(createRec, createReq)
 		if createRec.Code != http.StatusOK {
@@ -109,7 +100,7 @@ func TestModelsEndpoints(t *testing.T) {
 		updateBody := []byte(`{"name":"Edited","description":"test desc","endpoint":"http://llm.new"}`)
 		updateReq := httptest.NewRequest(http.MethodPut, "/api/models/"+created.ID.String(), bytes.NewReader(updateBody))
 		updateReq.Header.Set("Content-Type", "application/json")
-		updateReq.Header.Set("Cookie", adminCookie)
+		updateReq.Header.Set("Cookie", cookie)
 		updateRec := httptest.NewRecorder()
 		router.ServeHTTP(updateRec, updateReq)
 		if updateRec.Code != http.StatusOK {
@@ -132,7 +123,7 @@ func TestModelsEndpoints(t *testing.T) {
 		createBody := []byte(`{"type":"toggle-model","name":"Toggle","baseUrl":"http://llm.toggle","apiKey":"secret","inputPrice":1,"outputPrice":2}`)
 		createReq := httptest.NewRequest(http.MethodPost, "/api/models", bytes.NewReader(createBody))
 		createReq.Header.Set("Content-Type", "application/json")
-		createReq.Header.Set("Cookie", adminCookie)
+		createReq.Header.Set("Cookie", cookie)
 		createRec := httptest.NewRecorder()
 		router.ServeHTTP(createRec, createReq)
 		if createRec.Code != http.StatusOK {
@@ -146,11 +137,55 @@ func TestModelsEndpoints(t *testing.T) {
 		body := []byte(`{"deprecated":true}`)
 		req := httptest.NewRequest(http.MethodPut, "/api/models/"+created.ID.String(), bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Cookie", adminCookie)
+		req.Header.Set("Cookie", cookie)
 		rec := httptest.NewRecorder()
 		router.ServeHTTP(rec, req)
 		if rec.Code != http.StatusOK {
 			t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+		}
+	})
+}
+
+func TestModelsSaaS(t *testing.T) {
+	router := testhttp.NewRouter(t) // SaaS mode (default)
+	cookie := testhttp.AdminCookie(t)
+
+	t.Run("CreateModelRejected", func(t *testing.T) {
+		t.Parallel()
+		body := []byte(`{"type":"saas-rejected","name":"Rejected","baseUrl":"http://llm.test","apiKey":"secret","inputPrice":1,"outputPrice":2}`)
+		req := httptest.NewRequest(http.MethodPost, "/api/models", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Cookie", cookie)
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("expected 403 in SaaS mode, got %d body=%s", rec.Code, rec.Body.String())
+		}
+	})
+
+	t.Run("ListSanitizesProvider", func(t *testing.T) {
+		t.Parallel()
+		req := httptest.NewRequest(http.MethodGet, "/api/models", nil)
+		req.Header.Set("Cookie", cookie)
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+		}
+		var models []types.ModelInfo
+		if err := json.NewDecoder(rec.Body).Decode(&models); err != nil {
+			t.Fatal(err)
+		}
+		if len(models) == 0 {
+			t.Fatal("expected seeded models")
+		}
+		for _, m := range models {
+			if m.Source == "platform" || m.Source == "seed" {
+				if m.Provider != modelcatalog.DisplayProvider {
+					t.Fatalf("expected provider %q for %s model %q, got %q",
+						modelcatalog.DisplayProvider, m.Source, m.Type, m.Provider)
+				}
+			}
 		}
 	})
 }

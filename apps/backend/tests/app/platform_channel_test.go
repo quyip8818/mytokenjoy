@@ -21,7 +21,6 @@ func TestEnsurePlatformChannelCreatesOnStartup(t *testing.T) {
 	application := testutil.NewTestAppWithOptions(t, func(cfg *config.Config) {
 		cfg.SupportSaas = false
 		cfg.SaasPlatformURL = "https://platform.tokenjoy.test"
-		cfg.PlatformSharedNewAPIGroup = "platform_shared"
 	}, app.WithoutWorker(), app.WithAdminPort(mock))
 
 	ctx := context.Background()
@@ -37,7 +36,6 @@ func TestEnsurePlatformChannelCreatesOnStartup(t *testing.T) {
 	application2 := testutil.NewTestAppWithOptions(t, func(cfg *config.Config) {
 		cfg.SupportSaas = false
 		cfg.SaasPlatformURL = "https://platform.tokenjoy.test"
-		cfg.PlatformSharedNewAPIGroup = "platform_shared"
 	}, app.WithoutWorker(), app.WithAdminPort(mock))
 	defer application2.Close()
 

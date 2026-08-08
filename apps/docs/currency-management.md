@@ -49,7 +49,7 @@ SaaS 是 currencies 的 Source of Truth。平台管理员通过 UI 管理，每�
 ```
 平台管理员 → CRUD API (INSERT) → currencies 表新行 → bump version
                                                       ↓
-                                            CatalogSync (5min 周期)
+                                            CatalogSync (10min 周期)
                                                       ↓
                                             Local 实例拉取并 INSERT (ON CONFLICT id DO NOTHING)
 ```
@@ -110,7 +110,7 @@ currencies 由 seed 初始化，后续手动修改数据库或扩展管理接口
 ### 5.2 Local 同步流程
 
 ```
-Executor.Execute() — 每 5 分钟
+Executor.Execute() — 每 10 分钟
   ├─ FetchVersions → remote.Currencies
   ├─ 比较本地 sync_versions (GlobalSyncVersion, "currencies")
   │   相同 → 跳过

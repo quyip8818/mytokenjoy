@@ -45,13 +45,13 @@ func ensurePlatformChannel(ctx context.Context, cfg config.Config, st store.Stor
 	}
 
 	// Create the channel pointing to SaaS /v1/*.
+	// ponytail: group="" so all company tokens (any group) can access platform models.
 	result, err := port.UpsertChannel(ctx, adminport.UpsertChannelInput{
 		Type:    1, // OpenAI-compatible
 		Name:    platformChannelName,
 		Key:     platformKey,
 		Status:  1, // enabled
 		BaseURL: saasURL + "/v1",
-		Group:   cfg.PlatformSharedNewAPIGroup,
 	})
 	if err != nil {
 		logger.Warn("ensurePlatformChannel: failed to create channel", "error", err)

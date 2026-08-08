@@ -12,6 +12,7 @@ import (
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
+	"github.com/tokenjoy/backend/internal/support/modelcatalog"
 )
 
 type Handler struct {
@@ -44,6 +45,9 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	models, err := h.service.ListModelsWithPricing(r.Context())
+	if err == nil {
+		modelcatalog.MaskProviderForTenant(models)
+	}
 	httputil.WriteJSON(w, http.StatusOK, models, err)
 }
 

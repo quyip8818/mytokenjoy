@@ -46,7 +46,7 @@ func SyncUpsertProviderKey(ctx context.Context, d syncdeps.Deps, providerKeyID u
 	if pk.SecretKey == "" {
 		return fmt.Errorf("provider key secret missing: %s", providerKeyID)
 	}
-	group := policy.ResolveProviderChannelGroup(d.Cfg)
+	group := policy.ResolveProviderChannelGroup(ctx)
 	if err := d.Client.EnsureGroup(ctx, group, group); err != nil {
 		return fmt.Errorf("ensure provider channel group %s: %w", group, err)
 	}

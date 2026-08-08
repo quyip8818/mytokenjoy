@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/tokenjoy/backend/internal/config"
 	"github.com/tokenjoy/backend/internal/domain/models"
 	"github.com/tokenjoy/backend/internal/domain/types"
 	"github.com/tokenjoy/backend/internal/support/simulate"
@@ -12,9 +13,11 @@ import (
 	"github.com/tokenjoy/backend/tests/testutil/mock"
 )
 
-func newModelsService(t *testing.T) models.Service {
+func newModelsService(t *testing.T, opts ...testutil.ConfigOption) models.Service {
 	t.Helper()
-	cfg, st := testutil.NewTestStore(t)
+	// Default to local mode — CreateModel requires SupportSaas=false.
+	allOpts := append([]testutil.ConfigOption{func(cfg *config.Config) { cfg.SupportSaas = false }}, opts...)
+	cfg, st := testutil.NewTestStore(t, allOpts...)
 	return models.NewService(cfg, st, &mock.StubAdminClient{}, nil, simulate.NewDelayer(false))
 }
 
@@ -333,5 +336,19 @@ func TestToggleGlobalModelTwice(t *testing.T) {
 	_, err = svc.UpdateModel(testutil.Ctx(), global.ID, types.UpdateModelInput{Deprecated: &trueVal})
 	if err == nil {
 		t.Fatal("expected UpdateModel to reject platform model")
+	}
+}
+
+func TestCreateModelRejectedInSaaSMode(t *testing.T) {
+	t.Parallel()
+	svc := newModelsService(t, func(cfg *config.Config) { cfg.SupportSaas = true })
+	_, err := svc.CreateModel(testutil.Ctx(), types.CreateModelInput{
+		Type: "saas-rejected", InputPrice: 1.0, OutputPrice: 2.0, BaseURL: "http://llm.test",
+	})
+	if err == nil {
+		t.Fatal("expected CreateModel to be rejected in SaaS mode")
+	}
+	if err.Error() != "custom models are not allowed in SaaS mode" {
+		t.Fatalf("unexpected error message: %v", err)
 	}
 }

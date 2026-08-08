@@ -11,6 +11,6 @@ test.describe('钱包管理', () => {
     await page.goto('/billing')
     await expect(page.getByTestId('page-billing')).toBeVisible()
     // Recharge panel uses heading or button — use text assertion for recharge presence
-    await expect(page.getByText(/充值/)).toBeVisible()
+    await expect(page.getByRole('button', { name: '充值' })).toBeVisible()
   })
 })

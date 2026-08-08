@@ -178,7 +178,7 @@ NewAPI log 进来:
 
 ### Local wallet 的对账
 
-Local Ingest 对平台渠道消耗执行 lot 扣减，所以 Local wallet 实时下降。Catalog Sync 每 5min 拉取 SaaS 真实余额覆盖写入，修正定价时间差导致的微小偏差。
+Local Ingest 对平台渠道消耗执行 lot 扣减，所以 Local wallet 实时下降。Catalog Sync 每 10min 拉取 SaaS 真实余额覆盖写入，修正定价时间差导致的微小偏差。
 
 ---
 
@@ -187,7 +187,7 @@ Local Ingest 对平台渠道消耗执行 lot 扣减，所以 Local wallet 实时
 Catalog Sync 是一个统一的定期同步 Worker，通过 version 门控拉取多个独立数据通道。
 
 ```
-Catalog Sync Worker（每 5min，River PeriodicJob）:
+Catalog Sync Worker（每 10min，River PeriodicJob）:
 
   1. GET SaaS /api/platform/sync/versions （需要 sync token）
      → 返回 { models: N, pricing: N, currencies: N, discounts: N, walletLots: N }
@@ -225,7 +225,7 @@ Catalog Sync Worker（每 5min，River PeriodicJob）:
 
 | 属性 | 说明 |
 |------|------|
-| 频率 | 默认 5min（`CATALOG_SYNC_INTERVAL_SEC`） |
+| 频率 | 默认 10min（`CATALOG_SYNC_INTERVAL_SEC`） |
 | 余额对账 | wallet_lots 通道：SaaS 真实余额覆盖 Local wallet |
 | lot 同步 | 直接镜像 SaaS 的 lot + order + transaction 列表（含 exhausted），保留原始 kind |
 | version 门控 | 各通道独立版本号（`sync_versions` 表），无变化时跳过（避免无谓 IO） |
@@ -315,7 +315,7 @@ Setup 时的管理员邮箱+密码同时在 SaaS 创建 User + Member：
 │  Local Ingest（与 SaaS 完全一致）:                        │
 │    NewAPI logs → 归因 → lot FIFO → wallet → budget        │
 │                                                           │
-│  Catalog Sync（每 5min，含余额对账）:                     │
+│  Catalog Sync（每 10min，含余额对账）:                     │
 │    拉 SaaS 模型+定价+余额 → 更新本地 → 覆盖 wallet 修正  │
 │                                                           │
 └───────────────────────────────────────────────────────────┘
@@ -392,7 +392,7 @@ Setup 时的管理员邮箱+密码同时在 SaaS 创建 User + Member：
 | 方向 | 接口 | 频率 | 认证 | 说明 |
 |------|------|------|------|------|
 | Local → SaaS | `POST /api/platform/register-local` | 一次性 | X-Registration-Secret | Setup 注册，返回 companyId + platformKey + syncToken + walletUserId |
-| Local ← SaaS | `GET /api/platform/sync/versions` | 每 5min | 无 | 各通道版本号（models, pricing, currencies, walletLots） |
+| Local ← SaaS | `GET /api/platform/sync/versions` | 每 10min | 无 | 各通道版本号（models, pricing, currencies, walletLots） |
 | Local ← SaaS | `GET /api/platform/sync/catalog/models` | 按需 | 无 | 模型目录（version 变化时拉取） |
 | Local ← SaaS | `GET /api/platform/sync/catalog/pricing` | 按需 | Bearer cst_xxx | 定价（含合约价，version 变化时拉取） |
 | Local ← SaaS | `GET /api/platform/sync/catalog/currencies` | 按需 | 无 | 币种列表（version 变化时拉取） |
@@ -410,7 +410,7 @@ Setup 时的管理员邮箱+密码同时在 SaaS 创建 User + Member：
 | `SUPPORT_SAAS=false` | 私有化模式 |
 | `SAAS_PLATFORM_URL` | SaaS 地址 |
 | `SAAS_REGISTRATION_SECRET` | 注册密钥 |
-| `CATALOG_SYNC_INTERVAL_SEC` | Catalog Sync 间隔，默认 300s |
+| `CATALOG_SYNC_INTERVAL_SEC` | Catalog Sync 间隔，默认 600s |
 
 运行时 `system_settings`：
 
@@ -527,10 +527,10 @@ PBX（Local）管的是：
 
 ### 15.2 Catalog Sync 延迟 / 失败
 
-- 两次 sync 之间（最长 5min），Local wallet 由 Ingest 自己扣减维护
+- 两次 sync 之间（最长 10min），Local wallet 由 Ingest 自己扣减维护
 - 如果 Ingest 和 SaaS 扣的数值有微小偏差 → 下次 Catalog Sync 自动修正
 - Catalog Sync 失败 → 保留上次数据，SaaS Gateway 兜底
-- 管理员充值后 → 最多 5min 后 Local 看到新余额
+- 管理员充值后 → 最多 10min 后 Local 看到新余额
 
 ### 15.3 总 key 泄露
 

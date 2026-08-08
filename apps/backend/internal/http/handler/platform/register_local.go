@@ -121,7 +121,7 @@ func (h *Handler) RegisterLocal(w http.ResponseWriter, r *http.Request) {
 		UserID:         walletUserID,
 		Name:           body.Name + " platform key",
 		UnlimitedQuota: true,
-		Group:          h.p.Cfg.PlatformSharedNewAPIGroup,
+		Group:          companyID.String(),
 	})
 	if err != nil {
 		httputil.WriteJSON(w, http.StatusInternalServerError, nil, fmt.Errorf("create platform token: %w", err))

@@ -39,7 +39,7 @@ func (c Config) JobBatchSize() int {
 
 func (c Config) CatalogSyncInterval() time.Duration {
 	if c.CatalogSyncIntervalSec <= 0 {
-		return 5 * time.Minute
+		return 10 * time.Minute
 	}
 	return time.Duration(c.CatalogSyncIntervalSec) * time.Second
 }

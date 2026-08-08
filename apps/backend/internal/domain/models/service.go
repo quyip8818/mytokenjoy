@@ -63,6 +63,9 @@ func (s *service) ListModels(ctx context.Context) ([]types.ModelInfo, error) {
 }
 
 func (s *service) CreateModel(ctx context.Context, input types.CreateModelInput) (types.ModelInfo, error) {
+	if s.cfg.SupportSaas {
+		return types.ModelInfo{}, domain.Forbidden("custom models are not allowed in SaaS mode")
+	}
 	if err := s.delayer.Wait(ctx, 300*time.Millisecond); err != nil {
 		return types.ModelInfo{}, err
 	}

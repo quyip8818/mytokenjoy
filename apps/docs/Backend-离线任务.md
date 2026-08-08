@@ -241,7 +241,7 @@ Deferred 入队：`compose_watchdog.go` → `startDeferredWatchdog`（`app.go` �
 | `INGEST_RECONCILE_INTERVAL_SEC` | `300` | ingest_reconcile Periodic 间隔                          |
 | `INGEST_RECONCILE_BATCH_SIZE`   | `500` | 单批扫描 log 数                                         |
 | `INGEST_RECONCILE_MAX_ROUNDS`   | `10`  | 单次 reconcile 最多批次数                               |
-| `CATALOG_SYNC_INTERVAL_SEC`  | `300`  | catalog_sync Periodic 间隔（仅 `SUPPORT_SAAS=false`）    |
+| `CATALOG_SYNC_INTERVAL_SEC`  | `600`  | catalog_sync Periodic 间隔（仅 `SUPPORT_SAAS=false`）    |
 
 ---
 

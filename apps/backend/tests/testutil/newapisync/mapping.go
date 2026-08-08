@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/tokenjoy/backend/internal/integration/newapi"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/seed/contract"
 	"github.com/tokenjoy/backend/tests/testutil"
@@ -27,7 +26,7 @@ func DefaultMappingOpts() MappingOpts {
 		NewAPIKeyID:   99,
 		MemberID:      contract.IDMember1,
 		DepartmentID:  contract.IDDept3,
-		NewAPIGroup:   newapi.NewAPIGroupForDepartment(contract.IDDept3),
+		NewAPIGroup:   contract.DefaultCompanyID.String(),
 	}
 }
 
@@ -40,7 +39,7 @@ func UpsertMapping(t *testing.T, st store.Store, opts MappingOpts) {
 		opts.DepartmentID = contract.IDDept3
 	}
 	if opts.NewAPIGroup == "" {
-		opts.NewAPIGroup = newapi.NewAPIGroupForDepartment(opts.DepartmentID)
+		opts.NewAPIGroup = contract.DefaultCompanyID.String()
 	}
 	var memberID *uuid.UUID
 	if !opts.NoMember {

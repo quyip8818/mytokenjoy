@@ -131,9 +131,6 @@ func ValidateModelIDsForMember(
 // ModelNotInDeptMessage is the standard validation message for whitelist enforcement.
 const ModelNotInDeptMessage = "该模型不在您部门的可用范围内"
 
-// NewAPIGroupPrefix is the prefix used for NewAPI group names derived from department IDs.
-const NewAPIGroupPrefix = "dept-"
-
 func GetRoutingRuleForDept(
 	deptID uuid.UUID,
 	rules []types.RoutingRule,

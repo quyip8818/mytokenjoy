@@ -686,7 +686,7 @@ DSN：`NEW_API_DATABASE_URL` 或从 `DATABASE_URL` 推导。
 3. 确保 root 账户（`/api/setup`）
 4. 获取 admin JWT
 5. Seed 模型定价（`lib/model-catalog.json` → ModelRatio/CompletionRatio）
-6. 配置 `platform_shared` 组 + test-model 渠道 + DeepSeek 渠道
+6. 配置 company group + test-model 渠道 + DeepSeek 渠道
 
 ### 13.5 定价模型
 
