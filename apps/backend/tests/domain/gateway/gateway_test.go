@@ -141,7 +141,7 @@ func TestGatewayRejectsDevModelOutsideLocal(t *testing.T) {
 				Budget:          1000,
 				ProxyBackendURL: backend.URL,
 				DeployEnv:       env,
-				CompanyType:     store.CompanyTypeStandard,
+				CompanyType:     store.CompanyTypeSaas,
 			})
 
 			req := gatewaytf.GatewayRequestWithModel(scenario.FullKey, "test-model")

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/tokenjoy/backend/internal/config"
+	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/modelcatalog"
 	"github.com/tokenjoy/backend/internal/support/ratelimit"
@@ -270,12 +271,7 @@ func isAllowedGatewayPath(path string) bool {
 }
 
 func isTestModelAllowed(companyType string) bool {
-	switch companyType {
-	case store.CompanyTypeDemo, store.CompanyTypeTrial, store.CompanyTypeTesting:
-		return true
-	default:
-		return false
-	}
+	return company.IsTestingAccount(companyType)
 }
 
 // isTestModel checks whether callType is a test model via the in-memory type set.

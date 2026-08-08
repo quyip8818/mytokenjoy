@@ -23,7 +23,7 @@ func (s *service) CreateCompany(ctx context.Context, req CreateCompanyRequest) (
 	}
 	companyType := req.Type
 	if companyType == "" {
-		companyType = store.CompanyTypeStandard
+		companyType = store.CompanyTypeSaas
 	}
 	if companyType == store.CompanyTypePlatform {
 		return CreateCompanyResult{}, domain.BadRequest("cannot create platform company via API")
@@ -140,8 +140,8 @@ func (s *service) provisionCompany(ctx context.Context, tx store.Store, name, in
 	if err := tx.Company().UpdateNewAPIWalletCompanyID(ctx, company.ID, user.ID); err != nil {
 		return store.Company{}, err
 	}
-	// Trial/demo accounts: give NewAPI user a large quota for mock model requests.
-	if company.Type == store.CompanyTypeTrial || company.Type == store.CompanyTypeDemo {
+	// Testing accounts (trial/demo/testing): give NewAPI user a large quota for mock model requests.
+	if IsTestingAccount(company.Type) {
 		_ = s.client.ManageUser(ctx, user.ID, "add_quota", 500000*500000)
 		// Seed 1000 mock money so the trial wallet has usable balance.
 		trialQuota := int64(1000) * quota.DefaultQuotaPerUnit

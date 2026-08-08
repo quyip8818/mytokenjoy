@@ -31,7 +31,7 @@ func NewPrecheckFixture(t *testing.T, opts GatewayScenarioOpts, cfgOpts ...testu
 		Store:    st,
 		Ctx:      testutil.Ctx(),
 		FullKey:  fullKey,
-		Precheck: NewPrecheckService(cfg, st, nil),
+		Precheck: NewPrecheckServiceWithOpts(cfg, st, nil, opts.SkipWalletGlobal),
 	}
 }
 

@@ -180,7 +180,7 @@ func TestScopePermissions_TrialCompanySaas_FiltersPlatform(t *testing.T) {
 func TestScopePermissions_StandardCompanySaas_FiltersPlatform(t *testing.T) {
 	t.Parallel()
 	perms := []string{grants.PlatformManage, grants.SelfKeys}
-	result := authz.ScopePermissions(perms, "standard", true)
+	result := authz.ScopePermissions(perms, "saas", true)
 	if len(result) != 1 || result[0] != grants.SelfKeys {
 		t.Fatalf("expected [self:keys], got %v", result)
 	}

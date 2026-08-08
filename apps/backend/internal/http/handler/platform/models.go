@@ -331,6 +331,10 @@ func (h *Handler) SyncModelsFromNewAPI(w http.ResponseWriter, r *http.Request) {
 
 	infos := make([]types.ModelInfo, 0, len(pricingModels))
 	for _, pm := range pricingModels {
+		// NewAPI contains all models including dev mocks; only sync real models.
+		if modelcatalog.IsTestCallType(pm.ModelName) {
+			continue
+		}
 		infos = append(infos, pricingModelToModelInfo(pm))
 	}
 

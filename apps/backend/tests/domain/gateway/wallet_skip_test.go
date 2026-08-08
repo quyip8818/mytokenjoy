@@ -64,36 +64,37 @@ func TestEvaluateSkipWalletStillChecksBudget(t *testing.T) {
 	}
 }
 
-// TestPrecheckSelfhostedWalletZeroPasses verifies the full PrecheckService.Run
-// skips wallet check for selfhosted companies, allowing wallet=0 to pass.
-func TestPrecheckSelfhostedWalletZeroPasses(t *testing.T) {
+// TestPrecheckLocalDeployWalletZeroPasses verifies the full PrecheckService.Run
+// skips wallet check for non-SaaS deployments (skipWalletGlobal=true), allowing wallet=0 to pass.
+func TestPrecheckLocalDeployWalletZeroPasses(t *testing.T) {
 	t.Parallel()
 	zeroWallet := float64(0)
 	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{
 		Budget:             1000,
 		WalletBalancePoint: &zeroWallet,
 		CompanyType:        "selfhosted",
+		SkipWalletGlobal:   true,
 	})
 
-	// Selfhosted + wallet=0 → should pass (SkipWalletCheck set by PrecheckService).
+	// Non-SaaS deployment + wallet=0 → should pass (skipWalletGlobal=true).
 	if err := fx.Run("deepseek-v4-pro", false); err != nil {
-		t.Fatalf("expected selfhosted wallet=0 to pass, got: %v", err)
+		t.Fatalf("expected local deploy wallet=0 to pass, got: %v", err)
 	}
 }
 
-// TestPrecheckStandardWalletZeroRejects verifies that standard companies
-// with wallet=0 are still rejected (no skip).
-func TestPrecheckStandardWalletZeroRejects(t *testing.T) {
+// TestPrecheckSaasWalletZeroRejects verifies that SaaS companies
+// with wallet=0 are still rejected (skipWalletGlobal=false).
+func TestPrecheckSaasWalletZeroRejects(t *testing.T) {
 	t.Parallel()
 	zeroWallet := float64(0)
 	fx := gatewaytf.NewPrecheckFixture(t, gatewaytf.GatewayScenarioOpts{
 		Budget:             1000,
 		WalletBalancePoint: &zeroWallet,
-		CompanyType:        "standard",
+		CompanyType:        "saas",
 	})
 
-	// Standard + wallet=0 → should reject.
+	// SaaS + wallet=0 → should reject.
 	if err := fx.Run("deepseek-v4-pro", false); err == nil {
-		t.Fatal("expected standard wallet=0 to be rejected")
+		t.Fatal("expected saas wallet=0 to be rejected")
 	}
 }

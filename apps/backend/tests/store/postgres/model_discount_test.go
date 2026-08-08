@@ -18,7 +18,7 @@ func createDiscountTestCompany(t *testing.T, st store.Store) uuid.UUID {
 	err := st.Company().Create(ctx, store.Company{
 		ID:     id,
 		Name:   "discount-test-" + id.String()[:8],
-		Type:   store.CompanyTypeStandard,
+		Type:   store.CompanyTypeSaas,
 		Status: store.CompanyStatusActive,
 	})
 	if err != nil {

@@ -11,7 +11,7 @@ const (
 	CompanyStatusActive    = "active"
 	CompanyStatusSuspended = "suspended"
 
-	CompanyTypeStandard   = "standard"
+	CompanyTypeSaas       = "saas"
 	CompanyTypeTrial      = "trial"
 	CompanyTypeDemo       = "demo"
 	CompanyTypeSelfhosted = "selfhosted"

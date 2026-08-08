@@ -39,7 +39,7 @@ type CreateCompanyRequest struct {
 	Name         string
 	Industry     string // optional: 行业
 	Size         string // optional: 人员规模
-	Type         string // "standard" | "trial" | "selfhosted"
+	Type         string // "saas" | "trial" | "selfhosted"
 	InviteEmail  string // optional: non-empty → generate invite (platform provisioning)
 	MemberAlias  string // optional: alias for the creator member
 	MemberAvatar string // optional: avatar for the creator member
@@ -175,7 +175,7 @@ func (s *service) UpgradeToStandard(ctx context.Context, companyID uuid.UUID) er
 		if _, err := tx.Company().LockForUpdate(ctx, companyID); err != nil {
 			return err
 		}
-		if err := tx.Company().UpdateType(ctx, companyID, store.CompanyTypeStandard); err != nil {
+		if err := tx.Company().UpdateType(ctx, companyID, store.CompanyTypeSaas); err != nil {
 			return err
 		}
 		if _, err := tx.Billing().ExpireMockLots(ctx, companyID); err != nil {

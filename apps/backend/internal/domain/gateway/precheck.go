@@ -23,7 +23,7 @@ type Prechecker interface {
 type PrecheckOpts struct {
 	SkipModelCheck     bool // /v1/models listing
 	SkipModelAllowlist bool // test model (source=="test") — not in allowlist, skip check
-	SkipWalletCheck    bool // selfhosted with non-platform channels — wallet not required
+	SkipWalletCheck    bool // non-SaaS deployments — wallet not required
 }
 
 // BuildPrecheckOpts builds precheck options from request context.
@@ -36,28 +36,31 @@ func BuildPrecheckOpts(path string, isTestModel bool) PrecheckOpts {
 }
 
 type PrecheckService struct {
-	cache       *PrecheckCache
-	clock       clock.Clock
-	budgetCheck domainbudget.CombinedKeyCache
+	cache            *PrecheckCache
+	clock            clock.Clock
+	budgetCheck      domainbudget.CombinedKeyCache
+	skipWalletGlobal bool // true for non-SaaS deployments: no platform wallet required
 }
 
 // NewPrecheckService creates a precheck service.
 // Use NewPrecheckCache to create the cache from a GatewayPrecheckRepository.
-func NewPrecheckService(cache *PrecheckCache, clk clock.Clock, budgetCheck domainbudget.CombinedKeyCache) *PrecheckService {
+// skipWallet should be !cfg.SupportSaas — non-SaaS deployments don't use platform billing.
+func NewPrecheckService(cache *PrecheckCache, clk clock.Clock, budgetCheck domainbudget.CombinedKeyCache, skipWallet bool) *PrecheckService {
 	if budgetCheck == nil {
 		budgetCheck = domainbudget.NoopCombinedKeyCache
 	}
 	return &PrecheckService{
-		cache:       cache,
-		clock:       clock.OrDefault(clk),
-		budgetCheck: budgetCheck,
+		cache:            cache,
+		clock:            clock.OrDefault(clk),
+		budgetCheck:      budgetCheck,
+		skipWalletGlobal: skipWallet,
 	}
 }
 
 // NewPrecheckServiceLegacy creates a precheck service with a raw loader (no cache).
 // Used in tests that don't need caching.
 func NewPrecheckServiceLegacy(loader store.GatewayPrecheckRepository, clk clock.Clock, budgetCheck domainbudget.CombinedKeyCache) *PrecheckService {
-	return NewPrecheckService(NewPrecheckCache(loader), clk, budgetCheck)
+	return NewPrecheckService(NewPrecheckCache(loader), clk, budgetCheck, false)
 }
 
 func (p *PrecheckService) Run(ctx context.Context, keyHash string, model string, opts PrecheckOpts) (PrecheckResult, error) {
@@ -68,10 +71,8 @@ func (p *PrecheckService) Run(ctx context.Context, keyHash string, model string,
 	if row == nil {
 		return PrecheckResult{}, fmt.Errorf("platform key not found")
 	}
-	// Selfhosted companies may have non-platform channels; skip wallet check
-	// so requests can route to self-managed channels even when wallet=0.
-	// SaaS Gateway is the backstop for platform-channel traffic.
-	if row.CompanyType == store.CompanyTypeSelfhosted {
+	// Non-SaaS deployments: skip wallet check — no platform billing involved.
+	if p.skipWalletGlobal {
 		opts.SkipWalletCheck = true
 	}
 	if err := EvaluateAt(PrecheckContextFromStore(row), model, opts, p.clock.Now()); err != nil {

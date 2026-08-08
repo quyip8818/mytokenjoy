@@ -191,8 +191,8 @@ func TestCreateCompanyDefaultsToStandardType(t *testing.T) {
 	if err != nil || stored == nil {
 		t.Fatal("expected company")
 	}
-	if stored.Type != "standard" {
-		t.Fatalf("expected type=standard, got %s", stored.Type)
+	if stored.Type != "saas" {
+		t.Fatalf("expected type=saas, got %s", stored.Type)
 	}
 }
 

@@ -6,8 +6,9 @@ import { PageShell } from '@/components/layout/page-shell'
 import { PageHeader } from '@/components/layout/page-header'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { listEmpty } from '@/lib/list-empty'
-import { PermissionGate, useSession } from '@/features/session'
+import { PermissionGate } from '@/features/session'
 import { PERMISSION } from '@/lib/permissions'
+import { IS_SAAS } from '@/config/app'
 import type { useModelListPage } from '@/features/models'
 import { ModelListTable } from './model-list-table'
 
@@ -47,8 +48,7 @@ export function ModelListPageShell({
   openEdit,
   discountMap,
 }: ModelListPageShellProps) {
-  const { companyType } = useSession()
-  const isSelfHosted = companyType === 'selfhosted'
+  const isLocalDeploy = !IS_SAAS
   const tableContent = (
     <DataSection
       loading={loading}
@@ -58,9 +58,9 @@ export function ModelListPageShell({
       empty={listEmpty(loading, models, {
         icon: Box,
         title: '暂无模型',
-        description: isSelfHosted ? '添加自定义模型以扩展可用模型列表' : '当前没有可用的内置模型',
-        actionLabel: isSelfHosted && canManage ? '添加模型' : undefined,
-        onAction: isSelfHosted && canManage ? openCreate : undefined,
+        description: isLocalDeploy ? '添加自定义模型以扩展可用模型列表' : '当前没有可用的内置模型',
+        actionLabel: isLocalDeploy && canManage ? '添加模型' : undefined,
+        onAction: isLocalDeploy && canManage ? openCreate : undefined,
       })}
     >
       <ModelListTable
@@ -75,7 +75,7 @@ export function ModelListPageShell({
   )
 
   // SaaS version: simple table without tabs
-  if (!isSelfHosted) {
+  if (!isLocalDeploy) {
     return (
       <PageShell>
         <PageHeader testId="page-models-list" title="模型列表" />

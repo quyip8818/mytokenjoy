@@ -11,6 +11,7 @@ import (
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	"github.com/tokenjoy/backend/internal/http/httpx"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
+	"github.com/tokenjoy/backend/internal/store"
 )
 
 type Handler struct {
@@ -128,7 +129,7 @@ func (h *Handler) CreateCompany(w http.ResponseWriter, r *http.Request) {
 	}
 	companyType := body.Type
 	if companyType == "" {
-		companyType = "standard"
+		companyType = store.CompanyTypeSaas
 	}
 	result, err := h.p.CompanySvc.CreateCompany(r.Context(), domaincompany.CreateCompanyRequest{
 		Name:        body.Name,

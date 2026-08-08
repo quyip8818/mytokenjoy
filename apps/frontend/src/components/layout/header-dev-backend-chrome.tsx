@@ -2,8 +2,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { SimulateConsumeDialog } from '@/features/billing'
 import { useSession } from '@/features/session'
-
-const SIMULATE_ALLOWED_TYPES = ['demo', 'trial', 'testing'] as const
+import { isTestingAccount } from '@/lib/company'
 
 function HeaderDevBackendToolbarContent() {
   const [simulateOpen, setSimulateOpen] = useState(false)
@@ -20,7 +19,7 @@ function HeaderDevBackendToolbarContent() {
 
 export function HeaderDevBackendToolbar() {
   const { companyType } = useSession()
-  if (!(SIMULATE_ALLOWED_TYPES as readonly string[]).includes(companyType)) {
+  if (!isTestingAccount(companyType)) {
     return null
   }
 

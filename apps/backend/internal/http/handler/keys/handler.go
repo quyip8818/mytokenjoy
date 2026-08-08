@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
+	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	domainkeys "github.com/tokenjoy/backend/internal/domain/keys"
 	"github.com/tokenjoy/backend/internal/domain/types"
@@ -14,7 +15,6 @@ import (
 	"github.com/tokenjoy/backend/internal/http/httputil"
 	httpmiddleware "github.com/tokenjoy/backend/internal/http/middleware"
 	"github.com/tokenjoy/backend/internal/integration/newapisync/devapi"
-	"github.com/tokenjoy/backend/internal/store"
 	"github.com/tokenjoy/backend/internal/support/tenant"
 )
 
@@ -234,12 +234,7 @@ func (h *Handler) SimulateBearer(w http.ResponseWriter, r *http.Request) {
 }
 
 func isSimulateAllowed(companyType string) bool {
-	switch companyType {
-	case store.CompanyTypeDemo, store.CompanyTypeTrial, store.CompanyTypeTesting:
-		return true
-	default:
-		return false
-	}
+	return company.IsTestingAccount(companyType)
 }
 
 // Mount registers the keys handler on the given router under /keys.

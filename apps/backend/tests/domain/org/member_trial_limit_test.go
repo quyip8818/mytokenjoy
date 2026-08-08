@@ -77,7 +77,7 @@ func TestTrialMemberLimitAllowsNonTrial(t *testing.T) {
 	_ = cfg
 	_ = st
 
-	// Standard company context (not trial) — should not be limited
+	// Selfhosted company context (not trial) — should not be limited
 	ctx := company.WithContext(testutil.Ctx(), tenant.Info{
 		CompanyID: contract.DefaultCompanyID,
 		Type:      store.CompanyTypeSelfhosted,

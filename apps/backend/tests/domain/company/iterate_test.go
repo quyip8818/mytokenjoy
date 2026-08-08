@@ -30,7 +30,7 @@ func TestForEachActiveCompanySkipsTesting(t *testing.T) {
 
 	// Create a standard company.
 	if err := st.Company().Create(ctx, store.Company{
-		ID: id9101, Name: "Standard Co", Type: store.CompanyTypeStandard,
+		ID: id9101, Name: "Standard Co", Type: store.CompanyTypeSaas,
 		Status: store.CompanyStatusActive, CreatedAt: now, UpdatedAt: now,
 	}); err != nil {
 		t.Fatal(err)
@@ -71,7 +71,7 @@ func TestForEachActiveCompanySkipsSuspended(t *testing.T) {
 	id9200 := uuid.MustParse("00000000-0000-7000-0000-000000009200")
 
 	if err := st.Company().Create(ctx, store.Company{
-		ID: id9200, Name: "Suspended Co", Type: store.CompanyTypeStandard,
+		ID: id9200, Name: "Suspended Co", Type: store.CompanyTypeSaas,
 		Status: store.CompanyStatusSuspended, CreatedAt: now, UpdatedAt: now,
 	}); err != nil {
 		t.Fatal(err)

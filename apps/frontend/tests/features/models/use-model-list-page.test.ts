@@ -4,6 +4,18 @@ import { createMockApis, renderHookWithProviders } from '@tests/utils'
 import { waitForLoaded } from '@tests/helpers/wait-for-loaded'
 import { mockModels } from '@tests/fixtures/models'
 
+// ponytail: mock IS_SAAS at module level — toggled per test via mockReturnValue
+const isSaasMock = vi.fn(() => false)
+vi.mock('@/config/app', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>
+  return {
+    ...actual,
+    get IS_SAAS() {
+      return isSaasMock()
+    },
+  }
+})
+
 describe('useModelListPage', () => {
   it('loads models on mount', async () => {
     const apis = createMockApis({
@@ -20,7 +32,8 @@ describe('useModelListPage', () => {
     expect(result.current.models.length).toBeGreaterThan(0)
   })
 
-  it('filters to builtin only when not selfhosted', async () => {
+  it('filters to builtin only in SaaS mode', async () => {
+    isSaasMock.mockReturnValue(true)
     const apis = createMockApis({
       modelsApi: {
         list: vi.fn().mockResolvedValue(mockModels),
@@ -29,7 +42,7 @@ describe('useModelListPage', () => {
 
     const { result } = renderHookWithProviders(() => useModelListPage(apis), {
       apis,
-      companyType: 'standard',
+      companyType: 'saas',
     })
 
     await waitForLoaded(result, 'loading')
@@ -37,9 +50,11 @@ describe('useModelListPage', () => {
     // custom models should be filtered out in SaaS mode
     const hasCustom = result.current.models.some((m) => m.provider === 'custom')
     expect(hasCustom).toBe(false)
+    isSaasMock.mockReturnValue(false)
   })
 
-  it('shows all models including custom when selfhosted', async () => {
+  it('shows all models including custom in local deploy', async () => {
+    isSaasMock.mockReturnValue(false)
     const apis = createMockApis({
       modelsApi: {
         list: vi.fn().mockResolvedValue(mockModels),

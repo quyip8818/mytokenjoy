@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tokenjoy/backend/internal/domain"
 	domainbilling "github.com/tokenjoy/backend/internal/domain/billing"
+	"github.com/tokenjoy/backend/internal/domain/company"
 	"github.com/tokenjoy/backend/internal/domain/grants"
 	httpdeps "github.com/tokenjoy/backend/internal/http/deps"
 	"github.com/tokenjoy/backend/internal/http/handler/shared"
@@ -57,7 +58,7 @@ type rechargeBody struct {
 }
 
 func (h *Handler) CreateRecharge(w http.ResponseWriter, r *http.Request) {
-	if isTrialOrDemoCompany(r) {
+	if isTestingCompany(r) {
 		httputil.WriteError(w, domain.ForbiddenCode("TRIAL_NO_TOPUP", "试用环境不支持充值，升级后可使用"))
 		return
 	}
@@ -75,7 +76,7 @@ func (h *Handler) CreateRecharge(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ConfirmRecharge(w http.ResponseWriter, r *http.Request) {
-	if isTrialOrDemoCompany(r) {
+	if isTestingCompany(r) {
 		httputil.WriteError(w, domain.ForbiddenCode("TRIAL_NO_TOPUP", "试用环境不支持充值，升级后可使用"))
 		return
 	}
@@ -88,10 +89,10 @@ func (h *Handler) ConfirmRecharge(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteVoid(w, err)
 }
 
-// isTrialOrDemoCompany checks if the current request belongs to a trial or demo tenant.
-func isTrialOrDemoCompany(r *http.Request) bool {
+// isTestingCompany checks if the current request belongs to a testing (trial/demo/testing) tenant.
+func isTestingCompany(r *http.Request) bool {
 	info, ok := tenant.From(r.Context())
-	return ok && (info.Type == store.CompanyTypeTrial || info.Type == store.CompanyTypeDemo)
+	return ok && company.IsTestingAccount(info.Type)
 }
 
 type discountDTO struct {
@@ -140,7 +141,7 @@ type redeemBody struct {
 }
 
 func (h *Handler) Redeem(w http.ResponseWriter, r *http.Request) {
-	if isTrialOrDemoCompany(r) {
+	if isTestingCompany(r) {
 		httputil.WriteError(w, domain.ForbiddenCode("TRIAL_NO_TOPUP", "试用环境不支持兑换，升级后可使用"))
 		return
 	}

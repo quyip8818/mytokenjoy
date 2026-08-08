@@ -30,6 +30,7 @@ type GatewayScenarioOpts struct {
 	ProxyBackendURL       string
 	DeployEnv             string
 	FullKey               string
+	SkipWalletGlobal      bool // simulate non-SaaS deployment (skip wallet check)
 }
 
 type GatewayScenario struct {
@@ -58,7 +59,7 @@ func BuildGatewayScenario(t *testing.T, opts GatewayScenarioOpts) GatewayScenari
 		cfg.DeployEnv = opts.DeployEnv
 	}
 
-	precheck := NewPrecheckService(cfg, st, nil)
+	precheck := NewPrecheckServiceWithOpts(cfg, st, nil, opts.SkipWalletGlobal)
 	gw, err := domaingateway.NewGatewayService(cfg, precheck, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -68,6 +69,10 @@ func BuildGatewayScenario(t *testing.T, opts GatewayScenarioOpts) GatewayScenari
 
 func NewPrecheckService(cfg config.Config, st store.Store, cache domainbudget.CombinedKeyCache) *domaingateway.PrecheckService {
 	return domaingateway.NewPrecheckServiceLegacy(st.GatewayPrecheck(), testutil.TestClock(), cache)
+}
+
+func NewPrecheckServiceWithOpts(cfg config.Config, st store.Store, cache domainbudget.CombinedKeyCache, skipWallet bool) *domaingateway.PrecheckService {
+	return domaingateway.NewPrecheckService(domaingateway.NewPrecheckCache(st.GatewayPrecheck()), testutil.TestClock(), cache, skipWallet)
 }
 
 func setBudgetOnTree(nodes []types.BudgetNode, deptID uuid.UUID, budget, consumed float64) bool {

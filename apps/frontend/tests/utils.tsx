@@ -129,7 +129,7 @@ export interface TestWrapperOptions {
   apis?: AppApis
   permissions?: PermissionKey[]
   readOnly?: boolean
-  companyType?: 'selfhosted' | 'standard' | 'trial' | 'demo' | 'testing'
+  companyType?: 'selfhosted' | 'saas' | 'trial' | 'demo' | 'testing'
   initialEntries?: string[]
 }
 

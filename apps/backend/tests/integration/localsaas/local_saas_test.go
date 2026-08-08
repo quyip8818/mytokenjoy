@@ -253,15 +253,16 @@ func TestWalletLotsVersionBump(t *testing.T) {
 func TestGatewaySelfhostedWalletZeroHTTP(t *testing.T) {
 	t.Parallel()
 
-	// Selfhosted + wallet=0 + budget > 0 → request passes precheck.
+	// Non-SaaS deploy + wallet=0 + budget > 0 → request passes precheck (skipWalletGlobal).
 	zeroWallet := float64(0)
 	scenario := gatewaytfpkg.BuildGatewayScenario(t, gatewaytfpkg.GatewayScenarioOpts{
 		Budget:             10000,
 		WalletBalancePoint: &zeroWallet,
 		CompanyType:        store.CompanyTypeSelfhosted,
+		SkipWalletGlobal:   true,
 	})
 
-	// Make a gateway request — should pass (wallet skip for selfhosted).
+	// Make a gateway request — should pass (skipWalletGlobal for non-SaaS deploy).
 	body := []byte(`{"model":"deepseek-v4-pro","messages":[{"role":"user","content":"hello"}]}`)
 	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+scenario.FullKey)
@@ -272,6 +273,6 @@ func TestGatewaySelfhostedWalletZeroHTTP(t *testing.T) {
 	// Should NOT be 403 (would be 403 if wallet check triggered).
 	// Expect 200 (backend mock) or at least not 403.
 	if rec.Code == http.StatusForbidden {
-		t.Fatalf("selfhosted wallet=0 request was rejected: %d %s", rec.Code, rec.Body.String())
+		t.Fatalf("local deploy wallet=0 request was rejected: %d %s", rec.Code, rec.Body.String())
 	}
 }
